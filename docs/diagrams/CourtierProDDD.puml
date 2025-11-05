@@ -1,0 +1,511 @@
+@startuml
+hide circle
+top to bottom direction
+scale 0.2
+
+!define ENTITY(x) class x << Entity >>
+!define AGGREGATE_ROOT(x) class x << Aggregate Root >>
+!define VALUE_OBJECT(x) class x << Value Object >>
+!define ENUM(x) class x << Enum >>
+!pragma useVerticalIf on
+
+skinparam dpi 350
+skinparam packageStyle rectangle
+skinparam rectangle {
+  BackgroundColor #f7f4eb
+  BorderColor Black
+}
+
+'--- Font sizing and layout tuning ---
+skinparam defaultFontSize 16
+skinparam classFontSize 16
+skinparam noteFontSize 14
+skinparam packageTitleFontSize 18
+skinparam titleFontSize 22
+
+rectangle "CourtierPro Domain" as Domain {
+
+  '======================
+  ' CLIENT MANAGEMENT CONTEXT
+  '======================
+  package "User Management" as ClientBC <<Rectangle>> #LightBlue {
+
+    AGGREGATE_ROOT(Client) #lightblue {
+      clientId: UUID
+      fullName: String
+      email: Email
+      phone: Phone
+      preferredLanguage: LanguageEnum
+      status: ClientStatusEnum
+    }
+
+    AGGREGATE_ROOT(Broker) #lightblue {
+      brokerId: UUID
+      fullName: String
+      licenseNumber: String
+      email: Email
+      phone: Phone
+      active: Boolean
+    }
+
+    AGGREGATE_ROOT(Admin) #lightblue {
+      adminId: UUID
+      fullName: String
+      email: Email
+      role: AdminRoleEnum
+      active: Boolean
+    }
+
+    VALUE_OBJECT(ClientIdentifier) #Bisque {
+      clientId: UUID
+    }
+
+    VALUE_OBJECT(BrokerIdentifier) #Bisque {
+      brokerId: UUID
+    }
+
+    VALUE_OBJECT(AdminIdentifier) #Bisque {
+      adminId: UUID
+    }
+
+    VALUE_OBJECT(Email) #Bisque {
+      value: String
+    }
+
+    VALUE_OBJECT(Phone) #Bisque {
+      value: String
+    }
+
+    ENUM(LanguageEnum) {
+      EN
+      FR
+    }
+
+    ENUM(ClientStatusEnum) {
+      ACTIVE
+      INACTIVE
+      CLOSED
+    }
+
+    ENUM(AdminRoleEnum) {
+      SYSTEM_ADMIN
+      OFFICE_ADMIN
+    }
+
+    ' Intra-context links
+    Client "1" *-- "1" ClientIdentifier
+    Client "1" *-- "1" Email
+    Client "0..1" *-- "1" Phone
+    Client --> LanguageEnum
+    Client --> ClientStatusEnum
+
+    Broker "1" *-- "1" BrokerIdentifier
+    Broker "1" *-- "1" Email
+    Broker "0..1" *-- "1" Phone
+
+    Admin "1" *-- "1" AdminIdentifier
+    Admin "1" *-- "1" Email
+    Admin --> AdminRoleEnum
+
+    note bottom of Client
+      Invariants:
+      • email must be unique per Client.
+      • preferredLanguage ∈ {EN, FR}.
+      • status reflects the ongoing business relationship state.
+    end note
+
+    note bottom of Broker
+      Invariants:
+      • licenseNumber must be valid and unique per Broker.
+      • active = false means Broker cannot confirm appointments
+        or update transaction stages.
+    end note
+
+    note bottom of Admin
+      Invariants:
+      • Admin manages system configuration and access control.
+      • Admin does NOT modify transaction stages on behalf of brokers.
+    end note
+  }
+
+
+  '======================
+  ' TRANSACTION MANAGEMENT CONTEXT
+  '======================
+  package "Transaction Management" as TransactionBC <<Rectangle>> #LightYellow {
+
+    AGGREGATE_ROOT(Transaction) #lightyellow {
+      transactionId: UUID
+      propertyAddress: PropertyAddress
+      clientRef: ClientRef
+      brokerRef: BrokerRef
+      currentStage: TransactionStageEnum
+      stageHistory: List<StageTimelineEntry>
+      openedAt: DateTime
+      closedAt: DateTime
+      status: TransactionStatusEnum
+    }
+
+    ENTITY(StageTimelineEntry) #lightpink {
+      timelineEntryId: UUID
+      stage: TransactionStageEnum
+      note: String
+      occurredAt: DateTime
+      addedByBrokerId: UUID
+    }
+
+    VALUE_OBJECT(TransactionIdentifier) #Bisque {
+      transactionId: UUID
+    }
+
+    VALUE_OBJECT(ClientRef) #Bisque {
+      clientId: UUID
+      snapshotName: String
+      snapshotEmail: String
+    }
+
+    VALUE_OBJECT(BrokerRef) #Bisque {
+      brokerId: UUID
+      snapshotName: String
+      snapshotLicenseNumber: String
+    }
+
+    VALUE_OBJECT(PropertyAddress) #Bisque {
+      street: String
+      city: String
+      province: String
+      postalCode: String
+    }
+
+    ENUM(TransactionStageEnum) {
+      INITIAL_CONTACT
+      OFFER_SUBMITTED
+      OFFER_ACCEPTED
+      FINANCING_APPROVED
+      INSPECTION_SCHEDULED
+      NOTARY_SIGNING_SCHEDULED
+      CLOSED
+      TERMINATED
+    }
+
+    ENUM(TransactionStatusEnum) {
+      ACTIVE
+      CLOSED_SUCCESSFULLY
+      TERMINATED_EARLY
+    }
+
+    ' Intra-context links
+    Transaction "1" *-- "1" TransactionIdentifier
+    Transaction "1" *-- "1" PropertyAddress
+    Transaction "1" *-- "1" ClientRef
+    Transaction "1" *-- "1" BrokerRef
+    Transaction "1" *-- "0..*" StageTimelineEntry
+    Transaction --> TransactionStageEnum
+    Transaction --> TransactionStatusEnum
+
+    StageTimelineEntry --> TransactionStageEnum
+
+    note bottom of Transaction
+      Invariants:
+      • Each Transaction belongs to exactly one Client and is
+        primarily handled by exactly one Broker.
+      • currentStage must match the most recent StageTimelineEntry.stage.
+      • closedAt is only set when status ∈ {CLOSED_SUCCESSFULLY, TERMINATED_EARLY}.
+    end note
+
+    note bottom of StageTimelineEntry
+      Invariants:
+      • occurredAt must be immutable once recorded.
+      • addedByBrokerId must refer to a valid, active Broker.
+      • Used to drive "timeline of progress" visible to the Client.
+    end note
+  }
+
+
+  '======================
+  ' DOCUMENT MANAGEMENT CONTEXT
+  '======================
+  package "Document Management" as DocumentBC <<Rectangle>> #LightGreen {
+
+    AGGREGATE_ROOT(DocumentRequest) #lightgreen {
+      requestId: UUID
+      transactionRef: TransactionRef
+      docType: DocumentTypeEnum
+      status: DocumentStatusEnum
+      submittedDocument: SubmittedDocument
+      brokerNotes: String
+      lastUpdatedAt: DateTime
+    }
+
+    VALUE_OBJECT(TransactionRef) #Bisque {
+      transactionId: UUID
+      clientId: UUID
+    }
+
+    ENTITY(SubmittedDocument) #lightpink {
+      documentId: UUID
+      uploadedAt: DateTime
+      uploadedByClientId: UUID
+      storageObject: StorageObjectRef
+    }
+
+    VALUE_OBJECT(StorageObjectRef) #Bisque {
+      s3Key: String
+      fileName: String
+      mimeType: String
+    }
+
+    ENUM(DocumentTypeEnum) {
+      PROOF_OF_FUNDS
+      ID_VERIFICATION
+      FINANCING_LETTER
+      INSPECTION_REPORT
+      NOTARY_DOCUMENT
+      OTHER
+    }
+
+    ENUM(DocumentStatusEnum) {
+      REQUESTED
+      SUBMITTED
+      APPROVED
+      NEEDS_REVISION
+    }
+
+    ' Intra-context links
+    DocumentRequest "1" *-- "1" TransactionRef
+    DocumentRequest "0..1" *-- "1" SubmittedDocument
+    SubmittedDocument "1" *-- "1" StorageObjectRef
+
+    DocumentRequest --> DocumentTypeEnum
+    DocumentRequest --> DocumentStatusEnum
+
+    note bottom of DocumentRequest
+      Invariants:
+      • status transitions follow REQUESTED → SUBMITTED → (APPROVED | NEEDS_REVISION).
+      • Each DocumentRequest is tied to exactly one Transaction.
+      • If status = APPROVED, brokerNotes should capture approval context.
+    end note
+
+    note bottom of SubmittedDocument
+      Invariants:
+      • storageObject.s3Key must exist in S3.
+      • uploadedByClientId must match the Client bound to transactionRef.
+    end note
+  }
+
+
+  '======================
+  ' APPOINTMENT MANAGEMENT CONTEXT
+  '======================
+  package "Appointment Management" as AppointmentBC <<Rectangle>> #LightSalmon {
+
+    AGGREGATE_ROOT(Appointment) #lightsalmon {
+      appointmentId: UUID
+      transactionRef: TransactionRef
+      clientRef: ClientRefSnapshot
+      brokerRef: BrokerRefSnapshot
+      appointmentType: AppointmentTypeEnum
+      scheduledStart: DateTime
+      scheduledEnd: DateTime
+      status: AppointmentStatusEnum
+      details: String
+      lastModifiedByBrokerId: UUID
+    }
+
+    VALUE_OBJECT(ClientRefSnapshot) #Bisque {
+      clientId: UUID
+      snapshotName: String
+      snapshotEmail: String
+    }
+
+    VALUE_OBJECT(BrokerRefSnapshot) #Bisque {
+      brokerId: UUID
+      snapshotName: String
+      snapshotLicenseNumber: String
+    }
+
+    ENUM(AppointmentTypeEnum) {
+      PROPERTY_VISIT
+      DOCUMENT_SIGNING
+      FINANCING_DISCUSSION
+      INSPECTION
+      OTHER
+    }
+
+    ENUM(AppointmentStatusEnum) {
+      PENDING_CLIENT_REQUEST
+      PENDING_BROKER_CONFIRMATION
+      CONFIRMED
+      RESCHEDULE_PROPOSED
+      DECLINED
+      COMPLETED
+    }
+
+    ' Intra-context links
+    Appointment "1" *-- "1" TransactionRef
+    Appointment "1" *-- "1" ClientRefSnapshot
+    Appointment "1" *-- "1" BrokerRefSnapshot
+    Appointment --> AppointmentTypeEnum
+    Appointment --> AppointmentStatusEnum
+
+    note bottom of Appointment
+      Invariants:
+      • Each Appointment is associated with exactly one Transaction.
+      • status governs broker/client responsibilities:
+        - Client may request (PENDING_CLIENT_REQUEST).
+        - Broker must confirm before CONFIRMED.
+      • scheduledStart must be in the future unless status = COMPLETED.
+    end note
+  }
+
+
+  '======================
+  ' NOTIFICATIONS CONTEXT
+  '======================
+  package "Notifications" as NotificationsBC <<Rectangle>> #Thistle {
+
+    AGGREGATE_ROOT(OutboundNotification) #Thistle {
+      notificationId: UUID
+      recipientEmail: String
+      subject: String
+      body: String
+      channel: NotificationChannelEnum
+      relatedEntity: RelatedEntityRef
+      sentAt: DateTime
+      status: NotificationStatusEnum
+      providerMessageId: String
+    }
+
+    VALUE_OBJECT(RelatedEntityRef) #Bisque {
+      entityType: RelatedEntityTypeEnum
+      entityId: UUID
+    }
+
+    ENUM(NotificationChannelEnum) {
+      EMAIL
+    }
+
+    ENUM(NotificationStatusEnum) {
+      QUEUED
+      SENT
+      FAILED
+    }
+
+    ENUM(RelatedEntityTypeEnum) {
+      TRANSACTION
+      DOCUMENT_REQUEST
+      APPOINTMENT
+    }
+
+    ' Intra-context links
+    OutboundNotification "1" *-- "1" RelatedEntityRef
+    OutboundNotification --> NotificationChannelEnum
+    OutboundNotification --> NotificationStatusEnum
+    RelatedEntityRef --> RelatedEntityTypeEnum
+
+    note bottom of OutboundNotification
+      Invariants:
+      • channel = EMAIL is fulfilled via Amazon SES.
+      • Each notification references a meaningful business entity
+        (Transaction, DocumentRequest, Appointment).
+    end note
+  }
+
+
+  '======================
+  ' ANALYTICS CONTEXT
+  '======================
+  package "Analytics" as AnalyticsBC <<Rectangle>> #LightGray {
+
+    AGGREGATE_ROOT(BrokerMetricsSnapshot) #lightgray {
+      snapshotId: UUID
+      brokerRef: BrokerRefForMetrics
+      capturedAt: DateTime
+      activeTransactionsCount: Integer
+      avgTimeToCloseDays: Decimal
+      documentsAwaitingReviewCount: Integer
+      pendingAppointmentsCount: Integer
+    }
+
+    VALUE_OBJECT(BrokerRefForMetrics) #Bisque {
+      brokerId: UUID
+      brokerName: String
+    }
+
+    note bottom of BrokerMetricsSnapshot
+      Invariants:
+      • Represents a point-in-time view used by broker dashboards.
+      • activeTransactionsCount counts Transaction.status = ACTIVE.
+      • avgTimeToCloseDays derived from Transaction.openedAt → closedAt.
+      • pendingAppointmentsCount counts Appointment.status in
+        {PENDING_BROKER_CONFIRMATION, RESCHEDULE_PROPOSED}.
+    end note
+  }
+
+
+  '======================
+  ' CROSS-CONTEXT RELATIONSHIPS
+  '======================
+
+  ' TRANSACTION ↔ CLIENT MANAGEMENT
+  TransactionBC.Transaction --> ClientBC.ClientIdentifier
+  TransactionBC.Transaction --> ClientBC.BrokerIdentifier
+  note on link
+    Transaction references the Client and Broker
+    responsible for that specific real estate case.
+    Snapshots are stored in ClientRef and BrokerRef
+    to preserve historical context.
+  end note
+
+  ' DOCUMENT MANAGEMENT ↔ TRANSACTION MANAGEMENT
+  DocumentBC.DocumentRequest --> TransactionBC.TransactionIdentifier
+  note on link
+    A DocumentRequest always belongs to exactly
+    one Transaction and is part of that transaction's
+    compliance and progress requirements.
+  end note
+
+  ' APPOINTMENT MANAGEMENT ↔ TRANSACTION MANAGEMENT
+  AppointmentBC.Appointment --> TransactionBC.TransactionIdentifier
+  note on link
+    Each Appointment is tied to a Transaction
+    so that scheduling and milestones stay aligned
+    with the client’s specific deal.
+  end note
+
+  ' APPOINTMENT MANAGEMENT ↔ CLIENT MANAGEMENT
+  AppointmentBC.ClientRefSnapshot --> ClientBC.ClientIdentifier
+  AppointmentBC.BrokerRefSnapshot --> ClientBC.BrokerIdentifier
+  note on link
+    Appointments embed snapshot data (name, license)
+    so historical appointment records remain accurate
+    even if Client or Broker details change later.
+  end note
+
+  ' NOTIFICATIONS ↔ DOCUMENT / TRANSACTION / APPOINTMENT
+  NotificationsBC.OutboundNotification --> DocumentBC.DocumentRequest
+  NotificationsBC.OutboundNotification --> TransactionBC.Transaction
+  NotificationsBC.OutboundNotification --> AppointmentBC.Appointment
+  note on link
+    Notifications are triggered when meaningful
+    business actions occur, such as:
+    • stage change,
+    • document approved / needs revision,
+    • appointment confirmed / rescheduled.
+  end note
+
+  ' ANALYTICS ↔ TRANSACTION / DOCUMENT / APPOINTMENT
+  AnalyticsBC.BrokerMetricsSnapshot --> TransactionBC.Transaction
+  AnalyticsBC.BrokerMetricsSnapshot --> DocumentBC.DocumentRequest
+  AnalyticsBC.BrokerMetricsSnapshot --> AppointmentBC.Appointment
+  note on link
+    Metrics are computed from live operational data:
+    - activeTransactionsCount
+    - documentsAwaitingReviewCount
+    - pendingAppointmentsCount
+    These KPIs feed the broker dashboard.
+  end note
+
+}
+
+@enduml
