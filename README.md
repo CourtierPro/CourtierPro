@@ -2,7 +2,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/shawn-nabizada/CourtierPro">
-    <img src="images/logo.png" alt="Logo" width="1024px" height="250px">
+    <img src="images/logo.png" alt="Logo" width="400">
   </a>
 
 <h3 align="center">CourtierPro</h3>
