@@ -10,7 +10,7 @@
   <p align="center">
     A bilingual broker–client management and communication platform for real estate brokerages in Quebec.
     <br />
-    <a href="https://github.com/shawn-nabizada/CourtierPro/docs"><strong>Explore the docs »</strong></a>
+    <a href="https://github.com/shawn-nabizada/CourtierPro/tree/main/docs"><strong>Explore the docs »</strong></a>
     <br />
   </p>
 </div>
