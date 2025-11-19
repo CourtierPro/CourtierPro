@@ -1,0 +1,132 @@
+**/*.log
+HELP.md
+.DS_Store
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+.vs/
+.vs/VSWorkspaceState.json
+.vs/champlain_petclinic/v16/.suo
+.vs/slnx.sqlite
+.vs/ProjectSettings.json
+
+### Keep VS Code settings for frontend projects ###
+!employee-frontend/.vscode/
+!employee-frontend/.vscode/**
+
+!petclinic-frontend/.vscode/
+!petclinic-frontend/.vscode/**
+
+# Created by https://www.toptal.com/developers/gitignore/api/go
+# Edit at https://www.toptal.com/developers/gitignore?templates=go
+
+### Go ###
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+### Go Patch ###
+/vendor/
+/Godeps/
+
+# End of https://www.toptal.com/developers/gitignore/api/go
+
+### Rust ###
+/debug/
+/target/
+.env
+cover.html
+/dev-tools/app/
+/dev-tools/data/
+/dev-tools/target/
+
+## C# ##
+obj/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+*.cache
+*.ide
+*.dotCover
+_ReSharper*/
+*.ncrunch*
+*.ncrunchsolution
+/dev-tools-ui/DevToolsUI/DevToolsUI/wwwroot/lib/
+
+# Ignore swagger docs for mailer
+mailer-service/docs
+
+# Ignore environment files
+*.env
+
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/emailing-service/emailing-service-test/obj/
