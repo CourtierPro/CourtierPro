@@ -1,0 +1,82 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+scale 0.42
+!$ICONURL = "https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons"
+!include $ICONURL/common.puml
+!include $ICONURL/devicons2/spring_original.puml
+!include $ICONURL/devicons/react.puml
+!include $ICONURL/devicons/html5.puml
+!include $ICONURL/devicons/postgresql.puml
+!include $ICONURL/font-awesome-5/envelope.puml
+!include $ICONURL/font-awesome-5/cloud.puml
+!include $ICONURL/font-awesome-5/user.puml
+
+AddElementTag("microService-java", $shape=EightSidedShape(), $bgColor="#FFDB33", $borderColor="Black", $fontColor="black", $legendText="Spring Boot Container")
+AddElementTag("framework-react", $shape=RoundedBoxShape(), $bgColor="#61DBFB", $borderColor="Black", $fontColor="white", $legendText="React SPA (Vite)")
+AddElementTag("storage-postgres", $shape=RoundedBoxShape(), $bgColor="#336791", $borderColor="Black", $fontColor="white", $legendText="PostgreSQL 15")
+AddElementTag("webApp", $bgColor="#e34f26", $fontColor="white", $legendText="Web Application (HTML5)")
+
+AddRelTag("purple-line", $lineColor="purple", $legendText="API Calls (REST)")
+AddRelTag("blue-line", $lineColor="blue", $legendText="Auth / Sessions")
+AddRelTag("green-line", $lineColor="green", $legendText="Documents (S3)")
+AddRelTag("orange-line", $lineColor="orange", $legendText="Appointments (domain data)")
+AddRelTag("red-line", $lineColor="red", $legendText="Analytics (domain data)")
+
+LAYOUT_LEFT_RIGHT()
+SHOW_PERSON_OUTLINE()
+
+title CourtierPro — C4 Level 3 (Database Schema Components)
+
+System_Boundary(cp, "CourtierPro System") {
+
+  Container_Boundary(main_db, "courtierpro-db (PostgreSQL 15)", $tags="storage-postgres") {
+
+    ' User Management schema
+    Component(ClientTables, "Client Schema", "Tables", "clients, client_communication_preferences")
+    Component(BrokerTables, "Broker Schema", "Tables", "brokers")
+    Component(AdminTables, "Admin Schema", "Tables", "admins, organization_settings")
+
+    ' Transaction schema
+    Component(TransactionTables, "Transaction Schema", "Tables", "transactions, timeline_entries")
+
+    ' Document schema
+    Component(DocumentTables, "Document Schema", "Tables", "document_requests, submitted_documents")
+
+    ' Appointment schema
+    Component(AppointmentTables, "Appointment Schema", "Tables", "appointments")
+
+    ' Notification schema
+    Component(NotificationTables, "Notification Schema", "Tables", "outbound_notifications")
+
+    ' Analytics schema
+    Component(AnalyticsTables, "Analytics Schema", "Tables", "broker_metrics_snapshots")
+  }
+
+  ' Key repository-facing container for context
+  Container(backend_api, "CourtierPro Backend API", "Spring Boot 3", "Repositories & domain logic", $sprite="spring_original", $tags="microService-java")
+}
+
+' Logical FKs between schema components
+Rel(TransactionTables, ClientTables, "FK client_id → clients")
+Rel(TransactionTables, BrokerTables, "FK broker_id → brokers")
+Rel(DocumentTables, TransactionTables, "FK transaction_id → transactions")
+Rel(AppointmentTables, TransactionTables, "FK transaction_id → transactions")
+Rel(AppointmentTables, ClientTables, "FK client_id → clients")
+Rel(AppointmentTables, BrokerTables, "FK broker_id → brokers")
+Rel(NotificationTables, TransactionTables, "entity_type=TRANSACTION, entity_id")
+Rel(NotificationTables, DocumentTables, "entity_type=DOCUMENT_REQUEST, entity_id")
+Rel(NotificationTables, AppointmentTables, "entity_type=APPOINTMENT, entity_id")
+Rel(AnalyticsTables, BrokerTables, "FK broker_id → brokers")
+
+' Backend API uses schemas via repositories (high level)
+Rel(backend_api, ClientTables, "Uses via ClientRepository", "JDBC/R2DBC")
+Rel(backend_api, BrokerTables, "Uses via BrokerRepository", "JDBC/R2DBC")
+Rel(backend_api, AdminTables, "Uses via AdminRepository", "JDBC/R2DBC")
+Rel(backend_api, TransactionTables, "Uses via TransactionRepository", "JDBC/R2DBC")
+Rel(backend_api, DocumentTables, "Uses via DocumentRequestRepository & SubmittedDocument access", "JDBC/R2DBC")
+Rel(backend_api, AppointmentTables, "Uses via AppointmentRepository", "JDBC/R2DBC")
+Rel(backend_api, NotificationTables, "Uses via OutboundNotificationRepository", "JDBC/R2DBC")
+Rel(backend_api, AnalyticsTables, "Uses via BrokerMetricsRepository", "JDBC/R2DBC")
+
+SHOW_LEGEND()
+@enduml

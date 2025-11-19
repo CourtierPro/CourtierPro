@@ -1,0 +1,82 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+scale 0.42
+!$ICONURL = "https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons"
+!include $ICONURL/common.puml
+!include $ICONURL/devicons2/spring_original.puml
+!include $ICONURL/devicons/react.puml
+!include $ICONURL/devicons/html5.puml
+!include $ICONURL/devicons/postgresql.puml
+!include $ICONURL/font-awesome-5/envelope.puml
+!include $ICONURL/font-awesome-5/cloud.puml
+!include $ICONURL/font-awesome-5/user.puml
+
+AddElementTag("microService-java", $shape=EightSidedShape(), $bgColor="#FFDB33", $borderColor="Black", $fontColor="black", $legendText="Spring Boot Container")
+AddElementTag("framework-react", $shape=RoundedBoxShape(), $bgColor="#61DBFB", $borderColor="Black", $fontColor="white", $legendText="React SPA (Vite)")
+AddElementTag("storage-postgres", $shape=RoundedBoxShape(), $bgColor="#336791", $borderColor="Black", $fontColor="white", $legendText="PostgreSQL 15")
+AddElementTag("webApp", $bgColor="#e34f26", $fontColor="white", $legendText="Web Application (HTML5)")
+
+AddRelTag("purple-line", $lineColor="purple", $legendText="API Calls (REST)")
+AddRelTag("blue-line", $lineColor="blue", $legendText="Auth / Sessions")
+
+LAYOUT_TOP_DOWN()
+SHOW_PERSON_OUTLINE()
+
+title CourtierPro — C4 Level 3 (API Gateway Components)
+
+System_Boundary(cp, "CourtierPro System") {
+
+  Person(boker, "Boker", "Licensed real estate boker in Quebec")
+  Person(client, "Client", "Buyer/Seller working with the bokerage")
+  Person(admin, "Admin", "Administrative staff / system admin")
+
+  Container(web_spa, "CourtierPro Web App", "React 18 + Vite", "SPA calling /api/v1/**", $sprite="react", $tags="framework-react")
+  System_Ext(auth0, "Auth0", "Identity provider (JWT/OIDC)", $sprite="user")
+
+  Container_Boundary(api_gw, "CourtierPro API Gateway (Spring Cloud Gateway)", $tags="microService-java") {
+
+    ' ==== Route Groups ====
+    Component(UserRoutes, "UserRoutes", "Route Group", "Routes /api/v1/me/** to backend_api")
+    Component(AdminRoutes, "AdminRoutes", "Route Group", "Routes /api/v1/admin/** to backend_api")
+    Component(TransactionRoutes, "TransactionRoutes", "Route Group", "Routes /api/v1/transactions/** to backend_api")
+    Component(DocumentRoutes, "DocumentRoutes", "Route Group", "Routes /api/v1/document-requests/** to backend_api")
+    Component(AppointmentRoutes, "AppointmentRoutes", "Route Group", "Routes /api/v1/appointments/** to backend_api")
+    Component(AnalyticsRoutes, "AnalyticsRoutes", "Route Group", "Routes /api/v1/analytics/** to backend_api")
+    Component(HealthRoutes, "HealthRoutes", "Route Group", "Exposes /actuator/** for ops")
+
+    ' ==== Grouped Filter Chain ====
+    Component(FilterChain, "FilterChain", "Composite Filter Group", "<b>AuthFilter</b> – JWT validation\n<b>RoleFilter</b> – role-based access\n<b>CorrelationIdFilter</b> – request tracing\n<b>LoggingFilter</b> – request/response logging\n<b>LocaleHeaderFilter</b> – i18n normalization\n<b>ErrorHandler</b> – unified JSON errors\n<b>CorsConfig</b> – CORS policies")
+  }
+
+  Container(backend_api, "CourtierPro Backend API", "Spring Boot 3", "Domain logic & persistence", $sprite="spring_original", $tags="microService-java")
+}
+
+' ==== Relationships ====
+
+Rel(boker, web_spa, "Uses", "HTTPS")
+Rel(client, web_spa, "Uses", "HTTPS")
+Rel(admin, web_spa, "Uses", "HTTPS")
+
+Rel(web_spa, UserRoutes, "Calls /api/v1/me/**", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, AdminRoutes, "Calls /api/v1/admin/**", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, TransactionRoutes, "Calls /api/v1/transactions/**", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, DocumentRoutes, "Calls /api/v1/document-requests/**", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, AppointmentRoutes, "Calls /api/v1/appointments/**", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, AnalyticsRoutes, "Calls /api/v1/analytics/**", "JSON/REST/HTTPS", $tags="purple-line")
+
+' === Group all filters into one chain ===
+Rel(UserRoutes, FilterChain, "passes through")
+Rel(AdminRoutes, FilterChain, "passes through")
+Rel(TransactionRoutes, FilterChain, "passes through")
+Rel(DocumentRoutes, FilterChain, "passes through")
+Rel(AppointmentRoutes, FilterChain, "passes through")
+Rel(AnalyticsRoutes, FilterChain, "passes through")
+Rel(HealthRoutes, FilterChain, "passes through")
+
+Rel(FilterChain, backend_api, "Forwards to", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(FilterChain, auth0, "Validates JWTs via JWKS", "HTTPS", $tags="blue-line")
+
+Component(GatewayRoutes, "Public Gateway Route Patterns", "Reference Component", "<b>UserRoutes</b> – /api/v1/me/**\n<b>AdminRoutes</b> – /api/v1/admin/**\n<b>TransactionRoutes</b> – /api/v1/transactions/**\n<b>DocumentRoutes</b> – /api/v1/document-requests/**\n<b>AppointmentRoutes</b> – /api/v1/appointments/**\n<b>AnalyticsRoutes</b> – /api/v1/analytics/**\n<b>HealthRoutes</b> – /actuator/** (internal only)")
+
+SHOW_LEGEND()
+@enduml
