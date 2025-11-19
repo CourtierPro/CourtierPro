@@ -1,0 +1,51 @@
+@startuml
+title CourtierPro - Developer Deployment Diagram
+
+left to right direction
+skinparam nodeStyle rectangle
+
+' ==========================
+' Developer laptop / browser
+' ==========================
+node "Developer Laptop\n[Deployment Node: Windows / macOS]" as Dev {
+  node "Web Browser\n[Container: React SPA]\nProvides CourtierPro UI\nfor Brokers & Clients" as Browser
+}
+
+' ==========================
+' Web server (Docker)
+' ==========================
+node "Docker Container - Web Server\n[Deployment Node: Docker]" as WebDocker {
+
+  node "Web Application\n[Container: Nginx]\nDelivers static CourtierPro SPA" as WebApp
+
+  node "API Application\n[Container: Spring Boot]\nCourtierPro REST API\n(Transactions, Documents,\nAppointments, Analytics)" as ApiApp
+}
+
+' ==========================
+' Database server (Docker)
+' ==========================
+node "Docker Container - Database Server\n[Deployment Node: Docker]" as DbDocker {
+  database "CourtierPro Database\n[Container: PostgreSQL]\nStores users, transactions,\ndocuments, appointments,\nmetrics, etc." as DB
+}
+
+' ==========================
+' External systems (Cloud)
+' ==========================
+node "External Services\n[Cloud]" as Ext {
+  node "Auth0\n(Authentication / Identity)" as Auth0
+  node "Amazon S3\n(Document Storage)" as S3
+  node "Amazon SES\n(Email Delivery)" as SES
+}
+
+' ==========================
+' Connections
+' ==========================
+Browser --> WebApp : Delivers SPA\n(HTTPS)
+Browser --> ApiApp : Calls REST API\n(HTTPS/JSON)
+
+ApiApp --> DB : Read / Write data
+ApiApp --> Auth0 : Validate user identity
+ApiApp --> S3 : Store / Retrieve documents
+ApiApp --> SES : Send emails
+
+@enduml
