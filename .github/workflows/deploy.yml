@@ -1,0 +1,53 @@
+name: CourtierPro CI/CD
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      # Build backend
+      - name: Build backend image
+        run: docker build -t ghcr.io/${{ github.repository }}/courtierpro-backend:latest ./backend
+
+      # Build frontend
+      - name: Build frontend image
+        run: docker build -t ghcr.io/${{ github.repository }}/courtierpro-frontend:latest ./frontend
+
+      # Push images
+      - name: Push backend image
+        run: docker push ghcr.io/${{ github.repository }}/courtierpro-backend:latest
+
+      - name: Push frontend image
+        run: docker push ghcr.io/${{ github.repository }}/courtierpro-frontend:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/courtierpro
+            echo "Pulling latest container images..."
+            docker compose pull
+
+            echo "Restarting services..."
+            docker compose up -d --remove-orphans
+
+            echo "Cleaning unused Docker data..."
+            docker system prune -af
