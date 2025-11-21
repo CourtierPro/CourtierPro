@@ -30,24 +30,62 @@ jobs:
       - name: Push frontend image
         run: docker push ghcr.io/courtierpro/courtierpro-frontend:latest
 
+
+
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to EC2
+      - name: Deploy to EC2 with rollback
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e
+
             cd ~/courtierpro
-            echo "Pulling latest container images..."
+
+            echo "Saving previous container IDs..."
+            OLD_BACKEND=$(docker ps -q -f name=courtierpro_backend)
+            OLD_FRONTEND=$(docker ps -q -f name=courtierpro_frontend)
+
+            echo "Pulling latest images..."
             docker compose pull
 
-            echo "Restarting services..."
+            echo "Deploying new containers..."
             docker compose up -d --remove-orphans
 
-            echo "Cleaning unused Docker data..."
+            echo "Waiting for services to stabilize..."
+            sleep 10
+
+            echo "Running backend health check..."
+            BACKEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://courtierproapi.sraldon.work/actuator/health)
+
+            echo "Running frontend health check..."
+            FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://courtierproapp.sraldon.work)
+
+            if [ "$BACKEND_STATUS" != "200" ] || [ "$FRONTEND_STATUS" != "200" ]; then
+              echo "Health check FAILED. Rolling back..."
+
+              echo "Stopping new containers..."
+              docker stop courtierpro_backend || true
+              docker stop courtierpro_frontend || true
+
+              echo "Restoring backend..."
+              if [ -n "$OLD_BACKEND" ]; then
+                docker start $OLD_BACKEND
+              fi
+
+              echo "Restoring frontend..."
+              if [ -n "$OLD_FRONTEND" ]; then
+                docker start $OLD_FRONTEND
+              fi
+
+              exit 1
+            fi
+
+            echo "✔ Deployment healthy."
             docker system prune -af
