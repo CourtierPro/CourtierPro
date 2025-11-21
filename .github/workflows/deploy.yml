@@ -52,6 +52,9 @@ jobs:
             OLD_BACKEND=$(docker ps -q -f name=courtierpro_backend)
             OLD_FRONTEND=$(docker ps -q -f name=courtierpro_frontend)
 
+            echo "OLD_BACKEND=$OLD_BACKEND"
+            echo "OLD_FRONTEND=$OLD_FRONTEND"
+
             echo "Pulling latest images..."
             docker compose pull
 
@@ -62,12 +65,13 @@ jobs:
             sleep 10
 
             echo "Running backend health check..."
-            BACKEND_STATUS=$(curl -u "${ACTUATOR_USER}:${ACTUATOR_PASS}" \
-              -s -o /dev/null -w "%{http_code}" \
-              https://courtierproapi.sraldon.work/actuator/health)
+            BACKEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://courtierproapi.sraldon.work/actuator/health)
 
             echo "Running frontend health check..."
             FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://courtierproapp.sraldon.work)
+
+            echo "Backend status: $BACKEND_STATUS"
+            echo "Frontend status: $FRONTEND_STATUS"
 
             if [ "$BACKEND_STATUS" != "200" ] || [ "$FRONTEND_STATUS" != "200" ]; then
               echo "Health check FAILED. Rolling back..."
