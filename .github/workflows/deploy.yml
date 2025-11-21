@@ -62,7 +62,9 @@ jobs:
             sleep 10
 
             echo "Running backend health check..."
-            BACKEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://courtierproapi.sraldon.work/api/actuator/health)
+            BACKEND_STATUS=$(curl -u "${ACTUATOR_USER}:${ACTUATOR_PASS}" \
+              -s -o /dev/null -w "%{http_code}" \
+              https://courtierproapi.sraldon.work/actuator/health)
 
             echo "Running frontend health check..."
             FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://courtierproapp.sraldon.work)
