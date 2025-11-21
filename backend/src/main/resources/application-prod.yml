@@ -11,6 +11,15 @@ spring:
     hibernate:
       ddl-auto: update
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+
 aws:
   s3:
     bucket: ${AWS_S3_BUCKET}
