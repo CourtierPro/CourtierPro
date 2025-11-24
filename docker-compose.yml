@@ -8,12 +8,6 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: courtier
-      DB_PASS: courtier
-    depends_on:
-      - db
 
   frontend:
     build: ./frontend
@@ -21,17 +15,3 @@ services:
     ports:
       - "8081:80"
 
-  db:
-    image: postgres:15
-    container_name: courtierpro_db
-    environment:
-      POSTGRES_DB: courtierpro
-      POSTGRES_USER: courtier
-      POSTGRES_PASSWORD: courtier
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-
-volumes:
-  pgdata:
