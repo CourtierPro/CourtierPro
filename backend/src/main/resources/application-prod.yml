@@ -20,3 +20,8 @@ management:
     health:
       show-details: always
 
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET}
+  ses:
+    region: ${AWS_REGION}
