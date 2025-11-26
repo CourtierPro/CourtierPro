@@ -1,4 +1,16 @@
 package com.example.courtierprobackend.transactions.businesslayer;
 
-public class TransactionService {
+
+import com.example.courtierprobackend.transactions.datalayer.dto.*;
+
+import java.util.List;
+
+public interface TransactionService {
+
+    TransactionResponseDTO createTransaction(TransactionRequestDTO dto);
+
+    List<TransactionResponseDTO> getBrokerTransactions(String brokerId);
+
+    TransactionResponseDTO getByTransactionId(String transactionId, String brokerId);
 }
+
