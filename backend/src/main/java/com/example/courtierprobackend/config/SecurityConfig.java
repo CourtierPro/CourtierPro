@@ -13,18 +13,19 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+
                 .authorizeHttpRequests(auth -> auth
-                        // CI/CD, load balancers, uptime monitors
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/actuator/health/**").permitAll()
 
-                        // everything else in actuator secure
                         .requestMatchers("/actuator/**").denyAll()
 
-                        // your public APIs
+                        // pour l'instant toutes les autres routes restent publiques
                         .anyRequest().permitAll()
                 )
-                .httpBasic(Customizer.withDefaults());
+
+
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
 
         return http.build();
     }
