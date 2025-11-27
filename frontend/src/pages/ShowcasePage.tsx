@@ -189,17 +189,7 @@ import {
     ChartLegend,
     ChartLegendContent,
 } from '@/components/ui/chart';
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarGroupLabel,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    SidebarProvider,
-} from '@/components/ui/sidebar';
+
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 import { LoadingSpinner } from '@/components/feedback/LoadingSpinner';
 import { Toast } from '@/components/feedback/Toast';
@@ -226,7 +216,7 @@ function ShowcaseItem({ title, description, code, children }: ShowcaseItemProps)
             <div className="p-6 border-b bg-muted/30">
                 <h3 className="text-lg font-semibold mb-2">{title}</h3>
                 {description && <p className="text-sm text-muted-foreground mb-4">{description}</p>}
-                <div className="flex items-center justify-center p-8 border rounded-md bg-background border-dashed overflow-auto">
+                <div className="flex items-center justify-center p-8 border rounded-md bg-background border-dashed overflow-auto min-h-[300px]">
                     {children}
                 </div>
             </div>
@@ -267,10 +257,14 @@ export default function ShowcasePage() {
                 {/* Accordion */}
                 <ShowcaseItem
                     title="Accordion"
-                    code={`<Accordion type="single" collapsible className="w-full">
+                    code={`<Accordion type="single" collapsible className="w-full max-w-sm">
   <AccordionItem value="item-1">
     <AccordionTrigger>Is it accessible?</AccordionTrigger>
     <AccordionContent>Yes. It adheres to the WAI-ARIA design pattern.</AccordionContent>
+  </AccordionItem>
+  <AccordionItem value="item-2">
+    <AccordionTrigger>Is it styled?</AccordionTrigger>
+    <AccordionContent>Yes. It comes with default styles that matches the other components' aesthetic.</AccordionContent>
   </AccordionItem>
 </Accordion>`}
                 >
@@ -289,11 +283,18 @@ export default function ShowcasePage() {
                 {/* Alert */}
                 <ShowcaseItem
                     title="Alert"
-                    code={`<Alert>
-  <Terminal className="h-4 w-4" />
-  <AlertTitle>Heads up!</AlertTitle>
-  <AlertDescription>You can add components to your app using the cli.</AlertDescription>
-</Alert>`}
+                    code={`<div className="w-full max-w-sm space-y-4">
+  <Alert>
+    <Terminal className="h-4 w-4" />
+    <AlertTitle>Heads up!</AlertTitle>
+    <AlertDescription>You can add components to your app using the cli.</AlertDescription>
+  </Alert>
+  <Alert variant="destructive">
+    <Terminal className="h-4 w-4" />
+    <AlertTitle>Error</AlertTitle>
+    <AlertDescription>Your session has expired. Please log in again.</AlertDescription>
+  </Alert>
+</div>`}
                 >
                     <div className="w-full max-w-sm space-y-4">
                         <Alert>
@@ -320,7 +321,7 @@ export default function ShowcasePage() {
     <AlertDialogHeader>
       <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
       <AlertDialogDescription>
-        This action cannot be undone.
+        This action cannot be undone. This will permanently delete your account and remove your data from our servers.
       </AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
@@ -352,9 +353,11 @@ export default function ShowcasePage() {
                 {/* AspectRatio */}
                 <ShowcaseItem
                     title="AspectRatio"
-                    code={`<AspectRatio ratio={16 / 9} className="bg-muted">
-  <img src="..." alt="Photo" className="rounded-md object-cover" />
-</AspectRatio>`}
+                    code={`<div className="w-[300px]">
+  <AspectRatio ratio={16 / 9} className="bg-muted flex items-center justify-center rounded-md">
+    <span className="text-muted-foreground">16:9 Aspect Ratio</span>
+  </AspectRatio>
+</div>`}
                 >
                     <div className="w-[300px]">
                         <AspectRatio ratio={16 / 9} className="bg-muted flex items-center justify-center rounded-md">
@@ -366,10 +369,15 @@ export default function ShowcasePage() {
                 {/* Avatar */}
                 <ShowcaseItem
                     title="Avatar"
-                    code={`<Avatar>
-  <AvatarImage src="https://github.com/shadcn.png" />
-  <AvatarFallback>CN</AvatarFallback>
-</Avatar>`}
+                    code={`<div className="flex gap-4">
+  <Avatar>
+    <AvatarImage src="https://github.com/shadcn.png" />
+    <AvatarFallback>CN</AvatarFallback>
+  </Avatar>
+  <Avatar>
+    <AvatarFallback>JD</AvatarFallback>
+  </Avatar>
+</div>`}
                 >
                     <div className="flex gap-4">
                         <Avatar>
@@ -385,7 +393,12 @@ export default function ShowcasePage() {
                 {/* Badge */}
                 <ShowcaseItem
                     title="Badge"
-                    code={`<Badge>Badge</Badge>`}
+                    code={`<div className="flex gap-2">
+  <Badge>Default</Badge>
+  <Badge variant="secondary">Secondary</Badge>
+  <Badge variant="outline">Outline</Badge>
+  <Badge variant="destructive">Destructive</Badge>
+</div>`}
                 >
                     <div className="flex gap-2">
                         <Badge>Default</Badge>
@@ -401,7 +414,11 @@ export default function ShowcasePage() {
                     code={`<Breadcrumb>
   <BreadcrumbList>
     <BreadcrumbItem>
-      <BreadcrumbLink href="/">Home</BreadcrumbLink>
+      <BreadcrumbLink href="#">Home</BreadcrumbLink>
+    </BreadcrumbItem>
+    <BreadcrumbSeparator />
+    <BreadcrumbItem>
+      <BreadcrumbLink href="#">Components</BreadcrumbLink>
     </BreadcrumbItem>
     <BreadcrumbSeparator />
     <BreadcrumbItem>
@@ -430,7 +447,14 @@ export default function ShowcasePage() {
                 {/* Button */}
                 <ShowcaseItem
                     title="Button"
-                    code={`<Button>Button</Button>`}
+                    code={`<div className="flex gap-2 flex-wrap">
+  <Button>Default</Button>
+  <Button variant="secondary">Secondary</Button>
+  <Button variant="destructive">Destructive</Button>
+  <Button variant="outline">Outline</Button>
+  <Button variant="ghost">Ghost</Button>
+  <Button variant="link">Link</Button>
+</div>`}
                 >
                     <div className="flex gap-2 flex-wrap">
                         <Button>Default</Button>
@@ -463,7 +487,7 @@ export default function ShowcasePage() {
                 {/* Card */}
                 <ShowcaseItem
                     title="Card"
-                    code={`<Card>
+                    code={`<Card className="w-[350px]">
   <CardHeader>
     <CardTitle>Card Title</CardTitle>
     <CardDescription>Card Description</CardDescription>
@@ -495,7 +519,17 @@ export default function ShowcasePage() {
                     title="Carousel"
                     code={`<Carousel className="w-full max-w-xs">
   <CarouselContent>
-    <CarouselItem>...</CarouselItem>
+    {Array.from({ length: 5 }).map((_, index) => (
+      <CarouselItem key={index}>
+        <div className="p-1">
+          <Card>
+            <CardContent className="flex aspect-square items-center justify-center p-6">
+              <span className="text-4xl font-semibold">{index + 1}</span>
+            </CardContent>
+          </Card>
+        </div>
+      </CarouselItem>
+    ))}
   </CarouselContent>
   <CarouselPrevious />
   <CarouselNext />
@@ -537,10 +571,28 @@ export default function ShowcasePage() {
                 {/* Collapsible */}
                 <ShowcaseItem
                     title="Collapsible"
-                    code={`<Collapsible>
-  <CollapsibleTrigger>Can I use this in my project?</CollapsibleTrigger>
-  <CollapsibleContent>
-    Yes. Free to use for personal and commercial projects.
+                    code={`<Collapsible className="w-[350px] space-y-2">
+  <div className="flex items-center justify-between space-x-4 px-4">
+    <h4 className="text-sm font-semibold">
+      @peduarte starred 3 repositories
+    </h4>
+    <CollapsibleTrigger asChild>
+      <Button variant="ghost" size="sm" className="w-9 p-0">
+        <span className="sr-only">Toggle</span>
+        <div className="h-4 w-4 border border-current" />
+      </Button>
+    </CollapsibleTrigger>
+  </div>
+  <div className="rounded-md border px-4 py-3 font-mono text-sm">
+    @radix-ui/primitives
+  </div>
+  <CollapsibleContent className="space-y-2">
+    <div className="rounded-md border px-4 py-3 font-mono text-sm">
+      @radix-ui/colors
+    </div>
+    <div className="rounded-md border px-4 py-3 font-mono text-sm">
+      @stitches/react
+    </div>
   </CollapsibleContent>
 </Collapsible>`}
                 >
@@ -573,7 +625,7 @@ export default function ShowcasePage() {
                 {/* Command */}
                 <ShowcaseItem
                     title="Command"
-                    code={`<Command>
+                    code={`<Command className="rounded-lg border shadow-md w-[450px]">
   <CommandInput placeholder="Type a command or search..." />
   <CommandList>
     <CommandEmpty>No results found.</CommandEmpty>
@@ -602,12 +654,17 @@ export default function ShowcasePage() {
                 <ShowcaseItem
                     title="ContextMenu"
                     code={`<ContextMenu>
-  <ContextMenuTrigger>Right click here</ContextMenuTrigger>
-  <ContextMenuContent>
-    <ContextMenuItem>Profile</ContextMenuItem>
-    <ContextMenuItem>Billing</ContextMenuItem>
-    <ContextMenuItem>Team</ContextMenuItem>
-    <ContextMenuItem>Subscription</ContextMenuItem>
+  <ContextMenuTrigger className="flex h-[150px] w-[300px] items-center justify-center rounded-md border border-dashed text-sm">
+    Right click here
+  </ContextMenuTrigger>
+  <ContextMenuContent className="w-64">
+    <ContextMenuItem inset>Back</ContextMenuItem>
+    <ContextMenuItem inset disabled>
+      Forward
+    </ContextMenuItem>
+    <ContextMenuItem inset>Reload</ContextMenuItem>
+    <ContextMenuItem inset>Save As...</ContextMenuItem>
+    <ContextMenuItem inset>Print...</ContextMenuItem>
   </ContextMenuContent>
 </ContextMenu>`}
                 >
@@ -631,14 +688,27 @@ export default function ShowcasePage() {
                 <ShowcaseItem
                     title="Dialog"
                     code={`<Dialog>
-  <DialogTrigger>Open</DialogTrigger>
+  <DialogTrigger asChild>
+    <Button variant="outline">Open Dialog</Button>
+  </DialogTrigger>
   <DialogContent>
     <DialogHeader>
-      <DialogTitle>Are you sure?</DialogTitle>
+      <DialogTitle>Edit profile</DialogTitle>
       <DialogDescription>
-        This action cannot be undone.
+        Make changes to your profile here. Click save when you're done.
       </DialogDescription>
     </DialogHeader>
+    <div className="grid gap-4 py-4">
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="name" className="text-right">
+          Name
+        </Label>
+        <Input id="name" value="Pedro Duarte" className="col-span-3" />
+      </div>
+    </div>
+    <DialogFooter>
+      <Button type="submit">Save changes</Button>
+    </DialogFooter>
   </DialogContent>
 </Dialog>`}
                 >
@@ -672,18 +742,32 @@ export default function ShowcasePage() {
                 <ShowcaseItem
                     title="Drawer"
                     code={`<Drawer>
-  <DrawerTrigger>Open</DrawerTrigger>
+  <DrawerTrigger asChild>
+    <Button variant="outline">Open Drawer</Button>
+  </DrawerTrigger>
   <DrawerContent>
-    <DrawerHeader>
-      <DrawerTitle>Are you sure?</DrawerTitle>
-      <DrawerDescription>This action cannot be undone.</DrawerDescription>
-    </DrawerHeader>
-    <DrawerFooter>
-      <Button>Submit</Button>
-      <DrawerClose>
-        <Button variant="outline">Cancel</Button>
-      </DrawerClose>
-    </DrawerFooter>
+    <div className="mx-auto w-full max-w-sm">
+      <DrawerHeader>
+        <DrawerTitle>Move Goal</DrawerTitle>
+        <DrawerDescription>Set your daily activity goal.</DrawerDescription>
+      </DrawerHeader>
+      <div className="p-4 pb-0">
+        <div className="flex items-center justify-center space-x-2">
+          <span className="text-4xl font-bold tracking-tighter">
+            350
+          </span>
+          <span className="text-[0.70rem] uppercase text-muted-foreground">
+            Calories/day
+          </span>
+        </div>
+      </div>
+      <DrawerFooter>
+        <Button>Submit</Button>
+        <DrawerClose asChild>
+          <Button variant="outline">Cancel</Button>
+        </DrawerClose>
+      </DrawerFooter>
+    </div>
   </DrawerContent>
 </Drawer>`}
                 >
@@ -722,7 +806,9 @@ export default function ShowcasePage() {
                 <ShowcaseItem
                     title="DropdownMenu"
                     code={`<DropdownMenu>
-  <DropdownMenuTrigger>Open</DropdownMenuTrigger>
+  <DropdownMenuTrigger asChild>
+    <Button variant="outline">Open Menu</Button>
+  </DropdownMenuTrigger>
   <DropdownMenuContent>
     <DropdownMenuLabel>My Account</DropdownMenuLabel>
     <DropdownMenuSeparator />
@@ -752,9 +838,27 @@ export default function ShowcasePage() {
                 <ShowcaseItem
                     title="HoverCard"
                     code={`<HoverCard>
-  <HoverCardTrigger>Hover</HoverCardTrigger>
-  <HoverCardContent>
-    The React Framework – created and maintained by @vercel.
+  <HoverCardTrigger asChild>
+    <Button variant="link">@nextjs</Button>
+  </HoverCardTrigger>
+  <HoverCardContent className="w-80">
+    <div className="flex justify-between space-x-4">
+      <Avatar>
+        <AvatarImage src="https://github.com/vercel.png" />
+        <AvatarFallback>VC</AvatarFallback>
+      </Avatar>
+      <div className="space-y-1">
+        <h4 className="text-sm font-semibold">@nextjs</h4>
+        <p className="text-sm">
+          The React Framework – created and maintained by @vercel.
+        </p>
+        <div className="flex items-center pt-2">
+          <span className="text-xs text-muted-foreground">
+            Joined December 2021
+          </span>
+        </div>
+      </div>
+    </div>
   </HoverCardContent>
 </HoverCard>`}
                 >
@@ -787,7 +891,9 @@ export default function ShowcasePage() {
                 {/* Input */}
                 <ShowcaseItem
                     title="Input"
-                    code={`<Input type="email" placeholder="Email" />`}
+                    code={`<div className="w-full max-w-sm">
+  <Input type="email" placeholder="Email" />
+</div>`}
                 >
                     <div className="w-full max-w-sm">
                         <Input type="email" placeholder="Email" />
@@ -827,7 +933,10 @@ export default function ShowcasePage() {
                 {/* Label */}
                 <ShowcaseItem
                     title="Label"
-                    code={`<Label htmlFor="email">Your email address</Label>`}
+                    code={`<div className="flex items-center space-x-2">
+  <Checkbox id="terms-2" />
+  <Label htmlFor="terms-2">Accept terms and conditions</Label>
+</div>`}
                 >
                     <div className="flex items-center space-x-2">
                         <Checkbox id="terms-2" />
@@ -842,7 +951,9 @@ export default function ShowcasePage() {
   <MenubarMenu>
     <MenubarTrigger>File</MenubarTrigger>
     <MenubarContent>
-      <MenubarItem>New Tab <MenubarShortcut>⌘T</MenubarShortcut></MenubarItem>
+      <MenubarItem>
+        New Tab <MenubarShortcut>⌘T</MenubarShortcut>
+      </MenubarItem>
       <MenubarItem>New Window</MenubarItem>
       <MenubarSeparator />
       <MenubarItem>Share</MenubarItem>
@@ -877,7 +988,29 @@ export default function ShowcasePage() {
     <NavigationMenuItem>
       <NavigationMenuTrigger>Item One</NavigationMenuTrigger>
       <NavigationMenuContent>
-        <NavigationMenuLink>Link</NavigationMenuLink>
+        <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
+          <li className="row-span-3">
+            <NavigationMenuLink asChild>
+              <a
+                className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                href="/"
+              >
+                <div className="mb-2 mt-4 text-lg font-medium">
+                  shadcn/ui
+                </div>
+                <p className="text-sm leading-tight text-muted-foreground">
+                  Beautifully designed components built with Radix UI and
+                  Tailwind CSS.
+                </p>
+              </a>
+            </NavigationMenuLink>
+          </li>
+          <li className="col-span-1">
+            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+              Documentation
+            </NavigationMenuLink>
+          </li>
+        </ul>
       </NavigationMenuContent>
     </NavigationMenuItem>
   </NavigationMenuList>
@@ -929,6 +1062,14 @@ export default function ShowcasePage() {
       <PaginationLink href="#">1</PaginationLink>
     </PaginationItem>
     <PaginationItem>
+      <PaginationLink href="#" isActive>
+        2
+      </PaginationLink>
+    </PaginationItem>
+    <PaginationItem>
+      <PaginationLink href="#">3</PaginationLink>
+    </PaginationItem>
+    <PaginationItem>
       <PaginationEllipsis />
     </PaginationItem>
     <PaginationItem>
@@ -967,8 +1108,19 @@ export default function ShowcasePage() {
                 <ShowcaseItem
                     title="Popover"
                     code={`<Popover>
-  <PopoverTrigger>Open</PopoverTrigger>
-  <PopoverContent>Place content for the popover here.</PopoverContent>
+  <PopoverTrigger asChild>
+    <Button variant="outline">Open Popover</Button>
+  </PopoverTrigger>
+  <PopoverContent className="w-80">
+    <div className="grid gap-4">
+      <div className="space-y-2">
+        <h4 className="font-medium leading-none">Dimensions</h4>
+        <p className="text-sm text-muted-foreground">
+          Set the dimensions for the layer.
+        </p>
+      </div>
+    </div>
+  </PopoverContent>
 </Popover>`}
                 >
                     <Popover>
@@ -991,7 +1143,9 @@ export default function ShowcasePage() {
                 {/* Progress */}
                 <ShowcaseItem
                     title="Progress"
-                    code={`<Progress value={33} />`}
+                    code={`<div className="w-[300px]">
+  <Progress value={33} />
+</div>`}
                 >
                     <div className="w-[300px]">
                         <Progress value={33} />
@@ -1027,10 +1181,31 @@ export default function ShowcasePage() {
                 {/* Resizable */}
                 <ShowcaseItem
                     title="Resizable"
-                    code={`<ResizablePanelGroup direction="horizontal">
-  <ResizablePanel>One</ResizablePanel>
+                    code={`<ResizablePanelGroup
+  direction="horizontal"
+  className="max-w-md rounded-lg border"
+>
+  <ResizablePanel defaultSize={50}>
+    <div className="flex h-[200px] items-center justify-center p-6">
+      <span className="font-semibold">One</span>
+    </div>
+  </ResizablePanel>
   <ResizableHandle />
-  <ResizablePanel>Two</ResizablePanel>
+  <ResizablePanel defaultSize={50}>
+    <ResizablePanelGroup direction="vertical">
+      <ResizablePanel defaultSize={25}>
+        <div className="flex h-full items-center justify-center p-6">
+          <span className="font-semibold">Two</span>
+        </div>
+      </ResizablePanel>
+      <ResizableHandle />
+      <ResizablePanel defaultSize={75}>
+        <div className="flex h-full items-center justify-center p-6">
+          <span className="font-semibold">Three</span>
+        </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
+  </ResizablePanel>
 </ResizablePanelGroup>`}
                 >
                     <ResizablePanelGroup
@@ -1151,14 +1326,27 @@ export default function ShowcasePage() {
                 <ShowcaseItem
                     title="Sheet"
                     code={`<Sheet>
-  <SheetTrigger>Open</SheetTrigger>
+  <SheetTrigger asChild>
+    <Button variant="outline">Open Sheet</Button>
+  </SheetTrigger>
   <SheetContent>
     <SheetHeader>
-      <SheetTitle>Are you sure?</SheetTitle>
+      <SheetTitle>Edit profile</SheetTitle>
       <SheetDescription>
-        This action cannot be undone.
+        Make changes to your profile here. Click save when you're done.
       </SheetDescription>
     </SheetHeader>
+    <div className="grid gap-4 py-4">
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="name" className="text-right">
+          Name
+        </Label>
+        <Input id="name" value="Pedro Duarte" className="col-span-3" />
+      </div>
+    </div>
+    <div className="flex justify-end">
+      <Button type="submit">Save changes</Button>
+    </div>
   </SheetContent>
 </Sheet>`}
                 >
@@ -1211,7 +1399,9 @@ export default function ShowcasePage() {
                 {/* Slider */}
                 <ShowcaseItem
                     title="Slider"
-                    code={`<Slider defaultValue={[33]} max={100} step={1} />`}
+                    code={`<div className="w-[300px]">
+  <Slider defaultValue={[33]} max={100} step={1} />
+</div>`}
                 >
                     <div className="w-[300px]">
                         <Slider defaultValue={[33]} max={100} step={1} />
@@ -1251,6 +1441,12 @@ export default function ShowcasePage() {
       <TableCell>Paid</TableCell>
       <TableCell>Credit Card</TableCell>
       <TableCell className="text-right">$250.00</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell className="font-medium">INV002</TableCell>
+      <TableCell>Pending</TableCell>
+      <TableCell>PayPal</TableCell>
+      <TableCell className="text-right">$150.00</TableCell>
     </TableRow>
   </TableBody>
 </Table>`}
@@ -1307,7 +1503,9 @@ export default function ShowcasePage() {
                 {/* Textarea */}
                 <ShowcaseItem
                     title="Textarea"
-                    code={`<Textarea placeholder="Type your message here." />`}
+                    code={`<div className="w-full max-w-sm">
+  <Textarea placeholder="Type your message here." />
+</div>`}
                 >
                     <div className="w-full max-w-sm">
                         <Textarea placeholder="Type your message here." />
@@ -1359,7 +1557,9 @@ export default function ShowcasePage() {
                     title="Tooltip"
                     code={`<TooltipProvider>
   <Tooltip>
-    <TooltipTrigger>Hover</TooltipTrigger>
+    <TooltipTrigger asChild>
+      <Button variant="outline">Hover Me</Button>
+    </TooltipTrigger>
     <TooltipContent>
       <p>Add to library</p>
     </TooltipContent>
@@ -1381,8 +1581,27 @@ export default function ShowcasePage() {
                 {/* Chart */}
                 <ShowcaseItem
                     title="Chart"
-                    code={`<ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-  <BarChart accessibilityLayer data={chartData}>
+                    code={`<ChartContainer
+  config={{
+    desktop: {
+      label: "Desktop",
+      color: "hsl(var(--chart-1))",
+    },
+    mobile: {
+      label: "Mobile",
+      color: "hsl(var(--chart-2))",
+    },
+  }}
+  className="min-h-[200px] w-full"
+>
+  <BarChart accessibilityLayer data={[
+    { month: "January", desktop: 186, mobile: 80 },
+    { month: "February", desktop: 305, mobile: 200 },
+    { month: "March", desktop: 237, mobile: 120 },
+    { month: "April", desktop: 73, mobile: 190 },
+    { month: "May", desktop: 209, mobile: 130 },
+    { month: "June", desktop: 214, mobile: 140 },
+  ]}>
     <CartesianGrid vertical={false} />
     <XAxis
       dataKey="month"
@@ -1435,63 +1654,19 @@ export default function ShowcasePage() {
                     </ChartContainer>
                 </ShowcaseItem>
 
-                {/* Sidebar */}
-                <ShowcaseItem
-                    title="Sidebar"
-                    code={`<SidebarProvider>
-  <Sidebar>
-    <SidebarContent>
-      <SidebarGroup>
-        <SidebarGroupLabel>Application</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton>
-                <span>Home</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-    </SidebarContent>
-  </Sidebar>
-</SidebarProvider>`}
-                >
-                    <div className="h-[300px] w-full border rounded-md overflow-hidden relative">
-                        <SidebarProvider className="min-h-[300px]">
-                            <Sidebar>
-                                <SidebarContent>
-                                    <SidebarGroup>
-                                        <SidebarGroupLabel>Application</SidebarGroupLabel>
-                                        <SidebarGroupContent>
-                                            <SidebarMenu>
-                                                <SidebarMenuItem>
-                                                    <SidebarMenuButton>
-                                                        <span>Home</span>
-                                                    </SidebarMenuButton>
-                                                </SidebarMenuItem>
-                                                <SidebarMenuItem>
-                                                    <SidebarMenuButton>
-                                                        <span>Inbox</span>
-                                                    </SidebarMenuButton>
-                                                </SidebarMenuItem>
-                                            </SidebarMenu>
-                                        </SidebarGroupContent>
-                                    </SidebarGroup>
-                                </SidebarContent>
-                            </Sidebar>
-                        </SidebarProvider>
-                    </div>
-                </ShowcaseItem>
 
                 {/* Feedback Components */}
                 <ShowcaseItem
                     title="Loading Spinner"
                     description="Indicates a loading state."
-                    code={`<LoadingSpinner />
-<LoadingSpinner size="sm" />
-<LoadingSpinner size="lg" />
-<LoadingSpinner message="Loading data..." />`}
+                    code={`<div className="flex flex-col gap-4 items-center">
+  <div className="flex gap-4 items-center">
+    <LoadingSpinner size="sm" />
+    <LoadingSpinner />
+    <LoadingSpinner size="lg" />
+  </div>
+  <LoadingSpinner message="Loading data..." />
+</div>`}
                 >
                     <div className="flex flex-col gap-4 items-center">
                         <div className="flex gap-4 items-center">
@@ -1506,13 +1681,15 @@ export default function ShowcasePage() {
                 <ShowcaseItem
                     title="Toast Notification"
                     description="Displays a temporary notification."
-                    code={`{showToast && (
-  <Toast
-    message="Operation successful!"
-    onClose={() => setShowToast(false)}
-  />
-)}
-<Button onClick={() => setShowToast(true)}>Show Toast</Button>`}
+                    code={`<div className="relative">
+  <Button onClick={() => setShowToast(true)}>Show Toast</Button>
+  {showToast && (
+    <Toast
+      message="Operation successful!"
+      onClose={() => setShowToast(false)}
+    />
+  )}
+</div>`}
                 >
                     <div className="relative">
                         <Button onClick={() => setShowToast(true)}>Show Toast</Button>
