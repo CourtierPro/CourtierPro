@@ -110,4 +110,16 @@ public class EntityDtoUtil {
                 p.getPostalCode()
         );
     }
+    public static TransactionResponseDTO toResponseStub(String id, String clientId, String brokerId) {
+        return TransactionResponseDTO.builder()
+                .transactionId(id)
+                .clientId(clientId)
+                .brokerId(brokerId)
+                .side(TransactionSide.BUY_SIDE)
+                .status(TransactionStatus.ACTIVE)
+                .propertyAddress(null)
+                .currentStage("TEST_STAGE")
+                .build();
+    }
+
 }

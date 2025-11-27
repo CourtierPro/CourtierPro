@@ -4,6 +4,7 @@ import com.example.courtierprobackend.transactions.businesslayer.TransactionServ
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +28,7 @@ public class TransactionController {
 
     @PostMapping
     public ResponseEntity<TransactionResponseDTO> createTransaction(
-            @RequestBody TransactionRequestDTO dto,
+            @Valid @RequestBody TransactionRequestDTO dto,
             @RequestHeader("x-broker-id") String brokerIdHeader
     ) {
         dto.setBrokerId(extractBrokerId(brokerIdHeader));
