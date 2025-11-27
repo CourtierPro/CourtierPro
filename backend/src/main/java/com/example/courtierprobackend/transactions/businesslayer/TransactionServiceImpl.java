@@ -7,6 +7,7 @@ import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResp
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import com.example.courtierprobackend.transactions.exceptions.DuplicateTransactionException;
+import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
 import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
 import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
 
@@ -25,49 +26,51 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public TransactionResponseDTO createTransaction(TransactionRequestDTO dto) {
 
-        // Duplicate check (client + same street + active)
-        repo.findByClientIdAndPropertyAddress_StreetAndStatus(
-                dto.getClientId(),
-                dto.getPropertyAddress().getStreet(),
-                TransactionStatus.ACTIVE
-        ).ifPresent(t -> {
-            throw new DuplicateTransactionException("Client already has an active transaction for this property");
-        });
+        // 1) Validate required data
+        if (dto.getClientId() == null || dto.getClientId().isBlank()) {
+            throw new InvalidInputException("clientId is required");
+        }
+        if (dto.getBrokerId() == null || dto.getBrokerId().isBlank()) {
+            throw new InvalidInputException("brokerId is required");
+        }
+        if (dto.getSide() == null) {
+            throw new InvalidInputException("side is required");
+        }
+        if (dto.getPropertyAddress() == null ||
+                dto.getPropertyAddress().getStreet() == null ||
+                dto.getPropertyAddress().getStreet().isBlank()) {
 
-        // Build initial transaction
-        Transaction t = new Transaction();
-        t.setTransactionId(UUID.randomUUID().toString());
-        t.setClientId(dto.getClientId());
-        t.setBrokerId(dto.getBrokerId());
-        t.setSide(dto.getSide());
-        t.setPropertyAddress(dto.getPropertyAddress());
-        t.setStatus(TransactionStatus.ACTIVE);
-        t.setOpenedAt(LocalDateTime.now());
-
-        // Initial stage per buy/sell side
-        if (dto.getSide() == TransactionSide.BUY_SIDE) {
-            t.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
-            t.setSellerStage(null);
-        } else {
-            t.setSellerStage(SellerStage.SELLER_INITIAL_CONSULTATION);
-            t.setBuyerStage(null);
+            throw new InvalidInputException("propertyAddress.street is required");
         }
 
-        // Timeline entry
-        TimelineEntry entry = TimelineEntry.builder()
-                .type(TimelineEntryType.CREATED)
-                .note("Transaction created")
-                .occurredAt(LocalDateTime.now())
-                .addedByBrokerId(dto.getBrokerId())
-                .transaction(t)
-                .build();
+        String clientId = dto.getClientId();
+        String street = dto.getPropertyAddress().getStreet();
 
-        t.setTimeline(List.of(entry));
+        // 2) Prevent duplicate ACTIVE transactions
+        repo.findByClientIdAndPropertyAddress_StreetAndStatus(
+                clientId,
+                street,
+                TransactionStatus.ACTIVE
+        ).ifPresent(t -> {
+            throw new InvalidInputException("duplicate: Client already has an active transaction for this property");
+        });
 
-        repo.save(t);
+        // 3) Create Transaction entity
+        Transaction tx = new Transaction();
+        tx.setClientId(dto.getClientId());
+        tx.setBrokerId(dto.getBrokerId());
+        tx.setSide(dto.getSide());
+        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+        tx.setSellerStage(SellerStage.SELLER_INITIAL_CONSULTATION);
+        tx.setStatus(TransactionStatus.ACTIVE);
+        tx.setOpenedAt(LocalDateTime.now());
+        tx.setPropertyAddress(dto.getPropertyAddress());
 
-        return EntityDtoUtil.toResponse(t);
+        Transaction saved = repo.save(tx);
+
+        return EntityDtoUtil.toResponse(saved);
     }
+
 
     @Override
     public List<TransactionResponseDTO> getBrokerTransactions(String brokerId) {
