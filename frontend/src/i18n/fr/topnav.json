@@ -1,0 +1,11 @@
+{
+  "notifications": "Notifications",
+  "profile": "Profil",
+  "logout": "Déconnexion",
+  "language": "Langue",
+  "menu": "Basculer le menu",
+  "userMenu": "Menu utilisateur",
+  "viewAll": "Voir tout",
+  "noNotifications": "Aucune nouvelle notification",
+  "markAsRead": "Marquer comme lu"
+}

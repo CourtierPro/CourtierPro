@@ -1,0 +1,36 @@
+{
+  "appName": "CourtierPro",
+
+  "actions": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "continue": "Continuer",
+    "back": "Retour",
+    "view": "Voir",
+    "refresh": "Rafraîchir"
+  },
+
+  "status": {
+    "loading": "Chargement...",
+    "error": "Une erreur s'est produite",
+    "success": "Succès",
+    "empty": "Rien à afficher"
+  },
+
+  "navigation": {
+    "home": "Accueil",
+    "dashboard": "Tableau de bord",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
+  },
+
+  "general": {
+    "language": "Langue",
+    "notifications": "Notifications",
+    "noData": "Aucune donnée disponible"
+  }
+}
