@@ -1,68 +1,48 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './layout/AppShell'
 
-function BrokerDashboardPage() {
-  return <div className="text-lg font-semibold">Broker dashboard (My Day + summaries)</div>
-}
+// Dashboards
+import { BrokerDashboardPage } from '@/pages/dashboard/BrokerDashboardPage'
+import { ClientDashboardPage } from '@/pages/dashboard/ClientDashboardPage'
+import { AdminDashboardPage } from '@/pages/dashboard/AdminDashboardPage'
 
-function ClientDashboardPage() {
-  return <div className="text-lg font-semibold">Client dashboard</div>
-}
+// Transactions
+import { BrokerTransactionsPage } from '@/pages/transactions/BrokerTransactionsPage'
+import { ClientTransactionsPage } from '@/pages/transactions/ClientTransactionsPage'
+import { BrokerTransactionDetailsPage } from './pages/transactions/BrokerTransactionDetailsPage'
+import { ClientTransactionDetailsPage } from './pages/transactions/ClientTransactionDetailsPage'
 
-function AdminDashboardPage() {
-  return <div className="text-lg font-semibold">Admin dashboard</div>
-}
+// Documents
+import { DocumentsPage } from '@/pages/documents/DocumentsPage'
+import { TransactionDocumentsPage } from '@/pages/documents/TransactionDocumentsPage'
 
-function TransactionsPage() {
-  return <div className="text-lg font-semibold">Transactions list</div>
-}
+// Appointments / analytics / clients / notifications
+import { AppointmentsPage } from '@/pages/appointments/AppointmentsPage'
+import { AnalyticsPage } from '@/pages/analytics/AnalyticsPage'
+import { ClientsPage } from '@/pages/clients/ClientsPage'
+import { NotificationsPage } from '@/pages/notifications/NotificationsPage'
 
-function TransactionPage() {
-  return (
-    <div className="text-lg font-semibold">
-      Transaction details (timeline + documents + appointments)
-    </div>
-  )
-}
+// Admin
+import { AdminUsersPage } from '@/pages/admin/AdminUsersPage'
+import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage'
+import { LoginAuditPage } from '@/pages/admin/LoginAuditPage'
+import { SystemLogsPage } from '@/pages/admin/SystemLogsPage'
 
-function AdminUsersPage() {
-  return <div className="text-lg font-semibold">Admin – user management</div>
-}
+// Profile
+import { ProfilePage } from '@/pages/profile/ProfilePage'
 
-function AdminOrgSettingsPage() {
-  return <div className="text-lg font-semibold">Admin – organization settings</div>
-}
+// --- Simple inline error / fallback pages ---
+import { UnauthorizedPage } from '@/pages/status/UnauthorizedPage'
+import { ForbiddenPage } from '@/pages/status/ForbiddenPage'
+import { InternalServerErrorPage } from '@/pages/status/InternalServerErrorPage'
+import { ServiceUnavailablePage } from '@/pages/status/ServiceUnavailablePage'
+import { NotFoundPage } from '@/pages/status/NotFoundPage'
 
-function NotFoundPage() {
-  return <div className="text-lg font-semibold">404 – Page not found</div>
-}
-
-function UnauthorizedPage() {
-  return <div className="text-lg font-semibold">401 – Unauthorized</div>;
-}
-
-function ForbiddenPage() {
-  return <div className="text-lg font-semibold">403 – Forbidden</div>;
-}
-
-function InternalServerErrorPage() {
-  return (
-    <div className="text-lg font-semibold">500 – Internal server error</div>
-  );
-}
-
-function ServiceUnavailablePage() {
-  return (
-    <div className="text-lg font-semibold">503 – Service unavailable</div>
-  );
-}
-
-type Role = 'broker' | 'client' | 'admin'; //placeholder until Auth0 is integrated
+type Role = 'broker' | 'client' | 'admin' // placeholder until Auth0 is integrated
 
 export default function App() {
   // TODO: derive from Auth0 / backend
-
-  const role: Role = 'broker' //placeholder until Auth0 is integrated
+  const role: Role = 'broker' // placeholder until Auth0 is integrated
 
   const defaultRouteForRole: Record<Role, string> = {
     broker: '/dashboard/broker',
@@ -72,6 +52,7 @@ export default function App() {
 
   return (
     <Routes>
+      {/* Default redirect based on role */}
       <Route
         path="/"
         element={<Navigate to={defaultRouteForRole[role]} replace />}
@@ -103,20 +84,99 @@ export default function App() {
         }
       />
 
-      {/* Transactions */}
+      {/* Broker transactions list */}
       <Route
         path="/transactions"
         element={
           <AppShell>
-            <TransactionsPage />
+            <BrokerTransactionsPage />
           </AppShell>
         }
       />
+
       <Route
         path="/transactions/:transactionId"
         element={
           <AppShell>
-            <TransactionPage />
+            <BrokerTransactionDetailsPage />
+          </AppShell>
+        }
+      />
+
+      {/* Client transactions */}
+      <Route
+        path="/my-transaction"
+        element={
+          <AppShell>
+            <ClientTransactionsPage />
+          </AppShell>
+        }
+      />
+
+      <Route
+        path="/transactions/:transactionId"
+        element={
+          <AppShell>
+            <ClientTransactionDetailsPage />
+          </AppShell>
+        }
+      />
+
+      {/* Documents (broker + client) */}
+      <Route
+        path="/documents"
+        element={
+          <AppShell>
+            <DocumentsPage />
+          </AppShell>
+        }
+      />
+      <Route
+        path="/transactions/:transactionId/documents"
+        element={
+          <AppShell>
+            <TransactionDocumentsPage />
+          </AppShell>
+        }
+      />
+
+
+      {/* Appointments */}
+      <Route
+        path="/appointments"
+        element={
+          <AppShell>
+            <AppointmentsPage />
+          </AppShell>
+        }
+      />
+
+      {/* Analytics */}
+      <Route
+        path="/analytics"
+        element={
+          <AppShell>
+            <AnalyticsPage />
+          </AppShell>
+        }
+      />
+
+      {/* Clients */}
+      <Route
+        path="/clients"
+        element={
+          <AppShell>
+            <ClientsPage />
+          </AppShell>
+        }
+      />
+
+      {/* Notifications */}
+      <Route
+        path="/notifications"
+        element={
+          <AppShell>
+            <NotificationsPage />
           </AppShell>
         }
       />
@@ -134,21 +194,38 @@ export default function App() {
         path="/admin/settings"
         element={
           <AppShell>
-            <AdminOrgSettingsPage />
+            <AdminSettingsPage />
           </AppShell>
         }
       />
-
-      {/* 404 */}
       <Route
-        path="*"
+        path="/admin/login-audit"
         element={
           <AppShell>
-            <NotFoundPage />
+            <LoginAuditPage />
+          </AppShell>
+        }
+      />
+      <Route
+        path="/admin/system-logs"
+        element={
+          <AppShell>
+            <SystemLogsPage />
           </AppShell>
         }
       />
 
+      {/* Profile */}
+      <Route
+        path="/profile"
+        element={
+          <AppShell>
+            <ProfilePage />
+          </AppShell>
+        }
+      />
+
+      {/* Error / status pages used by axios error handler */}
       <Route
         path="/unauthorized"
         element={
@@ -182,6 +259,15 @@ export default function App() {
         }
       />
 
+      {/* Catch-all 404 */}
+      <Route
+        path="*"
+        element={
+          <AppShell>
+            <NotFoundPage />
+          </AppShell>
+        }
+      />
     </Routes>
   )
 }

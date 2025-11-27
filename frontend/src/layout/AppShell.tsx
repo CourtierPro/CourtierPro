@@ -1,41 +1,65 @@
-import { type ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
+import { type ReactNode, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { Sidebar } from "@/components/Sidebar";
+import { TopNav } from "@/components/TopNav";
 
 type AppShellProps = {
-  children: ReactNode
-}
+  children: ReactNode;
+};
 
 export function AppShell({ children }: AppShellProps) {
-  const { t } = useTranslation('common')
-  const location = useLocation()
+  const { i18n } = useTranslation("common");
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const navLinkClasses = (path: string) =>
-    [
-      'px-3 py-1.5 rounded-md text-sm font-medium',
-      location.pathname.startsWith(path)
-        ? 'bg-slate-900 text-white'
-        : 'text-slate-700 hover:bg-slate-100',
-    ].join(' ')
+  // TODO: derive from Auth0 claims
+  const [userRole] = useState<"broker" | "client" | "admin">("broker");
+
+  const [language, setLanguage] = useState<"en" | "fr">(
+    (i18n.language as "en" | "fr") ?? "en"
+  );
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const handleLanguageChange = (lang: "en" | "fr") => {
+    setLanguage(lang);
+    i18n.changeLanguage(lang);
+  };
+
+  const handleNavigate = (route: string) => {
+    navigate(route);
+  };
+
+  const handleLogout = () => {
+    // TODO: integrate with Auth0 logout
+    console.log("TODO: logout and redirect to login");
+  };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="border-b bg-white px-4 py-2 flex items-center justify-between">
-        <div className="font-semibold text-slate-900">{t('appName')}</div>
-        <nav className="flex gap-2">
-          <Link to="/dashboard/broker" className={navLinkClasses('/dashboard')}>
-            {t('nav.dashboard')}
-          </Link>
-          <Link to="/transactions" className={navLinkClasses('/transactions')}>
-            {t('nav.transactions')}
-          </Link>
-          <Link to="/admin/users" className={navLinkClasses('/admin')}>
-            {t('nav.admin')}
-          </Link>
-        </nav>
-      </header>
+    <div className="min-h-screen flex bg-background text-foreground">
+      {/* Sidebar */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        language={language}
+        userRole={userRole}
+        currentRoute={location.pathname}
+        onNavigate={handleNavigate}
+      />
 
-      <main className="flex-1 bg-slate-50 p-4">{children}</main>
+      {/* Main area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <TopNav
+          onMenuToggle={() => setSidebarOpen((prev) => !prev)}
+          language={language}
+          onLanguageChange={handleLanguageChange}
+          userRole={userRole}
+          onLogout={handleLogout}
+          onNavigate={handleNavigate}
+        />
+
+        <main className="flex-1 bg-muted/40 p-4 overflow-auto">{children}</main>
+      </div>
     </div>
-  )
+  );
 }
