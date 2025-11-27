@@ -1,0 +1,376 @@
+import { useState, useEffect, useRef } from "react";
+import { Globe, Bell, Menu, ChevronDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+interface NotificationItem {
+  id: string | number;
+  title: string;
+  description: string;
+  timestamp: string;
+  unread: boolean;
+  icon?: React.ComponentType<{ className?: string }>;
+}
+
+interface TopNavProps {
+  onMenuToggle: () => void;
+  language: "en" | "fr";
+  onLanguageChange: (lang: "en" | "fr") => void;
+  userRole: "broker" | "client" | "admin";
+  onLogout: () => void;
+  onNavigate: (route: string) => void;
+  notifications?: NotificationItem[];
+  unreadCount?: number;
+}
+
+export function TopNav({
+  onMenuToggle,
+  language,
+  onLanguageChange,
+  userRole,
+  onLogout,
+  onNavigate,
+  notifications: notificationsProp,
+  unreadCount: unreadCountProp,
+}: TopNavProps) {
+  const { t } = useTranslation("topnav");
+
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+  const notifications = notificationsProp ?? [];
+  const notificationCount =
+    unreadCountProp ?? notifications.filter((n) => n.unread).length;
+
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const languageRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target as Node)
+      ) {
+        setIsNotificationsOpen(false);
+      }
+      if (
+        languageRef.current &&
+        !languageRef.current.contains(event.target as Node)
+      ) {
+        setIsLanguageMenuOpen(false);
+      }
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const toggleLanguageMenu = () => {
+    setIsLanguageMenuOpen((prev) => !prev);
+    setIsUserMenuOpen(false);
+    setIsNotificationsOpen(false);
+  };
+
+  const toggleUserMenu = () => {
+    setIsUserMenuOpen((prev) => !prev);
+    setIsLanguageMenuOpen(false);
+    setIsNotificationsOpen(false);
+  };
+
+  const toggleNotifications = () => {
+    setIsNotificationsOpen((prev) => !prev);
+    setIsLanguageMenuOpen(false);
+    setIsUserMenuOpen(false);
+  };
+
+  const selectLanguage = (lang: "en" | "fr") => {
+    onLanguageChange(lang);
+    setIsLanguageMenuOpen(false);
+  };
+
+  const handleLogoutClick = () => {
+    setIsUserMenuOpen(false);
+    onLogout();
+  };
+
+  const handleProfile = () => {
+    setIsUserMenuOpen(false);
+    onNavigate("/profile");
+  };
+
+  return (
+    <nav
+      className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6"
+      role="banner"
+      aria-label="Main navigation"
+    >
+      {/* Left section */}
+      <div className="flex items-center gap-4">
+        {/* Mobile menu toggle */}
+        <button
+          onClick={onMenuToggle}
+          className="p-2 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors md:hidden"
+          aria-label={t("menu")}
+          aria-expanded="false"
+        >
+          <Menu className="w-6 h-6 text-slate-800" />
+        </button>
+
+        {/* Logo */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500">
+            <span className="text-white font-semibold">CP</span>
+          </div>
+          <span className="hidden sm:block text-slate-800 font-medium">
+            CourtierPro
+          </span>
+        </div>
+      </div>
+
+      {/* Right section */}
+      <div className="flex items-center gap-2 md:gap-4">
+        {/* Language selector */}
+        <div className="relative" ref={languageRef}>
+          <button
+            onClick={toggleLanguageMenu}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                toggleLanguageMenu();
+              }
+              if (e.key === "Escape") {
+                setIsLanguageMenuOpen(false);
+              }
+            }}
+            className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors"
+            aria-label={t("language")}
+            aria-expanded={isLanguageMenuOpen}
+            aria-haspopup="true"
+          >
+            <Globe className="w-5 h-5 text-slate-800" />
+            <span className="hidden sm:inline text-slate-800">
+              {language.toUpperCase()}
+            </span>
+          </button>
+          {isLanguageMenuOpen && (
+            <div
+              className="absolute right-0 mt-2 w-32 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
+              role="menu"
+              aria-label={t("language")}
+            >
+              <button
+                onClick={() => selectLanguage("en")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    selectLanguage("en");
+                  }
+                }}
+                className={`w-full px-4 py-2 text-left text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none ${
+                  language === "en" ? "bg-slate-50" : ""
+                }`}
+                role="menuitem"
+              >
+                English
+              </button>
+              <button
+                onClick={() => selectLanguage("fr")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    selectLanguage("fr");
+                  }
+                }}
+                className={`w-full px-4 py-2 text-left text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none ${
+                  language === "fr" ? "bg-slate-50" : ""
+                }`}
+                role="menuitem"
+              >
+                Français
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Notifications */}
+        <div className="relative" ref={notificationsRef}>
+          <button
+            className="relative rounded-lg p-2 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors"
+            aria-label={`${t("notifications")}${
+              notificationCount > 0 ? `, ${notificationCount} unread` : ""
+            }`}
+            onClick={toggleNotifications}
+          >
+            <Bell className="w-5 h-5 text-slate-800" />
+            {notificationCount > 0 && (
+              <span
+                className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs font-semibold text-white"
+                aria-hidden="true"
+              >
+                {notificationCount}
+              </span>
+            )}
+          </button>
+          {isNotificationsOpen && (
+            <div
+              className="absolute right-0 mt-2 w-80 max-h-96 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg md:w-96"
+              role="menu"
+              aria-label={t("notifications")}
+            >
+              {/* Header */}
+              <div className="border-b border-slate-200 px-4 py-3">
+                <h3 className="text-slate-800 font-medium">
+                  {t("notifications")}
+                </h3>
+              </div>
+
+              {/* Notifications list */}
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-6 text-sm text-slate-500">
+                    {t("noNotifications")}
+                  </div>
+                ) : (
+                  notifications.map((notification) => {
+                    const Icon = notification.icon;
+                    return (
+                      <button
+                        key={notification.id}
+                        className={`flex w-full items-start gap-3 border-b border-slate-100 p-4 text-left text-sm transition-colors hover:bg-slate-50 focus:bg-slate-50 focus:outline-none ${
+                          notification.unread ? "bg-blue-50" : ""
+                        }`}
+                        role="menuitem"
+                        onClick={() => {
+                          // TODO: navigate/mark as read
+                          console.log("Notification clicked:", notification.id);
+                        }}
+                      >
+                        {Icon ? (
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-50">
+                            <Icon className="h-5 w-5 text-orange-500" />
+                          </div>
+                        ) : null}
+
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className={`text-slate-800 ${
+                              notification.unread ? "font-semibold" : ""
+                            }`}
+                          >
+                            {notification.title}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {notification.description}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-400">
+                            {notification.timestamp}
+                          </p>
+                        </div>
+
+                        {notification.unread && (
+                          <span
+                            className="mt-2 h-2 w-2 shrink-0 rounded-full bg-orange-500"
+                            aria-label="Unread"
+                          />
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="border-t border-slate-200">
+                <button
+                  className="w-full px-4 py-3 text-center text-sm font-medium text-orange-600 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsNotificationsOpen(false);
+                    onNavigate("/notifications");
+                  }}
+                >
+                  {t("viewAll")}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* User avatar + menu */}
+        <div className="relative" ref={userMenuRef}>
+          <button
+            onClick={toggleUserMenu}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                toggleUserMenu();
+              }
+              if (e.key === "Escape") {
+                setIsUserMenuOpen(false);
+              }
+            }}
+            className="flex items-center gap-2 rounded-lg p-1 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors"
+            aria-label={t("userMenu")}
+            aria-expanded={isUserMenuOpen}
+            aria-haspopup="true"
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-white text-sm font-semibold">
+              <span>
+                {userRole === "broker"
+                  ? "B"
+                  : userRole === "client"
+                  ? "C"
+                  : "A"}
+              </span>
+            </div>
+            <ChevronDown className="hidden h-4 w-4 text-slate-800 sm:block" />
+          </button>
+          {isUserMenuOpen && (
+            <div
+              className="absolute right-0 mt-2 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
+              role="menu"
+              aria-label={t("userMenu")}
+            >
+              <button
+                onClick={handleProfile}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleProfile();
+                  }
+                }}
+                className="w-full px-4 py-3 text-left text-sm text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+                role="menuitem"
+              >
+                {t("profile")}
+              </button>
+              <button
+                onClick={handleLogoutClick}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleLogoutClick();
+                  }
+                }}
+                className="w-full px-4 py-3 text-left text-sm text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+                role="menuitem"
+              >
+                {t("logout")}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+}
