@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './layout/AppShell'
 
+import ShowcasePage from '@/pages/ShowcasePage'
+
 // Dashboards
 import { BrokerDashboardPage } from '@/pages/dashboard/BrokerDashboardPage'
 import { ClientDashboardPage } from '@/pages/dashboard/ClientDashboardPage'
@@ -221,6 +223,16 @@ export default function App() {
         element={
           <AppShell>
             <ProfilePage />
+          </AppShell>
+        }
+      />
+
+      {/* Feedback and UI componenents showcase */}
+      <Route
+        path="/dev/showcase"
+        element={
+          <AppShell>
+            <ShowcasePage />
           </AppShell>
         }
       />
