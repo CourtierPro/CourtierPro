@@ -12,6 +12,13 @@ services:
       DB_PORT: 5432
       DB_USER: courtier
       DB_PASS: courtier
+
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+      AUTH0_MGMT_CLIENT_ID: ${AUTH0_MGMT_CLIENT_ID}
+      AUTH0_MGMT_CLIENT_SECRET: ${AUTH0_MGMT_CLIENT_SECRET}
+      AUTH0_MGMT_AUDIENCE: ${AUTH0_MGMT_AUDIENCE}
+
     depends_on:
       - db
 
