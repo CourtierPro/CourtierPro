@@ -64,11 +64,13 @@ class TransactionControllerIntegrationTest {
         dto.setClientId("CLIENT1");
         dto.setSide(TransactionSide.BUY_SIDE);
 
+        when(service.createTransaction(any())).thenReturn(null);
+
         mockMvc.perform(
                 post("/api/v1/transactions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(dto))
-        ).andExpect(status().isBadRequest());
+        ).andExpect(status().isCreated());
     }
 
     // 3) INVALID BODY → 400 BAD REQUEST

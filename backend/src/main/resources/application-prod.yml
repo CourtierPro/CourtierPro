@@ -2,6 +2,9 @@ server:
   port: 8080
 
 spring:
+  profiles:
+    active: prod
+
   datasource:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/courtierpro
     username: ${DB_USER}
@@ -9,7 +12,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: update   # OK for school project; in real prod use "validate"
 
   security:
     oauth2:
