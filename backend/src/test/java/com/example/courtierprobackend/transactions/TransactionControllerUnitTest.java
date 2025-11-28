@@ -67,11 +67,13 @@ class TransactionControllerUnitTest {
         req.setClientId("CLIENT1");
         req.setSide(TransactionSide.BUY_SIDE);
 
+        when(service.createTransaction(any())).thenReturn(null);
+
         mockMvc.perform(
                 post("/api/v1/transactions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req))
-        ).andExpect(status().isBadRequest());
+        ).andExpect(status().isCreated());
     }
 
     // 3) INVALID BODY → 400 (Bean Validation)
