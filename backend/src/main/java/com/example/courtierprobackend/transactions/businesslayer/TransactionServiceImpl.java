@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
+import com.example.courtierprobackend.transactions.datalayer.enums.TimelineEntryType;
 
 @Service
 @RequiredArgsConstructor
@@ -93,6 +96,63 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction saved = repo.save(tx);
 
         return EntityDtoUtil.toResponse(saved);
+    }
+
+    @Override
+    public java.util.List<TimelineEntryDTO> getNotes(String transactionId, String brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        if (!tx.getBrokerId().equals(brokerId)) {
+            throw new NotFoundException("You do not have access to this transaction");
+        }
+
+        List<TimelineEntry> entries = tx.getTimeline() == null ? List.of() : tx.getTimeline();
+
+        return entries.stream()
+                .filter(e -> e.getType() == TimelineEntryType.NOTE)
+                .map(EntityDtoUtil::toTimelineDTO)
+                .toList();
+    }
+
+    @Override
+    public TimelineEntryDTO createNote(String transactionId, NoteRequestDTO note, String brokerId) {
+        if (note.getActorId() == null || note.getActorId().isBlank()) {
+            throw new InvalidInputException("actorId is required");
+        }
+        if (note.getTitle() == null || note.getTitle().isBlank()) {
+            throw new InvalidInputException("title is required");
+        }
+        if (note.getMessage() == null || note.getMessage().isBlank()) {
+            throw new InvalidInputException("message is required");
+        }
+
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        if (!tx.getBrokerId().equals(brokerId)) {
+            throw new NotFoundException("You do not have access to this transaction");
+        }
+
+        TimelineEntry entry = TimelineEntry.builder()
+                .type(TimelineEntryType.NOTE)
+                .title(note.getTitle())
+                .note(note.getMessage())
+                .visibleToClient(note.getVisibleToClient() != null ? note.getVisibleToClient() : false)
+                .occurredAt(LocalDateTime.now())
+                .addedByBrokerId(note.getActorId())
+                .transaction(tx)
+                .build();
+
+        if (tx.getTimeline() == null) tx.setTimeline(new ArrayList<>());
+        tx.getTimeline().add(entry);
+
+        Transaction saved = repo.save(tx);
+
+        // find the saved entry (last)
+        TimelineEntry savedEntry = saved.getTimeline().get(saved.getTimeline().size() - 1);
+
+        return EntityDtoUtil.toTimelineDTO(savedEntry);
     }
 
 

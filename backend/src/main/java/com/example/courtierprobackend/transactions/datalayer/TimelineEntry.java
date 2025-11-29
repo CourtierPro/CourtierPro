@@ -22,6 +22,9 @@ public class TimelineEntry {
     private TimelineEntryType type;
 
     private String note;
+    private String title;
+
+    private Boolean visibleToClient;
 
     private LocalDateTime occurredAt;
 

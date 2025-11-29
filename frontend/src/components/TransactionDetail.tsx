@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ChevronLeft,
   CheckCircle,
@@ -15,9 +16,7 @@ import {
   // Eye,
   Plus,
 } from 'lucide-react';
-// import { StageUpdateModal } from './StageUpdateModal';
-// import { RequestDocumentModal } from './RequestDocumentModal';
-// import { CreateAppointmentModal, AppointmentFormData } from './CreateAppointmentModal';
+import { CreateAppointmentModal, type AppointmentFormData } from './CreateAppointmentModal';
 import { Toast } from './Toast';
 import axiosInstance from "@/api/axiosInstace";
 import { getStagesForSide, enumToLabel, resolveStageIndex, isTerminatedStage } from '@/utils/stages';
@@ -30,114 +29,7 @@ interface TransactionDetailProps {
 
 type TabType = 'timeline' | 'documents' | 'appointments' | 'notes';
 
-const translations = {
-  en: {
-    backToTransactions: 'Back to Transactions',
-    transactionDetails: 'Transaction Details',
-    status: 'Status',
-    client: 'Client',
-    broker: 'Broker',
-    openedDate: 'Opened Date',
-    active: 'Active',
-    closed: 'Closed',
-    terminated: 'Terminated',
-    stage: 'Stage',
-    of: 'of',
-    changeStage: 'Change Stage',
-    timeline: 'Timeline',
-    documents: 'Documents',
-    appointments: 'Appointments',
-    internalNotes: 'Internal Notes',
-    selectNewStage: 'Select New Stage',
-    addNote: 'Add Note',
-    noteOptional: 'Add note (optional)',
-    cancel: 'Cancel',
-    save: 'Save',
-    saveStage: 'Update Stage',
-    addNewNote: 'Add New Note',
-    noteContent: 'Note content',
-    noTimeline: 'No timeline entries yet',
-    noDocuments: 'No documents uploaded',
-    noAppointments: 'No appointments scheduled',
-    noNotes: 'No internal notes yet',
-    document: 'Document',
-    type: 'Type',
-    statusLabel: 'Status',
-    lastUpdated: 'Last Updated',
-    actions: 'Actions',
-    approve: 'Approve',
-    requestRevision: 'Request Revision',
-    pending: 'Pending',
-    approved: 'Approved',
-    needsRevision: 'Needs Revision',
-    dateTime: 'Date & Time',
-    appointmentType: 'Type',
-    appointmentStatus: 'Status',
-    notes: 'Notes',
-    confirm: 'Confirm',
-    proposeNewTime: 'Propose New Time',
-    markCompleted: 'Mark Completed',
-    confirmed: 'Confirmed',
-    completed: 'Completed',
-    timestamp: 'Timestamp',
-    description: 'Description',
-    author: 'Author',
-    // stagelists removed — use backend enums + helpers in src/utils/stages.ts
-  },
-  fr: {
-    backToTransactions: 'Retour aux transactions',
-    transactionDetails: 'Détails de la transaction',
-    status: 'Statut',
-    client: 'Client',
-    broker: 'Courtier',
-    openedDate: 'Date d\'ouverture',
-    active: 'Actif',
-    closed: 'Fermé',
-    terminated: 'Résilié',
-    stage: 'Étape',
-    of: 'sur',
-    changeStage: 'Changer l\'étape',
-    timeline: 'Chronologie',
-    documents: 'Documents',
-    appointments: 'Rendez-vous',
-    internalNotes: 'Notes internes',
-    selectNewStage: 'Sélectionner une nouvelle étape',
-    addNote: 'Ajouter une note',
-    noteOptional: 'Ajouter une note (optionnel)',
-    cancel: 'Annuler',
-    save: 'Sauvegarder',
-    saveStage: 'Mettre à jour l\'étape',
-    addNewNote: 'Ajouter une nouvelle note',
-    noteContent: 'Contenu de la note',
-    noTimeline: 'Aucune entrée de chronologie',
-    noDocuments: 'Aucun document téléchargé',
-    noAppointments: 'Aucun rendez-vous prévu',
-    noNotes: 'Aucune note interne',
-    document: 'Document',
-    type: 'Type',
-    statusLabel: 'Statut',
-    lastUpdated: 'Dernière mise à jour',
-    actions: 'Actions',
-    approve: 'Approuver',
-    requestRevision: 'Demander révision',
-    pending: 'En attente',
-    approved: 'Approuvé',
-    needsRevision: 'Révision requise',
-    dateTime: 'Date et heure',
-    appointmentType: 'Type',
-    appointmentStatus: 'Statut',
-    notes: 'Notes',
-    confirm: 'Confirmer',
-    proposeNewTime: 'Proposer nouveau créneau',
-    markCompleted: 'Marquer comme terminé',
-    confirmed: 'Confirmé',
-    completed: 'Terminé',
-    timestamp: 'Horodatage',
-    description: 'Description',
-    author: 'Auteur',
-    // stagelists removed — use backend enums + helpers in src/utils/stages.ts
-  },
-};
+// translations handled by i18n namespace `transactions`
 
 
 
@@ -153,18 +45,27 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
   const [selectedStage, setSelectedStage] = useState<number>(1);
   const [stageNote, setStageNote] = useState('');
   const [noteContent, setNoteContent] = useState('');
+  const [notes, setNotes] = useState<any[]>([]);
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteVisibleToClient, setNoteVisibleToClient] = useState(false);
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteErrors, setNoteErrors] = useState<Record<string,string>>({});
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   
   const modalRef = useRef<HTMLDivElement>(null);
 
-  const t = translations[language];
+  const { t, i18n } = useTranslation('transactions');
+
+  useEffect(() => {
+    if (language) i18n.changeLanguage(language);
+  }, [language, i18n]);
   // TODO: replace when timeline API exists
   const timeline: any[] = [];
   // Backend not yet wired for these lists; keep empty until API exists
   const documents: any[] = [];
   const appointments: any[] = [];
-  const notes: any[] = [];
 
   // Close modal on ESC key
   useEffect(() => {
@@ -204,6 +105,8 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
         setTransaction(res.data);
         const enums = getStagesForSide(res.data.side);
         setSelectedStage(resolveStageIndex(res.data.currentStage, enums) + 1);
+        // load notes after transaction is loaded
+        loadNotes();
       } catch (err) {
         console.error("Failed to load transaction:", err);
       } finally {
@@ -214,22 +117,77 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
     loadTransaction();
   }, [transactionId]);
 
-  const handleSaveStage = () => {
-    // In real app, would make API call
-    console.log('Saving stage:', selectedStage, 'Note:', stageNote);
-    setShowStageModal(false);
-    setStageNote('');
-    setToastMessage('Stage updated successfully');
-    setShowToast(true);
+  const loadNotes = async () => {
+    if (!transactionId) return;
+    setNotesLoading(true);
+    try {
+      const res = await axiosInstance.get(`/transactions/${transactionId}/notes`, {
+        headers: { "x-broker-id": "BROKER1" }
+      });
+      setNotes(res.data || []);
+    } catch (err) {
+      console.error('Failed to load notes', err);
+    } finally {
+      setNotesLoading(false);
+    }
   };
 
-  const handleSaveNote = () => {
-    // In real app, would make API call
-    console.log('Saving note:', noteContent);
-    setShowNoteModal(false);
-    setNoteContent('');
-    setToastMessage('Note added successfully');
-    setShowToast(true);
+  // Stage save is currently disabled in DEV; UI shows disabled control
+
+  const handleSaveNote = async () => {
+    // validate
+    const errors: Record<string,string> = {};
+    if (!noteTitle || noteTitle.trim() === '') errors.title = language === 'en' ? 'Title is required' : 'Le titre est requis';
+    if (!noteContent || noteContent.trim() === '') errors.message = language === 'en' ? 'Message is required' : 'Le message est requis';
+    setNoteErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setNoteSaving(true);
+    try {
+      const payload = {
+        transactionId: transactionId,
+        actorId: transaction?.brokerId || 'BROKER1',
+        title: noteTitle,
+        message: noteContent,
+        visibleToClient: noteVisibleToClient,
+      };
+
+      // debug
+      // eslint-disable-next-line no-console
+      console.debug('Posting note payload:', payload);
+
+      await axiosInstance.post(`/transactions/${transactionId}/notes`, payload, {
+        headers: { "x-broker-id": transaction?.brokerId || 'BROKER1' }
+      });
+
+      // close modal, clear fields
+      setShowNoteModal(false);
+      setNoteContent('');
+      setNoteTitle('');
+      setNoteVisibleToClient(false);
+      setToastMessage(language === 'en' ? 'Note added successfully' : 'Note ajoutée avec succès');
+      setShowToast(true);
+
+      // refresh notes list
+      loadNotes();
+    } catch (err: any) {
+      // eslint-disable-next-line no-console
+      console.debug('Note create error response:', err?.response?.data);
+      const serverMsg = err?.response?.data;
+      const newErrors: Record<string,string> = {};
+      if (typeof serverMsg === 'string') {
+        if (serverMsg.toLowerCase().includes('title')) newErrors.title = serverMsg;
+        else if (serverMsg.toLowerCase().includes('message')) newErrors.message = serverMsg;
+        else newErrors.form = serverMsg;
+      } else if (err?.message) {
+        newErrors.form = err.message;
+      } else {
+        newErrors.form = 'Unknown error';
+      }
+      setNoteErrors(newErrors);
+    } finally {
+      setNoteSaving(false);
+    }
   };
 
   const handleRequestDocument = (documentTitle: string, instructions: string, stage: string) => {
@@ -298,7 +256,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
         style={{ color: '#FF6B01' }}
       >
         <ChevronLeft className="w-5 h-5" />
-        {t.backToTransactions}
+        {t('backToTransactions')}
       </button>
 
       {/* Transaction Header */}
@@ -309,41 +267,41 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
           <div>
             <h1 style={{ color: '#353535' }} className="mb-2">
-              {t.transactionDetails} #{transaction.transactionId}
+              {t('transactionDetails')} #{transaction.transactionId}
             </h1>
             <p style={{ color: '#353535', opacity: 0.7 }}>
               {transaction.propertyAddress?.street}
             </p>
           </div>
-          <span
+            <span
             className="px-4 py-2 rounded-full self-start"
             style={{
               backgroundColor: `${getStatusColor(transaction.status)}20`,
               color: getStatusColor(transaction.status),
             }}
-          >
-            {t[transaction.status as 'active' | 'closed' | 'terminated']}
+            >
+            {t(transaction.status)}
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <p style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }} className="mb-1">
-              {t.client}
+              {t('client')}
             </p>
             <p style={{ color: '#353535' }}>{transaction.clientId}</p>
           </div>
           <div>
             <p style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }} className="mb-1">
-              {t.broker}
+              {t('broker')}
             </p>
             <p style={{ color: '#353535' }}>{transaction.brokerId}</p>
           </div>
           <div>
             <p style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }} className="mb-1">
-              {t.openedDate}
+              {t('openedDate')}
             </p>
-            <p style={{ color: '#353535' }}>{transaction.openedAt}</p>
+            <p style={{ color: '#353535' }}>{transaction.openedDate ?? (transaction.openedAt ? transaction.openedAt.substring(0,10) : '')}</p>
           </div>
         </div>
       </div>
@@ -355,8 +313,8 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
       >
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 style={{ color: '#353535' }}>
-              {t.stage} {selectedStage} {t.of} {totalStages}
+              <h2 style={{ color: '#353535' }}>
+              {t('stage')} {selectedStage} {t('of')} {totalStages}
             </h2>
             <p style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }}>
               {stages[selectedStage - 1] ?? enumToLabel(stageEnums[currentStageIndex])}
@@ -369,7 +327,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
             style={{ backgroundColor: '#FF6B01', color: '#FFFFFF' }}
           >
             <Edit className="w-4 h-4" />
-            {t.changeStage}
+            {t('changeStage')}
           </button>
         </div>
 
@@ -456,7 +414,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                 color: activeTab === tab ? '#FF6B01' : '#353535',
               }}
             >
-              {t[tab as keyof typeof t] as string}
+              {t(tab)}
             </button>
           ))}
         </div>
@@ -469,7 +427,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
               {timeline.length === 0 ? (
                 <div className="text-center py-12">
                   <Clock className="w-12 h-12 mx-auto mb-4" style={{ color: '#353535', opacity: 0.3 }} />
-                  <p style={{ color: '#353535', opacity: 0.7 }}>{t.noTimeline}</p>
+                  <p style={{ color: '#353535', opacity: 0.7 }}>{t('noTimeline')}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -515,7 +473,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
               {documents.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="w-12 h-12 mx-auto mb-4" style={{ color: '#353535', opacity: 0.3 }} />
-                  <p style={{ color: '#353535', opacity: 0.7 }}>{t.noDocuments}</p>
+                  <p style={{ color: '#353535', opacity: 0.7 }}>{t('noDocuments')}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -531,7 +489,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                         </div>
                         <div className="flex flex-wrap items-center gap-4">
                           <p style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }}>
-                            {t.type}: {doc.type}
+                            {t('type')}: {doc.type}
                           </p>
                           <span
                             className="px-3 py-1 rounded-full"
@@ -541,10 +499,10 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                               fontSize: '0.875rem',
                             }}
                           >
-                            {t[doc.status as 'pending' | 'approved' | 'needs_revision']}
+                            {t(doc.status)}
                           </span>
                           <p style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }}>
-                            {t.lastUpdated}: {doc.lastUpdated}
+                            {t('lastUpdated')}: {doc.lastUpdated}
                           </p>
                         </div>
                       </div>
@@ -557,7 +515,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                               aria-label={`Approve ${doc.name}`}
                             >
                               <Check className="w-4 h-4" />
-                              {t.approve}
+                              {t('approve')}
                             </button>
                             <button
                               className="px-4 py-2 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#ef4444] focus:ring-offset-2 transition-all flex items-center gap-2"
@@ -565,7 +523,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                               aria-label={`Request revision for ${doc.name}`}
                             >
                               <XCircle className="w-4 h-4" />
-                              {t.requestRevision}
+                              {t('requestRevision')}
                             </button>
                           </>
                         )}
@@ -595,7 +553,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
               {appointments.length === 0 ? (
                 <div className="text-center py-12">
                   <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: '#353535', opacity: 0.3 }} />
-                  <p style={{ color: '#353535', opacity: 0.7 }}>{t.noAppointments}</p>
+                  <p style={{ color: '#353535', opacity: 0.7 }}>{t('noAppointments')}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -611,7 +569,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                         </div>
                         <div className="space-y-1">
                           <p style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }}>
-                            {t.dateTime}: {apt.dateTime}
+                            {t('dateTime')}: {apt.dateTime}
                           </p>
                           <div className="flex items-center gap-2">
                             <span
@@ -632,12 +590,12 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                                 fontSize: '0.875rem',
                               }}
                             >
-                              {t[apt.status as 'pending' | 'confirmed' | 'completed']}
+                              {t(apt.status)}
                             </span>
                           </div>
                           {apt.notes && (
                             <p style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }}>
-                              {t.notes}: {apt.notes}
+                              {t('notes')}: {apt.notes}
                             </p>
                           )}
                         </div>
@@ -649,7 +607,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                             style={{ backgroundColor: '#10b981', color: '#FFFFFF' }}
                             aria-label={`Confirm ${apt.type} appointment`}
                           >
-                            {t.confirm}
+                            {t('confirm')}
                           </button>
                         )}
                         {apt.status === 'confirmed' && (
@@ -658,7 +616,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                             style={{ backgroundColor: '#FF6B01', color: '#FFFFFF' }}
                             aria-label={`Mark ${apt.type} appointment as completed`}
                           >
-                            {t.markCompleted}
+                            {t('markCompleted')}
                           </button>
                         )}
                       </div>
@@ -679,32 +637,35 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                   style={{ backgroundColor: '#FF6B01', color: '#FFFFFF' }}
                 >
                   <MessageSquare className="w-4 h-4" />
-                  {t.addNewNote}
+                  {t('addNewNote')}
                 </button>
               </div>
 
-              {notes.length === 0 ? (
+              {notesLoading ? (
+                <div className="text-center py-12">Loading notes...</div>
+              ) : notes.length === 0 ? (
                 <div className="text-center py-12">
                   <MessageSquare className="w-12 h-12 mx-auto mb-4" style={{ color: '#353535', opacity: 0.3 }} />
-                  <p style={{ color: '#353535', opacity: 0.7 }}>{t.noNotes}</p>
+                  <p style={{ color: '#353535', opacity: 0.7 }}>{t('noNotes')}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {notes.map((note) => (
-                    <div key={note.id} className="p-4 rounded-lg border border-gray-100">
+                  {notes.map((n: any) => (
+                    <div key={n.id} className="p-4 rounded-lg border border-gray-100">
                       <div className="flex items-start justify-between gap-4 mb-2">
                         <div className="flex items-center gap-2">
                           <MessageSquare className="w-5 h-5" style={{ color: '#8b5cf6' }} />
-                          <p style={{ color: '#353535' }}>{note.author}</p>
+                          <p style={{ color: '#353535' }}>{n.addedByBrokerId}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4" style={{ color: '#353535', opacity: 0.5 }} />
                           <p style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }}>
-                            {note.timestamp}
+                            {n.occurredAt ? n.occurredAt.substring(0,10) : ''}
                           </p>
                         </div>
                       </div>
-                      <p style={{ color: '#353535', opacity: 0.9 }}>{note.content}</p>
+                      <p style={{ fontWeight: 600, color: '#111827' }}>{n.title}</p>
+                      <p style={{ color: '#353535', opacity: 0.9 }}>{n.note}</p>
                     </div>
                   ))}
                 </div>
@@ -732,7 +693,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
           >
             <div className="flex items-center justify-between mb-6">
               <h2 id="stage-modal-title" style={{ color: '#353535' }}>
-                {t.changeStage}
+                {t('changeStage')}
               </h2>
               <button
                 onClick={() => setShowStageModal(false)}
@@ -750,7 +711,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                   style={{ color: '#353535', fontSize: '0.875rem' }}
                   className="block mb-2"
                 >
-                  {t.selectNewStage}
+                  {t('selectNewStage')}
                 </label>
                 <select
                   id="stage-select"
@@ -773,7 +734,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                   style={{ color: '#353535', fontSize: '0.875rem' }}
                   className="block mb-2"
                 >
-                  {t.noteOptional}
+                  {t('noteOptional')}
                 </label>
                 <textarea
                   id="stage-note"
@@ -782,7 +743,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                   rows={3}
                   className="w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent resize-none"
                   style={{ color: '#353535' }}
-                  placeholder={t.noteOptional}
+                  placeholder={t('noteOptional')}
                 />
               </div>
 
@@ -792,7 +753,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                   className="flex-1 px-4 py-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors border-2 border-gray-200"
                   style={{ color: '#353535' }}
                 >
-                  {t.cancel}
+                  {t('cancel')}
                 </button>
                 <button
                   onClick={() => {
@@ -831,7 +792,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
           >
             <div className="flex items-center justify-between mb-6">
               <h2 id="note-modal-title" style={{ color: '#353535' }}>
-                {t.addNewNote}
+                {t('addNewNote')}
               </h2>
               <button
                 onClick={() => setShowNoteModal(false)}
@@ -845,11 +806,30 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
             <div className="space-y-4">
               <div>
                 <label
+                  htmlFor="note-title"
+                  style={{ color: '#353535', fontSize: '0.875rem' }}
+                  className="block mb-2"
+                >
+                  {language === 'en' ? 'Title' : 'Titre'}
+                </label>
+                <input
+                  id="note-title"
+                  type="text"
+                  value={noteTitle}
+                  onChange={(e) => setNoteTitle(e.target.value)}
+                  className="w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent"
+                  style={{ color: '#353535' }}
+                />
+                {noteErrors.title && <p style={{ color: '#ef4444', fontSize: '0.875rem' }}>{noteErrors.title}</p>}
+              </div>
+
+              <div>
+                <label
                   htmlFor="note-content"
                   style={{ color: '#353535', fontSize: '0.875rem' }}
                   className="block mb-2"
                 >
-                  {t.noteContent}
+                  {t('noteContent')}
                 </label>
                 <textarea
                   id="note-content"
@@ -858,8 +838,9 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                   rows={5}
                   className="w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent resize-none"
                   style={{ color: '#353535' }}
-                  placeholder={t.noteContent}
+                  placeholder={t('noteContent')}
                 />
+                {noteErrors.message && <p style={{ color: '#ef4444', fontSize: '0.875rem' }}>{noteErrors.message}</p>}
               </div>
 
               <div className="flex items-center gap-3 pt-4">
@@ -868,14 +849,20 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                   className="flex-1 px-4 py-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors border-2 border-gray-200"
                   style={{ color: '#353535' }}
                 >
-                  {t.cancel}
+                  {t('cancel')}
                 </button>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={noteVisibleToClient} onChange={(e) => setNoteVisibleToClient(e.target.checked)} className="w-4 h-4" />
+                  <span style={{ color: '#353535' }}>{language === 'en' ? 'Visible to client' : 'Visible au client'}</span>
+                </label>
+
                 <button
                   onClick={handleSaveNote}
-                  className="flex-1 px-4 py-2 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:ring-offset-2 transition-all"
+                  disabled={noteSaving}
+                  className="flex-1 px-4 py-2 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: '#FF6B01', color: '#FFFFFF' }}
                 >
-                  {t.save}
+                  {noteSaving ? (language === 'en' ? 'Saving...' : 'Enregistrement...') : t('save')}
                 </button>
               </div>
             </div>
@@ -974,7 +961,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                   className="flex-1 px-4 py-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors border-2 border-gray-200"
                   style={{ color: '#353535' }}
                 >
-                  {t.cancel}
+                  {t('cancel')}
                 </button>
                 <button
                   onClick={handleSaveNote}
@@ -1002,7 +989,7 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
           language={language}
           fromTransaction={true}
           prefilledClientId={transaction.clientId}
-          prefilledClientName={null}
+          prefilledClientName={transaction.clientName ?? undefined}
           prefilledTransactionId={transaction.transactionId}
           prefilledTransactionAddress={transaction.propertyAddress?.street}
         />
