@@ -32,17 +32,16 @@ class TransactionServiceImplTest {
     @InjectMocks
     private TransactionServiceImpl service;
 
-    // ------------------------------------------------
-    // 1) SUCCESS CASE
-    // ------------------------------------------------
+    // 1) createTransaction_success_returnsResponse
     @Test
-    void createTransaction_Success() {
+    void createTransaction_success_returnsResponse() {
 
         TransactionRequestDTO dto = new TransactionRequestDTO();
         dto.setClientId("CLIENT1");
         dto.setSide(TransactionSide.BUY_SIDE);
         dto.setBrokerId("BROKER1");
         dto.setPropertyAddress(new PropertyAddress("123 Main", "Montreal", "QC", "H1H1H1"));
+        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
         when(repo.save(any(Transaction.class))).thenAnswer(inv -> {
             Transaction t = inv.getArgument(0);
@@ -55,6 +54,8 @@ class TransactionServiceImplTest {
         assertThat(result.getClientId()).isEqualTo("CLIENT1");
         assertThat(result.getBrokerId()).isEqualTo("BROKER1");
         assertThat(result.getStatus()).isEqualTo(TransactionStatus.ACTIVE);
+        assertThat(result.getOpenedDate()).isNotNull();
+        assertThat(result.getCurrentStage()).isEqualTo("BUYER_PREQUALIFY_FINANCIALLY");
     }
 
     // ------------------------------------------------
@@ -93,6 +94,7 @@ class TransactionServiceImplTest {
         dto.setClientId("CLIENT1");
         dto.setBrokerId("BROKER1");
         dto.setSide(TransactionSide.BUY_SIDE);
+        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
         dto.setPropertyAddress(new PropertyAddress("123 Main", "Montreal", "QC", "H1H1H1"));
 
         when(repo.findByClientIdAndPropertyAddress_StreetAndStatus(
@@ -117,6 +119,7 @@ class TransactionServiceImplTest {
         dto.setClientId("CLIENT1");
         dto.setBrokerId("BROKER1");
         dto.setSide(TransactionSide.BUY_SIDE);
+        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
         dto.setPropertyAddress(new PropertyAddress("123 Main", "Montreal", "QC", "H1H1H1"));
 
         when(repo.save(any())).thenThrow(new RuntimeException("DB error"));
@@ -136,6 +139,7 @@ class TransactionServiceImplTest {
         dto.setClientId("CLIENT1");
         dto.setSide(TransactionSide.BUY_SIDE);
         dto.setBrokerId("BROKER1");
+        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
         dto.setPropertyAddress(new PropertyAddress("123 Main", "MTL", "QC", "H1H1H1"));
 
         when(repo.save(any(Transaction.class))).thenReturn(new Transaction());
@@ -155,6 +159,7 @@ class TransactionServiceImplTest {
         dto.setClientId("CLIENT1");
         dto.setSide(TransactionSide.BUY_SIDE);
         dto.setBrokerId("BROKER1");
+        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
         dto.setPropertyAddress(new PropertyAddress("123 Main", "MTL", "QC", "H1H1H1"));
 
         when(repo.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));

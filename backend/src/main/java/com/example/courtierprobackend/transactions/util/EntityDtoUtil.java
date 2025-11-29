@@ -4,6 +4,7 @@ import com.example.courtierprobackend.transactions.datalayer.*;
 import com.example.courtierprobackend.transactions.datalayer.dto.*;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -121,7 +122,8 @@ public class EntityDtoUtil {
                 .side(TransactionSide.BUY_SIDE)
                 .status(TransactionStatus.ACTIVE)
                 .propertyAddress(null)
-                .currentStage("TEST_STAGE")
+                .currentStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY.name())
+                .openedDate(LocalDate.now().toString())
                 .build();
     }
 

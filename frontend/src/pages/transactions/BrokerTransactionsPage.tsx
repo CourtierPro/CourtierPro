@@ -1,4 +1,3 @@
-import React from "react";
 import { TransactionList } from "@/components/TransactionList";
 import { useNavigate } from "react-router-dom";
 

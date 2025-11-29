@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/utils/stages';
+import { useState, useEffect, useRef } from 'react';
+import { getStagesForSide, enumToLabel } from '@/utils/stages';
 import { X, ChevronDown, MessageSquare } from 'lucide-react';
 
 interface StageUpdateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (stageIndex: number, note: string, visibleToClient: boolean) => void;
-  currentStage: number;
   transactionSide: 'buy' | 'sell';
   language: 'en' | 'fr';
 }
@@ -86,7 +85,6 @@ export function StageUpdateModal({
   isOpen,
   onClose,
   onSubmit,
-  currentStage,
   transactionSide,
   language,
 }: StageUpdateModalProps) {
