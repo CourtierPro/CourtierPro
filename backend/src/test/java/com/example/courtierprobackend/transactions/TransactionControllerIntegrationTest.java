@@ -5,6 +5,7 @@ import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequ
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
 import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
 import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
+import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
 
 import com.example.courtierprobackend.transactions.exceptions.TransactionControllerExceptionHandler;
 import com.example.courtierprobackend.transactions.presentationlayer.TransactionController;
@@ -38,40 +39,48 @@ class TransactionControllerIntegrationTest {
     @Autowired
     private ObjectMapper mapper;
 
-    // 1) SUCCESS CASE (201)
+    // createTransaction_validRequest_returns201AndBody
     @Test
-    void createTransaction_201() throws Exception {
+    void createTransaction_validRequest_returns201AndBody() throws Exception {
 
         TransactionRequestDTO dto = new TransactionRequestDTO();
         dto.setClientId("CLIENT1");
         dto.setSide(TransactionSide.BUY_SIDE);
+        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
-        when(service.createTransaction(any())).thenReturn(null);
+        when(service.createTransaction(any())).thenReturn(EntityDtoUtil.toResponseStub("TX-1", "CLIENT1", "BROKER1"));
 
         mockMvc.perform(
                 post("/api/v1/transactions")
                         .header("x-broker-id", "BROKER1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(dto))
-        ).andExpect(status().isCreated());
+        )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.clientId").value("CLIENT1"))
+                .andExpect(jsonPath("$.brokerId").value("BROKER1"))
+                .andExpect(jsonPath("$.side").value("BUY_SIDE"))
+                .andExpect(jsonPath("$.currentStage").value("BUYER_PREQUALIFY_FINANCIALLY"))
+                .andExpect(jsonPath("$.openedDate").isNotEmpty());
     }
 
-    // 2) MISSING BROKER HEADER → 400
-    @Test
-    void createTransaction_MissingBrokerHeader_400() throws Exception {
+        // createTransaction_missingBrokerHeader_returns400
+        @Test
+        void createTransaction_missingBrokerHeader_returns400() throws Exception {
 
-        TransactionRequestDTO dto = new TransactionRequestDTO();
-        dto.setClientId("CLIENT1");
-        dto.setSide(TransactionSide.BUY_SIDE);
+                TransactionRequestDTO dto = new TransactionRequestDTO();
+                dto.setClientId("CLIENT1");
+                dto.setSide(TransactionSide.BUY_SIDE);
+                dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
-        when(service.createTransaction(any())).thenReturn(null);
+                when(service.createTransaction(any())).thenThrow(new InvalidInputException("brokerId is required"));
 
-        mockMvc.perform(
-                post("/api/v1/transactions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(dto))
-        ).andExpect(status().isCreated());
-    }
+                mockMvc.perform(
+                                post("/api/v1/transactions")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(mapper.writeValueAsString(dto))
+                ).andExpect(status().isBadRequest());
+        }
 
     // 3) INVALID BODY → 400 BAD REQUEST
     @Test
@@ -94,6 +103,7 @@ class TransactionControllerIntegrationTest {
         TransactionRequestDTO dto = new TransactionRequestDTO();
         dto.setClientId("CLIENT1");
         dto.setSide(TransactionSide.BUY_SIDE);
+                dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
         when(service.createTransaction(any()))
                 .thenThrow(new InvalidInputException("Bad input"));
@@ -113,6 +123,7 @@ class TransactionControllerIntegrationTest {
         TransactionRequestDTO dto = new TransactionRequestDTO();
         dto.setClientId("CLIENT1");
         dto.setSide(TransactionSide.BUY_SIDE);
+                dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
         when(service.createTransaction(any()))
                 .thenThrow(new NotFoundException("Not found"));
@@ -132,6 +143,7 @@ class TransactionControllerIntegrationTest {
         TransactionRequestDTO dto = new TransactionRequestDTO();
         dto.setClientId("CLIENT1");
         dto.setSide(TransactionSide.BUY_SIDE);
+                dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
         when(service.createTransaction(any()))
                 .thenThrow(new InvalidInputException("Duplicate transaction"));

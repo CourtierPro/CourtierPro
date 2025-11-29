@@ -177,7 +177,6 @@ export function CreateAppointmentModal({
   language,
   fromTransaction = false,
   prefilledClientId = '',
-  prefilledClientName = '',
   prefilledTransactionId = '',
   prefilledTransactionAddress = '',
 }: CreateAppointmentModalProps) {
@@ -376,7 +375,6 @@ export function CreateAppointmentModal({
   };
 
   const selectedClient = getClientDetails(selectedClientId);
-  const selectedTransaction = getTransactionDetails(selectedTransactionId);
   const clientTransactions = selectedClientId ? getClientTransactions(selectedClientId) : [];
 
   if (!isOpen) return null;

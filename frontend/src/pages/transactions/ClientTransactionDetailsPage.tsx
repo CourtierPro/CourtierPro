@@ -1,4 +1,3 @@
-import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { TransactionSummary } from "@/components/TransactionSummary";
 
@@ -29,7 +28,6 @@ export function ClientTransactionDetailsPage() {
     <div className="space-y-6">
       <TransactionSummary
         language="en"     // TODO: hook to client's preferred language
-        onNavigate={(route) => navigate(route)}
         transactionId={transactionId}
       />
     </div>

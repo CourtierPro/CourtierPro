@@ -1,21 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import {
-  CheckCircle,
-  Clock,
-  FileText,
-  Calendar,
-  AlertCircle,
-  Info,
-  Upload,
-  ChevronRight,
-  Plus,
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CheckCircle } from 'lucide-react';
 import axiosInstance from '@/api/axiosInstace';
 import { getStagesForSide, enumToLabel, resolveStageIndex, isTerminatedStage } from '@/utils/stages';
 
 interface TransactionSummaryProps {
   language: 'en' | 'fr';
-  onNavigate: (route: string) => void;
   transactionId: string;
 }
 
@@ -53,6 +42,7 @@ const translations = {
       'Preparing for the final closing. Almost there!',
       'Transaction complete! Congratulations on your new property!',
     ],
+    openedDate: 'Opened Date',
   },
   fr: {
     fileNumber: 'Dossier',
@@ -87,10 +77,11 @@ const translations = {
       'Préparation de la clôture finale. Presque terminé!',
       'Transaction terminée! Félicitations pour votre nouvelle propriété!',
     ],
+    openedDate: 'Date d\'ouverture',
   },
 };
 
-export function TransactionSummary({ language, onNavigate, transactionId }: TransactionSummaryProps) {
+export function TransactionSummary({ language, transactionId }: TransactionSummaryProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [transaction, setTransaction] = useState<any | null>(null);
 
@@ -100,6 +91,8 @@ export function TransactionSummary({ language, onNavigate, transactionId }: Tran
   const stages = stageEnums.map(enumToLabel);
   const stageIndex = resolveStageIndex(transaction?.currentStage, stageEnums);
   const isTerminated = isTerminatedStage(transaction?.currentStage, stageEnums) || transaction?.status === 'terminated';
+  const displayStage = stageIndex >= 0 ? stageIndex + 1 : 1;
+  const totalStages = ((transaction?.totalStages ?? stages.length) || 1);
 
   useEffect(() => {
     if (!transactionId) {
@@ -202,7 +195,7 @@ export function TransactionSummary({ language, onNavigate, transactionId }: Tran
             {t.currentStage}
           </h2>
           <p style={{ color: '#353535', opacity: 0.7 }}>
-            {t.stage} { (stageIndex + 1) ?? 1 } {t.of} {transaction?.totalStages ?? stages.length}:{' '}
+            {t.stage} {displayStage} {t.of} {transaction?.totalStages ?? stages.length}:{' '}
             {stages[stageIndex] ?? enumToLabel(stageEnums[stageIndex])}
           </p>
         </div>
@@ -214,13 +207,13 @@ export function TransactionSummary({ language, onNavigate, transactionId }: Tran
                 className="h-full transition-all duration-500 rounded-full"
                 style={{
                   backgroundColor: isTerminated ? '#9ca3af' : '#FF6B01',
-                  width: `${((stageIndex + 1) / ((transaction?.totalStages ?? stages.length) || 1)) * 100}%`,
+                  width: `${(displayStage / totalStages) * 100}%`,
                 }}
                 role="progressbar"
-                aria-valuenow={stageIndex + 1}
+                aria-valuenow={displayStage}
                 aria-valuemin={0}
-                aria-valuemax={((transaction?.totalStages ?? stages.length) || 1)}
-                aria-label={`Progress: Stage ${stageIndex + 1} of ${((transaction?.totalStages ?? stages.length) || 1)}`}
+                aria-valuemax={totalStages}
+                aria-label={`Progress: Stage ${displayStage} of ${totalStages}`}
               />
           </div>
         </div>

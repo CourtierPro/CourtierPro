@@ -1,4 +1,3 @@
-import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { TransactionDetail } from '@/components/TransactionDetail';
 
