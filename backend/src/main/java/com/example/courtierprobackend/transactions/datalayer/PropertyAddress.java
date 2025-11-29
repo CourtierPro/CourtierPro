@@ -3,7 +3,6 @@ package com.example.courtierprobackend.transactions.datalayer;
 import lombok.*;
 
 import jakarta.persistence.Embeddable;
-import lombok.*;
 
 @Embeddable
 @Data
