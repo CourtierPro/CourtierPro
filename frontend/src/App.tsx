@@ -13,6 +13,7 @@ import { BrokerTransactionsPage } from '@/pages/transactions/BrokerTransactionsP
 import { ClientTransactionsPage } from '@/pages/transactions/ClientTransactionsPage'
 import { BrokerTransactionDetailsPage } from './pages/transactions/BrokerTransactionDetailsPage'
 import { ClientTransactionDetailsPage } from './pages/transactions/ClientTransactionDetailsPage'
+import CreateTransactionPage from '@/pages/transactions/CreateTransactionPage'
 
 // Documents
 import { DocumentsPage } from '@/pages/documents/DocumentsPage'
@@ -96,6 +97,16 @@ export default function App() {
         }
       />
 
+      {/* Create transaction (broker) */}
+      <Route
+        path="/transactions/new"
+        element={
+          <AppShell>
+            <CreateTransactionPage />
+          </AppShell>
+        }
+      />
+
       <Route
         path="/transactions/:transactionId"
         element={
@@ -116,7 +127,7 @@ export default function App() {
       />
 
       <Route
-        path="/transactions/:transactionId"
+        path="/my-transaction/:transactionId"
         element={
           <AppShell>
             <ClientTransactionDetailsPage />

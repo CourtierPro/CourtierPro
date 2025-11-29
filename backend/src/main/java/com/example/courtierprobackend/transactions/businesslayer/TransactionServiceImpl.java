@@ -57,6 +57,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         // 3) Create Transaction entity
         Transaction tx = new Transaction();
+        tx.setTransactionId("TX-" + UUID.randomUUID().toString().substring(0, 8));
         tx.setClientId(dto.getClientId());
         tx.setBrokerId(dto.getBrokerId());
         tx.setSide(dto.getSide());
