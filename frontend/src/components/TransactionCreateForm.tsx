@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, Search, AlertCircle, CheckCircle } from 'lucide-react';
 import axiosInstance from "@/api/axiosInstace";
+import type { TransactionRequestDTO } from '@/api/types';
+import { getStagesForSide, enumToLabel } from '@/utils/stages';
 
 
 interface TransactionCreateFormProps {
@@ -39,26 +41,7 @@ const translations = {
     errorSelectClient: 'Please select a client',
     errorSelectSide: 'Please select a transaction side',
     errorSelectStage: 'Please select an initial stage',
-    buyStages: [
-      'Offer Submitted',
-      'Offer Accepted',
-      'Inspection',
-      'Financing',
-      'Legal Review',
-      'Final Walkthrough',
-      'Closing',
-      'Complete',
-    ],
-    sellStages: [
-      'Listed',
-      'Marketing',
-      'Offer Received',
-      'Negotiations',
-      'Accepted',
-      'Legal Review',
-      'Closing',
-      'Complete',
-    ],
+    // buy/sell stage arrays removed — use centralized enums in src/utils/stages.ts
   },
   fr: {
     backToTransactions: 'Retour aux transactions',
@@ -84,26 +67,7 @@ const translations = {
     errorSelectClient: 'Veuillez sélectionner un client',
     errorSelectSide: 'Veuillez sélectionner un type de transaction',
     errorSelectStage: 'Veuillez sélectionner une étape initiale',
-    buyStages: [
-      'Offre soumise',
-      'Offre acceptée',
-      'Inspection',
-      'Financement',
-      'Révision légale',
-      'Visite finale',
-      'Clôture',
-      'Complet',
-    ],
-    sellStages: [
-      'Inscrit',
-      'Marketing',
-      'Offre reçue',
-      'Négociations',
-      'Accepté',
-      'Révision légale',
-      'Clôture',
-      'Complet',
-    ],
+    // buy/sell stage arrays removed — use centralized enums in src/utils/stages.ts
   },
 };
 
@@ -165,8 +129,10 @@ export function TransactionCreateForm({ language, onNavigate }: TransactionCreat
       client.email.toLowerCase().includes(clientSearch.toLowerCase())
   );
 
-  // Get available stages based on transaction side
-  const availableStages = transactionSide === 'buy' ? t.buyStages : transactionSide === 'sell' ? t.sellStages : [];
+  // Get available stage enums for the selected side
+  const stageEnums = transactionSide
+    ? getStagesForSide(transactionSide === 'buy' ? 'BUY_SIDE' : 'SELL_SIDE')
+    : [];
 
   // Validate form
   const validateForm = () => {
@@ -211,9 +177,10 @@ export function TransactionCreateForm({ language, onNavigate }: TransactionCreat
 
     if (validateForm()) {
       try {
-        const payload = {
+        const payload: TransactionRequestDTO = {
           clientId: selectedClient!.id,
           side: transactionSide === "buy" ? "BUY_SIDE" : "SELL_SIDE",
+          initialStage: initialStage,
           propertyAddress: {
             street: propertyAddress,
             city: "Unknown",
@@ -222,27 +189,58 @@ export function TransactionCreateForm({ language, onNavigate }: TransactionCreat
           },
         };
 
+        // Debug: show exact payload being sent to backend
+        // eslint-disable-next-line no-console
+        console.debug('Creating transaction payload:', payload);
+
         const response = await axiosInstance.post(
           "/transactions",
           payload,
-          { headers: { "x-broker-id": "BROKER1" } } // REMOVE after Auth0
+          { headers: { "x-broker-id": "BROKER1" }, withCredentials: true }
         );
 
         const createdId = response?.data?.transactionId;
         if (createdId) {
           onNavigate(`/transactions/${createdId}`);
         } else {
+          // eslint-disable-next-line no-console
           console.error('Transaction created but no transactionId returned', response?.data);
-          // Prevent navigation — show a minimal error to the user
-          // (Could be replaced with app toast/notification later)
-          alert(
-            language === 'en'
-              ? 'Transaction created but no id was returned. Please check the transactions list.'
-              : 'Transaction créée mais aucun identifiant retourné. Veuillez vérifier la liste des transactions.'
-          );
+          setErrors({ ...errors, form: language === 'en' ? 'Transaction created but no id returned' : 'Transaction créée mais aucun identifiant retourné' });
         }
-      } catch (err) {
-        console.error("Error creating transaction", err);
+      } catch (err: any) {
+        // eslint-disable-next-line no-console
+        console.error('Error creating transaction', err);
+
+        // Log backend response body explicitly for debugging
+        // eslint-disable-next-line no-console
+        console.debug('Backend error response data:', err?.response?.data);
+
+        const serverMsg = err?.response?.data;
+        const newErrors: Record<string, string> = { ...errors };
+
+        if (typeof serverMsg === 'string') {
+          // Map known backend messages to fields
+          if (serverMsg.toLowerCase().includes('initialstage')) {
+            newErrors.initialStage = serverMsg;
+          } else if (serverMsg.toLowerCase().includes('clientid')) {
+            newErrors.client = serverMsg;
+          } else if (serverMsg.toLowerCase().includes('brokerid')) {
+            newErrors.client = serverMsg; // broker id is a header; show on form top
+            newErrors.form = serverMsg;
+          } else if (serverMsg.toLowerCase().includes('side')) {
+            newErrors.transactionSide = serverMsg;
+          } else if (serverMsg.toLowerCase().includes('propertyaddress.street')) {
+            newErrors.propertyAddress = serverMsg;
+          } else {
+            newErrors.form = serverMsg;
+          }
+        } else if (err?.message) {
+          newErrors.form = err.message;
+        } else {
+          newErrors.form = 'Unknown error';
+        }
+
+        setErrors(newErrors);
       }
     }
   };
@@ -275,6 +273,11 @@ export function TransactionCreateForm({ language, onNavigate }: TransactionCreat
 
       {/* Form */}
       <form onSubmit={handleSubmit} noValidate>
+        {errors.form && (
+          <div className="mb-4 p-3 rounded border border-red-200 bg-red-50" role="alert">
+            <p style={{ color: '#ef4444' }}>{errors.form}</p>
+          </div>
+        )}
         <div
           className="p-6 rounded-xl shadow-md"
           style={{ backgroundColor: '#FFFFFF' }}
@@ -559,9 +562,9 @@ export function TransactionCreateForm({ language, onNavigate }: TransactionCreat
                 aria-invalid={touched.initialStage && errors.initialStage ? 'true' : 'false'}
               >
                 <option value="">{t.selectStage}</option>
-                {availableStages.map((stage, index) => (
-                  <option key={index} value={stage}>
-                    {stage}
+                {stageEnums.map((stageEnum) => (
+                  <option key={stageEnum} value={stageEnum}>
+                    {enumToLabel(stageEnum)}
                   </option>
                 ))}
               </select>

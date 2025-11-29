@@ -11,6 +11,7 @@ import {
   Plus,
 } from 'lucide-react';
 import axiosInstance from '@/api/axiosInstace';
+import { getStagesForSide, enumToLabel, resolveStageIndex, isTerminatedStage } from '@/utils/stages';
 
 interface TransactionSummaryProps {
   language: 'en' | 'fr';
@@ -41,26 +42,7 @@ const translations = {
     stage: 'Stage',
     of: 'of',
     noTimeline: 'No recent activity',
-    buyStages: [
-      'Offer Submitted',
-      'Offer Accepted',
-      'Inspection',
-      'Financing',
-      'Legal Review',
-      'Final Walkthrough',
-      'Closing',
-      'Complete',
-    ],
-    sellStages: [
-      'Listed',
-      'Marketing',
-      'Offer Received',
-      'Negotiations',
-      'Accepted',
-      'Legal Review',
-      'Closing',
-      'Complete',
-    ],
+    // buy/sell stage arrays removed; use enums in src/utils/stages.ts
     stageDescriptions: [
       'Your offer has been submitted to the seller. Awaiting response.',
       'Congratulations! Your offer has been accepted. Moving to the next steps.',
@@ -94,26 +76,7 @@ const translations = {
     stage: 'Étape',
     of: 'sur',
     noTimeline: 'Aucune activité récente',
-    buyStages: [
-      'Offre soumise',
-      'Offre acceptée',
-      'Inspection',
-      'Financement',
-      'Révision légale',
-      'Visite finale',
-      'Clôture',
-      'Complet',
-    ],
-    sellStages: [
-      'Inscrit',
-      'Marketing',
-      'Offre reçue',
-      'Négociations',
-      'Accepté',
-      'Révision légale',
-      'Clôture',
-      'Complet',
-    ],
+    // buy/sell stage arrays removed; use enums in src/utils/stages.ts
     stageDescriptions: [
       'Votre offre a été soumise au vendeur. En attente de réponse.',
       'Félicitations! Votre offre a été acceptée. Passons aux prochaines étapes.',
@@ -133,14 +96,10 @@ export function TransactionSummary({ language, onNavigate, transactionId }: Tran
 
   const t = translations[language];
   
-  const stages =
-    transaction?.side === 'BUY_SIDE'
-      ? t.buyStages
-      : transaction?.side === 'SELL_SIDE'
-      ? t.sellStages
-      : [];
-
-  const stageIndex = Math.max(0, (transaction?.currentStage ?? 1) - 1);
+  const stageEnums = getStagesForSide(transaction?.side);
+  const stages = stageEnums.map(enumToLabel);
+  const stageIndex = resolveStageIndex(transaction?.currentStage, stageEnums);
+  const isTerminated = isTerminatedStage(transaction?.currentStage, stageEnums) || transaction?.status === 'terminated';
 
   useEffect(() => {
     if (!transactionId) {
@@ -243,8 +202,8 @@ export function TransactionSummary({ language, onNavigate, transactionId }: Tran
             {t.currentStage}
           </h2>
           <p style={{ color: '#353535', opacity: 0.7 }}>
-            {t.stage} {transaction?.currentStage ?? 1} {t.of} {transaction?.totalStages ?? stages.length}:{' '}
-            {stages[(transaction?.currentStage ?? 1) - 1] ?? ''}
+            {t.stage} { (stageIndex + 1) ?? 1 } {t.of} {transaction?.totalStages ?? stages.length}:{' '}
+            {stages[stageIndex] ?? enumToLabel(stageEnums[stageIndex])}
           </p>
         </div>
 
@@ -254,44 +213,39 @@ export function TransactionSummary({ language, onNavigate, transactionId }: Tran
               <div
                 className="h-full transition-all duration-500 rounded-full"
                 style={{
-                  backgroundColor: '#FF6B01',
-                  width: `${(
-                    (transaction?.currentStage ?? 0) /
-                    ((transaction?.totalStages ?? stages.length) || 1)
-                  ) * 100}%`,
+                  backgroundColor: isTerminated ? '#9ca3af' : '#FF6B01',
+                  width: `${((stageIndex + 1) / ((transaction?.totalStages ?? stages.length) || 1)) * 100}%`,
                 }}
                 role="progressbar"
-                aria-valuenow={transaction?.currentStage ?? 0}
+                aria-valuenow={stageIndex + 1}
                 aria-valuemin={0}
                 aria-valuemax={((transaction?.totalStages ?? stages.length) || 1)}
-                aria-label={`Progress: Stage ${transaction?.currentStage ?? 0} of ${((transaction?.totalStages ?? stages.length) || 1)}`}
+                aria-label={`Progress: Stage ${stageIndex + 1} of ${((transaction?.totalStages ?? stages.length) || 1)}`}
               />
           </div>
         </div>
 
         {/* Stage Dots */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 md:gap-2 mb-6">
-          {stages.map((stage, index) => {
+          {stageEnums.map((stageEnum, index) => {
             const stageNumber = index + 1;
-            const currentStageNum = transaction?.currentStage ?? 0;
-            const isCompleted = stageNumber < currentStageNum;
-            const isCurrent = stageNumber === currentStageNum;
+            const isCompleted = index < stageIndex;
+            const isCurrent = index === stageIndex;
+            const label = enumToLabel(stageEnum);
 
             return (
-              <div key={index} className="flex md:flex-col items-center md:items-center flex-1 gap-3 md:gap-2">
+              <div key={stageEnum ?? `stage-${index}`} className="flex md:flex-col items-center md:items-center flex-1 gap-3 md:gap-2">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
                     isCurrent ? 'ring-4 ring-[#FF6B01] ring-opacity-30' : ''
                   }`}
                   style={{
-                    backgroundColor: isCompleted || isCurrent ? '#FF6B01' : '#e5e7eb',
-                    color: isCompleted || isCurrent ? '#FFFFFF' : '#9ca3af',
+                    backgroundColor: isTerminated ? '#e5e7eb' : isCompleted || isCurrent ? '#FF6B01' : '#e5e7eb',
+                    color: isTerminated ? '#9ca3af' : isCompleted || isCurrent ? '#FFFFFF' : '#9ca3af',
                   }}
                   role="button"
                   tabIndex={0}
-                  aria-label={`${stage} - ${
-                    isCompleted ? 'completed' : isCurrent ? 'current stage' : 'upcoming'
-                  }`}
+                  aria-label={`${label} - ${isCompleted ? 'completed' : isCurrent ? 'current stage' : 'upcoming'}`}
                 >
                   {isCompleted ? (
                     <CheckCircle className="w-5 h-5" />
@@ -301,14 +255,14 @@ export function TransactionSummary({ language, onNavigate, transactionId }: Tran
                 </div>
                 <span
                   style={{
-                    color: isCurrent ? '#FF6B01' : '#353535',
+                    color: isCurrent ? (isTerminated ? '#9ca3af' : '#FF6B01') : '#353535',
                     fontSize: '0.75rem',
                     opacity: !isCompleted && !isCurrent ? 0.5 : 1,
                     textAlign: 'left',
                   }}
                   className="flex-1 md:flex-none md:text-center"
                 >
-                  {stage}
+                  {label}
                 </span>
               </div>
             );

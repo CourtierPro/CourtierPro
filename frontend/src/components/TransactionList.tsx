@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Filter, X, Home, Users, Plus } from 'lucide-react';
 import axiosInstance from "@/api/axiosInstace";
+import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/utils/stages';
 
 interface TransactionListProps {
   language: 'en' | 'fr';
@@ -58,26 +59,7 @@ const translations = {
     of: 'of',
     transactions: 'transactions',
     clearFilters: 'Clear Filters',
-    buyStages: [
-      'Offer Submitted',
-      'Offer Accepted',
-      'Inspection',
-      'Financing',
-      'Legal Review',
-      'Final Walkthrough',
-      'Closing',
-      'Complete',
-    ],
-    sellStages: [
-      'Listed',
-      'Marketing',
-      'Offer Received',
-      'Negotiations',
-      'Accepted',
-      'Legal Review',
-      'Closing',
-      'Complete',
-    ],
+    // buy/sell stage arrays removed; use enums in src/utils/stages.ts
   },
   fr: {
     title: 'Toutes les Transactions',
@@ -113,26 +95,7 @@ const translations = {
     of: 'sur',
     transactions: 'transactions',
     clearFilters: 'Effacer les filtres',
-    buyStages: [
-      'Offre soumise',
-      'Offre acceptée',
-      'Inspection',
-      'Financement',
-      'Révision légale',
-      'Visite finale',
-      'Clôture',
-      'Complet',
-    ],
-    sellStages: [
-      'Inscrit',
-      'Marketing',
-      'Offre reçue',
-      'Négociations',
-      'Accepté',
-      'Révision légale',
-      'Clôture',
-      'Complet',
-    ],
+    // buy/sell stage arrays removed; use enums in src/utils/stages.ts
   },
 };
 
@@ -181,8 +144,9 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
   }, []);
 
   const getStageName = (tx: Transaction) => {
-    const stages = tx.side === 'BUY_SIDE' ? t.buyStages : t.sellStages;
-    return stages[tx.currentStage - 1];
+    const stageEnums = getStagesForSide(tx.side);
+    const idx = resolveStageIndex(tx.currentStage, stageEnums);
+    return enumToLabel(stageEnums[idx]);
   };
 
   // Filter transactions
@@ -244,13 +208,15 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
 
   const hasActiveFilters = sideFilter !== 'all' || statusFilter !== 'all' || stageFilter !== 'all';
 
-  // Get available stages based on selected side
-  const availableStages =
-    sideFilter === 'buy'
-      ? t.buyStages
-      : sideFilter === 'sell'
-      ? t.sellStages
-      : Array.from(new Set([...t.buyStages, ...t.sellStages])); // Deduplicate stages when "All" is selected
+  // Get available stages based on selected side (deduplicated labels)
+  const availableStages = (() => {
+    if (sideFilter === 'buy') return getStagesForSide('BUY_SIDE').map(enumToLabel);
+    if (sideFilter === 'sell') return getStagesForSide('SELL_SIDE').map(enumToLabel);
+    const combined = [...getStagesForSide('BUY_SIDE'), ...getStagesForSide('SELL_SIDE')];
+    // Deduplicate by enum
+    const uniqueEnums = Array.from(new Set(combined));
+    return uniqueEnums.map(enumToLabel);
+  })();
 
   if (isLoading) {
     return (

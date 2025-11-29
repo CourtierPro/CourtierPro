@@ -20,6 +20,7 @@ import {
 // import { CreateAppointmentModal, AppointmentFormData } from './CreateAppointmentModal';
 import { Toast } from './Toast';
 import axiosInstance from "@/api/axiosInstace";
+import { getStagesForSide, enumToLabel, resolveStageIndex, isTerminatedStage } from '@/utils/stages';
 
 interface TransactionDetailProps {
   transactionId: string;
@@ -81,26 +82,7 @@ const translations = {
     timestamp: 'Timestamp',
     description: 'Description',
     author: 'Author',
-    buyStages: [
-      'Offer Submitted',
-      'Offer Accepted',
-      'Inspection',
-      'Financing',
-      'Legal Review',
-      'Final Walkthrough',
-      'Closing',
-      'Complete',
-    ],
-    sellStages: [
-      'Listed',
-      'Marketing',
-      'Offer Received',
-      'Negotiations',
-      'Accepted',
-      'Legal Review',
-      'Closing',
-      'Complete',
-    ],
+    // stagelists removed — use backend enums + helpers in src/utils/stages.ts
   },
   fr: {
     backToTransactions: 'Retour aux transactions',
@@ -153,26 +135,7 @@ const translations = {
     timestamp: 'Horodatage',
     description: 'Description',
     author: 'Auteur',
-    buyStages: [
-      'Offre soumise',
-      'Offre acceptée',
-      'Inspection',
-      'Financement',
-      'Révision légale',
-      'Visite finale',
-      'Clôture',
-      'Complet',
-    ],
-    sellStages: [
-      'Inscrit',
-      'Marketing',
-      'Offre reçue',
-      'Négociations',
-      'Accepté',
-      'Révision légale',
-      'Clôture',
-      'Complet',
-    ],
+    // stagelists removed — use backend enums + helpers in src/utils/stages.ts
   },
 };
 
@@ -239,7 +202,8 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
         });
 
         setTransaction(res.data);
-        setSelectedStage(res.data.currentStage || 1);
+        const enums = getStagesForSide(res.data.side);
+        setSelectedStage(resolveStageIndex(res.data.currentStage, enums) + 1);
       } catch (err) {
         console.error("Failed to load transaction:", err);
       } finally {
@@ -319,7 +283,11 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
   if (loading) return <p>Loading…</p>;
   if (!transaction) return <p>Transaction not found.</p>;
 
-  const stages = transaction.side === 'BUY_SIDE' ? t.buyStages : t.sellStages;
+  const stageEnums = getStagesForSide(transaction.side);
+  const stages = stageEnums.map(enumToLabel);
+  const totalStages = transaction.totalStages ?? stageEnums.length;
+  const currentStageIndex = resolveStageIndex(transaction.currentStage, stageEnums);
+  const isTerminated = isTerminatedStage(transaction.currentStage, stageEnums) || transaction.status === 'terminated';
 
   return (
     <div className="space-y-6">
@@ -388,10 +356,10 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 style={{ color: '#353535' }}>
-              {t.stage} {selectedStage} {t.of} {transaction.totalStages}
+              {t.stage} {selectedStage} {t.of} {totalStages}
             </h2>
             <p style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }}>
-              {stages[selectedStage - 1]}
+              {stages[selectedStage - 1] ?? enumToLabel(stageEnums[currentStageIndex])}
             </p>
           </div>
           <button
@@ -411,33 +379,34 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                 <div
                   className="h-full transition-all duration-500 rounded-full"
                   style={{
-                    backgroundColor: '#FF6B01',
-                    width: `${(selectedStage / transaction.totalStages) * 100}%`,
+                    backgroundColor: isTerminated ? '#9ca3af' : '#FF6B01',
+                    width: `${(selectedStage / (totalStages || 1)) * 100}%`,
                   }}
                   role="progressbar"
                   aria-valuenow={selectedStage}
                   aria-valuemin={0}
-                  aria-valuemax={transaction.totalStages}
+                  aria-valuemax={totalStages || 1}
                 />
           </div>
         </div>
 
         {/* Stage Dots */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 md:gap-0">
-          {stages.map((stage, index) => {
+          {stageEnums.map((stageEnum, index) => {
             const stageNumber = index + 1;
             const isCompleted = stageNumber < selectedStage;
             const isCurrent = stageNumber === selectedStage;
+            const label = enumToLabel(stageEnum);
 
             return (
-              <div key={index} className="flex md:flex-col items-center md:items-center flex-1 gap-3 md:gap-0">
+              <div key={stageEnum ?? `stage-${index}`} className="flex md:flex-col items-center md:items-center flex-1 gap-3 md:gap-0">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center md:mb-2 transition-all flex-shrink-0 ${
                     isCurrent ? 'ring-4 ring-[#FF6B01] ring-opacity-30' : ''
                   }`}
                   style={{
-                    backgroundColor: isCompleted || isCurrent ? '#FF6B01' : '#e5e7eb',
-                    color: isCompleted || isCurrent ? '#FFFFFF' : '#9ca3af',
+                    backgroundColor: isTerminated ? '#e5e7eb' : isCompleted || isCurrent ? '#FF6B01' : '#e5e7eb',
+                    color: isTerminated ? '#9ca3af' : isCompleted || isCurrent ? '#FFFFFF' : '#9ca3af',
                   }}
                 >
                   {isCompleted ? (
@@ -448,14 +417,14 @@ export function TransactionDetail({ transactionId, language, onNavigate }: Trans
                 </div>
                 <span
                   style={{
-                    color: isCurrent ? '#FF6B01' : '#353535',
+                    color: isCurrent ? (isTerminated ? '#9ca3af' : '#FF6B01') : '#353535',
                     fontSize: '0.75rem',
                     opacity: !isCompleted && !isCurrent ? 0.5 : 1,
                     textAlign: 'center',
                   }}
                   className="flex-1 md:flex-none text-left md:text-center"
                 >
-                  {stage}
+                  {label}
                 </span>
               </div>
             );

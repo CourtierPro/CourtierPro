@@ -17,5 +17,6 @@ public class TransactionResponseDTO {
     private PropertyAddress propertyAddress;
     private String currentStage;
     private TransactionStatus status;
+    private String openedDate;
 }
 

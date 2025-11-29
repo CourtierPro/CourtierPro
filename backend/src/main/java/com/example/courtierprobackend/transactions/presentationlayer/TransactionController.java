@@ -3,6 +3,8 @@ package com.example.courtierprobackend.transactions.presentationlayer;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +47,28 @@ public class TransactionController {
 
         TransactionResponseDTO response = service.createTransaction(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/{transactionId}/notes")
+    public ResponseEntity<TimelineEntryDTO> createNote(
+            @PathVariable String transactionId,
+            @Valid @RequestBody NoteRequestDTO note,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        String brokerId = resolveBrokerId(jwt, brokerHeader);
+        TimelineEntryDTO created = service.createNote(transactionId, note, brokerId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @GetMapping("/{transactionId}/notes")
+    public ResponseEntity<java.util.List<TimelineEntryDTO>> getNotes(
+            @PathVariable String transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        String brokerId = resolveBrokerId(jwt, brokerHeader);
+        return ResponseEntity.ok(service.getNotes(transactionId, brokerId));
     }
 
     @GetMapping
