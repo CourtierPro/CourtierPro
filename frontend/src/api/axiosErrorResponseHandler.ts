@@ -1,6 +1,6 @@
 import type { AxiosError } from "axios";
 
-// Map status codes to their respective error pages
+// Centralized redirect mapping
 const errorPageRedirects: Record<number, string> = {
   401: "/unauthorized",
   403: "/forbidden",
@@ -12,20 +12,26 @@ export default function axiosErrorResponseHandler(
   error: AxiosError,
   statusCode: number
 ): void {
+  // 🔒 Auth0-specific handling (future step)
   if (statusCode === 401) {
-    // TODO: integrate with Auth0 logout + optional local cleanup
-    console.error("Session expired. Redirecting to unauthorized page.");
+    console.warn("401 Unauthorized: likely missing/expired Auth0 token");
 
-    // Example: flag to show a session-expired message on login
+    // FE will use this to show “session expired” toast on login
     sessionStorage.setItem("sessionExpired", "true");
+
+    // OPTIONAL (later): redirect to Auth0 login
+    // window.location.href = "/login";
   }
 
+  // Handle known global errors
   const redirectPath = errorPageRedirects[statusCode];
 
   if (redirectPath && typeof window !== "undefined") {
-    console.error(`Redirecting to ${redirectPath} due to server error:`, error);
+    console.error(`[${statusCode}] redirecting to: ${redirectPath}`, error);
     window.location.href = redirectPath;
-  } else {
-    console.error("Unhandled global error:", error, "Status code:", statusCode);
+    return;
   }
+
+  // Fallback for unknown/unmapped errors
+  console.error("Unhandled global error:", error, "Status:", statusCode);
 }
