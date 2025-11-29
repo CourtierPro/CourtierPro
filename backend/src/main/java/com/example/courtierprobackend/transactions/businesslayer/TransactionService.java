@@ -12,9 +12,5 @@ public interface TransactionService {
     List<TransactionResponseDTO> getBrokerTransactions(String brokerId);
 
     TransactionResponseDTO getByTransactionId(String transactionId, String brokerId);
-
-    TimelineEntryDTO createNote(String transactionId, NoteRequestDTO noteDto, String brokerId);
-
-    java.util.List<TimelineEntryDTO> getNotes(String transactionId, String brokerId);
 }
 

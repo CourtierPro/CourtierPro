@@ -12,10 +12,7 @@ import java.time.LocalDateTime;
 public class TimelineEntryDTO {
 
     private TimelineEntryType type;
-    private String title;
-    private String message;
-    private Boolean visibleToClient;
+    private String note;
     private LocalDateTime occurredAt;
     private String addedByBrokerId;
-    private String actorId;
 }
