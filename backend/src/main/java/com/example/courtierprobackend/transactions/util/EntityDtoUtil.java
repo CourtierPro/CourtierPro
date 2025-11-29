@@ -21,6 +21,7 @@ public class EntityDtoUtil {
                 .propertyAddress(t.getPropertyAddress())
                 .currentStage(resolveStage(t))
                 .status(t.getStatus())
+                .openedDate(t.getOpenedAt() != null ? t.getOpenedAt().toLocalDate().toString() : null)
                 .build();
     }
 
@@ -47,6 +48,8 @@ public class EntityDtoUtil {
         return TimelineEntryDTO.builder()
                 .type(entry.getType())
                 .note(entry.getNote())
+                .title(entry.getTitle())
+                .visibleToClient(entry.getVisibleToClient())
                 .occurredAt(entry.getOccurredAt())
                 .addedByBrokerId(entry.getAddedByBrokerId())
                 .build();

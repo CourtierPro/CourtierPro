@@ -57,6 +57,8 @@ public class TransactionController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         String brokerId = resolveBrokerId(jwt, brokerHeader);
+        // Ensure transactionId in body (if provided) matches path
+        note.setTransactionId(transactionId);
         TimelineEntryDTO created = service.createNote(transactionId, note, brokerId);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }

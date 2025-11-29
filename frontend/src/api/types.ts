@@ -24,4 +24,23 @@ export interface TransactionResponseDTO {
   side: TransactionSideEnum;
   currentStage: string;
   status: string;
+  openedDate?: string;
+}
+
+export interface TimelineEntryDTO {
+  id?: number;
+  type: 'CREATED' | 'STAGE_CHANGE' | 'NOTE';
+  title?: string;
+  note?: string;
+  visibleToClient?: boolean;
+  occurredAt?: string;
+  addedByBrokerId?: string;
+}
+
+export interface NoteCreateRequest {
+  transactionId: string;
+  actorId: string;
+  title: string;
+  message: string;
+  visibleToClient?: boolean;
 }

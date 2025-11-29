@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Filter, X, Home, Users, Plus } from 'lucide-react';
 import axiosInstance from "@/api/axiosInstace";
 import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/utils/stages';
+import { useTranslation } from 'react-i18next';
 
 interface TransactionListProps {
   language: 'en' | 'fr';
@@ -22,82 +23,9 @@ interface Transaction {
   totalStages: number;
   status: 'active' | 'closed' | 'terminated';
   openedAt: string;
+  openedDate?: string;
 }
-
-const translations = {
-  en: {
-    title: 'All Transactions',
-    subtitle: 'Track and manage client transactions across stages',
-    filterBy: 'Filter By',
-    sortBy: 'Sort By',
-    transactionSide: 'Transaction Side',
-    status: 'Status',
-    stage: 'Stage',
-    all: 'All',
-    buy: 'Buy',
-    sell: 'Sell',
-    active: 'Active',
-    closed: 'Closed',
-    terminated: 'Terminated',
-    dateOpenedAsc: 'Date Opened (Oldest First)',
-    dateOpenedDesc: 'Date Opened (Newest First)',
-    clientNameAsc: 'Client Name (A-Z)',
-    clientNameDesc: 'Client Name (Z-A)',
-    clientName: 'Client Name',
-    propertyAddress: 'Property Address',
-    side: 'Side',
-    currentStage: 'Current Stage',
-    statusLabel: 'Status',
-    openedDate: 'Opened Date',
-    loading: 'Loading transactions...',
-    noTransactions: 'No transactions found matching these filters',
-    resetFilters: 'Reset Filters',
-    previous: 'Previous',
-    next: 'Next',
-    showing: 'Showing',
-    to: 'to',
-    of: 'of',
-    transactions: 'transactions',
-    clearFilters: 'Clear Filters',
-    // buy/sell stage arrays removed; use enums in src/utils/stages.ts
-  },
-  fr: {
-    title: 'Toutes les Transactions',
-    subtitle: 'Suivre et gérer les transactions des clients à toutes les étapes',
-    filterBy: 'Filtrer par',
-    sortBy: 'Trier par',
-    transactionSide: 'Type de Transaction',
-    status: 'Statut',
-    stage: 'Étape',
-    all: 'Tous',
-    buy: 'Achat',
-    sell: 'Vente',
-    active: 'Actif',
-    closed: 'Fermé',
-    terminated: 'Résilié',
-    dateOpenedAsc: 'Date d\'ouverture (Plus ancienne)',
-    dateOpenedDesc: 'Date d\'ouverture (Plus récente)',
-    clientNameAsc: 'Nom du client (A-Z)',
-    clientNameDesc: 'Nom du client (Z-A)',
-    clientName: 'Nom du client',
-    propertyAddress: 'Adresse de la propriété',
-    side: 'Type',
-    currentStage: 'Étape actuelle',
-    statusLabel: 'Statut',
-    openedDate: 'Date d\'ouverture',
-    loading: 'Chargement des transactions...',
-    noTransactions: 'Aucune transaction ne correspond à ces filtres',
-    resetFilters: 'Réinitialiser les filtres',
-    previous: 'Précédent',
-    next: 'Suivant',
-    showing: 'Affichage',
-    to: 'à',
-    of: 'sur',
-    transactions: 'transactions',
-    clearFilters: 'Effacer les filtres',
-    // buy/sell stage arrays removed; use enums in src/utils/stages.ts
-  },
-};
+// translations are loaded from i18n namespace `transactions`
 
 
 
@@ -112,7 +40,13 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
   const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc' | 'nameAsc' | 'nameDesc'>('dateDesc');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const t = translations[language];
+  const { t, i18n } = useTranslation('transactions');
+
+  useEffect(() => {
+    if (language) {
+      i18n.changeLanguage(language);
+    }
+  }, [language, i18n]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -222,8 +156,8 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     return (
       <div className="space-y-6">
         <div>
-          <h1 style={{ color: '#353535' }}>{t.title}</h1>
-          <p style={{ color: '#353535', opacity: 0.7 }}>{t.subtitle}</p>
+          <h1 style={{ color: '#353535' }}>{t('title')}</h1>
+          <p style={{ color: '#353535', opacity: 0.7 }}>{t('subtitle')}</p>
         </div>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -231,7 +165,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
               className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4"
               style={{ borderColor: '#FF6B01', borderTopColor: 'transparent' }}
             />
-            <p style={{ color: '#353535' }}>{t.loading}</p>
+            <p style={{ color: '#353535' }}>{t('loading')}</p>
           </div>
         </div>
       </div>
@@ -241,19 +175,13 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 style={{ color: '#353535' }}>{t.title}</h1>
-          <p style={{ color: '#353535', opacity: 0.7 }}>{t.subtitle}</p>
+      <div className="sticky top-0 z-20 bg-white py-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 style={{ color: '#353535' }}>{t('title')}</h1>
+            <p style={{ color: '#353535', opacity: 0.7 }}>{t('subtitle')}</p>
+          </div>
         </div>
-        <button
-          onClick={() => onNavigate('/transactions/new')}
-          className="px-4 py-2 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:ring-offset-2 transition-all flex items-center gap-2 whitespace-nowrap"
-          style={{ backgroundColor: '#FF6B01', color: '#FFFFFF' }}
-        >
-          <Plus className="w-5 h-5" />
-          {language === 'en' ? 'Create New' : 'Créer nouveau'}
-        </button>
       </div>
 
       {/* Filters and Sorting */}
@@ -271,7 +199,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
               style={{ color: '#353535', fontSize: '0.875rem' }}
               className="block mb-2"
             >
-              {t.transactionSide}
+              {t('transactionSide')}
             </label>
             <select
               id="side-filter"
@@ -280,9 +208,9 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
               className="w-full p-2 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent"
               style={{ color: '#353535' }}
             >
-              <option value="all">{t.all}</option>
-              <option value="buy">{t.buy}</option>
-              <option value="sell">{t.sell}</option>
+              <option value="all">{t('all')}</option>
+              <option value="buy">{t('buy')}</option>
+              <option value="sell">{t('sell')}</option>
             </select>
           </div>
 
@@ -293,7 +221,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
               style={{ color: '#353535', fontSize: '0.875rem' }}
               className="block mb-2"
             >
-              {t.status}
+              {t('status')}
             </label>
             <select
               id="status-filter"
@@ -302,10 +230,10 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
               className="w-full p-2 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent"
               style={{ color: '#353535' }}
             >
-              <option value="all">{t.all}</option>
-              <option value="active">{t.active}</option>
-              <option value="closed">{t.closed}</option>
-              <option value="terminated">{t.terminated}</option>
+              <option value="all">{t('all')}</option>
+              <option value="active">{t('active')}</option>
+              <option value="closed">{t('closed')}</option>
+              <option value="terminated">{t('terminated')}</option>
             </select>
           </div>
 
@@ -316,7 +244,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
               style={{ color: '#353535', fontSize: '0.875rem' }}
               className="block mb-2"
             >
-              {t.stage}
+              {t('stage')}
             </label>
             <select
               id="stage-filter"
@@ -326,7 +254,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
               style={{ color: '#353535' }}
               disabled={sideFilter === 'all'}
             >
-              <option value="all">{t.all}</option>
+              <option value="all">{t('all')}</option>
               {availableStages.map((stage) => (
                 <option key={stage} value={stage}>
                   {stage}
@@ -342,7 +270,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
               style={{ color: '#353535', fontSize: '0.875rem' }}
               className="block mb-2"
             >
-              {t.sortBy}
+              {t('sortBy')}
             </label>
             <select
               id="sort-by"
@@ -351,14 +279,14 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
               className="w-full p-2 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent"
               style={{ color: '#353535' }}
             >
-              <option value="dateDesc">{t.dateOpenedDesc}</option>
-              <option value="dateAsc">{t.dateOpenedAsc}</option>
+              <option value="dateDesc">{t('dateOpenedDesc')}</option>
+              <option value="dateAsc">{t('dateOpenedAsc')}</option>
               {/* Disabled until backend returns clientName */}
               <option value="nameAsc" disabled>
-                {t.clientNameAsc} (Not available)
+                {t('clientNameAsc')} (Not available)
               </option>
               <option value="nameDesc" disabled>
-                {t.clientNameDesc} (Not available)
+                {t('clientNameDesc')} (Not available)
               </option>
             </select>
           </div>
@@ -375,7 +303,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
               }}
             >
               <X className="w-4 h-4" />
-              {t.clearFilters}
+              {t('clearFilters')}
             </button>
           </div>
         </div>
@@ -389,14 +317,14 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
         >
           <Filter className="w-16 h-16 mx-auto mb-4" style={{ color: '#353535', opacity: 0.3 }} />
           <h2 style={{ color: '#353535' }} className="mb-4">
-            {t.noTransactions}
+            {t('noTransactions')}
           </h2>
           <button
             onClick={handleResetFilters}
             className="py-2 px-6 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:ring-offset-2 transition-all"
             style={{ backgroundColor: '#FF6B01', color: '#FFFFFF' }}
           >
-            {t.resetFilters}
+            {t('resetFilters')}
           </button>
         </div>
       ) : (
@@ -408,27 +336,27 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
                 <thead style={{ backgroundColor: '#f9fafb' }}>
                   <tr role="row">
                     <th className="p-4 text-left" style={{ color: '#353535' }} scope="col">
-                      {t.clientName}
+                      {t('clientName')}
                     </th>
                     <th className="p-4 text-left" style={{ color: '#353535' }} scope="col">
-                      {t.propertyAddress}
+                      {t('propertyAddress')}
                     </th>
                     <th className="p-4 text-left" style={{ color: '#353535' }} scope="col">
-                      {t.side}
+                      {t('side')}
                     </th>
                     <th className="p-4 text-left" style={{ color: '#353535' }} scope="col">
-                      {t.currentStage}
+                      {t('currentStage')}
                     </th>
                     <th className="p-4 text-left" style={{ color: '#353535' }} scope="col">
-                      {t.statusLabel}
+                      {t('statusLabel')}
                     </th>
                     <th className="p-4 text-left" style={{ color: '#353535' }} scope="col">
-                      {t.openedDate}
+                      {t('openedDate')}
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedTransactions.map((transaction, index) => (
+                  {paginatedTransactions.map((transaction) => (
                     <tr
                       key={transaction.transactionId}
                       role="row"
@@ -466,7 +394,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
                             fontSize: '0.875rem',
                           }}
                         >
-                          {transaction.side === 'BUY_SIDE' ? t.buy : t.sell}
+                          {transaction.side === 'BUY_SIDE' ? t('buy') : t('sell')}
                         </span>
                       </td>
                       <td className="p-4" style={{ color: '#353535' }}>
@@ -481,11 +409,11 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
                             fontSize: '0.875rem',
                           }}
                         >
-                          {t[transaction.status as 'active' | 'closed' | 'terminated']}
+                          {t(String(transaction.status))}
                         </span>
                       </td>
                       <td className="p-4" style={{ color: '#353535', opacity: 0.7 }}>
-                        {transaction.openedAt}
+                        {transaction.openedDate ?? (transaction.openedAt ? transaction.openedAt.substring(0, 10) : '')}
                       </td>
                     </tr>
                   ))}
@@ -526,7 +454,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
                         fontSize: '0.875rem',
                       }}
                     >
-                      {t[transaction.status as 'active' | 'closed' | 'terminated']}
+                      {t(String(transaction.status))}
                     </span>
                   </div>
 
@@ -546,7 +474,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
                         fontSize: '0.875rem',
                       }}
                     >
-                      {transaction.side === 'BUY_SIDE' ? t.buy : t.sell}
+                      {transaction.side === 'BUY_SIDE' ? t('buy') : t('sell')}
                     </span>
                     <p style={{ color: '#353535', fontSize: '0.875rem' }}>
                       {getStageName(transaction)}
@@ -554,7 +482,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
                   </div>
 
                   <p style={{ color: '#353535', fontSize: '0.875rem', opacity: 0.7 }}>
-                    {t.openedDate}: {transaction.openedAt}
+                    {t('openedDate')}: {transaction.openedAt}
                   </p>
                 </div>
               </button>
@@ -570,8 +498,8 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
               aria-label="Pagination"
             >
               <p style={{ color: '#353535', fontSize: '0.875rem' }}>
-                {t.showing} {startIndex + 1} {t.to} {Math.min(endIndex, sortedTransactions.length)} {t.of}{' '}
-                {sortedTransactions.length} {t.transactions}
+                {t('showing')} {startIndex + 1} {t('to')} {Math.min(endIndex, sortedTransactions.length)} {t('of')}{' '}
+                {sortedTransactions.length} {t('transactions')}
               </p>
 
               <div className="flex items-center gap-2">
@@ -580,7 +508,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
                   disabled={currentPage === 1}
                   className="p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   style={{ color: '#353535' }}
-                  aria-label={t.previous}
+                  aria-label={t('previous')}
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
@@ -606,7 +534,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
                   disabled={currentPage === totalPages}
                   className="p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   style={{ color: '#353535' }}
-                  aria-label={t.next}
+                  aria-label={t('next')}
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
@@ -615,6 +543,16 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
           )}
         </>
       )}
+        {/* Floating Action Button (Create New) */}
+        <button
+          onClick={() => onNavigate('/transactions/new')}
+          aria-label={t('createNew')}
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-[#FF6B01] transition-transform"
+          style={{ backgroundColor: '#FF6B01', color: '#FFFFFF' }}
+        >
+          <Plus className="w-5 h-5" />
+          <span className="font-bold hidden sm:inline">{t('createNew')}</span>
+        </button>
     </div>
   );
 }
