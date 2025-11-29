@@ -1,10 +1,11 @@
 server:
   port: 8080
 
-spring:
-  profiles:
-    active: dev
+auth0:
+  domain: ${AUTH0_DOMAIN:dev-xxxxx.us.auth0.com}
+  audience: ${AUTH0_AUDIENCE:https://api.courtierpro.dev}
 
+spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/courtierpro
     username: courtier
@@ -17,6 +18,13 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+security:
+  oauth2:
+    resourceserver:
+      jwt:
+        issuer-uri: https://${auth0.domain}/
+        audience: ${auth0.audience}
 
 logging:
   level:
