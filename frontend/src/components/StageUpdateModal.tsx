@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/utils/stages';
 import { X, ChevronDown, MessageSquare } from 'lucide-react';
 
 interface StageUpdateModalProps {
@@ -23,26 +24,7 @@ const translations = {
     cancel: 'Cancel',
     updateStage: 'Update Stage',
     selectStageFirst: 'Please select a stage to continue',
-    buyStages: [
-      'Offer Submitted',
-      'Offer Accepted',
-      'Inspection',
-      'Financing',
-      'Legal Review',
-      'Final Walkthrough',
-      'Closing',
-      'Complete',
-    ],
-    sellStages: [
-      'Listed',
-      'Marketing',
-      'Offer Received',
-      'Negotiations',
-      'Accepted',
-      'Legal Review',
-      'Closing',
-      'Complete',
-    ],
+    // stage lists removed — UI reads enums from src/utils/stages.ts
     buyStageDescriptions: [
       'The buyer\'s offer has been submitted to the seller and is awaiting review and response.',
       'The seller has accepted the buyer\'s offer. Moving forward with due diligence and conditions.',
@@ -76,26 +58,7 @@ const translations = {
     cancel: 'Annuler',
     updateStage: 'Mettre à jour l\'étape',
     selectStageFirst: 'Veuillez sélectionner une étape pour continuer',
-    buyStages: [
-      'Offre soumise',
-      'Offre acceptée',
-      'Inspection',
-      'Financement',
-      'Révision légale',
-      'Visite finale',
-      'Clôture',
-      'Complet',
-    ],
-    sellStages: [
-      'Inscrit',
-      'Marketing',
-      'Offre reçue',
-      'Négociations',
-      'Accepté',
-      'Révision légale',
-      'Clôture',
-      'Complet',
-    ],
+    // stage lists removed — UI reads enums from src/utils/stages.ts
     buyStageDescriptions: [
       'L\'offre de l\'acheteur a été soumise au vendeur et est en attente d\'examen et de réponse.',
       'Le vendeur a accepté l\'offre de l\'acheteur. Nous passons à la vérification diligente et aux conditions.',
@@ -135,7 +98,7 @@ export function StageUpdateModal({
   const firstFocusableRef = useRef<HTMLSelectElement>(null);
 
   const t = translations[language];
-  const stages = transactionSide === 'buy' ? t.buyStages : t.sellStages;
+  const stageEnums = transactionSide === 'buy' ? getStagesForSide('BUY_SIDE') : getStagesForSide('SELL_SIDE');
   const stageDescriptions =
     transactionSide === 'buy' ? t.buyStageDescriptions : t.sellStageDescriptions;
 
@@ -279,13 +242,11 @@ export function StageUpdateModal({
                   aria-describedby="stage-description-text"
                 >
                   <option value="">{t.selectStagePlaceholder}</option>
-                  {stages.map((stage, index) => {
+                  {stageEnums.map((stageEnum, index) => {
                     const stageNumber = index + 1;
-                    // Optionally, you could filter to only show stages after current
-                    // For now, showing all stages
                     return (
-                      <option key={index} value={stageNumber}>
-                        {language === 'en' ? 'Stage' : 'Étape'} {stageNumber}: {stage}
+                      <option key={stageEnum} value={stageNumber}>
+                        {language === 'en' ? 'Stage' : 'Étape'} {stageNumber}: {enumToLabel(stageEnum)}
                       </option>
                     );
                   })}
@@ -316,7 +277,7 @@ export function StageUpdateModal({
                   </p>
                 </div>
                 <p style={{ color: '#353535', fontSize: '0.875rem' }}>
-                  {stageDescriptions[(selectedStage as number) - 1]}
+                  {stageDescriptions[(selectedStage as number) - 1] ?? ''}
                 </p>
               </div>
             )}
