@@ -12,21 +12,54 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      ############################################
+      # BACKEND BUILD
+      ############################################
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Build backend with Gradle
+        run: |
+          cd backend
+          ./gradlew clean build --no-daemon
+
+      ############################################
+      # FRONTEND BUILD
+      ############################################
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      ############################################
+      # LOGIN TO GHCR
+      ############################################
       - name: Log in to GHCR
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      ############################################
+      # BUILD + PUSH DOCKER IMAGES
+      ############################################
       - name: Build backend image
-        run: docker build -t ghcr.io/courtierpro/courtierpro-backend:latest ./backend
+        run: docker build -t ghcr.io/${{ github.repository }}/backend:latest ./backend
 
       - name: Build frontend image
-        run: docker build -t ghcr.io/courtierpro/courtierpro-frontend:latest ./frontend
+        run: docker build -t ghcr.io/${{ github.repository }}/frontend:latest ./frontend
 
       - name: Push backend image
-        run: docker push ghcr.io/courtierpro/courtierpro-backend:latest
+        run: docker push ghcr.io/${{ github.repository }}/backend:latest
 
       - name: Push frontend image
-        run: docker push ghcr.io/courtierpro/courtierpro-frontend:latest
-
+        run: docker push ghcr.io/${{ github.repository }}/frontend:latest
 
 
   deploy:
