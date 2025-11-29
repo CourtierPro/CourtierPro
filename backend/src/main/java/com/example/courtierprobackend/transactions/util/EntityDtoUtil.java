@@ -46,12 +46,9 @@ public class EntityDtoUtil {
     public static TimelineEntryDTO toTimelineDTO(TimelineEntry entry) {
         return TimelineEntryDTO.builder()
                 .type(entry.getType())
-                .title(entry.getTitle())
-                .message(entry.getMessage())
-                .visibleToClient(entry.getVisibleToClient())
+                .note(entry.getNote())
                 .occurredAt(entry.getOccurredAt())
                 .addedByBrokerId(entry.getAddedByBrokerId())
-                .actorId(entry.getActorId())
                 .build();
     }
 

@@ -1,8 +1,6 @@
 package com.example.courtierprobackend.transactions.businesslayer;
 
 import com.example.courtierprobackend.transactions.datalayer.TimelineEntry;
-import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
-import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
@@ -119,69 +117,5 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         return EntityDtoUtil.toResponse(tx);
-    }
-
-    @Override
-    public TimelineEntryDTO createNote(String transactionId, NoteRequestDTO noteDto, String brokerId) {
-
-        if (noteDto == null) throw new InvalidInputException("note is required");
-
-        if (noteDto.getActorId() == null || noteDto.getActorId().isBlank()) {
-            throw new InvalidInputException("actorId is required");
-        }
-        if (noteDto.getTitle() == null || noteDto.getTitle().isBlank()) {
-            throw new InvalidInputException("title is required");
-        }
-        if (noteDto.getMessage() == null || noteDto.getMessage().isBlank()) {
-            throw new InvalidInputException("message is required");
-        }
-        if (noteDto.getVisibleToClient() == null) {
-            throw new InvalidInputException("visibleToClient is required");
-        }
-
-        Transaction tx = repo.findByTransactionId(transactionId)
-                .orElseThrow(() -> new NotFoundException("Transaction not found"));
-
-        if (!tx.getBrokerId().equals(brokerId)) {
-            throw new NotFoundException("You do not have access to this transaction");
-        }
-
-        TimelineEntry entry = new TimelineEntry();
-        entry.setType(TimelineEntryType.NOTE);
-        entry.setTitle(noteDto.getTitle());
-        entry.setMessage(noteDto.getMessage());
-        entry.setVisibleToClient(noteDto.getVisibleToClient());
-        entry.setOccurredAt(LocalDateTime.now());
-        entry.setAddedByBrokerId(brokerId);
-        entry.setActorId(noteDto.getActorId());
-        entry.setTransaction(tx);
-
-        // ensure timeline initialized
-        if (tx.getTimeline() == null) tx.setTimeline(new ArrayList<>());
-        tx.getTimeline().add(entry);
-
-        Transaction saved = repo.save(tx);
-
-        // find the newly added entry (last element)
-        TimelineEntry created = saved.getTimeline().get(saved.getTimeline().size() - 1);
-
-        return EntityDtoUtil.toTimelineDTO(created);
-    }
-
-    @Override
-    public java.util.List<TimelineEntryDTO> getNotes(String transactionId, String brokerId) {
-        Transaction tx = repo.findByTransactionId(transactionId)
-                .orElseThrow(() -> new NotFoundException("Transaction not found"));
-
-        if (!tx.getBrokerId().equals(brokerId)) {
-            throw new NotFoundException("You do not have access to this transaction");
-        }
-
-        if (tx.getTimeline() == null) return java.util.List.of();
-
-        return tx.getTimeline().stream()
-                .filter(e -> e.getType() == TimelineEntryType.NOTE)
-                .map(EntityDtoUtil::toTimelineDTO)
-                .toList();
     }
 }
