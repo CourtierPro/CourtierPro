@@ -2,31 +2,113 @@ package com.example.courtierprobackend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
+import java.util.ArrayList;
+import java.util.Collection;
+
+
 @Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true) // to be able to use @PreAuthorize on controllers
 public class SecurityConfig {
+
+    // MUST match the name of the claim you put in the Auth0 Action
+    private static final String ROLES_CLAIM = "https://courtierpro.dev/roles";
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http
+                //  Activate cors config defined in CorsConfig
+                .cors(Customizer.withDefaults())
+
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
+
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers("/actuator/health/**").permitAll()
 
-                        .requestMatchers("/actuator/**").denyAll()
+                        //  Endpoints ADMIN
+                        .requestMatchers(HttpMethod.POST,  "/api/admin/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/admin/users/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,  "/api/admin/users").hasRole("ADMIN")
 
-                        // pour l'instant toutes les autres routes restent publiques
-                        .anyRequest().permitAll()
+
+                        // the rest need a valid token
+                        .anyRequest().authenticated()
                 )
 
-
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+                // Resource server JWT (Auth0)
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt
+                                // Here we plug in our converter which reads the “roles” claim
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter())
+                        )
+                );
 
         return http.build();
+    }
+
+    // This bean tells Spring Security how to extract user roles from our Auth0 JWT.
+//
+// By default, Spring does NOT know where our roles are stored in the token.
+// In our case, roles are inside a custom claim:   "https://courtierpro.dev/roles"
+//
+// We provide a converter that:
+//   1. Reads this custom claim from the JWT
+//   2. Converts each Auth0 role ("ADMIN", "BROKER", "CLIENT")
+//      into a Spring Security authority ("ROLE_ADMIN", "ROLE_BROKER", "ROLE_CLIENT")
+//      because Spring requires "ROLE_XXX" format for hasRole("XXX") to work.
+//
+// With this converter, Spring can correctly authorize:
+//   - .hasRole("ADMIN")
+//   - .hasRole("BROKER")
+//   - etc.
+//
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(this::extractAuthoritiesFromJwt);
+        return converter;
+    }
+    /**
+     * Extracts roles from our Auth0 custom claim and maps them to Spring authorities.
+     *
+     * Example:
+     *   Auth0 JWT contains:
+     *     "https://courtierpro.dev/roles": ["ADMIN"]
+     *
+     *   This method produces:
+     *     [ new SimpleGrantedAuthority("ROLE_ADMIN") ]
+     *
+     * Spring Security will then understand:
+     *   hasRole("ADMIN")  --> true
+     */
+
+    private Collection<GrantedAuthority> extractAuthoritiesFromJwt(Jwt jwt) {
+        Collection<GrantedAuthority> authorities = new ArrayList<>();
+
+        Object rolesObj = jwt.getClaim(ROLES_CLAIM);
+
+        if (rolesObj instanceof Collection<?> roles) {
+            for (Object role : roles) {
+                String roleName = String.valueOf(role);
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + roleName));
+            }
+        }
+
+        return authorities;
     }
 }

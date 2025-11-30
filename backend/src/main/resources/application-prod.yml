@@ -15,7 +15,9 @@ spring:
     oauth2:
       resourceserver:
         jwt:
+          #  tenant Auth0
           issuer-uri: https://${AUTH0_DOMAIN}/
+
           audiences:
             - ${AUTH0_AUDIENCE}
 
