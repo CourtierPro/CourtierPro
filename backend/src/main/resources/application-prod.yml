@@ -9,15 +9,14 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: update   # OK pour projet école; en vrai prod => "validate"
 
   security:
     oauth2:
       resourceserver:
         jwt:
-          #  tenant Auth0
+          # Auth0 tenant
           issuer-uri: https://${AUTH0_DOMAIN}/
-
           audiences:
             - ${AUTH0_AUDIENCE}
 

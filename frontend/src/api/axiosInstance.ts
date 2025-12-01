@@ -7,11 +7,11 @@ import axios, {
 } from "axios";
 import axiosErrorResponseHandler from "@/api/axiosErrorResponseHandler";
 
-
 axios.defaults.withCredentials = false;
 
 declare module "axios" {
     export interface AxiosRequestConfig {
+        /** When true the request error should be handled by the caller instead of global handler */
         handleLocally?: boolean;
     }
 }
@@ -20,12 +20,10 @@ interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
     handleLocally?: boolean;
 }
 
-
-//  Small “bridge” to connect Auth0 to axios
+// Small “bridge” to connect Auth0 to axios
 let accessTokenProvider:
     | (() => Promise<string | undefined>)
     | null = null;
-
 
 export function registerAccessTokenProvider(
     provider: () => Promise<string | undefined>
@@ -33,13 +31,11 @@ export function registerAccessTokenProvider(
     accessTokenProvider = provider;
 }
 
-
-// If your backend routes already start with /api/...,
-// we can leave the prefix empty to avoid /api/v1/api/...
-const API_PREFIX = ""; // change to "/api/v1" if your gateway uses it
+// If your backend routes already start with /api/v1/...,
+// set VITE_API_URL to "http://localhost:8080/api/v1" and keep prefix empty.
+const API_PREFIX = ""; // change to "/api/v1" if VITE_API_URL is just "http://localhost:8080"
 
 const createAxiosInstance = (): AxiosInstance => {
-    // src/api/axiosInstance.ts
     const instance = axios.create({
         baseURL: import.meta.env.VITE_API_URL,
         headers: {
@@ -47,17 +43,15 @@ const createAxiosInstance = (): AxiosInstance => {
         },
     });
 
-
-    //  REQUEST INTERCEPTOR  //
+    // REQUEST INTERCEPTOR
     instance.interceptors.request.use(
         async (config: CustomAxiosRequestConfig) => {
-
+            // prefix relative URLs
             if (config.url && !config.url.startsWith("http")) {
                 config.url = API_PREFIX + config.url;
             }
 
-
-            // ATTACH THE AUTH0 TOKEN IF YOU HAVE ONE
+            // Attach the Auth0 token if we have one
             if (accessTokenProvider) {
                 try {
                     const token = await accessTokenProvider();
@@ -76,7 +70,7 @@ const createAxiosInstance = (): AxiosInstance => {
         (error) => Promise.reject(error)
     );
 
-    // RESPONSE INTERCEPTOR //
+    // RESPONSE INTERCEPTOR
     instance.interceptors.response.use(
         (response) => response,
         (error) => {
@@ -107,3 +101,4 @@ const handleAxiosError = (error: unknown): void => {
 const axiosInstance = createAxiosInstance();
 
 export default axiosInstance;
+export { axiosInstance };

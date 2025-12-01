@@ -1,10 +1,15 @@
+import { TransactionList } from "@/components/TransactionList";
+import { useNavigate } from "react-router-dom";
+
 export function BrokerTransactionsPage() {
+  const navigate = useNavigate();
+
   return (
-    <div className="space-y-2">
-      <h1 className="text-2xl font-semibold">Broker Transactions</h1>
-      <p className="text-sm text-muted-foreground">
-        This is the page for managing broker-side transactions in CourtierPro.
-      </p>
+    <div className="space-y-6">
+      <TransactionList
+        language="en" // later: detect from user profile
+        onNavigate={(route) => navigate(route)}
+      />
     </div>
   );
 }
