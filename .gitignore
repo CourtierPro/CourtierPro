@@ -17,6 +17,7 @@ log/
 backend/.env
 .env.*
 !.env.example
+.env
 
 ############################################################
 # BACKEND — Spring Boot 3 (Java 17)
