@@ -1,6 +1,11 @@
 server:
   port: 8080
 
+# Valeurs par défaut pour le dev local (override par .env si besoin)
+auth0:
+  domain: ${AUTH0_DOMAIN:dev-xxxxx.us.auth0.com}
+  audience: ${AUTH0_AUDIENCE:https://api.courtierpro.dev}
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/courtierpro
@@ -13,6 +18,16 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Auth0 tenant (issuers)
+          issuer-uri: https://${AUTH0_DOMAIN:dev-xxxxx.us.auth0.com}/
+          audiences:
+            - ${AUTH0_AUDIENCE:https://api.courtierpro.dev}
 
 logging:
   level:

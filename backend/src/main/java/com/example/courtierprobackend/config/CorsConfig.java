@@ -15,25 +15,23 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // autorized Frontend
         config.setAllowedOrigins(List.of(
                 "http://localhost:8081",
                 "http://localhost:5173",
                 "https://courtierproapp.sraldon.work"
         ));
 
-        // autorisées HTTP Methods
         config.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
         ));
 
-        // autorized Headers
         config.setAllowedHeaders(List.of(
                 "Authorization",
                 "Content-Type",
                 "Accept",
                 "Origin",
-                "X-Requested-With"
+                "X-Requested-With",
+                "x-broker-id"
         ));
 
         config.setAllowCredentials(true);

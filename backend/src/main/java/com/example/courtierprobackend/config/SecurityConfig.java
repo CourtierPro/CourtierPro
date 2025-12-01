@@ -16,7 +16,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import java.util.ArrayList;
 import java.util.Collection;
 
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true) // to be able to use @PreAuthorize on controllers
@@ -29,7 +28,6 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                //  Activate cors config defined in CorsConfig
                 .cors(Customizer.withDefaults())
 
                 .csrf(csrf -> csrf.disable())
@@ -38,22 +36,22 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 
-                        //  Endpoints ADMIN
+                        .requestMatchers("/actuator/**").denyAll()
+
                         .requestMatchers(HttpMethod.POST,  "/api/admin/users").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/admin/users/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET,  "/api/admin/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,   "/api/admin/users").hasRole("ADMIN")
+
+                        .requestMatchers("/transactions/**").hasRole("BROKER")
 
 
-                        // the rest need a valid token
                         .anyRequest().authenticated()
                 )
 
-                // Resource server JWT (Auth0)
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
-                                // Here we plug in our converter which reads the “roles” claim
                                 .jwtAuthenticationConverter(jwtAuthenticationConverter())
                         )
                 );
@@ -61,28 +59,26 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // This bean tells Spring Security how to extract user roles from our Auth0 JWT.
-//
-// By default, Spring does NOT know where our roles are stored in the token.
-// In our case, roles are inside a custom claim:   "https://courtierpro.dev/roles"
-//
-// We provide a converter that:
-//   1. Reads this custom claim from the JWT
-//   2. Converts each Auth0 role ("ADMIN", "BROKER", "CLIENT")
-//      into a Spring Security authority ("ROLE_ADMIN", "ROLE_BROKER", "ROLE_CLIENT")
-//      because Spring requires "ROLE_XXX" format for hasRole("XXX") to work.
-//
-// With this converter, Spring can correctly authorize:
-//   - .hasRole("ADMIN")
-//   - .hasRole("BROKER")
-//   - etc.
-//
+
+    /**
+     * This bean tells Spring Security how to extract user roles from our Auth0 JWT.
+     *
+     * In our case, roles are inside a custom claim: "https://courtierpro.dev/roles"
+     *
+     * We convert:
+     *   "ADMIN" -> "ROLE_ADMIN"
+     *   "BROKER" -> "ROLE_BROKER"
+     *   "CLIENT" -> "ROLE_CLIENT"
+     *
+     * so that hasRole("ADMIN") / hasRole("BROKER") work correctly.
+     */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(this::extractAuthoritiesFromJwt);
         return converter;
     }
+
     /**
      * Extracts roles from our Auth0 custom claim and maps them to Spring authorities.
      *
@@ -96,7 +92,6 @@ public class SecurityConfig {
      * Spring Security will then understand:
      *   hasRole("ADMIN")  --> true
      */
-
     private Collection<GrantedAuthority> extractAuthoritiesFromJwt(Jwt jwt) {
         Collection<GrantedAuthority> authorities = new ArrayList<>();
 

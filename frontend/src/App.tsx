@@ -14,8 +14,9 @@ import { AdminDashboardPage } from "@/pages/dashboard/AdminDashboardPage";
 // Transactions
 import { BrokerTransactionsPage } from "@/pages/transactions/BrokerTransactionsPage";
 import { ClientTransactionsPage } from "@/pages/transactions/ClientTransactionsPage";
-import { BrokerTransactionDetailsPage } from "./pages/transactions/BrokerTransactionDetailsPage";
-import { ClientTransactionDetailsPage } from "./pages/transactions/ClientTransactionDetailsPage";
+import { BrokerTransactionDetailsPage } from "@/pages/transactions/BrokerTransactionDetailsPage";
+import { ClientTransactionDetailsPage } from "@/pages/transactions/ClientTransactionDetailsPage";
+import CreateTransactionPage from "@/pages/transactions/CreateTransactionPage";
 
 // Documents
 import { DocumentsPage } from "@/pages/documents/DocumentsPage";
@@ -59,7 +60,7 @@ export default function App() {
 
     const role: AppRole | null = getRoleFromUser(user);
 
-
+    // Not logged in or no role → Auth0 login button
     if (!isAuthenticated || !role) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-muted">
@@ -126,6 +127,18 @@ export default function App() {
                     <RequireRole allowed={["broker"]}>
                         <AppShell>
                             <BrokerTransactionsPage />
+                        </AppShell>
+                    </RequireRole>
+                }
+            />
+
+            {/* Create transaction (broker) */}
+            <Route
+                path="/transactions/new"
+                element={
+                    <RequireRole allowed={["broker"]}>
+                        <AppShell>
+                            <CreateTransactionPage />
                         </AppShell>
                     </RequireRole>
                 }
@@ -271,7 +284,7 @@ export default function App() {
                 }
             />
 
-            {/* Profile – accessible to every connected roles */}
+            {/* Profile – accessible to every connected role */}
             <Route
                 path="/profile"
                 element={
