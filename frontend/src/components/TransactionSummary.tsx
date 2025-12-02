@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle } from 'lucide-react';
-import axiosInstance from '@/api/axiosInstace';
+import axiosInstance from '@/api/axiosInstance';
 import { getStagesForSide, enumToLabel, resolveStageIndex, isTerminatedStage } from '@/utils/stages';
 
 interface TransactionSummaryProps {

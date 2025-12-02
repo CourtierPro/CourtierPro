@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "@/api/axiosInstace";
+import axiosInstance from "@/api/axiosInstance";
 import { TransactionSummary } from "@/components/TransactionSummary";
 
 export function ClientTransactionsPage() {

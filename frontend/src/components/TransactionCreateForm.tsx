@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, Search, AlertCircle, CheckCircle } from 'lucide-react';
-import axiosInstance from "@/api/axiosInstace";
+import axiosInstance from "@/api/axiosInstance";
 import type { TransactionRequestDTO } from '@/api/types';
 import { getStagesForSide, enumToLabel } from '@/utils/stages';
 
