@@ -12,15 +12,11 @@ export default function axiosErrorResponseHandler(
   error: AxiosError,
   statusCode: number
 ): void {
-  // 🔒 Auth0-specific handling (future step)
   if (statusCode === 401) {
     console.warn("401 Unauthorized: likely missing/expired Auth0 token");
 
     // FE will use this to show “session expired” toast on login
     sessionStorage.setItem("sessionExpired", "true");
-
-    // OPTIONAL (later): redirect to Auth0 login
-    // window.location.href = "/login";
   }
 
   // Handle known global errors

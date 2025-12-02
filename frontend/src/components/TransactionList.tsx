@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Filter, X, Home, Users, Plus } from 'lucide-react';
-import axiosInstance from "@/api/axiosInstace";
+import axiosInstance from "@/api/axiosInstance";
 import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/utils/stages';
 import { useTranslation } from 'react-i18next';
 

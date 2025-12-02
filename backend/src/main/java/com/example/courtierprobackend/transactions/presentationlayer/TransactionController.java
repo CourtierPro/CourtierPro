@@ -10,31 +10,44 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.*;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/transactions")
+@RequestMapping("/transactions")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('BROKER')")
 public class TransactionController {
 
     private final TransactionService service;
 
-    // BrokerId extraction: supports DEV + PROD
+    // -------- BrokerId extraction (PROD = Auth0, DEV = x-broker-id) --------
     private String resolveBrokerId(Jwt jwt, String headerBrokerId) {
 
-        // PROD: Auth0 token provided
-        if (jwt != null) {
-            return jwt.getSubject(); // Auth0 user ID
+        // DEV mode: x-broker-id header
+        if (StringUtils.hasText(headerBrokerId)) {
+            return headerBrokerId;
         }
 
-        // DEV: using x-broker-id header
-        return headerBrokerId;
-    }
+        // PROD mode: Auth0 token
+        if (jwt != null) {
+            String fromToken = jwt.getClaimAsString("sub");
+            if (StringUtils.hasText(fromToken)) {
+                return fromToken;
+            }
+        }
 
+        throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Unable to resolve broker id from token or header"
+        );
+    }
 
     @PostMapping
     public ResponseEntity<TransactionResponseDTO> createTransaction(
@@ -57,14 +70,14 @@ public class TransactionController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         String brokerId = resolveBrokerId(jwt, brokerHeader);
-        // Ensure transactionId in body (if provided) matches path
         note.setTransactionId(transactionId);
+
         TimelineEntryDTO created = service.createNote(transactionId, note, brokerId);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @GetMapping("/{transactionId}/notes")
-    public ResponseEntity<java.util.List<TimelineEntryDTO>> getNotes(
+    public ResponseEntity<List<TimelineEntryDTO>> getNotes(
             @PathVariable String transactionId,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt

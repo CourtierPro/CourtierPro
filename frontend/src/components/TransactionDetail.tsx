@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { CreateAppointmentModal, type AppointmentFormData } from './CreateAppointmentModal';
 import { Toast } from './Toast';
-import axiosInstance from "@/api/axiosInstace";
+import axiosInstance from "@/api/axiosInstance";
 import { getStagesForSide, enumToLabel, resolveStageIndex, isTerminatedStage } from '@/utils/stages';
 
 interface TransactionDetailProps {
