@@ -106,3 +106,4 @@ out/
 /publish
 /temp
 /cache
+.zipignore
