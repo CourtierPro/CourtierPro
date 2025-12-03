@@ -50,16 +50,16 @@ jobs:
       # BUILD + PUSH DOCKER IMAGES
       ############################################
       - name: Build backend image
-        run: docker build -t ghcr.io/${{ github.repository_owner }}/${{ github.repository | toLower }}/backend:latest ./backend
+        run: docker build -t ghcr.io/courtierpro/courtierpro/backend:latest ./backend
       
       - name: Build frontend image
-        run: docker build -t ghcr.io/${{ github.repository_owner }}/${{ github.repository | toLower }}/frontend:latest ./frontend
+        run: docker build -t ghcr.io/courtierpro/courtierpro/frontend:latest ./frontend
       
       - name: Push backend image
-        run: docker push ghcr.io/${{ github.repository_owner }}/${{ github.repository | toLower }}/backend:latest
+        run: docker push ghcr.io/courtierpro/courtierpro/backend:latest
       
       - name: Push frontend image
-        run: docker push ghcr.io/${{ github.repository_owner }}/${{ github.repository | toLower }}/frontend:latest
+        run: docker push ghcr.io/courtierpro/courtierpro/frontend:latest
 
 
   deploy:
