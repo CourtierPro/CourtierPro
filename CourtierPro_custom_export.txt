@@ -1,0 +1,2466 @@
+Project Structure:
+├── backend
+│   ├── src
+│   │   ├── main
+│   │   │   ├── java
+│   │   │   │   └── com
+│   │   │   │       └── example
+│   │   │   │           └── courtierprobackend
+│   │   │   │               ├── config
+│   │   │   │               │   ├── CorsConfig.java
+│   │   │   │               │   ├── JwtConfig.java
+│   │   │   │               │   └── SecurityConfig.java
+│   │   │   │               ├── datamapperlayer
+│   │   │   │               │   └── UserMapper.java
+│   │   │   │               ├── security
+│   │   │   │               │   └── CurrentUser.java
+│   │   │   │               ├── transactions
+│   │   │   │               │   ├── businesslayer
+│   │   │   │               │   │   ├── TransactionService.java
+│   │   │   │               │   │   └── TransactionServiceImpl.java
+│   │   │   │               │   ├── datalayer
+│   │   │   │               │   │   ├── dto
+│   │   │   │               │   │   │   ├── NoteRequestDTO.java
+│   │   │   │               │   │   │   ├── TimelineEntryDTO.java
+│   │   │   │               │   │   │   ├── TransactionRequestDTO.java
+│   │   │   │               │   │   │   └── TransactionResponseDTO.java
+│   │   │   │               │   │   ├── enums
+│   │   │   │               │   │   │   ├── BuyerStage.java
+│   │   │   │               │   │   │   ├── SellerStage.java
+│   │   │   │               │   │   │   ├── TimelineEntryType.java
+│   │   │   │               │   │   │   ├── TransactionSide.java
+│   │   │   │               │   │   │   └── TransactionStatus.java
+│   │   │   │               │   │   ├── repositories
+│   │   │   │               │   │   │   └── TransactionRepository.java
+│   │   │   │               │   │   ├── valueobjects
+│   │   │   │               │   │   │   ├── BrokerRef.java
+│   │   │   │               │   │   │   ├── ClientRef.java
+│   │   │   │               │   │   │   └── TransactionIdentifier.java
+│   │   │   │               │   │   ├── PropertyAddress.java
+│   │   │   │               │   │   ├── TimelineEntry.java
+│   │   │   │               │   │   └── Transaction.java
+│   │   │   │               │   ├── domainclientlayer
+│   │   │   │               │   │   ├── BrokerClient.java
+│   │   │   │               │   │   └── ClientClient.java
+│   │   │   │               │   ├── exceptions
+│   │   │   │               │   │   ├── DuplicateTransactionException.java
+│   │   │   │               │   │   ├── GlobalExceptionHandler.java
+│   │   │   │               │   │   ├── InvalidInputException.java
+│   │   │   │               │   │   ├── InvalidStageException.java
+│   │   │   │               │   │   ├── NotFoundException.java
+│   │   │   │               │   │   └── TransactionControllerExceptionHandler.java
+│   │   │   │               │   ├── presentationlayer
+│   │   │   │               │   │   └── TransactionController.java
+│   │   │   │               │   └── util
+│   │   │   │               │       └── EntityDtoUtil.java
+│   │   │   │               ├── user
+│   │   │   │               │   ├── businesslayer
+│   │   │   │               │   │   └── UserProvisioningService.java
+│   │   │   │               │   ├── dataaccesslayer
+│   │   │   │               │   │   ├── UserAccount.java
+│   │   │   │               │   │   ├── UserAccountRepository.java
+│   │   │   │               │   │   └── UserRole.java
+│   │   │   │               │   ├── domainclientlayer
+│   │   │   │               │   │   └── auth0
+│   │   │   │               │   │       └── Auth0ManagementClient.java
+│   │   │   │               │   └── presentationlayer
+│   │   │   │               │       ├── controller
+│   │   │   │               │       │   └── AdminUserController.java
+│   │   │   │               │       ├── request
+│   │   │   │               │       │   ├── CreateUserRequest.java
+│   │   │   │               │       │   └── UpdateStatusRequest.java
+│   │   │   │               │       └── response
+│   │   │   │               │           └── UserResponse.java
+│   │   │   │               └── CourtierproBackendApplication.java
+│   │   │   └── resources
+│   │   │       ├── application-prod.yml
+│   │   │       └── application.yml
+│   │   └── test
+│   │       └── java
+│   │           └── com
+│   │               └── example
+│   │                   └── courtierprobackend
+│   │                       ├── transactions
+│   │                       │   ├── TransactionControllerIntegrationTest.java
+│   │                       │   ├── TransactionControllerUnitTest.java
+│   │                       │   └── TransactionServiceImplTest.java
+│   │                       └── CourtierproBackendApplicationTests.java
+│   └── Dockerfile
+├── docker-compose-no-FE.yml
+├── docker-compose.yml
+└── package-lock.json
+
+==================================================
+
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/Dockerfile"
+FROM gradle:8-jdk17 AS build
+WORKDIR /app
+COPY . .
+RUN gradle clean build -x test
+
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+COPY --from=build /app/build/libs/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/Dockerfile"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/config/CorsConfig.java"
+package com.example.courtierprobackend.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
+
+@Configuration
+public class CorsConfig {
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.setAllowedOrigins(List.of(
+                "http://localhost:8081",
+                "http://localhost:5173",
+                "https://courtierproapp.sraldon.work"
+        ));
+
+        config.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
+        ));
+
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "Origin",
+                "X-Requested-With",
+                "x-broker-id"
+        ));
+
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/config/CorsConfig.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/config/JwtConfig.java"
+package com.example.courtierprobackend.config;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+
+@Configuration
+public class JwtConfig {
+
+    @Value("${auth0.domain}")
+    private String domain;
+
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        String jwkUri = "https://" + domain + "/.well-known/jwks.json";
+        return NimbusJwtDecoder.withJwkSetUri(jwkUri).build();
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/config/JwtConfig.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/config/SecurityConfig.java"
+package com.example.courtierprobackend.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.web.SecurityFilterChain;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true) // to be able to use @PreAuthorize on controllers
+public class SecurityConfig {
+
+    // MUST match the name of the claim you put in the Auth0 Action
+    private static final String ROLES_CLAIM = "https://courtierpro.dev/roles";
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
+        http
+                .cors(Customizer.withDefaults())
+
+                .csrf(csrf -> csrf.disable())
+
+                .authorizeHttpRequests(auth -> auth
+
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+
+                        .requestMatchers("/actuator/**").denyAll()
+
+                        .requestMatchers(HttpMethod.POST,  "/api/admin/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/admin/users/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,   "/api/admin/users").hasRole("ADMIN")
+
+                        .requestMatchers("/transactions/**").hasRole("BROKER")
+
+
+                        .anyRequest().authenticated()
+                )
+
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter())
+                        )
+                );
+
+        return http.build();
+    }
+
+
+    /**
+     * This bean tells Spring Security how to extract user roles from our Auth0 JWT.
+     *
+     * In our case, roles are inside a custom claim: "https://courtierpro.dev/roles"
+     *
+     * We convert:
+     *   "ADMIN" -> "ROLE_ADMIN"
+     *   "BROKER" -> "ROLE_BROKER"
+     *   "CLIENT" -> "ROLE_CLIENT"
+     *
+     * so that hasRole("ADMIN") / hasRole("BROKER") work correctly.
+     */
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(this::extractAuthoritiesFromJwt);
+        return converter;
+    }
+
+    /**
+     * Extracts roles from our Auth0 custom claim and maps them to Spring authorities.
+     *
+     * Example:
+     *   Auth0 JWT contains:
+     *     "https://courtierpro.dev/roles": ["ADMIN"]
+     *
+     *   This method produces:
+     *     [ new SimpleGrantedAuthority("ROLE_ADMIN") ]
+     *
+     * Spring Security will then understand:
+     *   hasRole("ADMIN")  --> true
+     */
+    private Collection<GrantedAuthority> extractAuthoritiesFromJwt(Jwt jwt) {
+        Collection<GrantedAuthority> authorities = new ArrayList<>();
+
+        Object rolesObj = jwt.getClaim(ROLES_CLAIM);
+
+        if (rolesObj instanceof Collection<?> roles) {
+            for (Object role : roles) {
+                String roleName = String.valueOf(role);
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + roleName));
+            }
+        }
+
+        return authorities;
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/config/SecurityConfig.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/CourtierproBackendApplication.java"
+package com.example.courtierprobackend;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class CourtierproBackendApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(CourtierproBackendApplication.class, args);
+    }
+
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/CourtierproBackendApplication.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/datamapperlayer/UserMapper.java"
+package com.example.courtierprobackend.datamapperlayer;
+
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
+import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
+import com.example.courtierprobackend.user.presentationlayer.request.CreateUserRequest;
+import com.example.courtierprobackend.user.presentationlayer.response.UserResponse;
+import org.springframework.stereotype.Component;
+
+@Component
+public class UserMapper {
+
+
+    public UserAccount toNewUserEntity(CreateUserRequest request, String auth0UserId) {
+        UserRole role = UserRole.valueOf(request.getRole()); // "BROKER" -> UserRole.BROKER
+
+        return new UserAccount(
+                auth0UserId,
+                request.getEmail(),
+                request.getFirstName(),
+                request.getLastName(),
+                role,
+                request.getPreferredLanguage()
+        );
+    }
+
+
+    public UserResponse toResponse(UserAccount account) {
+        return UserResponse.builder()
+                .id(account.getId())
+                .email(account.getEmail())
+                .firstName(account.getFirstName())
+                .lastName(account.getLastName())
+                .role(account.getRole().name()) // UserRole.BROKER -> "BROKER"
+                .active(account.isActive())
+                .preferredLanguage(account.getPreferredLanguage())
+                .build();
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/datamapperlayer/UserMapper.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/security/CurrentUser.java"
+package com.example.courtierprobackend.security;
+
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+
+public record CurrentUser(@AuthenticationPrincipal Jwt jwt) {
+
+    public String brokerId() {
+        // default Auth0 user identifier
+        return jwt.getClaimAsString("sub");
+    }
+
+    public String email() {
+        return jwt.getClaimAsString("email");
+    }
+
+    public String name() {
+        return jwt.getClaimAsString("name");
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/security/CurrentUser.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/businesslayer/TransactionService.java"
+package com.example.courtierprobackend.transactions.businesslayer;
+
+
+import com.example.courtierprobackend.transactions.datalayer.dto.*;
+
+import java.util.List;
+
+public interface TransactionService {
+
+    TransactionResponseDTO createTransaction(TransactionRequestDTO dto);
+
+    java.util.List<TimelineEntryDTO> getNotes(String transactionId, String brokerId);
+
+    TimelineEntryDTO createNote(String transactionId, NoteRequestDTO note, String brokerId);
+
+    List<TransactionResponseDTO> getBrokerTransactions(String brokerId);
+
+    TransactionResponseDTO getByTransactionId(String transactionId, String brokerId);
+}
+
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/businesslayer/TransactionService.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/businesslayer/TransactionServiceImpl.java"
+package com.example.courtierprobackend.transactions.businesslayer;
+
+import com.example.courtierprobackend.transactions.datalayer.TimelineEntry;
+import com.example.courtierprobackend.transactions.datalayer.Transaction;
+import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.enums.*;
+import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
+import com.example.courtierprobackend.transactions.exceptions.DuplicateTransactionException;
+import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
+import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
+import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
+import com.example.courtierprobackend.transactions.datalayer.enums.TimelineEntryType;
+
+@Service
+@RequiredArgsConstructor
+public class TransactionServiceImpl implements TransactionService {
+
+    private final TransactionRepository repo;
+
+    @Override
+    public TransactionResponseDTO createTransaction(TransactionRequestDTO dto) {
+
+        // 1) Validate required data
+        if (dto.getClientId() == null || dto.getClientId().isBlank()) {
+            throw new InvalidInputException("clientId is required");
+        }
+        if (dto.getBrokerId() == null || dto.getBrokerId().isBlank()) {
+            throw new InvalidInputException("brokerId is required");
+        }
+        if (dto.getSide() == null) {
+            throw new InvalidInputException("side is required");
+        }
+        if (dto.getPropertyAddress() == null ||
+                dto.getPropertyAddress().getStreet() == null ||
+                dto.getPropertyAddress().getStreet().isBlank()) {
+
+            throw new InvalidInputException("propertyAddress.street is required");
+        }
+
+        String clientId = dto.getClientId();
+        String street = dto.getPropertyAddress().getStreet();
+
+        // 2) Prevent duplicate ACTIVE transactions
+        repo.findByClientIdAndPropertyAddress_StreetAndStatus(
+                clientId,
+                street,
+                TransactionStatus.ACTIVE
+        ).ifPresent(t -> {
+            throw new InvalidInputException("duplicate: Client already has an active transaction for this property");
+        });
+
+        // 3) Create Transaction entity
+        Transaction tx = new Transaction();
+        tx.setTransactionId("TX-" + UUID.randomUUID().toString().substring(0, 8));
+        tx.setClientId(dto.getClientId());
+        tx.setBrokerId(dto.getBrokerId());
+        tx.setSide(dto.getSide());
+        // Validate and apply initialStage based on side
+        if (dto.getInitialStage() == null || dto.getInitialStage().isBlank()) {
+            throw new InvalidInputException("initialStage is required");
+        }
+
+        String initial = dto.getInitialStage().trim();
+        if (dto.getSide() == TransactionSide.BUY_SIDE) {
+            try {
+                BuyerStage buyerStage = BuyerStage.valueOf(initial);
+                tx.setBuyerStage(buyerStage);
+                tx.setSellerStage(null);
+            } catch (IllegalArgumentException ex) {
+                throw new InvalidInputException("initialStage '" + initial + "' is not a valid buyer stage. Allowed values: " + Arrays.toString(BuyerStage.values()));
+            }
+        } else if (dto.getSide() == TransactionSide.SELL_SIDE) {
+            try {
+                SellerStage sellerStage = SellerStage.valueOf(initial);
+                tx.setSellerStage(sellerStage);
+                tx.setBuyerStage(null);
+            } catch (IllegalArgumentException ex) {
+                throw new InvalidInputException("initialStage '" + initial + "' is not a valid seller stage. Allowed values: " + Arrays.toString(SellerStage.values()));
+            }
+        } else {
+            throw new InvalidInputException("side is not supported: " + dto.getSide());
+        }
+        tx.setStatus(TransactionStatus.ACTIVE);
+        tx.setOpenedAt(LocalDateTime.now());
+        tx.setPropertyAddress(dto.getPropertyAddress());
+
+        Transaction saved = repo.save(tx);
+
+        return EntityDtoUtil.toResponse(saved);
+    }
+
+    @Override
+    public java.util.List<TimelineEntryDTO> getNotes(String transactionId, String brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        if (!tx.getBrokerId().equals(brokerId)) {
+            throw new NotFoundException("You do not have access to this transaction");
+        }
+
+        List<TimelineEntry> entries = tx.getTimeline() == null ? List.of() : tx.getTimeline();
+
+        return entries.stream()
+                .filter(e -> e.getType() == TimelineEntryType.NOTE)
+                .map(EntityDtoUtil::toTimelineDTO)
+                .toList();
+    }
+
+    @Override
+    public TimelineEntryDTO createNote(String transactionId, NoteRequestDTO note, String brokerId) {
+        if (note.getActorId() == null || note.getActorId().isBlank()) {
+            throw new InvalidInputException("actorId is required");
+        }
+        if (note.getTitle() == null || note.getTitle().isBlank()) {
+            throw new InvalidInputException("title is required");
+        }
+        if (note.getMessage() == null || note.getMessage().isBlank()) {
+            throw new InvalidInputException("message is required");
+        }
+
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        if (!tx.getBrokerId().equals(brokerId)) {
+            throw new NotFoundException("You do not have access to this transaction");
+        }
+
+        TimelineEntry entry = TimelineEntry.builder()
+                .type(TimelineEntryType.NOTE)
+                .title(note.getTitle())
+                .note(note.getMessage())
+                .visibleToClient(note.getVisibleToClient() != null ? note.getVisibleToClient() : false)
+                .occurredAt(LocalDateTime.now())
+                .addedByBrokerId(note.getActorId())
+                .transaction(tx)
+                .build();
+
+        if (tx.getTimeline() == null) tx.setTimeline(new ArrayList<>());
+        tx.getTimeline().add(entry);
+
+        Transaction saved = repo.save(tx);
+
+        // find the saved entry (last)
+        TimelineEntry savedEntry = saved.getTimeline().get(saved.getTimeline().size() - 1);
+
+        return EntityDtoUtil.toTimelineDTO(savedEntry);
+    }
+
+
+    @Override
+    public List<TransactionResponseDTO> getBrokerTransactions(String brokerId) {
+
+        List<Transaction> transactions = repo.findAllByBrokerId(brokerId);
+
+        return transactions.stream()
+                .map(EntityDtoUtil::toResponse)
+                .toList();
+    }
+
+    @Override
+    public TransactionResponseDTO getByTransactionId(String transactionId, String brokerId) {
+
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        if (!tx.getBrokerId().equals(brokerId)) {
+            throw new NotFoundException("You do not have access to this transaction");
+        }
+
+        return EntityDtoUtil.toResponse(tx);
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/businesslayer/TransactionServiceImpl.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/dto/NoteRequestDTO.java"
+package com.example.courtierprobackend.transactions.datalayer.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class NoteRequestDTO {
+
+    @NotBlank(message = "transactionId is required")
+    private String transactionId;
+
+    @NotBlank(message = "actorId is required")
+    private String actorId;
+
+    @NotBlank(message = "title is required")
+    private String title;
+
+    @NotBlank(message = "message is required")
+    private String message;
+
+    private Boolean visibleToClient = false;
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/dto/NoteRequestDTO.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/dto/TimelineEntryDTO.java"
+package com.example.courtierprobackend.transactions.datalayer.dto;
+
+import com.example.courtierprobackend.transactions.datalayer.enums.TimelineEntryType;
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class TimelineEntryDTO {
+
+    private TimelineEntryType type;
+    private String note;
+    private String title;
+    private Boolean visibleToClient;
+    private LocalDateTime occurredAt;
+    private String addedByBrokerId;
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/dto/TimelineEntryDTO.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/dto/TransactionRequestDTO.java"
+package com.example.courtierprobackend.transactions.datalayer.dto;
+
+import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
+import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+public class TransactionRequestDTO {
+
+    @NotBlank(message = "clientId is required")
+    private String clientId;
+
+    // NOTE: brokerId is NOT part of request body in your controller — set by header
+    private String brokerId;
+
+    @NotNull(message = "side is required")
+    private TransactionSide side;
+
+    // Optional for now — per your DDD, address may be filled later
+    private PropertyAddress propertyAddress;
+
+    @NotBlank(message = "initialStage is required")
+    private String initialStage;
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/dto/TransactionRequestDTO.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/dto/TransactionResponseDTO.java"
+package com.example.courtierprobackend.transactions.datalayer.dto;
+
+
+import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
+import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
+import com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus;
+import lombok.Builder;
+import lombok.Data;
+
+@Data
+@Builder
+public class TransactionResponseDTO {
+    private String transactionId;
+    private String clientId;
+    private String brokerId;
+    private TransactionSide side;
+    private PropertyAddress propertyAddress;
+    private String currentStage;
+    private TransactionStatus status;
+    private String openedDate;
+}
+
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/dto/TransactionResponseDTO.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/enums/BuyerStage.java"
+package com.example.courtierprobackend.transactions.datalayer.enums;
+
+public enum BuyerStage {
+    BUYER_PREQUALIFY_FINANCIALLY,
+    BUYER_SHOP_FOR_PROPERTY,
+    BUYER_SUBMIT_OFFER,
+    BUYER_OFFER_ACCEPTED,
+    BUYER_HOME_INSPECTION,
+    BUYER_FINANCING_FINALIZED,
+    BUYER_FIRST_NOTARY_APPOINTMENT,
+    BUYER_SECOND_NOTARY_APPOINTMENT,
+    BUYER_OCCUPANCY,
+    BUYER_TERMINATED
+}
+
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/enums/BuyerStage.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/enums/SellerStage.java"
+package com.example.courtierprobackend.transactions.datalayer.enums;
+
+public enum SellerStage {
+    SELLER_INITIAL_CONSULTATION,
+    SELLER_LISTING_PUBLISHED,
+    SELLER_REVIEW_OFFERS,
+    SELLER_ACCEPT_BEST_OFFER,
+    SELLER_CONDITIONS_MET,
+    SELLER_NOTARY_COORDINATION,
+    SELLER_NOTARY_APPOINTMENT,
+    SELLER_HANDOVER_KEYS,
+    SELLER_TERMINATED
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/enums/SellerStage.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/enums/TimelineEntryType.java"
+package com.example.courtierprobackend.transactions.datalayer.enums;
+
+public enum TimelineEntryType {
+    CREATED,
+    STAGE_CHANGE,
+    NOTE
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/enums/TimelineEntryType.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/enums/TransactionSide.java"
+package com.example.courtierprobackend.transactions.datalayer.enums;
+
+public enum TransactionSide {
+    BUY_SIDE,
+    SELL_SIDE
+}
+
+
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/enums/TransactionSide.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/enums/TransactionStatus.java"
+package com.example.courtierprobackend.transactions.datalayer.enums;
+
+public enum TransactionStatus {
+    ACTIVE,
+    CLOSED_SUCCESSFULLY,
+    TERMINATED_EARLY
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/enums/TransactionStatus.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/PropertyAddress.java"
+package com.example.courtierprobackend.transactions.datalayer;
+
+import lombok.*;
+
+import jakarta.persistence.Embeddable;
+
+@Embeddable
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class PropertyAddress {
+    private String street;
+    private String city;
+    private String province;
+    private String postalCode;
+}
+
+
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/PropertyAddress.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/repositories/TransactionRepository.java"
+package com.example.courtierprobackend.transactions.datalayer.repositories;
+
+import com.example.courtierprobackend.transactions.datalayer.Transaction;
+import com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.*;
+
+public interface TransactionRepository extends JpaRepository<Transaction, Long> {
+
+    Optional<Transaction> findByTransactionId(String transactionId);
+
+    // Automatic derived query for duplicate check
+    Optional<Transaction> findByClientIdAndPropertyAddress_StreetAndStatus(
+            String clientId,
+            String street,
+            TransactionStatus status
+    );
+
+    List<Transaction> findAllByBrokerId(String brokerId);
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/repositories/TransactionRepository.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/TimelineEntry.java"
+package com.example.courtierprobackend.transactions.datalayer;
+
+import com.example.courtierprobackend.transactions.datalayer.enums.TimelineEntryType;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "timeline_entries")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class TimelineEntry {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Enumerated(EnumType.STRING)
+    private TimelineEntryType type;
+
+    private String note;
+    private String title;
+
+    private Boolean visibleToClient;
+
+    private LocalDateTime occurredAt;
+
+    private String addedByBrokerId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transaction_id")
+    private Transaction transaction;
+}
+
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/TimelineEntry.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/Transaction.java"
+package com.example.courtierprobackend.transactions.datalayer;
+
+import com.example.courtierprobackend.transactions.datalayer.enums.*;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Entity
+@Table(name = "transactions")
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class Transaction {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String transactionId;
+
+    private String clientId;
+    private String brokerId;
+
+    @Embedded
+    private PropertyAddress propertyAddress;
+
+    @Enumerated(EnumType.STRING)
+    private TransactionSide side;
+
+    @Enumerated(EnumType.STRING)
+    private BuyerStage buyerStage;
+
+    @Enumerated(EnumType.STRING)
+    private SellerStage sellerStage;
+
+    @Enumerated(EnumType.STRING)
+    private TransactionStatus status;
+
+    private LocalDateTime openedAt;
+
+    private LocalDateTime closedAt;
+
+    @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TimelineEntry> timeline;
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/Transaction.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/valueobjects/BrokerRef.java"
+package com.example.courtierprobackend.transactions.datalayer.valueobjects;
+
+public class BrokerRef {
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/valueobjects/BrokerRef.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/valueobjects/ClientRef.java"
+package com.example.courtierprobackend.transactions.datalayer.valueobjects;
+
+public class ClientRef {
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/valueobjects/ClientRef.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/valueobjects/TransactionIdentifier.java"
+package com.example.courtierprobackend.transactions.datalayer.valueobjects;
+
+public class TransactionIdentifier {
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/datalayer/valueobjects/TransactionIdentifier.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/domainclientlayer/BrokerClient.java"
+package com.example.courtierprobackend.transactions.domainclientlayer;
+
+public class BrokerClient {
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/domainclientlayer/BrokerClient.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/domainclientlayer/ClientClient.java"
+package com.example.courtierprobackend.transactions.domainclientlayer;
+
+public class ClientClient {
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/domainclientlayer/ClientClient.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/exceptions/DuplicateTransactionException.java"
+package com.example.courtierprobackend.transactions.exceptions;
+
+public class DuplicateTransactionException extends RuntimeException {
+    public DuplicateTransactionException(String message) {
+        super(message);
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/exceptions/DuplicateTransactionException.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/exceptions/GlobalExceptionHandler.java"
+package com.example.courtierprobackend.transactions.exceptions;
+
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<String> handleNotFound(NotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateTransactionException.class)
+    public ResponseEntity<String> handleDuplicate(DuplicateTransactionException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/exceptions/GlobalExceptionHandler.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/exceptions/InvalidInputException.java"
+package com.example.courtierprobackend.transactions.exceptions;
+
+public class InvalidInputException extends RuntimeException {
+
+    public InvalidInputException() {
+        super();
+    }
+
+    public InvalidInputException(String message) {
+        super(message);
+    }
+
+    public InvalidInputException(Throwable cause) {
+        super(cause);
+    }
+
+    public InvalidInputException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/exceptions/InvalidInputException.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/exceptions/InvalidStageException.java"
+package com.example.courtierprobackend.transactions.exceptions;
+
+public class InvalidStageException extends RuntimeException {
+    public InvalidStageException(String message) {
+        super(message);
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/exceptions/InvalidStageException.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/exceptions/NotFoundException.java"
+package com.example.courtierprobackend.transactions.exceptions;
+
+public class NotFoundException extends RuntimeException {
+    public NotFoundException(String message) {
+        super(message);
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/exceptions/NotFoundException.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/exceptions/TransactionControllerExceptionHandler.java"
+package com.example.courtierprobackend.transactions.exceptions;
+
+
+import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
+import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@RestControllerAdvice
+public class TransactionControllerExceptionHandler {
+
+    @ExceptionHandler(InvalidInputException.class)
+    public ResponseEntity<String> handleInvalidInput(InvalidInputException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ex.getMessage() != null ? ex.getMessage() : "Invalid input");
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<String> handleNotFound(NotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ex.getMessage() != null ? ex.getMessage() : "Resource not found");
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/exceptions/TransactionControllerExceptionHandler.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/presentationlayer/TransactionController.java"
+package com.example.courtierprobackend.transactions.presentationlayer;
+
+import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
+import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/transactions")
+@RequiredArgsConstructor
+@PreAuthorize("hasRole('BROKER')")
+public class TransactionController {
+
+    private final TransactionService service;
+
+    // -------- BrokerId extraction (PROD = Auth0, DEV = x-broker-id) --------
+    private String resolveBrokerId(Jwt jwt, String headerBrokerId) {
+
+        // DEV mode: x-broker-id header
+        if (StringUtils.hasText(headerBrokerId)) {
+            return headerBrokerId;
+        }
+
+        // PROD mode: Auth0 token
+        if (jwt != null) {
+            String fromToken = jwt.getClaimAsString("sub");
+            if (StringUtils.hasText(fromToken)) {
+                return fromToken;
+            }
+        }
+
+        throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Unable to resolve broker id from token or header"
+        );
+    }
+
+    @PostMapping
+    public ResponseEntity<TransactionResponseDTO> createTransaction(
+            @Valid @RequestBody TransactionRequestDTO dto,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        String brokerId = resolveBrokerId(jwt, brokerHeader);
+        dto.setBrokerId(brokerId);
+
+        TransactionResponseDTO response = service.createTransaction(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/{transactionId}/notes")
+    public ResponseEntity<TimelineEntryDTO> createNote(
+            @PathVariable String transactionId,
+            @Valid @RequestBody NoteRequestDTO note,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        String brokerId = resolveBrokerId(jwt, brokerHeader);
+        note.setTransactionId(transactionId);
+
+        TimelineEntryDTO created = service.createNote(transactionId, note, brokerId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @GetMapping("/{transactionId}/notes")
+    public ResponseEntity<List<TimelineEntryDTO>> getNotes(
+            @PathVariable String transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        String brokerId = resolveBrokerId(jwt, brokerHeader);
+        return ResponseEntity.ok(service.getNotes(transactionId, brokerId));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<TransactionResponseDTO>> getBrokerTransactions(
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        String brokerId = resolveBrokerId(jwt, brokerHeader);
+        return ResponseEntity.ok(service.getBrokerTransactions(brokerId));
+    }
+
+    @GetMapping("/{transactionId}")
+    public ResponseEntity<TransactionResponseDTO> getTransactionById(
+            @PathVariable String transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        String brokerId = resolveBrokerId(jwt, brokerHeader);
+        return ResponseEntity.ok(service.getByTransactionId(transactionId, brokerId));
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/presentationlayer/TransactionController.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/util/EntityDtoUtil.java"
+package com.example.courtierprobackend.transactions.util;
+
+import com.example.courtierprobackend.transactions.datalayer.*;
+import com.example.courtierprobackend.transactions.datalayer.dto.*;
+import com.example.courtierprobackend.transactions.datalayer.enums.*;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class EntityDtoUtil {
+
+    /* =========================================================
+       TRANSACTION -> RESPONSE DTO
+       ========================================================= */
+    public static TransactionResponseDTO toResponse(Transaction t) {
+        return TransactionResponseDTO.builder()
+                .transactionId(t.getTransactionId())
+                .clientId(t.getClientId())
+                .brokerId(t.getBrokerId())
+                .side(t.getSide())
+                .propertyAddress(t.getPropertyAddress())
+                .currentStage(resolveStage(t))
+                .status(t.getStatus())
+                .openedDate(t.getOpenedAt() != null ? t.getOpenedAt().toLocalDate().toString() : null)
+                .build();
+    }
+
+
+    /* =========================================================
+       REQUEST DTO -> NEW TRANSACTION (INITIAL VALUES ONLY)
+       Used when creating a new Transaction
+       ========================================================= */
+    public static Transaction toNewTransaction(TransactionRequestDTO dto, String generatedId) {
+        Transaction t = new Transaction();
+        t.setTransactionId(generatedId);
+        t.setClientId(dto.getClientId());
+        t.setBrokerId(dto.getBrokerId());
+        t.setSide(dto.getSide());
+        t.setPropertyAddress(dto.getPropertyAddress());
+        return t;
+    }
+
+
+    /* =========================================================
+       TIMELINE ENTRY -> TIMELINE DTO
+       ========================================================= */
+    public static TimelineEntryDTO toTimelineDTO(TimelineEntry entry) {
+        return TimelineEntryDTO.builder()
+                .type(entry.getType())
+                .note(entry.getNote())
+                .title(entry.getTitle())
+                .visibleToClient(entry.getVisibleToClient())
+                .occurredAt(entry.getOccurredAt())
+                .addedByBrokerId(entry.getAddedByBrokerId())
+                .build();
+    }
+
+
+    /* =========================================================
+       LIST<TimelineEntry> -> LIST<TimelineEntryDTO>
+       ========================================================= */
+    public static List<TimelineEntryDTO> toTimelineDTOs(List<TimelineEntry> entries) {
+        if (entries == null) return List.of();
+        return entries.stream()
+                .map(EntityDtoUtil::toTimelineDTO)
+                .collect(Collectors.toList());
+    }
+
+
+    /* =========================================================
+       HELPER: Resolve current stage as text
+       ========================================================= */
+    private static String resolveStage(Transaction t) {
+
+        if (t.getSide() == TransactionSide.BUY_SIDE) {
+            return t.getBuyerStage() != null
+                    ? t.getBuyerStage().name()
+                    : "UNKNOWN_BUYER_STAGE";
+        }
+
+        return t.getSellerStage() != null
+                ? t.getSellerStage().name()
+                : "UNKNOWN_SELLER_STAGE";
+    }
+
+
+    /* =========================================================
+       STAGE UPDATE UTILITIES (FUTURE PROOFING FOR CP-14+)
+       ========================================================= */
+
+    // Ensures buyer side only updates buyer stage
+    public static void updateBuyerStage(Transaction t, BuyerStage newStage) {
+        t.setBuyerStage(newStage);
+        t.setSellerStage(null); // maintain invariant
+    }
+
+    // Ensures seller side only updates seller stage
+    public static void updateSellerStage(Transaction t, SellerStage newStage) {
+        t.setSellerStage(newStage);
+        t.setBuyerStage(null); // maintain invariant
+    }
+
+
+    /* =========================================================
+       EMBEDDABLE HELPERS FOR FUTURE MAPPINGS
+       ========================================================= */
+    public static PropertyAddress copyAddress(PropertyAddress p) {
+        if (p == null) return null;
+        return new PropertyAddress(
+                p.getStreet(),
+                p.getCity(),
+                p.getProvince(),
+                p.getPostalCode()
+        );
+    }
+    public static TransactionResponseDTO toResponseStub(String id, String clientId, String brokerId) {
+        return TransactionResponseDTO.builder()
+                .transactionId(id)
+                .clientId(clientId)
+                .brokerId(brokerId)
+                .side(TransactionSide.BUY_SIDE)
+                .status(TransactionStatus.ACTIVE)
+                .propertyAddress(null)
+                .currentStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY.name())
+                .openedDate(LocalDate.now().toString())
+                .build();
+    }
+
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/transactions/util/EntityDtoUtil.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/user/businesslayer/UserProvisioningService.java"
+package com.example.courtierprobackend.user.businesslayer;
+
+import com.example.courtierprobackend.datamapperlayer.UserMapper;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
+import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
+import com.example.courtierprobackend.user.domainclientlayer.auth0.Auth0ManagementClient;
+import com.example.courtierprobackend.user.presentationlayer.request.CreateUserRequest;
+import com.example.courtierprobackend.user.presentationlayer.request.UpdateStatusRequest;
+import com.example.courtierprobackend.user.presentationlayer.response.UserResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+public class UserProvisioningService {
+
+    private final UserAccountRepository userAccountRepository;
+    private final Auth0ManagementClient auth0ManagementClient;
+    private final UserMapper userMapper;
+
+    public UserProvisioningService(UserAccountRepository userAccountRepository,
+                                   Auth0ManagementClient auth0ManagementClient,
+                                   UserMapper userMapper) {
+        this.userAccountRepository = userAccountRepository;
+        this.auth0ManagementClient = auth0ManagementClient;
+        this.userMapper = userMapper;
+    }
+
+
+    public List<UserResponse> getAllUsers() {
+        return userAccountRepository.findAll()
+                .stream()
+                .map(userMapper::toResponse)
+                .toList();
+    }
+
+
+    public UserResponse createUser(CreateUserRequest request) {
+
+        //  create a user and assign it a role
+        UserRole role = UserRole.valueOf(request.getRole());
+        String auth0UserId = auth0ManagementClient.createUser(
+                request.getEmail(),
+                request.getFirstName(),
+                request.getLastName(),
+                role
+        );
+
+        UserAccount account = userMapper.toNewUserEntity(request, auth0UserId);
+        UserAccount saved = userAccountRepository.save(account);
+
+        return userMapper.toResponse(saved);
+    }
+
+
+    public UserResponse updateStatus(UUID userId, UpdateStatusRequest request) {
+        UserAccount account = userAccountRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User with id " + userId + " not found"
+                ));
+
+        boolean active = request.getActive();
+        account.setActive(active);
+        UserAccount saved = userAccountRepository.save(account);
+
+        // Synchronize with Auth0: if active=false -> blocked=true
+        auth0ManagementClient.setBlocked(account.getAuth0UserId(), !active);
+
+        return userMapper.toResponse(saved);
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/user/businesslayer/UserProvisioningService.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/user/dataaccesslayer/UserAccount.java"
+package com.example.courtierprobackend.user.dataaccesslayer;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Getter
+@Entity
+@Table(name = "user_accounts")
+public class UserAccount {
+
+    @Id
+    private UUID id;
+
+    @Column(nullable = false, unique = true)
+    private String auth0UserId; // ex: "auth0|abc123"
+
+    @Column(nullable = false, unique = true)
+    private String email;
+
+    private String firstName;
+    private String lastName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role;
+
+    @Column(nullable = false)
+    private boolean active;
+
+    @Column(nullable = false)
+    private String preferredLanguage;
+
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(nullable = false)
+    private Instant updatedAt;
+
+
+    protected UserAccount() {
+    }
+
+    public UserAccount(String auth0UserId,
+                       String email,
+                       String firstName,
+                       String lastName,
+                       UserRole role,
+                       String preferredLanguage) {
+
+        this.id = UUID.randomUUID();
+        this.auth0UserId = auth0UserId;
+        this.email = email;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.role = role;
+        this.preferredLanguage = preferredLanguage;
+        this.active = true;
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
+
+    public void setActive(boolean active) {
+        this.active = active;
+        this.updatedAt = Instant.now();
+    }
+
+
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/user/dataaccesslayer/UserAccount.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/user/dataaccesslayer/UserAccountRepository.java"
+package com.example.courtierprobackend.user.dataaccesslayer;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+import java.util.UUID;
+
+public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> {
+
+    Optional<UserAccount> findByEmail(String email);
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/user/dataaccesslayer/UserAccountRepository.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/user/dataaccesslayer/UserRole.java"
+package com.example.courtierprobackend.user.dataaccesslayer;
+
+public enum UserRole {
+    ADMIN,
+    BROKER,
+    CLIENT
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/user/dataaccesslayer/UserRole.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/user/domainclientlayer/auth0/Auth0ManagementClient.java"
+package com.example.courtierprobackend.user.domainclientlayer.auth0;
+
+import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+
+@Component
+public class Auth0ManagementClient {
+
+    // RestTemplate to support PATCH
+    private final RestTemplate restTemplate;
+
+    private final String domain;
+    private final String clientId;
+    private final String clientSecret;
+    private final String audience;
+
+    private final String managementBaseUrl;
+    private final String tokenUrl;
+
+    // Auth0 role IDs (from Dashboard → User Management → Roles)
+    private final String adminRoleId  = "rol_2zQ5SYaHM3eDsUF3";
+    private final String brokerRoleId = "rol_l9MqshX9J77aopLk";
+    private final String clientRoleId = "rol_29T806IHSWNeRS2Z";
+
+    // “Username-Password-Authentication” is the default name of the “Database” connection created by Auth0.
+    //This is where your users will be created when you provision them via the API with a generated password.
+    //Connection Database → email + password stock in Auth0
+    private final String dbConnection = "Username-Password-Authentication";
+
+    public Auth0ManagementClient(
+            @Value("${auth0.domain}") String domain,
+            @Value("${auth0.management.client-id}") String clientId,
+            @Value("${auth0.management.client-secret}") String clientSecret,
+            @Value("${auth0.management.audience}") String audience
+    ) {
+        this.domain = domain;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+        this.audience = audience;
+
+        // URLs factorisées
+        this.managementBaseUrl = "https://" + domain + "/api/v2";
+        this.tokenUrl = "https://" + domain + "/oauth/token";
+
+        //  support PATCH
+        HttpComponentsClientHttpRequestFactory requestFactory =
+                new HttpComponentsClientHttpRequestFactory();
+        this.restTemplate = new RestTemplate(requestFactory);
+    }
+
+
+    // Obtention of token Management
+    private String getManagementToken() {
+        String url = tokenUrl;
+
+        Map<String, String> body = Map.of(
+                "client_id", clientId,
+                "client_secret", clientSecret,
+                "audience", audience,
+                "grant_type", "client_credentials"
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<TokenResponse> response = restTemplate.postForEntity(url, entity, TokenResponse.class);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new IllegalStateException("Failed to obtain Auth0 management token");
+        }
+
+        return response.getBody().accessToken();
+    }
+
+    private record TokenResponse(@JsonProperty("access_token") String accessToken) {}
+
+    // Generate a random password (for the guest user)
+    //until ticket CP-33 is not done, a random password is generated(you can modify it on Auth0 for now)
+    private String generateRandomPassword() {
+        byte[] bytes = new byte[24];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    // Create a user in Auth0
+
+    public String createUser(String email, String firstName, String lastName, UserRole role) {
+
+        String token = getManagementToken();
+
+        String url = managementBaseUrl + "/users";
+
+        String randomPassword = generateRandomPassword();
+
+        Map<String, Object> body = Map.of(
+                "email", email,
+                "given_name", firstName,
+                "family_name", lastName,
+                "connection", dbConnection,
+                "password", randomPassword,
+                "email_verified", false,
+                "verify_email", true // email verification/invitation
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<Auth0UserResponse> response =
+                restTemplate.postForEntity(url, entity, Auth0UserResponse.class);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new IllegalStateException("Failed to create Auth0 user");
+        }
+
+        String auth0UserId = response.getBody().userId();
+
+        assignRole(token, auth0UserId, role);
+
+        return auth0UserId;
+    }
+
+    private record Auth0UserResponse(@JsonProperty("user_id") String userId) {}
+
+    // Assign a role in Auth0
+
+    private void assignRole(String token, String auth0UserId, UserRole role) {
+
+        String roleId = switch (role) {
+            case ADMIN -> adminRoleId;
+            case BROKER -> brokerRoleId;
+            case CLIENT -> clientRoleId;
+        };
+
+        String url = managementBaseUrl + "/roles/" + roleId + "/users";
+
+        Map<String, Object> body = Map.of(
+                "users", List.of(auth0UserId)
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<Void> response =
+                restTemplate.postForEntity(url, entity, Void.class);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new IllegalStateException("Failed to assign role " + role + " to user " + auth0UserId);
+        }
+    }
+
+    // block/unblock a user
+    public void setBlocked(String auth0UserId, boolean blocked) {
+        String token = getManagementToken();
+
+        String url = managementBaseUrl + "/users/" + auth0UserId;
+
+        Map<String, Object> body = Map.of(
+                "blocked", blocked
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<Void> response =
+                restTemplate.exchange(url, HttpMethod.PATCH, entity, Void.class);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new IllegalStateException("Failed to set blocked=" + blocked + " for " + auth0UserId);
+        }
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/user/domainclientlayer/auth0/Auth0ManagementClient.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/user/presentationlayer/controller/AdminUserController.java"
+package com.example.courtierprobackend.user.presentationlayer.controller;
+
+import com.example.courtierprobackend.user.businesslayer.UserProvisioningService;
+import com.example.courtierprobackend.user.presentationlayer.request.CreateUserRequest;
+import com.example.courtierprobackend.user.presentationlayer.request.UpdateStatusRequest;
+import com.example.courtierprobackend.user.presentationlayer.response.UserResponse;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+@RestController
+@RequestMapping("/api/admin/users")
+// 👉 Toute la classe est réservée aux ADMIN
+@PreAuthorize("hasRole('ADMIN')")
+public class AdminUserController {
+
+    private final UserProvisioningService service;
+
+    public AdminUserController(UserProvisioningService service) {
+        this.service = service;
+    }
+
+
+    @GetMapping
+    public List<UserResponse> getAllUsers() {
+        return service.getAllUsers();
+    }
+
+    @PostMapping
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
+        UserResponse response = service.createUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+
+    @PatchMapping("/{userId}/status")
+    public ResponseEntity<UserResponse> updateStatus(@PathVariable UUID userId,
+                                                     @Valid @RequestBody UpdateStatusRequest request) {
+        UserResponse response = service.updateStatus(userId, request);
+        return ResponseEntity.ok(response);
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/user/presentationlayer/controller/AdminUserController.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/user/presentationlayer/request/CreateUserRequest.java"
+package com.example.courtierprobackend.user.presentationlayer.request;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Value;
+
+@Value
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+public class CreateUserRequest {
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email format is invalid")
+    String email;
+
+    @NotBlank(message = "First name is required")
+    String firstName;
+
+    @NotBlank(message = "Last name is required")
+    String lastName;
+
+    @NotBlank(message = "Role is required")
+    @Pattern(
+            regexp = "ADMIN|BROKER|CLIENT",
+            message = "Role must be one of: ADMIN, BROKER, CLIENT"
+    )
+    String role;
+
+    @NotBlank(message = "Preferred language is required")
+    @Pattern(
+            regexp = "en|fr",
+            message = "Preferred language must be 'en' or 'fr'"
+    )
+    String preferredLanguage;
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/user/presentationlayer/request/CreateUserRequest.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/user/presentationlayer/request/UpdateStatusRequest.java"
+package com.example.courtierprobackend.user.presentationlayer.request;
+
+import jakarta.validation.constraints.NotNull;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Value;
+
+@Value
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+public class UpdateStatusRequest {
+
+    @NotNull(message = "Active field is required")
+    Boolean active;
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/user/presentationlayer/request/UpdateStatusRequest.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/java/com/example/courtierprobackend/user/presentationlayer/response/UserResponse.java"
+package com.example.courtierprobackend.user.presentationlayer.response;
+
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Value;
+
+import java.util.UUID;
+
+@Value
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+public class UserResponse {
+
+    UUID id;
+    String email;
+    String firstName;
+    String lastName;
+    String role;
+    boolean active;
+    String preferredLanguage;
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/java/com/example/courtierprobackend/user/presentationlayer/response/UserResponse.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/resources/application-prod.yml"
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/courtierpro
+    username: ${DB_USER}
+    password: ${DB_PASS}
+
+  jpa:
+    hibernate:
+      ddl-auto: update   # OK pour projet école; en vrai prod => "validate"
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Auth0 tenant
+          issuer-uri: https://${AUTH0_DOMAIN}/
+          audiences:
+            - ${AUTH0_AUDIENCE}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET}
+  ses:
+    region: ${AWS_REGION}
+
+auth0:
+  domain: ${AUTH0_DOMAIN}
+  audience: ${AUTH0_AUDIENCE}
+  management:
+    client-id: ${AUTH0_MGMT_CLIENT_ID}
+    client-secret: ${AUTH0_MGMT_CLIENT_SECRET}
+    audience: ${AUTH0_MGMT_AUDIENCE}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/resources/application-prod.yml"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/main/resources/application.yml"
+server:
+  port: 8080
+
+# Valeurs par défaut pour le dev local (override par .env si besoin)
+auth0:
+  domain: ${AUTH0_DOMAIN:dev-xxxxx.us.auth0.com}
+  audience: ${AUTH0_AUDIENCE:https://api.courtierpro.dev}
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/courtierpro
+    username: courtier
+    password: courtier
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Auth0 tenant (issuers)
+          issuer-uri: https://${AUTH0_DOMAIN:dev-xxxxx.us.auth0.com}/
+          audiences:
+            - ${AUTH0_AUDIENCE:https://api.courtierpro.dev}
+
+logging:
+  level:
+    org.springframework: INFO
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/main/resources/application.yml"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/test/java/com/example/courtierprobackend/CourtierproBackendApplicationTests.java"
+package com.example.courtierprobackend;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class CourtierproBackendApplicationTests {
+
+    @Test
+    void contextLoads() {
+    }
+
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/test/java/com/example/courtierprobackend/CourtierproBackendApplicationTests.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/test/java/com/example/courtierprobackend/transactions/TransactionControllerIntegrationTest.java"
+package com.example.courtierprobackend.transactions;
+
+import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
+import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
+import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
+import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
+import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
+
+import com.example.courtierprobackend.transactions.exceptions.TransactionControllerExceptionHandler;
+import com.example.courtierprobackend.transactions.presentationlayer.TransactionController;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(TransactionController.class)
+@AutoConfigureMockMvc(addFilters = false)
+@Import(TransactionControllerExceptionHandler.class)
+class TransactionControllerIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private TransactionService service;
+
+    @Autowired
+    private ObjectMapper mapper;
+
+    // createTransaction_validRequest_returns201AndBody
+    @Test
+    void createTransaction_validRequest_returns201AndBody() throws Exception {
+
+        TransactionRequestDTO dto = new TransactionRequestDTO();
+        dto.setClientId("CLIENT1");
+        dto.setSide(TransactionSide.BUY_SIDE);
+        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+
+        when(service.createTransaction(any())).thenReturn(EntityDtoUtil.toResponseStub("TX-1", "CLIENT1", "BROKER1"));
+
+        mockMvc.perform(
+                post("/api/v1/transactions")
+                        .header("x-broker-id", "BROKER1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(dto))
+        )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.clientId").value("CLIENT1"))
+                .andExpect(jsonPath("$.brokerId").value("BROKER1"))
+                .andExpect(jsonPath("$.side").value("BUY_SIDE"))
+                .andExpect(jsonPath("$.currentStage").value("BUYER_PREQUALIFY_FINANCIALLY"))
+                .andExpect(jsonPath("$.openedDate").isNotEmpty());
+    }
+
+        // createTransaction_missingBrokerHeader_returns400
+        @Test
+        void createTransaction_missingBrokerHeader_returns400() throws Exception {
+
+                TransactionRequestDTO dto = new TransactionRequestDTO();
+                dto.setClientId("CLIENT1");
+                dto.setSide(TransactionSide.BUY_SIDE);
+                dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+
+                when(service.createTransaction(any())).thenThrow(new InvalidInputException("brokerId is required"));
+
+                mockMvc.perform(
+                                post("/api/v1/transactions")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(mapper.writeValueAsString(dto))
+                ).andExpect(status().isBadRequest());
+        }
+
+    // 3) INVALID BODY → 400 BAD REQUEST
+    @Test
+    void createTransaction_InvalidBody_400() throws Exception {
+
+        TransactionRequestDTO dto = new TransactionRequestDTO();
+
+        mockMvc.perform(
+                post("/api/v1/transactions")
+                        .header("x-broker-id", "BROKER1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(dto))
+        ).andExpect(status().isBadRequest());
+    }
+
+    // 4) SERVICE THROWS INVALID INPUT → 400
+    @Test
+    void createTransaction_ServiceInvalidInput_400() throws Exception {
+
+        TransactionRequestDTO dto = new TransactionRequestDTO();
+        dto.setClientId("CLIENT1");
+        dto.setSide(TransactionSide.BUY_SIDE);
+                dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+
+        when(service.createTransaction(any()))
+                .thenThrow(new InvalidInputException("Bad input"));
+
+        mockMvc.perform(
+                post("/api/v1/transactions")
+                        .header("x-broker-id", "BROKER1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(dto))
+        ).andExpect(status().isBadRequest());
+    }
+
+    // 5) SERVICE THROWS NOT FOUND → 404
+    @Test
+    void createTransaction_ServiceNotFound_404() throws Exception {
+
+        TransactionRequestDTO dto = new TransactionRequestDTO();
+        dto.setClientId("CLIENT1");
+        dto.setSide(TransactionSide.BUY_SIDE);
+                dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+
+        when(service.createTransaction(any()))
+                .thenThrow(new NotFoundException("Not found"));
+
+        mockMvc.perform(
+                post("/api/v1/transactions")
+                        .header("x-broker-id", "BROKER1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(dto))
+        ).andExpect(status().isNotFound());
+    }
+
+    // 6) DUPLICATE TRANSACTION → 400 (or 409 if you change handler)
+    @Test
+    void createTransaction_Duplicate_409() throws Exception {
+
+        TransactionRequestDTO dto = new TransactionRequestDTO();
+        dto.setClientId("CLIENT1");
+        dto.setSide(TransactionSide.BUY_SIDE);
+                dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+
+        when(service.createTransaction(any()))
+                .thenThrow(new InvalidInputException("Duplicate transaction"));
+
+        mockMvc.perform(
+                post("/api/v1/transactions")
+                        .header("x-broker-id", "BROKER1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(dto))
+        ).andExpect(status().isBadRequest());
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/test/java/com/example/courtierprobackend/transactions/TransactionControllerIntegrationTest.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/test/java/com/example/courtierprobackend/transactions/TransactionControllerUnitTest.java"
+package com.example.courtierprobackend.transactions;
+
+import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
+import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
+import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
+import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
+import com.example.courtierprobackend.transactions.exceptions.TransactionControllerExceptionHandler;
+import com.example.courtierprobackend.transactions.presentationlayer.TransactionController;
+import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.http.MediaType;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(TransactionController.class)
+@AutoConfigureMockMvc(addFilters = false)
+@Import(TransactionControllerExceptionHandler.class)
+class TransactionControllerUnitTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private TransactionService service;
+
+    @Autowired
+    private ObjectMapper mapper;
+
+    // createTransaction_validRequest_returns201AndBody
+    @Test
+    void createTransaction_validRequest_returns201AndBody() throws Exception {
+
+        TransactionRequestDTO req = new TransactionRequestDTO();
+        req.setClientId("CLIENT1");
+        req.setSide(TransactionSide.BUY_SIDE);
+        req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+
+        when(service.createTransaction(any()))
+                .thenReturn(EntityDtoUtil.toResponseStub("TX-123", "CLIENT1", "BROKER1"));
+
+        mockMvc.perform(
+                post("/api/v1/transactions")
+                        .header("x-broker-id", "BROKER1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(req))
+        )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.clientId").value("CLIENT1"))
+                .andExpect(jsonPath("$.brokerId").value("BROKER1"))
+                .andExpect(jsonPath("$.side").value("BUY_SIDE"))
+                .andExpect(jsonPath("$.currentStage").value("BUYER_PREQUALIFY_FINANCIALLY"))
+                .andExpect(jsonPath("$.openedDate").isNotEmpty());
+    }
+
+        // createTransaction_missingBrokerHeader_returns400
+        @Test
+        void createTransaction_missingBrokerHeader_returns400() throws Exception {
+
+                TransactionRequestDTO req = new TransactionRequestDTO();
+                req.setClientId("CLIENT1");
+                req.setSide(TransactionSide.BUY_SIDE);
+                req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+
+                when(service.createTransaction(any())).thenThrow(new InvalidInputException("brokerId is required"));
+
+                mockMvc.perform(
+                                post("/api/v1/transactions")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(mapper.writeValueAsString(req))
+                ).andExpect(status().isBadRequest());
+        }
+
+    // 3) INVALID BODY → 400 (Bean Validation)
+    @Test
+    void createTransaction_InvalidBody_400() throws Exception {
+
+        // Missing required fields: clientId + side
+        TransactionRequestDTO req = new TransactionRequestDTO();
+
+        mockMvc.perform(
+                post("/api/v1/transactions")
+                        .header("x-broker-id", "BROKER1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(req))
+        ).andExpect(status().isBadRequest());
+    }
+
+    // 4) SERVICE THROWS InvalidInputException → 400
+    @Test
+    void createTransaction_ServiceInvalidInput_400() throws Exception {
+
+        TransactionRequestDTO req = new TransactionRequestDTO();
+        req.setClientId("CLIENT1");
+        req.setSide(TransactionSide.BUY_SIDE);
+                req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+
+        when(service.createTransaction(any()))
+                .thenThrow(new InvalidInputException("Invalid transaction"));
+
+        mockMvc.perform(
+                post("/api/v1/transactions")
+                        .header("x-broker-id", "BROKER1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(req))
+        ).andExpect(status().isBadRequest());
+    }
+
+    // 5) SERVICE THROWS NotFoundException → 404
+    @Test
+    void createTransaction_ServiceNotFound_404() throws Exception {
+
+        TransactionRequestDTO req = new TransactionRequestDTO();
+        req.setClientId("CLIENT1");
+        req.setSide(TransactionSide.BUY_SIDE);
+                req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+
+        when(service.createTransaction(any()))
+                .thenThrow(new NotFoundException("Transaction not found"));
+
+        mockMvc.perform(
+                post("/api/v1/transactions")
+                        .header("x-broker-id", "BROKER1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(req))
+        ).andExpect(status().isNotFound());
+    }
+
+    // 6) DUPLICATE 400/409
+    @Test
+    void createTransaction_Duplicate_409() throws Exception {
+
+        TransactionRequestDTO req = new TransactionRequestDTO();
+        req.setClientId("CLIENT1");
+        req.setSide(TransactionSide.BUY_SIDE);
+                req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+
+        when(service.createTransaction(any()))
+                .thenThrow(new InvalidInputException("Duplicate transaction"));
+
+        mockMvc.perform(
+                post("/api/v1/transactions")
+                        .header("x-broker-id", "BROKER1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(req))
+        ).andExpect(status().isBadRequest());
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/test/java/com/example/courtierprobackend/transactions/TransactionControllerUnitTest.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="backend/src/test/java/com/example/courtierprobackend/transactions/TransactionServiceImplTest.java"
+package com.example.courtierprobackend.transactions;
+
+import com.example.courtierprobackend.transactions.businesslayer.TransactionServiceImpl;
+import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
+import com.example.courtierprobackend.transactions.datalayer.Transaction;
+import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.enums.*;
+import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
+import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
+import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
+
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.*;
+
+@ExtendWith(MockitoExtension.class)
+class TransactionServiceImplTest {
+
+    @Mock
+    private TransactionRepository repo;
+
+    @InjectMocks
+    private TransactionServiceImpl service;
+
+    // 1) createTransaction_success_returnsResponse
+    @Test
+    void createTransaction_success_returnsResponse() {
+
+        TransactionRequestDTO dto = new TransactionRequestDTO();
+        dto.setClientId("CLIENT1");
+        dto.setSide(TransactionSide.BUY_SIDE);
+        dto.setBrokerId("BROKER1");
+        dto.setPropertyAddress(new PropertyAddress("123 Main", "Montreal", "QC", "H1H1H1"));
+        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+
+        when(repo.save(any(Transaction.class))).thenAnswer(inv -> {
+            Transaction t = inv.getArgument(0);
+            t.setId(10L);
+            return t;
+        });
+
+        var result = service.createTransaction(dto);
+
+        assertThat(result.getClientId()).isEqualTo("CLIENT1");
+        assertThat(result.getBrokerId()).isEqualTo("BROKER1");
+        assertThat(result.getStatus()).isEqualTo(TransactionStatus.ACTIVE);
+        assertThat(result.getOpenedDate()).isNotNull();
+        assertThat(result.getCurrentStage()).isEqualTo("BUYER_PREQUALIFY_FINANCIALLY");
+    }
+
+    // ------------------------------------------------
+    // 2) MISSING CLIENT ID → should throw InvalidInputException
+    // ------------------------------------------------
+    @Test
+    void createTransaction_MissingClientId_Throws() {
+        TransactionRequestDTO dto = new TransactionRequestDTO();
+        dto.setSide(TransactionSide.BUY_SIDE);
+        dto.setBrokerId("BROKER1");
+
+        assertThatThrownBy(() -> service.createTransaction(dto))
+                .isInstanceOf(InvalidInputException.class);
+    }
+
+    // ------------------------------------------------
+    // 3) MISSING SIDE → should throw InvalidInputException
+    // ------------------------------------------------
+    @Test
+    void createTransaction_MissingSide_Throws() {
+        TransactionRequestDTO dto = new TransactionRequestDTO();
+        dto.setClientId("CLIENT1");
+        dto.setBrokerId("BROKER1");
+
+        assertThatThrownBy(() -> service.createTransaction(dto))
+                .isInstanceOf(InvalidInputException.class);
+    }
+
+    // ------------------------------------------------
+    // 4) DUPLICATE TRANSACTION → should throw InvalidInputException
+    // ------------------------------------------------
+    @Test
+    void createTransaction_Duplicate_Throws() {
+
+        TransactionRequestDTO dto = new TransactionRequestDTO();
+        dto.setClientId("CLIENT1");
+        dto.setBrokerId("BROKER1");
+        dto.setSide(TransactionSide.BUY_SIDE);
+        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        dto.setPropertyAddress(new PropertyAddress("123 Main", "Montreal", "QC", "H1H1H1"));
+
+        when(repo.findByClientIdAndPropertyAddress_StreetAndStatus(
+                "CLIENT1",
+                "123 Main",
+                TransactionStatus.ACTIVE
+        )).thenReturn(Optional.of(new Transaction()));
+
+        assertThatThrownBy(() -> service.createTransaction(dto))
+                .isInstanceOf(InvalidInputException.class)
+                .hasMessageContaining("duplicate");
+    }
+
+
+    // ------------------------------------------------
+    // 5) Repo save throws → bubble up exception
+    // ------------------------------------------------
+    @Test
+    void createTransaction_RepoFails_ThrowsException() {
+
+        TransactionRequestDTO dto = new TransactionRequestDTO();
+        dto.setClientId("CLIENT1");
+        dto.setBrokerId("BROKER1");
+        dto.setSide(TransactionSide.BUY_SIDE);
+        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        dto.setPropertyAddress(new PropertyAddress("123 Main", "Montreal", "QC", "H1H1H1"));
+
+        when(repo.save(any())).thenThrow(new RuntimeException("DB error"));
+
+        assertThatThrownBy(() -> service.createTransaction(dto))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("DB error");
+    }
+
+    // ------------------------------------------------
+    // 6) Verify repo.save() is called exactly once
+    // ------------------------------------------------
+    @Test
+    void createTransaction_VerifyRepoSaveCalledOnce() {
+
+        TransactionRequestDTO dto = new TransactionRequestDTO();
+        dto.setClientId("CLIENT1");
+        dto.setSide(TransactionSide.BUY_SIDE);
+        dto.setBrokerId("BROKER1");
+        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        dto.setPropertyAddress(new PropertyAddress("123 Main", "MTL", "QC", "H1H1H1"));
+
+        when(repo.save(any(Transaction.class))).thenReturn(new Transaction());
+
+        service.createTransaction(dto);
+
+        verify(repo, times(1)).save(any(Transaction.class));
+    }
+
+    // ------------------------------------------------
+    // 7) Ensure fields & defaults are set correctly
+    // ------------------------------------------------
+    @Test
+    void createTransaction_DefaultsCorrect() {
+
+        TransactionRequestDTO dto = new TransactionRequestDTO();
+        dto.setClientId("CLIENT1");
+        dto.setSide(TransactionSide.BUY_SIDE);
+        dto.setBrokerId("BROKER1");
+        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        dto.setPropertyAddress(new PropertyAddress("123 Main", "MTL", "QC", "H1H1H1"));
+
+        when(repo.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var result = service.createTransaction(dto);
+
+        assertThat(result.getStatus()).isEqualTo(TransactionStatus.ACTIVE);
+        assertThat(result.getCurrentStage()).isEqualTo(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY.name());
+        assertThat(result.getBrokerId()).isEqualTo("BROKER1");
+    }
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="backend/src/test/java/com/example/courtierprobackend/transactions/TransactionServiceImplTest.java"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="docker-compose-no-FE.yml"
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    container_name: courtierpro_backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: courtier
+      DB_PASS: courtier
+
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+      AUTH0_MGMT_CLIENT_ID: ${AUTH0_MGMT_CLIENT_ID}
+      AUTH0_MGMT_CLIENT_SECRET: ${AUTH0_MGMT_CLIENT_SECRET}
+      AUTH0_MGMT_AUDIENCE: ${AUTH0_MGMT_AUDIENCE}
+
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    container_name: courtierpro_db
+    environment:
+      POSTGRES_DB: courtierpro
+      POSTGRES_USER: courtier
+      POSTGRES_PASSWORD: courtier
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  pgdata:
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="docker-compose-no-FE.yml"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="docker-compose.yml"
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    container_name: courtierpro_backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: courtier
+      DB_PASS: courtier
+
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+      AUTH0_MGMT_CLIENT_ID: ${AUTH0_MGMT_CLIENT_ID}
+      AUTH0_MGMT_CLIENT_SECRET: ${AUTH0_MGMT_CLIENT_SECRET}
+      AUTH0_MGMT_AUDIENCE: ${AUTH0_MGMT_AUDIENCE}
+
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    container_name: courtierpro_frontend
+    ports:
+      - "8081:80"
+
+  db:
+    image: postgres:15
+    container_name: courtierpro_db
+    environment:
+      POSTGRES_DB: courtierpro
+      POSTGRES_USER: courtier
+      POSTGRES_PASSWORD: courtier
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  pgdata:
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="docker-compose.yml"
+<<<WORKSPACE_EXPORTER_FILE_BEGIN>>> path="package-lock.json"
+{
+  "name": "CourtierPro",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {}
+}
+
+<<<WORKSPACE_EXPORTER_FILE_END>>> path="package-lock.json"

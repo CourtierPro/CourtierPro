@@ -8,7 +8,6 @@ import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
 import com.example.courtierprobackend.transactions.exceptions.TransactionControllerExceptionHandler;
 import com.example.courtierprobackend.transactions.presentationlayer.TransactionController;
 import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.junit.jupiter.api.Test;
@@ -16,18 +15,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.http.MediaType;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TransactionController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureMockMvc // Security filters enabled by default
 @Import(TransactionControllerExceptionHandler.class)
 class TransactionControllerUnitTest {
 
@@ -40,7 +40,9 @@ class TransactionControllerUnitTest {
     @Autowired
     private ObjectMapper mapper;
 
-    // createTransaction_validRequest_returns201AndBody
+    // Helper to simulate a Broker JWT
+    private static final SimpleGrantedAuthority ROLE_BROKER = new SimpleGrantedAuthority("ROLE_BROKER");
+
     @Test
     void createTransaction_validRequest_returns201AndBody() throws Exception {
 
@@ -53,7 +55,8 @@ class TransactionControllerUnitTest {
                 .thenReturn(EntityDtoUtil.toResponseStub("TX-123", "CLIENT1", "BROKER1"));
 
         mockMvc.perform(
-                post("/api/v1/transactions")
+                post("/transactions")
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", "BROKER1")))
                         .header("x-broker-id", "BROKER1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req))
@@ -66,93 +69,94 @@ class TransactionControllerUnitTest {
                 .andExpect(jsonPath("$.openedDate").isNotEmpty());
     }
 
-        // createTransaction_missingBrokerHeader_returns400
-        @Test
-        void createTransaction_missingBrokerHeader_returns400() throws Exception {
+    @Test
+    void createTransaction_missingBrokerHeader_returns400() throws Exception {
 
-                TransactionRequestDTO req = new TransactionRequestDTO();
-                req.setClientId("CLIENT1");
-                req.setSide(TransactionSide.BUY_SIDE);
-                req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        TransactionRequestDTO req = new TransactionRequestDTO();
+        req.setClientId("CLIENT1");
+        req.setSide(TransactionSide.BUY_SIDE);
+        req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
-                when(service.createTransaction(any())).thenThrow(new InvalidInputException("brokerId is required"));
+        // We mock the service to throw, assuming the controller resolved the ID from JWT but the service validation failed
+        when(service.createTransaction(any())).thenThrow(new InvalidInputException("brokerId is required"));
 
-                mockMvc.perform(
-                                post("/api/v1/transactions")
-                                                .contentType(MediaType.APPLICATION_JSON)
-                                                .content(mapper.writeValueAsString(req))
-                ).andExpect(status().isBadRequest());
-        }
+        mockMvc.perform(
+                post("/transactions")
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", "BROKER1")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(req))
+        ).andExpect(status().isBadRequest());
+    }
 
-    // 3) INVALID BODY → 400 (Bean Validation)
     @Test
     void createTransaction_InvalidBody_400() throws Exception {
 
-        // Missing required fields: clientId + side
+        // Missing required fields
         TransactionRequestDTO req = new TransactionRequestDTO();
 
         mockMvc.perform(
-                post("/api/v1/transactions")
+                post("/transactions")
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", "BROKER1")))
                         .header("x-broker-id", "BROKER1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req))
         ).andExpect(status().isBadRequest());
     }
 
-    // 4) SERVICE THROWS InvalidInputException → 400
     @Test
     void createTransaction_ServiceInvalidInput_400() throws Exception {
 
         TransactionRequestDTO req = new TransactionRequestDTO();
         req.setClientId("CLIENT1");
         req.setSide(TransactionSide.BUY_SIDE);
-                req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
         when(service.createTransaction(any()))
                 .thenThrow(new InvalidInputException("Invalid transaction"));
 
         mockMvc.perform(
-                post("/api/v1/transactions")
+                post("/transactions")
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", "BROKER1")))
                         .header("x-broker-id", "BROKER1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req))
         ).andExpect(status().isBadRequest());
     }
 
-    // 5) SERVICE THROWS NotFoundException → 404
     @Test
     void createTransaction_ServiceNotFound_404() throws Exception {
 
         TransactionRequestDTO req = new TransactionRequestDTO();
         req.setClientId("CLIENT1");
         req.setSide(TransactionSide.BUY_SIDE);
-                req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
         when(service.createTransaction(any()))
                 .thenThrow(new NotFoundException("Transaction not found"));
 
         mockMvc.perform(
-                post("/api/v1/transactions")
+                post("/transactions")
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", "BROKER1")))
                         .header("x-broker-id", "BROKER1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req))
         ).andExpect(status().isNotFound());
     }
 
-    // 6) DUPLICATE 400/409
     @Test
     void createTransaction_Duplicate_409() throws Exception {
 
         TransactionRequestDTO req = new TransactionRequestDTO();
         req.setClientId("CLIENT1");
         req.setSide(TransactionSide.BUY_SIDE);
-                req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
         when(service.createTransaction(any()))
                 .thenThrow(new InvalidInputException("Duplicate transaction"));
 
         mockMvc.perform(
-                post("/api/v1/transactions")
+                post("/transactions")
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", "BROKER1")))
                         .header("x-broker-id", "BROKER1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req))
