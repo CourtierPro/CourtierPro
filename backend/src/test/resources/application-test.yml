@@ -1,0 +1,34 @@
+server:
+  port: -1
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: sa
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://test-domain.us.auth0.com/
+          audiences:
+            - https://test-api.courtierpro.dev
+
+auth0:
+  domain: test-domain.us.auth0.com
+  audience: https://test-api.courtierpro.dev
+  management:
+    client-id: test-client-id
+    client-secret: test-client-secret
+    audience: https://test-domain.us.auth0.com/api/v2/
