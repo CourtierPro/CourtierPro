@@ -63,6 +63,21 @@ jobs:
           script: |
             set -e
 
+            if ! command -v git >/dev/null 2>&1; then
+              echo "git not found, installing..."
+              if command -v apt-get >/dev/null 2>&1; then
+                sudo apt-get update
+                sudo apt-get install -y git
+              elif command -v dnf >/dev/null 2>&1; then
+                sudo dnf install -y git
+              elif command -v yum >/dev/null 2>&1; then
+                sudo yum install -y git
+              else
+                echo "No known package manager found to install git."
+                exit 1
+              fi
+            fi
+
             cd ~/courtierpro
 
             git pull origin main
