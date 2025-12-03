@@ -12,9 +12,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      ############################################
-      # BACKEND BUILD
-      ############################################
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -26,9 +23,6 @@ jobs:
           cd backend
           ./gradlew clean build --no-daemon
 
-      ############################################
-      # FRONTEND BUILD
-      ############################################
       - name: Set up Node 20
         uses: actions/setup-node@v4
         with:
@@ -40,27 +34,20 @@ jobs:
           npm ci
           npm run build
 
-      ############################################
-      # LOGIN TO GHCR
-      ############################################
       - name: Log in to GHCR
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      ############################################
-      # BUILD + PUSH DOCKER IMAGES
-      ############################################
       - name: Build backend image
         run: docker build -t ghcr.io/courtierpro/courtierpro/backend:latest ./backend
-      
+
       - name: Build frontend image
         run: docker build -t ghcr.io/courtierpro/courtierpro/frontend:latest ./frontend
-      
+
       - name: Push backend image
         run: docker push ghcr.io/courtierpro/courtierpro/backend:latest
-      
+
       - name: Push frontend image
         run: docker push ghcr.io/courtierpro/courtierpro/frontend:latest
-
 
   deploy:
     needs: build-and-push
@@ -78,43 +65,36 @@ jobs:
 
             cd ~/courtierpro
 
-            echo "Saving previous containers..."
+            git pull origin main
+
             OLD_BACKEND=$(docker ps -q -f name=courtierpro_backend)
             OLD_FRONTEND=$(docker ps -q -f name=courtierpro_frontend)
 
-            echo "Pulling latest images..."
-            docker compose pull
+            docker compose -f docker-compose.prod.yml pull
 
-            echo "Starting new containers..."
-            docker compose up -d --remove-orphans
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
-            echo "Waiting for containers to boot..."
             sleep 10
 
-            echo "Checking backend container state..."
             BACKEND_RUNNING=$(docker inspect -f '{{.State.Running}}' courtierpro_backend || echo "false")
-
-            echo "Checking frontend container state..."
             FRONTEND_RUNNING=$(docker inspect -f '{{.State.Running}}' courtierpro_frontend || echo "false")
 
             echo "Backend running: $BACKEND_RUNNING"
             echo "Frontend running: $FRONTEND_RUNNING"
 
             if [ "$BACKEND_RUNNING" != "true" ] || [ "$FRONTEND_RUNNING" != "true" ]; then
-              echo "Container health failed. Rolling back..."
-
-              echo "Stopping new containers..."
               docker stop courtierpro_backend || true
               docker stop courtierpro_frontend || true
 
-              echo "Restoring old backend..."
-              [ -n "$OLD_BACKEND" ] && docker start $OLD_BACKEND
+              if [ -n "$OLD_BACKEND" ]; then
+                docker start $OLD_BACKEND
+              fi
 
-              echo "Restoring old frontend..."
-              [ -n "$OLD_FRONTEND" ] && docker start $OLD_FRONTEND
+              if [ -n "$OLD_FRONTEND" ]; then
+                docker start $OLD_FRONTEND
+              fi
 
               exit 1
             fi
 
-            echo "✔ Deployment successful (containers healthy)."
             docker system prune -af

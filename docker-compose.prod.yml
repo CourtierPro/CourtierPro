@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   backend:
-    build: ./backend
+    image: ghcr.io/courtierpro/courtierpro/backend:latest
     container_name: courtierpro_backend
     ports:
       - "8080:8080"
@@ -12,18 +12,16 @@ services:
       DB_PORT: 5432
       DB_USER: courtier
       DB_PASS: courtier
-
       AUTH0_DOMAIN: ${AUTH0_DOMAIN}
       AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
       AUTH0_MGMT_CLIENT_ID: ${AUTH0_MGMT_CLIENT_ID}
       AUTH0_MGMT_CLIENT_SECRET: ${AUTH0_MGMT_CLIENT_SECRET}
       AUTH0_MGMT_AUDIENCE: ${AUTH0_MGMT_AUDIENCE}
-
     depends_on:
       - db
 
   frontend:
-    build: ./frontend
+    image: ghcr.io/courtierpro/courtierpro/frontend:latest
     container_name: courtierpro_frontend
     ports:
       - "8081:80"
@@ -37,8 +35,6 @@ services:
       POSTGRES_PASSWORD: courtier
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
 
 volumes:
   pgdata:
