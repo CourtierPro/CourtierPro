@@ -16,19 +16,17 @@ public class EmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
-    @Value("${gmail.username}")
-    private String gmailUsername;
+    private final String gmailUsername;
+    private final String gmailPassword;
 
-    @Value("${gmail.password}")
-    private String gmailPassword;
+    public EmailService(
+            @Value("${gmail.username}") String gmailUsername,
+            @Value("${gmail.password}") String gmailPassword
+    ) {
+        this.gmailUsername = gmailUsername;
+        this.gmailPassword = gmailPassword;
+    }
 
-    /**
-     * Sends a password setup email.
-     *
-     * @param toEmail          Recipient email address.
-     * @param passwordSetupUrl URL to complete password setup.
-     * @return true if the email was sent successfully, false otherwise.
-     */
     public boolean sendPasswordSetupEmail(String toEmail, String passwordSetupUrl) {
         try {
             // Configure Gmail SMTP
