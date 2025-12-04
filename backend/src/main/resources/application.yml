@@ -10,9 +10,11 @@ auth0:
     client-secret: ${AUTH0_MGMT_CLIENT_SECRET}
     audience: ${AUTH0_MGMT_AUDIENCE}
 
+# For production, use encrypted properties or a secrets management service for Gmail credentials.
 gmail:
   username: ${GMAIL_USERNAME}
-  password: ${GMAIL_PASSWORD}
+  # In production, set GMAIL_PASSWORD_ENCRYPTED to an encrypted value and use Jasypt or a secrets manager to decrypt.
+  password: ${GMAIL_PASSWORD_ENCRYPTED}
 
 spring:
   datasource:
@@ -22,7 +24,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update  # Hibernate manages non-migrated tables; Flyway manages login_audit_events
+      ddl-auto: update  # WARNING: Hybrid schema management! Flyway manages 'login_audit_events'; Hibernate manages all other tables. This can lead to schema conflicts—migrate all tables to Flyway for consistency.
     properties:
       hibernate:
         format_sql: true
@@ -31,7 +33,7 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
-    locations: classpath:db/migration
+    locations: classpath:migration
 
   security:
     oauth2:
