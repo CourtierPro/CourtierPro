@@ -32,5 +32,29 @@
     "language": "Language",
     "notifications": "Notifications",
     "noData": "No data available"
+  },
+
+  "auth": {
+    "login": "Log In",
+    "logout": "Log Out",
+    "signIn": "Sign in",
+    "emailAddress": "Email address",
+    "password": "Password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot your password?",
+    "signInDescription": "Sign in to manage your real estate transactions.",
+    "termsAgreement": "By signing in, you agree to the",
+    "terms": "Terms",
+    "and": "and",
+    "privacyPolicy": "Privacy Policy",
+    "loginWith": "Sign in with Auth0",
+    "welcomeBack": "Welcome back",
+    "sessionExpired": "Your session has expired. Please log in again.",
+    "authenticationError": "Authentication error. Please try again.",
+    "invalidCredentials": "Invalid email or password.",
+    "accessDenied": "Access denied. You don't have permission to access this resource.",
+    "pleaseLogin": "Please log in to continue",
+    "loggingIn": "Logging in...",
+    "checkYourEmail": "Check your email for a password reset link"
   }
 }

@@ -86,32 +86,56 @@ public class Auth0ManagementClient {
 
     private record TokenResponse(@JsonProperty("access_token") String accessToken) {}
 
-    // Generate a random password (for the guest user)
-    //until ticket CP-33 is not done, a random password is generated(you can modify it on Auth0 for now)
-    private String generateRandomPassword() {
-        byte[] bytes = new byte[24];
+    // Generate a temporary random password (user will never use this)
+    private String generateTemporaryPassword() {
+        byte[] bytes = new byte[32];
         new SecureRandom().nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes) + "!Aa1";
+    }
+
+    private String createPasswordChangeTicket(String auth0UserId) {
+        String token = getManagementToken();
+        String url = managementBaseUrl + "/tickets/password-change";
+
+        Map<String, Object> body = Map.of(
+                "user_id", auth0UserId,
+                "result_url", "http://localhost:8081/login?passwordSet=true",
+                "ttl_sec", 604800, // 7 days validity
+                "mark_email_as_verified", true
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new IllegalStateException("Failed to create password change ticket");
+        }
+
+        return (String) response.getBody().get("ticket");
     }
 
     // Create a user in Auth0
 
     public String createUser(String email, String firstName, String lastName, UserRole role) {
-
         String token = getManagementToken();
-
         String url = managementBaseUrl + "/users";
 
-        String randomPassword = generateRandomPassword();
+        // Generate temporary password that user will never see
+        String tempPassword = generateTemporaryPassword();
 
+        // Create user with temporary password - mark email as verified since admin is creating them
         Map<String, Object> body = Map.of(
                 "email", email,
                 "given_name", firstName,
                 "family_name", lastName,
                 "connection", dbConnection,
-                "password", randomPassword,
-                "email_verified", false,
-                "verify_email", true // email verification/invitation
+                "password", tempPassword,
+                "email_verified", true  // Admin-created users are pre-verified
         );
 
         HttpHeaders headers = new HttpHeaders();
@@ -129,9 +153,20 @@ public class Auth0ManagementClient {
 
         String auth0UserId = response.getBody().userId();
 
+        // Assign role
         assignRole(token, auth0UserId, role);
 
-        return auth0UserId;
+        // Create password change ticket and return the URL
+        // The calling service will send the email
+        try {
+            String passwordSetupUrl = createPasswordChangeTicket(auth0UserId);
+            System.out.println("Password setup URL for " + email + ": " + passwordSetupUrl);
+            // Store the URL to return it to the service layer
+            return auth0UserId + "|" + passwordSetupUrl;
+        } catch (Exception e) {
+            System.err.println("Failed to create password setup ticket: " + e.getMessage());
+            return auth0UserId;
+        }
     }
 
     private record Auth0UserResponse(@JsonProperty("user_id") String userId) {}
