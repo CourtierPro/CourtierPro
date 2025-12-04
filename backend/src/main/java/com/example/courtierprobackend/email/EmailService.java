@@ -1,14 +1,20 @@
 package com.example.courtierprobackend.email;
 
+import jakarta.mail.*;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
+import java.io.UnsupportedEncodingException;
 import java.util.Properties;
 
 @Service
 public class EmailService {
+
+    private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
     @Value("${gmail.username}")
     private String gmailUsername;
@@ -16,7 +22,14 @@ public class EmailService {
     @Value("${gmail.password}")
     private String gmailPassword;
 
-    public void sendPasswordSetupEmail(String toEmail, String passwordSetupUrl) {
+    /**
+     * Sends a password setup email.
+     *
+     * @param toEmail          Recipient email address.
+     * @param passwordSetupUrl URL to complete password setup.
+     * @return true if the email was sent successfully, false otherwise.
+     */
+    public boolean sendPasswordSetupEmail(String toEmail, String passwordSetupUrl) {
         try {
             // Configure Gmail SMTP
             Properties props = new Properties();
@@ -70,17 +83,14 @@ public class EmailService {
 
             Transport.send(message);
 
-            System.out.println("✅ Password setup email sent successfully to: " + toEmail);
+            logger.info("Password setup email sent successfully to {}", toEmail);
+            return true;
 
-        } catch (Exception e) {
-            System.err.println("❌ Failed to send email to " + toEmail + ": " + e.getMessage());
-            e.printStackTrace();
-            
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            logger.error("Failed to send password setup email to {}", toEmail, e);
             // Log the URL so it's not lost if email fails
-            System.out.println("=".repeat(80));
-            System.out.println("MANUAL PASSWORD SETUP URL FOR: " + toEmail);
-            System.out.println(passwordSetupUrl);
-            System.out.println("=".repeat(80));
+            logger.warn("Manual password setup URL for {}: {}", toEmail, passwordSetupUrl);
+            return false;
         }
     }
 }

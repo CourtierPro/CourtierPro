@@ -56,5 +56,21 @@
     "pleaseLogin": "Please log in to continue",
     "loggingIn": "Logging in...",
     "checkYourEmail": "Check your email for a password reset link"
+  },
+
+  "loginAudit": {
+    "title": "Admin \u2013 Login Audit",
+    "subtitle": "Review login audit logs and security events. Total events: {{count}}",
+    "loading": "Loading audit logs...",
+    "error": "Failed to load login audit events",
+    "empty": "No login audit events found",
+    "notAvailable": "N/A",
+    "columns": {
+      "timestamp": "Timestamp",
+      "user": "User",
+      "role": "Role",
+      "ipAddress": "IP Address",
+      "userAgent": "User Agent"
+    }
   }
 }

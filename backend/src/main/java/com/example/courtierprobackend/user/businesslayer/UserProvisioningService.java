@@ -9,6 +9,8 @@ import com.example.courtierprobackend.user.domainclientlayer.auth0.Auth0Manageme
 import com.example.courtierprobackend.user.presentationlayer.request.CreateUserRequest;
 import com.example.courtierprobackend.user.presentationlayer.request.UpdateStatusRequest;
 import com.example.courtierprobackend.user.presentationlayer.response.UserResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -18,6 +20,9 @@ import java.util.UUID;
 
 @Service
 public class UserProvisioningService {
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(UserProvisioningService.class);
 
     private final UserAccountRepository userAccountRepository;
     private final Auth0ManagementClient auth0ManagementClient;
@@ -34,7 +39,6 @@ public class UserProvisioningService {
         this.emailService = emailService;
     }
 
-
     public List<UserResponse> getAllUsers() {
         return userAccountRepository.findAll()
                 .stream()
@@ -42,13 +46,12 @@ public class UserProvisioningService {
                 .toList();
     }
 
-
     public UserResponse createUser(CreateUserRequest request) {
 
-        //  create a user and assign it a role
+        // Determine role
         UserRole role = UserRole.valueOf(request.getRole());
 
-        // Create user in Auth0 and get back userId|passwordSetupUrl
+        // Create user in Auth0 and get back "auth0UserId|passwordSetupUrl"
         String result = auth0ManagementClient.createUser(
                 request.getEmail(),
                 request.getFirstName(),
@@ -56,14 +59,42 @@ public class UserProvisioningService {
                 role
         );
 
-        // Parse the result
-        String[] parts = result.split("\\|", 2);
-        String auth0UserId = parts[0];
-        String passwordSetupUrl = parts.length > 1 ? parts[1] : null;
+        // --- Parse the result safely ---
+        // We use the *last* '|' as separator so it works even if the auth0UserId contains a '|'
+        String auth0UserId;
+        String passwordSetupUrl = null;
 
-        // Send email with password setup link
+        int separatorIndex = result.lastIndexOf('|');
+        if (separatorIndex == -1) {
+            // No separator – assume only the user id was returned
+            auth0UserId = result;
+            logger.warn(
+                    "Auth0 createUser result did not contain a password setup URL separator '|'. Value was: {}",
+                    result
+            );
+        } else {
+            auth0UserId = result.substring(0, separatorIndex);
+
+            if (separatorIndex < result.length() - 1) {
+                passwordSetupUrl = result.substring(separatorIndex + 1);
+            }
+        }
+        // --- end parsing ---
+
+        // Send email with password setup link (if we have one)
         if (passwordSetupUrl != null) {
-            emailService.sendPasswordSetupEmail(request.getEmail(), passwordSetupUrl);
+            boolean emailSent = emailService.sendPasswordSetupEmail(
+                    request.getEmail(),
+                    passwordSetupUrl
+            );
+
+            if (!emailSent) {
+                logger.warn(
+                        "User created (Auth0 id: {}) but password setup email could not be sent to {}",
+                        auth0UserId,
+                        request.getEmail()
+                );
+            }
         }
 
         // Create local user record
@@ -72,7 +103,6 @@ public class UserProvisioningService {
 
         return userMapper.toResponse(saved);
     }
-
 
     public UserResponse updateStatus(UUID userId, UpdateStatusRequest request) {
         UserAccount account = userAccountRepository.findById(userId)
