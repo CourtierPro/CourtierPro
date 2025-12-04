@@ -1,6 +1,7 @@
 package com.example.courtierprobackend.user.businesslayer;
 
 import com.example.courtierprobackend.datamapperlayer.UserMapper;
+import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
@@ -21,13 +22,16 @@ public class UserProvisioningService {
     private final UserAccountRepository userAccountRepository;
     private final Auth0ManagementClient auth0ManagementClient;
     private final UserMapper userMapper;
+    private final EmailService emailService;
 
     public UserProvisioningService(UserAccountRepository userAccountRepository,
                                    Auth0ManagementClient auth0ManagementClient,
-                                   UserMapper userMapper) {
+                                   UserMapper userMapper,
+                                   EmailService emailService) {
         this.userAccountRepository = userAccountRepository;
         this.auth0ManagementClient = auth0ManagementClient;
         this.userMapper = userMapper;
+        this.emailService = emailService;
     }
 
 
@@ -43,13 +47,26 @@ public class UserProvisioningService {
 
         //  create a user and assign it a role
         UserRole role = UserRole.valueOf(request.getRole());
-        String auth0UserId = auth0ManagementClient.createUser(
+
+        // Create user in Auth0 and get back userId|passwordSetupUrl
+        String result = auth0ManagementClient.createUser(
                 request.getEmail(),
                 request.getFirstName(),
                 request.getLastName(),
                 role
         );
 
+        // Parse the result
+        String[] parts = result.split("\\|", 2);
+        String auth0UserId = parts[0];
+        String passwordSetupUrl = parts.length > 1 ? parts[1] : null;
+
+        // Send email with password setup link
+        if (passwordSetupUrl != null) {
+            emailService.sendPasswordSetupEmail(request.getEmail(), passwordSetupUrl);
+        }
+
+        // Create local user record
         UserAccount account = userMapper.toNewUserEntity(request, auth0UserId);
         UserAccount saved = userAccountRepository.save(account);
 
