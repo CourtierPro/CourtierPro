@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 @RestController
 @RequestMapping("/api/admin/users")
-// 👉 Toute la classe est réservée aux ADMIN
+//  Toute la classe est réservée aux ADMIN
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminUserController {
 
