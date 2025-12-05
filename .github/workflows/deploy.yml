@@ -69,7 +69,8 @@ jobs:
             fi
 
             if [ ! -d "$HOME/courtierpro/.git" ]; then
-              echo "courtierpro directory missing or not a git repo, cloning..."
+              echo "courtierpro directory missing or not a git repo, resetting..."
+              rm -rf "$HOME/courtierpro"
               git clone https://github.com/CourtierPro/CourtierPro.git "$HOME/courtierpro"
             fi
 
