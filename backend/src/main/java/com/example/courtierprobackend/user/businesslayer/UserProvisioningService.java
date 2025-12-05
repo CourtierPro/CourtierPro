@@ -1,5 +1,7 @@
 package com.example.courtierprobackend.user.businesslayer;
 
+import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
+import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
 import com.example.courtierprobackend.datamapperlayer.UserMapper;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
@@ -21,15 +23,17 @@ public class UserProvisioningService {
     private final UserAccountRepository userAccountRepository;
     private final Auth0ManagementClient auth0ManagementClient;
     private final UserMapper userMapper;
+    private final OrganizationSettingsService organizationSettingsService;
 
     public UserProvisioningService(UserAccountRepository userAccountRepository,
                                    Auth0ManagementClient auth0ManagementClient,
-                                   UserMapper userMapper) {
+                                   UserMapper userMapper,
+                                   OrganizationSettingsService organizationSettingsService) {
         this.userAccountRepository = userAccountRepository;
         this.auth0ManagementClient = auth0ManagementClient;
         this.userMapper = userMapper;
+        this.organizationSettingsService = organizationSettingsService;
     }
-
 
     public List<UserResponse> getAllUsers() {
         return userAccountRepository.findAll()
@@ -38,11 +42,10 @@ public class UserProvisioningService {
                 .toList();
     }
 
-
     public UserResponse createUser(CreateUserRequest request) {
 
-        //  create a user and assign it a role
         UserRole role = UserRole.valueOf(request.getRole());
+
         String auth0UserId = auth0ManagementClient.createUser(
                 request.getEmail(),
                 request.getFirstName(),
@@ -50,7 +53,24 @@ public class UserProvisioningService {
                 role
         );
 
+        // Read organization defaults
+        OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
+
+        // Determine final language: request or org default
+        String requestedLanguage = request.getPreferredLanguage();
+        String effectiveLanguage =
+                (requestedLanguage != null && !requestedLanguage.isBlank())
+                        ? requestedLanguage
+                        : settings.getDefaultLanguage();
+
+        // Map request to entity
         UserAccount account = userMapper.toNewUserEntity(request, auth0UserId);
+
+        // Apply language if missing on the mapped entity
+        if (account.getPreferredLanguage() == null || account.getPreferredLanguage().isBlank()) {
+            account.setPreferredLanguage(effectiveLanguage);
+        }
+
         UserAccount saved = userAccountRepository.save(account);
 
         return userMapper.toResponse(saved);

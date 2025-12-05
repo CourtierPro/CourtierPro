@@ -1,16 +1,23 @@
 server:
   port: 8080
 
-# Valeurs par défaut pour le dev local (override par .env si besoin)
 auth0:
-  domain: ${AUTH0_DOMAIN:dev-xxxxx.us.auth0.com}
-  audience: ${AUTH0_AUDIENCE:https://api.courtierpro.dev}
+  # Tout vient des variables d'environnement, aucune valeur par défaut
+  domain: ${AUTH0_DOMAIN}
+  audience: ${AUTH0_AUDIENCE}
+
+  management:
+    client-id: ${AUTH0_MGMT_CLIENT_ID}
+    client-secret: ${AUTH0_MGMT_CLIENT_SECRET}
+    audience: ${AUTH0_MGMT_AUDIENCE}
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/courtierpro
-    username: courtier
-    password: courtier
+    # En local sans Docker -> DB_HOST non défini -> localhost
+    # En Docker -> DB_HOST=db (défini dans docker-compose)
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/courtierpro
+    username: ${DB_USER:courtier}
+    password: ${DB_PASS:courtier}
 
   jpa:
     hibernate:
@@ -24,10 +31,9 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          # Auth0 tenant (issuers)
-          issuer-uri: https://${AUTH0_DOMAIN:dev-xxxxx.us.auth0.com}/
+          issuer-uri: https://${AUTH0_DOMAIN}/
           audiences:
-            - ${AUTH0_AUDIENCE:https://api.courtierpro.dev}
+            - ${AUTH0_AUDIENCE}
 
 logging:
   level:
