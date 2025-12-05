@@ -7,7 +7,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: prod
+      SPRING_PROFILES_ACTIVE: dev
       DB_HOST: db
       DB_PORT: 5432
       DB_USER: courtier
@@ -17,6 +17,8 @@ services:
       AUTH0_MGMT_CLIENT_ID: ${AUTH0_MGMT_CLIENT_ID}
       AUTH0_MGMT_CLIENT_SECRET: ${AUTH0_MGMT_CLIENT_SECRET}
       AUTH0_MGMT_AUDIENCE: ${AUTH0_MGMT_AUDIENCE}
+      GMAIL_USERNAME: ${GMAIL_USERNAME}
+      GMAIL_PASSWORD: ${GMAIL_PASSWORD}
     depends_on:
       - db
 
