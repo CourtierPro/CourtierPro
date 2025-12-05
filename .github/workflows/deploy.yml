@@ -64,21 +64,16 @@ jobs:
             set -e
 
             if ! command -v git >/dev/null 2>&1; then
-              echo "git not found, installing..."
-              if command -v apt-get >/dev/null 2>&1; then
-                sudo apt-get update
-                sudo apt-get install -y git
-              elif command -v dnf >/dev/null 2>&1; then
-                sudo dnf install -y git
-              elif command -v yum >/dev/null 2>&1; then
-                sudo yum install -y git
-              else
-                echo "No known package manager found to install git."
-                exit 1
-              fi
+              echo "git is not installed on this server. Please install git (e.g. 'sudo yum install -y git' or 'sudo dnf install -y git') and rerun the deployment."
+              exit 1
             fi
 
-            cd ~/courtierpro
+            if [ ! -d "$HOME/courtierpro/.git" ]; then
+              echo "courtierpro directory missing or not a git repo, cloning..."
+              git clone https://github.com/CourtierPro/CourtierPro.git "$HOME/courtierpro"
+            fi
+
+            cd "$HOME/courtierpro"
 
             git pull origin main
 

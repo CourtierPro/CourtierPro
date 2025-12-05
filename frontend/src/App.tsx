@@ -6,6 +6,9 @@ import { AppShell } from "./layout/AppShell";
 
 import ShowcasePage from "@/pages/ShowcasePage";
 
+// Auth
+import { LoginPage } from "@/pages/auth/LoginPage";
+
 // Dashboards
 import { BrokerDashboardPage } from "@/pages/dashboard/BrokerDashboardPage";
 import { ClientDashboardPage } from "@/pages/dashboard/ClientDashboardPage";
@@ -48,7 +51,7 @@ import { getRoleFromUser, type AppRole } from "@/auth/roleUtils";
 import { RequireRole } from "@/auth/RequireRole";
 
 export default function App() {
-    const { isAuthenticated, isLoading, loginWithRedirect, user } = useAuth0();
+    const { isAuthenticated, isLoading, user } = useAuth0();
 
     if (isLoading) {
         return (
@@ -60,20 +63,6 @@ export default function App() {
 
     const role: AppRole | null = getRoleFromUser(user);
 
-    // Not logged in or no role → Auth0 login button
-    if (!isAuthenticated || !role) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-muted">
-                <button
-                    onClick={() => loginWithRedirect()}
-                    className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
-                >
-                    Sign in with Auth0
-                </button>
-            </div>
-        );
-    }
-
     const defaultRouteForRole: Record<AppRole, string> = {
         broker: "/dashboard/broker",
         client: "/dashboard/client",
@@ -82,10 +71,19 @@ export default function App() {
 
     return (
         <Routes>
+            {/* Login page */}
+            <Route path="/login" element={<LoginPage />} />
+
             {/* Default redirect based on Auth0 role */}
             <Route
                 path="/"
-                element={<Navigate to={defaultRouteForRole[role]} replace />}
+                element={
+                    isAuthenticated && role ? (
+                        <Navigate to={defaultRouteForRole[role]} replace />
+                    ) : (
+                        <Navigate to="/login" replace />
+                    )
+                }
             />
 
             {/* Dashboards */}
