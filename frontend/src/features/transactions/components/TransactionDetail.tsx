@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,7 @@ import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
 import { Button } from "@/shared/components/ui/button";
 import { StageUpdateModal } from '@/features/transactions/components/StageUpdateModal';
-import { useTransaction } from '@/features/transactions/api/queries';
+import { useTransaction, type Transaction } from '@/features/transactions/api/queries';
 import { useUpdateTransactionStage, useSaveTransactionNotes } from '@/features/transactions/api/mutations';
 import { TransactionInfo } from '@/features/transactions/components/TransactionInfo';
 import { TransactionStageTracker } from '@/features/transactions/components/TransactionStageTracker';
@@ -18,28 +18,16 @@ interface TransactionDetailProps {
   transactionId?: string;
 }
 
-export function TransactionDetail({ transactionId: propId }: TransactionDetailProps = {}) {
-  const { id: paramId } = useParams<{ id: string }>();
-  const id = propId || paramId;
+function TransactionDetailContent({ transaction }: { transaction: NonNullable<Transaction> }) {
   const navigate = useNavigate();
-  const { data: transaction, isLoading, error } = useTransaction(id);
+  const { t } = useTranslation('transactions');
   const updateStage = useUpdateTransactionStage();
   const saveNotes = useSaveTransactionNotes();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [notes, setNotes] = useState<string>('');
-
-  const { t } = useTranslation('transactions');
-
-  useEffect(() => {
-    if (transaction?.notes) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setNotes(transaction.notes);
-    }
-  }, [transaction?.notes]);
+  const [notes, setNotes] = useState<string>(transaction.notes || '');
 
   const handleStageUpdate = async (newStage: number) => {
-    if (!transaction) return;
     try {
       await updateStage.mutateAsync({ id: transaction.transactionId, stage: newStage });
       setIsModalOpen(false);
@@ -50,7 +38,6 @@ export function TransactionDetail({ transactionId: propId }: TransactionDetailPr
   };
 
   const handleSaveNotes = async () => {
-    if (!transaction) return;
     try {
       await saveNotes.mutateAsync({ id: transaction.transactionId, notes });
       toast.success(t('notesSaved'));
@@ -58,38 +45,6 @@ export function TransactionDetail({ transactionId: propId }: TransactionDetailPr
       toast.error(t('errorSavingNotes'));
     }
   };
-
-  if (error && !isLoading) {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          title={t('transactionDetails')}
-          actions={
-            <Button
-              variant="outline"
-              onClick={() => navigate('/transactions')}
-              className="gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              {t('backToList')}
-            </Button>
-          }
-        />
-        <ErrorState message={error.message || "Failed to load transaction"} onRetry={() => window.location.reload()} />
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <PageHeader title={t('detailsTitle')} />
-        <LoadingState message={t('loadingDetails')} />
-      </div>
-    );
-  }
-
-  if (!transaction) return null;
 
   return (
     <div className="space-y-6">
@@ -131,4 +86,46 @@ export function TransactionDetail({ transactionId: propId }: TransactionDetailPr
       />
     </div>
   );
+}
+
+export function TransactionDetail({ transactionId: propId }: TransactionDetailProps = {}) {
+  const { id: paramId } = useParams<{ id: string }>();
+  const id = propId || paramId;
+  const navigate = useNavigate();
+  const { t } = useTranslation('transactions');
+  const { data: transaction, isLoading, error } = useTransaction(id);
+
+  if (error && !isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title={t('transactionDetails')}
+          actions={
+            <Button
+              variant="outline"
+              onClick={() => navigate('/transactions')}
+              className="gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              {t('backToList')}
+            </Button>
+          }
+        />
+        <ErrorState message={error.message || "Failed to load transaction"} onRetry={() => window.location.reload()} />
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title={t('detailsTitle')} />
+        <LoadingState message={t('loadingDetails')} />
+      </div>
+    );
+  }
+
+  if (!transaction) return null;
+
+  return <TransactionDetailContent transaction={transaction} key={transaction.transactionId} />;
 }

@@ -37,17 +37,28 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     }
   }, [language, i18n]);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCurrentPage(1);
-  }, [sideFilter, statusFilter, stageFilter, sortBy]);
-
-  useEffect(() => {
-    if (sideFilter !== 'all') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+  const handleSideFilterChange = (value: 'all' | 'buy' | 'sell') => {
+    setSideFilter(value);
+    if (value !== 'all') {
       setStageFilter('all');
     }
-  }, [sideFilter]);
+    setCurrentPage(1);
+  };
+
+  const handleStatusFilterChange = (value: 'all' | 'active' | 'closed' | 'terminated') => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleStageFilterChange = (value: string) => {
+    setStageFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleSortByChange = (value: 'dateAsc' | 'dateDesc' | 'nameAsc' | 'nameDesc') => {
+    setSortBy(value);
+    setCurrentPage(1);
+  };
 
   const getStageName = (tx: Transaction) => {
     const stageEnums = getStagesForSide(tx.side);
@@ -148,10 +159,10 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
         statusFilter={statusFilter}
         stageFilter={stageFilter}
         sortBy={sortBy}
-        onSideFilterChange={setSideFilter}
-        onStatusFilterChange={setStatusFilter}
-        onStageFilterChange={setStageFilter}
-        onSortByChange={setSortBy}
+        onSideFilterChange={handleSideFilterChange}
+        onStatusFilterChange={handleStatusFilterChange}
+        onStageFilterChange={handleStageFilterChange}
+        onSortByChange={handleSortByChange}
         onResetFilters={handleResetFilters}
         hasActiveFilters={hasActiveFilters}
       />

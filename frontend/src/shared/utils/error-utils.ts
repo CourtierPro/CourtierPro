@@ -78,7 +78,7 @@ export function getErrorMessage(error: unknown, fallback = "An unexpected error 
   }
 
   if (typeof error === "string") {
-    return error || fallback;
+    return error;
   }
 
   return fallback;
