@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Globe, Bell, Menu, ChevronDown } from "lucide-react";
+import { formatDateTime } from '@/shared/utils/date';
 import { useTranslation } from "react-i18next";
 
 interface NotificationItem {
@@ -267,7 +268,7 @@ export function TopNav({
                             {notification.description}
                           </p>
                           <p className="mt-1 text-xs text-slate-400">
-                            {notification.timestamp}
+                            {formatDateTime(notification.timestamp)}
                           </p>
                         </div>
 

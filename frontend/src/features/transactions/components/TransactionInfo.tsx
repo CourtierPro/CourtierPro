@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Section } from "@/shared/components/branded/Section";
 import { type Transaction } from '@/features/transactions/api/queries';
+import { formatDate } from '@/shared/utils/date';
 
 interface TransactionInfoProps {
     transaction: Transaction;
@@ -44,7 +45,7 @@ export function TransactionInfo({ transaction }: TransactionInfoProps) {
                     <p className="text-lg font-medium text-foreground">{transaction.clientId}</p>
                     <p className="text-sm text-muted-foreground mt-2">{t('openedDate')}</p>
                     <p className="text-lg font-medium text-foreground">
-                        {new Date(transaction.openedAt).toLocaleDateString()}
+                        {formatDate(transaction.openedDate ?? transaction.openedAt)}
                     </p>
                 </div>
             </div>

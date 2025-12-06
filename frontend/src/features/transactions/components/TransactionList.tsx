@@ -20,6 +20,9 @@ interface TransactionListProps {
 
 const ITEMS_PER_PAGE = 10;
 
+import { parseToTimestamp } from '@/shared/utils/date';
+
+
 export function TransactionList({ language, onNavigate }: TransactionListProps) {
   const { data: transactions = [], isLoading, error, refetch } = useTransactions();
 
@@ -80,19 +83,30 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
   });
 
   const sortedTransactions = [...filteredTransactions].sort((a, b) => {
-    switch (sortBy) {
-      case 'dateAsc':
-        return new Date(a.openedAt).getTime() - new Date(b.openedAt).getTime();
-      case 'dateDesc':
-        return new Date(b.openedAt).getTime() - new Date(a.openedAt).getTime();
-      // Disable name sorting until clientName exists
-      case 'nameAsc':
-      case 'nameDesc':
-        return 0;
-      default:
-        return 0;
-    }
-  });
+  // fallback to openedDate if openedAt is missing
+  const aRaw = a.openedAt ?? a.openedDate ?? '';
+  const bRaw = b.openedAt ?? b.openedDate ?? '';
+
+  const aTime = parseToTimestamp(aRaw);
+  const bTime = parseToTimestamp(bRaw);
+
+  switch (sortBy) {
+    case 'dateAsc':
+      return aTime - bTime;
+
+    case 'dateDesc':
+      return bTime - aTime;
+
+    // keep defaults exactly as before
+    case 'nameAsc':
+    case 'nameDesc':
+      return 0;
+
+    default:
+      return 0;
+  }
+});
+
 
   const totalPages = Math.ceil(sortedTransactions.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;

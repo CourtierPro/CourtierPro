@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { StatusBadge } from "@/shared/components/branded/StatusBadge";
 import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/shared/utils/stages';
 import { type Transaction } from '@/features/transactions/api/queries';
+import { formatDate } from '@/shared/utils/date';
 
 interface TransactionCardsProps {
     transactions: Transaction[];
@@ -66,7 +67,7 @@ export function TransactionCards({ transactions, onNavigate }: TransactionCardsP
                         </div>
 
                         <p className="text-sm text-muted-foreground">
-                            {t('openedDate')}: {transaction.openedAt}
+                            {t('openedDate')}: {formatDate(transaction.openedDate ?? transaction.openedAt)}
                         </p>
                     </div>
                 </button>

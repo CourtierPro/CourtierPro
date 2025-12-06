@@ -22,7 +22,7 @@ export interface Transaction {
     currentStage: number;
     totalStages: number;
     status: 'active' | 'closed' | 'terminated';
-    openedAt: string;
+    openedAt?: string;
     openedDate?: string;
     notes?: string;
     brokerId?: string;

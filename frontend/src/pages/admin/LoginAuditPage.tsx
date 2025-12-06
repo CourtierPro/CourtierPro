@@ -1,6 +1,6 @@
 import { useState, Fragment } from "react";
 import { useTranslation } from "react-i18next";
-import { format } from "date-fns";
+import { formatDateTime } from '@/shared/utils/date';
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
@@ -79,7 +79,7 @@ export function LoginAuditPage() {
                     </Button>
                   </TableCell>
                   <TableCell>
-                    {format(new Date(event.timestamp), "PPpp")}
+                    {event.timestamp ? formatDateTime(event.timestamp) : '-'}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">

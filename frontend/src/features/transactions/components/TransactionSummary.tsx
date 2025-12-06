@@ -4,6 +4,7 @@ import { useTransaction } from '@/features/transactions/api/queries';
 import { LoadingState } from '@/shared/components/branded/LoadingState';
 import { ErrorState } from '@/shared/components/branded/ErrorState';
 import { Button } from '@/shared/components/ui/button';
+import { formatDate } from '@/shared/utils/date';
 
 interface TransactionSummaryProps {
   transactionId: string;
@@ -98,7 +99,7 @@ export function TransactionSummary({ transactionId }: TransactionSummaryProps) {
             <div>
               <dt className="text-sm font-medium text-gray-500">{t('openedDate')}</dt>
               <dd className="mt-1 text-sm text-gray-900">
-                {transaction.openedDate ? new Date(transaction.openedDate).toLocaleDateString() : '-'}
+                {formatDate(transaction.openedDate ?? transaction.openedAt)}
               </dd>
             </div>
             <div>
