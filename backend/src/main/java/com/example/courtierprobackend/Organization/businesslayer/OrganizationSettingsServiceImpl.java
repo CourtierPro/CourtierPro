@@ -5,6 +5,7 @@ import com.example.courtierprobackend.Organization.dataccesslayer.OrganizationSe
 import com.example.courtierprobackend.Organization.datamapperlayer.OrganizationSettingsMapper;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
 import com.example.courtierprobackend.Organization.presentationlayer.model.UpdateOrganizationSettingsRequestModel;
+import com.example.courtierprobackend.audit.organization_settings_audit.businesslayer.OrganizationSettingsAuditService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,8 @@ public class OrganizationSettingsServiceImpl implements OrganizationSettingsServ
     private final OrganizationSettingsRepository repository;
     private final OrganizationSettingsMapper mapper;
 
+    private final OrganizationSettingsAuditService organizationSettingsAuditService;
+
     @Override
     @Transactional
     public OrganizationSettingsResponseModel getSettings() {
@@ -32,12 +35,18 @@ public class OrganizationSettingsServiceImpl implements OrganizationSettingsServ
 
     @Override
     @Transactional
-    public OrganizationSettingsResponseModel updateSettings(UpdateOrganizationSettingsRequestModel request,
-                                                            String adminUserId) {
+    public OrganizationSettingsResponseModel updateSettings(
+            UpdateOrganizationSettingsRequestModel request,
+            String adminUserId
+    ) {
 
         OrganizationSettings settings = repository.findTopByOrderByUpdatedAtDesc()
                 .orElseGet(this::createDefaultSettings);
 
+        // 🔹 Garder l’ancienne langue pour l’audit
+        String previousDefaultLang = settings.getDefaultLanguage();
+
+        // Apply changes
         settings.setDefaultLanguage(request.getDefaultLanguage());
         settings.setInviteSubjectEn(request.getInviteSubjectEn());
         settings.setInviteBodyEn(request.getInviteBodyEn());
@@ -49,6 +58,14 @@ public class OrganizationSettingsServiceImpl implements OrganizationSettingsServ
 
         log.info("Organization Settings Updated by admin {}. defaultLanguage={}, updatedAt={}",
                 adminUserId, saved.getDefaultLanguage(), saved.getUpdatedAt());
+
+
+        organizationSettingsAuditService.recordSettingsUpdated(
+                adminUserId,
+                "unknown",
+                previousDefaultLang,
+                saved.getDefaultLanguage()
+        );
 
         return mapper.toResponseModel(saved);
     }

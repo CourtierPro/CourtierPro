@@ -1,0 +1,226 @@
+/* ========================================== */
+/*   PAGE WRAPPER + HEADER (ONLY WHAT YOU ASKED) */
+/* ========================================== */
+
+.admin-page {
+  padding: 3.5rem 3rem 2rem; /* <-- espace augmenté pour descendre le titre */
+}
+
+.admin-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* <-- garder le bouton à droite */
+  margin-bottom: 1.8rem; /* un peu plus d'espace sous le header */
+}
+
+.admin-page-title {
+  font-size: 2rem;        /* un peu plus gros */
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.25rem;
+}
+
+.admin-page-subtitle {
+  font-size: 0.95rem;
+  color: #6b7280;
+}
+
+/* ========================================== */
+/*   BUTTON (same style as Save Changes)      */
+/* ========================================== */
+
+.admin-primary-btn {
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 0.75rem 1.9rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: #f97316;
+  box-shadow: 0 12px 28px rgba(249, 115, 22, 0.3);
+  transition:
+    background-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.admin-primary-btn:hover:not(:disabled) {
+  background: #ea580c;
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 16px 32px rgba(249, 115, 22, 0.36);
+}
+
+.admin-primary-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.26);
+}
+
+.admin-primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ========================================== */
+/*   TABLE SECTION — PERFECT VERSION (untouched) */
+/* ========================================== */
+
+.admin-users-page {
+  padding-bottom: 3rem;
+  animation: fadeInUsers 0.35s ease-out both;
+}
+
+@keyframes fadeInUsers {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-table-card {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  overflow-x: auto;
+  transition: all 0.18s ease;
+  padding: 0;
+}
+
+.admin-table-card:hover {
+  border-color: #f97316;
+  box-shadow: 0 10px 26px rgba(249, 115, 22, 0.18);
+  transform: translateY(-3px);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.admin-table thead tr {
+  background-color: #f9fafb;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  color: #6b7280;
+  letter-spacing: 0.04em;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-top: 1px solid #e5e7eb;
+}
+
+.admin-table tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.admin-table tbody tr:hover {
+  background-color: #fff7ed;
+}
+
+.admin-table-email {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.admin-table-role {
+  text-transform: capitalize;
+}
+
+.admin-table-lang {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.admin-table-empty {
+  padding: 1.4rem 1rem;
+  font-size: 0.9rem;
+  color: #6b7280;
+  text-align: center;
+}
+
+.admin-table-toggle-col {
+  text-align: right;
+}
+
+/* ========================================== */
+/*   TOGGLE SWITCH (unchanged)                */
+/* ========================================== */
+
+.user-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 2.6rem;
+  height: 1.35rem;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.user-toggle:hover {
+  transform: scale(1.04);
+}
+
+.user-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.user-toggle-slider {
+  position: absolute;
+  inset: 0;
+  background-color: #e5e7eb;
+  border-radius: 999px;
+  transition: background-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.user-toggle-slider::before {
+  content: "";
+  position: absolute;
+  height: 1.1rem;
+  width: 1.1rem;
+  left: 0.12rem;
+  top: 0.12rem;
+  border-radius: 50%;
+  background-color: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.user-toggle input:checked + .user-toggle-slider {
+  background-color: #f97316;
+  box-shadow: 0 0 6px rgba(249, 115, 22, 0.55);
+}
+
+.user-toggle input:checked + .user-toggle-slider::before {
+  transform: translateX(1.22rem);
+  box-shadow: 0 2px 6px rgba(249, 115, 22, 0.55);
+}
+
+/* ========================================== */
+/* Alerts */
+/* ========================================== */
+
+.users-alert {
+  margin-bottom: 1rem;
+  border-radius: 0.65rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.82rem;
+}
+
+.users-alert-error {
+  border: 1px solid #fecaca;
+  background-color: #fef2f2;
+  color: #b91c1c;
+}

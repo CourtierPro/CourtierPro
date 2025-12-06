@@ -1,0 +1,36 @@
+{
+  "settings": {
+
+      
+  "messages": {
+    "saved": "Settings saved successfully."
+  },
+
+   "languages": {
+      "en": "English",
+      "fr": "French"
+    },
+
+    "title": "Admin – Organization Settings",
+    "subtitle": "Manage your organization settings and invite new users to CourtierPro.",
+
+    "defaultLanguageCard": {
+      "title": "Default language",
+      "description": "New user accounts that don't specify a preferred language will use this default.",
+      "label": "Default language"
+    },
+
+    "templatesCard": {
+      "title": "Invitation email templates",
+      "description": "Configure the invitation emails sent to new users. Placeholders like {{name}} will be replaced with the user's name or email.",
+      "englishTitle": "English invitation",
+      "frenchTitle": "Invitation en français",
+      "subject": "Subject",
+      "body": "Email body",
+      "subjectFr": "Sujet",
+      "bodyFr": "Corps du courriel"
+    },
+
+    "saveButton": "Save changes"
+  }
+}
