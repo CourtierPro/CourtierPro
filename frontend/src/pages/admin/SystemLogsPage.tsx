@@ -1,10 +1,14 @@
+import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/shared/components/branded/PageHeader";
+
 export function SystemLogsPage() {
+  const { t } = useTranslation("admin");
   return (
-    <div className="space-y-2">
-      <h1 className="text-2xl font-semibold">Admin – System Logs</h1>
-      <p className="text-sm text-muted-foreground">
-        This is the page for viewing system logs and technical diagnostics.
-      </p>
+    <div className="space-y-6">
+      <PageHeader
+        title={t("systemLogs")}
+        subtitle={t("systemLogsSubtitle")}
+      />
     </div>
   );
 }

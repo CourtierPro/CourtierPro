@@ -1,0 +1,13 @@
+{
+    "title": "Profil",
+    "subtitle": "Gérez les paramètres et les préférences de votre compte.",
+    "editProfile": "Modifier le profil",
+    "personalInfo": "Informations personnelles",
+    "fullName": "Nom complet",
+    "email": "Adresse courriel",
+    "role": "Rôle",
+    "professionalDetails": "Détails professionnels",
+    "agency": "Agence",
+    "licenseNumber": "Numéro de permis",
+    "userNotFound": "Utilisateur non trouvé"
+}

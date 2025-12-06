@@ -1,0 +1,39 @@
+{
+    "title": "Documents",
+    "subtitle": "Manage all your transaction documents in one place.",
+    "requestDocument": "Request Document",
+    "noDocumentsTitle": "No documents found",
+    "noDocumentsDesc": "You haven't uploaded any documents yet. Start by creating a transaction.",
+    "transactionDocuments": "Transaction Documents",
+    "transactionDocumentsSubtitle": "This is the page for viewing documents associated with a specific transaction.",
+    "requestAdditionalDocumentTitle": "Request Additional Document",
+    "documentTitle": "Document Title",
+    "documentTitlePlaceholder": "e.g., Additional Proof of Income",
+    "instructions": "Instructions or Description",
+    "instructionsPlaceholder": "Provide details about what the client needs to submit...",
+    "associatedStage": "Associated Stage",
+    "selectStage": "Select a stage",
+    "cancel": "Cancel",
+    "sendRequest": "Send Request",
+    "required": "Required",
+    "optional": "Optional",
+    "documentTitleRequired": "Document title is required",
+    "stageRequired": "Please select a stage",
+    "infoText": "This document will be added to the client's checklist under the <strong>{{stage}}</strong> and marked as pending.",
+    "stages": {
+        "buy": {
+            "offer": "Offer",
+            "inspection": "Inspection",
+            "financing": "Financing",
+            "legalReview": "Legal Review",
+            "closing": "Closing"
+        },
+        "sell": {
+            "listing": "Listing",
+            "marketing": "Marketing",
+            "offer": "Offer",
+            "inspection": "Inspection",
+            "closing": "Closing"
+        }
+    }
+}

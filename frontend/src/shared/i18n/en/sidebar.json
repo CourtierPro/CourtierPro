@@ -1,0 +1,18 @@
+{
+  "dashboard": "Dashboard",
+  "transactions": "Transactions",
+  "documents": "Documents",
+  "appointments": "Appointments",
+  "analytics": "Analytics",
+  "myTransaction": "My Transaction",
+  "myDocuments": "My Documents",
+  "manageUsers": "Manage Users",
+  "orgSettings": "Settings",
+  "loginAudit": "Login Audit",
+  "systemLogs": "System Logs",
+  "clients": "Clients",
+  "closeSidebar": "Close sidebar",
+  "menuLabel": "Menu",
+  "notifications": "Notifications",
+  "showcase": "Showcase"
+}

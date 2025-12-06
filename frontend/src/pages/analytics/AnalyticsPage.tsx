@@ -1,10 +1,14 @@
+import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/shared/components/branded/PageHeader";
+
 export function AnalyticsPage() {
+  const { t } = useTranslation("analytics");
   return (
-    <div className="space-y-2">
-      <h1 className="text-2xl font-semibold">Analytics</h1>
-      <p className="text-sm text-muted-foreground">
-        This is the page for broker analytics, KPIs, and performance insights.
-      </p>
+    <div className="space-y-6">
+      <PageHeader
+        title={t("title")}
+        subtitle={t("subtitle")}
+      />
     </div>
   );
 }
