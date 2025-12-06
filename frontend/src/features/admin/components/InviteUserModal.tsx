@@ -90,6 +90,7 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
                 firstName: form.firstName,
                 lastName: form.lastName,
                 role: form.role,
+              preferredLanguage: form.preferredLanguage,
             });
 
             onUserCreated?.(createdUser);
