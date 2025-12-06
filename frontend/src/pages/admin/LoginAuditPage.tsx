@@ -1,141 +1,133 @@
-import { useEffect, useState } from 'react';
-import { getLoginAuditEvents, type LoginAuditEvent } from './loginAuditApi.ts';
-import { LoadingSpinner } from '@/components/feedback/LoadingSpinner';
-import { formatDistanceToNow } from 'date-fns';
-import { useTranslation } from 'react-i18next';
+import { useState, Fragment } from "react";
+import { useTranslation } from "react-i18next";
+import { formatDateTime } from '@/shared/utils/date';
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { PageHeader } from "@/shared/components/branded/PageHeader";
+import { LoadingState } from "@/shared/components/branded/LoadingState";
+import { ErrorState } from "@/shared/components/branded/ErrorState";
+import { useLoginAudit } from "@/features/admin/hooks/useLoginAudit";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
+import { Badge } from "@/shared/components/ui/badge";
+import { Button } from "@/shared/components/ui/button";
 
 export function LoginAuditPage() {
-  const { t } = useTranslation('common');
-  const [events, setEvents] = useState<LoginAuditEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation("admin");
+  const { data: events, isLoading, error } = useLoginAudit();
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    async function loadEvents() {
-      try {
-        const data = await getLoginAuditEvents();
-        setEvents(data);
-      } catch (err) {
-        // Keep console for debugging, but use i18n for UI
-        console.error('Failed to load login audit events:', err);
-        setError(t('loginAudit.error'));
-      } finally {
-        setLoading(false);
-      }
+  const toggleRow = (id: string) => {
+    const newExpandedRows = new Set(expandedRows);
+    if (newExpandedRows.has(id)) {
+      newExpandedRows.delete(id);
+    } else {
+      newExpandedRows.add(id);
     }
+    setExpandedRows(newExpandedRows);
+  };
 
-    loadEvents();
-  }, [t]);
-
-  if (loading) {
-    return (
-        <div className="p-6">
-          <LoadingSpinner message={t('loginAudit.loading')} />
-        </div>
-    );
+  if (isLoading) {
+    return <LoadingState message={t("loadingLoginAudit")} />;
   }
 
   if (error) {
     return (
-        <div className="space-y-2 p-6">
-          <h1 className="text-2xl font-semibold">
-            {t('loginAudit.title')}
-          </h1>
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-            {error}
-          </div>
-        </div>
+      <ErrorState
+        title={t("errorLoadingLoginAudit")}
+        message={error.message}
+      />
     );
   }
 
   return (
-      <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-2xl font-semibold">
-            {t('loginAudit.title')}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {t('loginAudit.subtitle', { count: events.length })}
-          </p>
-        </div>
-
-        <div className="rounded-lg border bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b bg-slate-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-600">
-                  {t('loginAudit.columns.timestamp')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-600">
-                  {t('loginAudit.columns.user')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-600">
-                  {t('loginAudit.columns.role')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-600">
-                  {t('loginAudit.columns.ipAddress')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-600">
-                  {t('loginAudit.columns.userAgent')}
-                </th>
-              </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-              {events.length === 0 ? (
-                  <tr>
-                    <td
-                        colSpan={5}
-                        className="px-4 py-8 text-center text-sm text-slate-500"
-                    >
-                      {t('loginAudit.empty')}
-                    </td>
-                  </tr>
-              ) : (
-                  events.map((event) => (
-                      <tr key={event.id} className="hover:bg-slate-50">
-                        <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-900">
-                          <div>{new Date(event.timestamp).toLocaleString()}</div>
-                          <div className="text-xs text-slate-500">
-                            {formatDistanceToNow(new Date(event.timestamp), {
-                              addSuffix: true,
-                            })}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <div className="font-medium text-slate-900">
-                            {event.email}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {event.userId}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                      <span
-                          className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                              event.role === 'ADMIN'
-                                  ? 'bg-purple-100 text-purple-800'
-                                  : event.role === 'BROKER'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : 'bg-green-100 text-green-800'
-                          }`}
-                      >
-                        {event.role}
+    <div className="space-y-6">
+      <PageHeader
+        title={t("loginAudit")}
+        subtitle={t("loginAuditSubtitle")}
+      />
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[50px]"></TableHead>
+              <TableHead>{t("timestamp")}</TableHead>
+              <TableHead>{t("user")}</TableHead>
+              <TableHead>{t("role")}</TableHead>
+              <TableHead>{t("ipAddress")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {events?.map((event) => (
+              <Fragment key={event.id}>
+                <TableRow
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => toggleRow(event.id)}
+                >
+                  <TableCell>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                      {expandedRows.has(event.id) ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TableCell>
+                  <TableCell>
+                    {event.timestamp ? formatDateTime(event.timestamp) : '-'}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{event.email}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {event.userId}
                       </span>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
-                          {event.ipAddress || t('loginAudit.notAvailable')}
-                        </td>
-                        <td className="max-w-xs truncate px-4 py-3 text-sm text-slate-600">
-                          {event.userAgent || t('loginAudit.notAvailable')}
-                        </td>
-                      </tr>
-                  ))
-              )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{event.role}</Badge>
+                  </TableCell>
+                  <TableCell>{event.ipAddress || "-"}</TableCell>
+                </TableRow>
+                {expandedRows.has(event.id) && (
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableCell colSpan={5}>
+                      <div className="p-4 space-y-2 text-sm">
+                        <div className="grid grid-cols-[100px_1fr] gap-2">
+                          <span className="font-medium text-muted-foreground">
+                            {t("userAgent")}:
+                          </span>
+                          <span className="break-all">
+                            {event.userAgent || "-"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-[100px_1fr] gap-2">
+                          <span className="font-medium text-muted-foreground">
+                            {t("eventId")}:
+                          </span>
+                          <span className="font-mono text-xs">{event.id}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </Fragment>
+            ))}
+            {(!events || events.length === 0) && (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center">
+                  {t("noLoginEvents")}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
+    </div>
   );
 }

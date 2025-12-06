@@ -1,0 +1,40 @@
+{
+    "broker": {
+        "title": "Tableau de bord Courtier",
+        "subtitle": "Aperçu de vos transactions actives et de vos performances.",
+        "activeTransactions": "Transactions actives",
+        "totalCommission": "Commission totale",
+        "activeClients": "Clients actifs",
+        "pendingActions": "Actions en attente",
+        "recentActivity": "Activité récente",
+        "recentActivityDesc": "Dernières mises à jour de vos transactions.",
+        "activityPlaceholder": "Flux d'activité...",
+        "upcomingAppointments": "Rendez-vous à venir",
+        "upcomingAppointmentsDesc": "Votre emploi du temps pour les 7 prochains jours.",
+        "calendarPlaceholder": "Calendrier...",
+        "vsLastMonth": "vs le mois dernier",
+        "newToday": "nouveau aujourd'hui"
+    },
+    "client": {
+        "title": "Tableau de bord Client",
+        "subtitle": "Suivez vos transactions immobilières.",
+        "activeTransactions": "Transactions actives",
+        "documentsNeeded": "Documents requis",
+        "myTransactions": "Mes transactions",
+        "myTransactionsDesc": "État actuel de votre processus d'achat/vente.",
+        "transactionListPlaceholder": "Liste des transactions...",
+        "overdue": "en retard"
+    },
+    "admin": {
+        "title": "Tableau de bord Admin",
+        "subtitle": "Aperçu du système et gestion des utilisateurs.",
+        "totalUsers": "Utilisateurs totaux",
+        "activeBrokers": "Courtiers actifs",
+        "systemHealth": "Santé du système",
+        "systemLogs": "Journaux système",
+        "systemLogsDesc": "Événements et erreurs système récents.",
+        "logsPlaceholder": "Journaux...",
+        "thisWeek": "cette semaine",
+        "stable": "stable"
+    }
+}

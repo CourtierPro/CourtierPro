@@ -30,7 +30,7 @@ public class AdminUserController {
         return service.getAllUsers();
     }
 
-    @PostMapping
+    @PostMapping("/invite")
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         UserResponse response = service.createUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
