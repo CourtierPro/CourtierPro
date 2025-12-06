@@ -33,6 +33,7 @@
   "transactions": "transactions",
   "clearFilters": "Effacer les filtres",
   "createNew": "Créer nouveau",
+  "newTransaction": "Nouvelle Transaction",
   "backToTransactions": "Retour aux transactions",
   "transactionDetails": "Détails de la transaction",
   "client": "Client",

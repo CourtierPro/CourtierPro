@@ -7,10 +7,23 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, Search, AlertCircle, CheckCircle } from 'lucide-react';
-import { useCreateTransaction } from '@/features/transactions/api/mutations';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
+import { Textarea } from '@/shared/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/components/ui/select';
+import { useCreateTransaction } from '../api/mutations';
 import type { TransactionRequestDTO } from '@/shared/api/types';
 import { getStagesForSide, enumToLabel } from '@/shared/utils/stages';
-import { useTranslation } from 'react-i18next';
+import { logError, getErrorMessage } from '@/shared/utils/error-utils';
 
 
 interface TransactionCreateFormProps {
@@ -145,48 +158,39 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
           },
         };
 
-        // Debug: show exact payload being sent to backend
-        console.debug('Creating transaction payload:', payload);
-
         const response = await createTransaction.mutateAsync(payload);
 
-        const createdId = response?.transactionId;
-        if (createdId) {
-          onNavigate(`/transactions/${createdId}`);
+        if (response && response.transactionId) {
+          toast.success(t('transactionCreated'));
+          onNavigate(`/transactions/${response.transactionId}`);
         } else {
-          console.error('Transaction created but no transactionId returned', response);
-          setErrors({ ...errors, form: i18n.language === 'en' ? 'Transaction created but no id returned' : 'Transaction créée mais aucun identifiant retourné' });
+          toast.error(t('errorCreatingTransaction'));
         }
       } catch (err: unknown) {
-        console.error('Error creating transaction', err);
+        const errorMessage = getErrorMessage(err, t('errorCreatingTransaction'));
+        toast.error(errorMessage);
 
-        // @ts-expect-error - we know err might have response
-        console.debug('Backend error response data:', err?.response?.data);
+        if (err instanceof Error) {
+          logError(err);
+        }
 
-        // @ts-expect-error - we know err might have response
-        const serverMsg = err?.response?.data;
         const newErrors: Record<string, string> = { ...errors };
+        const serverMsg = errorMessage;
 
-        if (typeof serverMsg === 'string') {
-          // Map known backend messages to fields
-          if (serverMsg.toLowerCase().includes('initialstage')) {
-            newErrors.initialStage = serverMsg;
-          } else if (serverMsg.toLowerCase().includes('clientid')) {
-            newErrors.client = serverMsg;
-          } else if (serverMsg.toLowerCase().includes('brokerid')) {
-            newErrors.client = serverMsg; // broker id is a header; show on form top
-            newErrors.form = serverMsg;
-          } else if (serverMsg.toLowerCase().includes('side')) {
-            newErrors.transactionSide = serverMsg;
-          } else if (serverMsg.toLowerCase().includes('propertyaddress.street')) {
-            newErrors.propertyAddress = serverMsg;
-          } else {
-            newErrors.form = serverMsg;
-          }
-        } else if (err instanceof Error) {
-          newErrors.form = err.message;
+        // Map known backend messages to fields
+        if (serverMsg.toLowerCase().includes('initialstage')) {
+          newErrors.initialStage = serverMsg;
+        } else if (serverMsg.toLowerCase().includes('clientid')) {
+          newErrors.client = serverMsg;
+        } else if (serverMsg.toLowerCase().includes('brokerid')) {
+          newErrors.client = serverMsg;
+          newErrors.form = serverMsg;
+        } else if (serverMsg.toLowerCase().includes('side')) {
+          newErrors.transactionSide = serverMsg;
+        } else if (serverMsg.toLowerCase().includes('propertyaddress.street')) {
+          newErrors.propertyAddress = serverMsg;
         } else {
-          newErrors.form = 'Unknown error';
+          newErrors.form = serverMsg;
         }
 
         setErrors(newErrors);
@@ -205,14 +209,14 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
   return (
     <div className="space-y-6">
       {/* Back Button */}
-      <button
+      <Button
+        variant="ghost"
         onClick={() => onNavigate('/transactions')}
-        className="flex items-center gap-2 hover:opacity-70 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:ring-offset-2 rounded px-2 py-1 transition-opacity"
-        style={{ color: '#FF6B01' }}
+        className="gap-2 text-[#FF6B01] hover:text-[#FF6B01]/80 hover:bg-[#FF6B01]/10"
       >
         <ChevronLeft className="w-5 h-5" />
         {t('backToTransactions')}
-      </button>
+      </Button>
 
       {/* Header */}
       <div>
@@ -247,7 +251,14 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                 </span>
               </legend>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <RadioGroup
+                value={transactionSide}
+                onValueChange={(val) => {
+                  setTransactionSide(val as 'buy' | 'sell');
+                  handleBlur('transactionSide');
+                }}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              >
                 {/* Buy-Side Radio */}
                 <label
                   className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${transactionSide === 'buy'
@@ -256,19 +267,9 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                     }`}
                 >
                   <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="transactionSide"
-                      value="buy"
-                      checked={transactionSide === 'buy'}
-                      onChange={(e) => setTransactionSide(e.target.value as 'buy')}
-                      onBlur={() => handleBlur('transactionSide')}
-                      className="mt-1 w-4 h-4 focus:ring-2 focus:ring-[#FF6B01]"
-                      style={{ accentColor: '#FF6B01' }}
-                      aria-describedby="buy-side-description"
-                    />
-                    <div className="flex-1">
-                      <p style={{ color: '#353535' }} className="mb-1">
+                    <RadioGroupItem value="buy" id="buy" className="mt-1" />
+                    <div className="flex-1 cursor-pointer" onClick={() => setTransactionSide('buy')}>
+                      <p style={{ color: '#353535' }} className="mb-1 font-medium">
                         {t('buySide')}
                       </p>
                       <p
@@ -289,19 +290,9 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                     }`}
                 >
                   <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="transactionSide"
-                      value="sell"
-                      checked={transactionSide === 'sell'}
-                      onChange={(e) => setTransactionSide(e.target.value as 'sell')}
-                      onBlur={() => handleBlur('transactionSide')}
-                      className="mt-1 w-4 h-4 focus:ring-2 focus:ring-[#FF6B01]"
-                      style={{ accentColor: '#FF6B01' }}
-                      aria-describedby="sell-side-description"
-                    />
-                    <div className="flex-1">
-                      <p style={{ color: '#353535' }} className="mb-1">
+                    <RadioGroupItem value="sell" id="sell" className="mt-1" />
+                    <div className="flex-1 cursor-pointer" onClick={() => setTransactionSide('sell')}>
+                      <p style={{ color: '#353535' }} className="mb-1 font-medium">
                         {t('sellSide')}
                       </p>
                       <p
@@ -313,7 +304,7 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                     </div>
                   </div>
                 </label>
-              </div>
+              </RadioGroup>
 
               {touched.transactionSide && errors.transactionSide && (
                 <div
@@ -349,7 +340,7 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
 
                 <div className="relative">
                   <div className="relative">
-                    <input
+                    <Input
                       id="client-search"
                       type="text"
                       value={selectedClient ? selectedClient.name : clientSearch}
@@ -361,8 +352,7 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                       onFocus={() => setShowClientDropdown(true)}
                       onBlur={() => handleBlur('client')}
                       placeholder={t('searchClient')}
-                      className="w-full p-3 pr-10 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent"
-                      style={{ color: '#353535' }}
+                      className="pr-10"
                       aria-describedby={touched.client && errors.client ? 'client-error' : undefined}
                       aria-invalid={touched.client && errors.client ? 'true' : 'false'}
                     />
@@ -452,15 +442,14 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                   </span>
                 </label>
 
-                <textarea
+                <Textarea
                   id="property-address"
                   value={propertyAddress}
                   onChange={(e) => setPropertyAddress(e.target.value)}
                   onBlur={() => handleBlur('propertyAddress')}
                   placeholder={t('propertyAddressPlaceholder')}
                   rows={3}
-                  className="w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent resize-none"
-                  style={{ color: '#353535' }}
+                  className="resize-none"
                   aria-describedby={touched.propertyAddress && errors.propertyAddress ? 'address-error' : undefined}
                   aria-invalid={touched.propertyAddress && errors.propertyAddress ? 'true' : 'false'}
                 />
@@ -497,24 +486,30 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                 </span>
               </label>
 
-              <select
-                id="initial-stage"
+              <Select
                 value={initialStage}
-                onChange={(e) => setInitialStage(e.target.value)}
-                onBlur={() => handleBlur('initialStage')}
+                onValueChange={(value) => {
+                  setInitialStage(value);
+                  handleBlur('initialStage');
+                }}
                 disabled={!transactionSide}
-                className="w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ color: '#353535' }}
-                aria-describedby={touched.initialStage && errors.initialStage ? 'stage-error' : undefined}
-                aria-invalid={touched.initialStage && errors.initialStage ? 'true' : 'false'}
               >
-                <option value="">{t('selectInitialStage')}</option>
-                {stageEnums.map((stageEnum) => (
-                  <option key={stageEnum} value={stageEnum}>
-                    {enumToLabel(stageEnum)}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger
+                  id="initial-stage"
+                  className="w-full"
+                  aria-describedby={touched.initialStage && errors.initialStage ? 'stage-error' : undefined}
+                  aria-invalid={touched.initialStage && errors.initialStage ? 'true' : 'false'}
+                >
+                  <SelectValue placeholder={t('selectInitialStage')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {stageEnums.map((stageEnum) => (
+                    <SelectItem key={stageEnum} value={stageEnum}>
+                      {enumToLabel(stageEnum)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               {!transactionSide && (
                 <p style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }} className="mt-2">
@@ -543,26 +538,22 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
 
         {/* Form Actions */}
         <div className="flex flex-col sm:flex-row items-center gap-4 mt-6">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={handleCancel}
-            className="w-full sm:w-auto px-6 py-3 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors border-2 border-gray-200"
-            style={{ color: '#353535' }}
+            className="w-full sm:w-auto"
           >
             {t('cancel')}
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="submit"
             disabled={!isFormValid}
-            className="w-full sm:w-auto px-6 py-3 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              backgroundColor: isFormValid ? '#FF6B01' : '#e5e7eb',
-              color: isFormValid ? '#FFFFFF' : '#9ca3af',
-            }}
+            className="w-full sm:w-auto bg-[#FF6B01] hover:bg-[#FF6B01]/90"
           >
             {t('createTransaction')}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

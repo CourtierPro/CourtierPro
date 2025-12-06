@@ -6,6 +6,7 @@ import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
+import { Button } from "@/shared/components/ui/button";
 import { useTransactions, type Transaction } from '@/features/transactions/api/queries';
 import { TransactionFilters } from './TransactionFilters';
 import { TransactionTable } from './TransactionTable';
@@ -109,13 +110,13 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
         <PageHeader
           title={t('transactionsTitle')}
           actions={
-            <button
+            <Button
               onClick={() => onNavigate('/transactions/new')}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+              className="gap-2"
             >
               <Plus className="w-4 h-4" />
               {t('newTransaction')}
-            </button>
+            </Button>
           }
         />
         <ErrorState message={error.message || "Failed to load transactions"} onRetry={() => refetch()} />
@@ -135,7 +136,20 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <PageHeader title={t('title')} subtitle={t('subtitle')} />
+      {/* Header */}
+      <PageHeader
+        title={t('title')}
+        subtitle={t('subtitle')}
+        actions={
+          <Button
+            onClick={() => onNavigate('/transactions/new')}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            {t('newTransaction')}
+          </Button>
+        }
+      />
 
       {/* Filters and Sorting */}
       <TransactionFilters
@@ -158,12 +172,9 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
           <h2 className="mb-4 text-foreground font-medium">
             {t('noTransactions')}
           </h2>
-          <button
-            onClick={handleResetFilters}
-            className="py-2 px-6 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all bg-primary text-primary-foreground"
-          >
+          <Button onClick={handleResetFilters}>
             {t('resetFilters')}
-          </button>
+          </Button>
         </Section>
       ) : (
         <>
@@ -180,15 +191,6 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
         </>
       )}
 
-      {/* Floating Action Button (Create New) */}
-      <button
-        onClick={() => onNavigate('/transactions/new')}
-        aria-label={t('createNew')}
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-primary transition-transform bg-primary text-primary-foreground"
-      >
-        <Plus className="w-5 h-5" />
-        <span className="font-bold hidden sm:inline">{t('createNew')}</span>
-      </button>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Section } from "@/shared/components/branded/Section";
+import { Button } from "@/shared/components/ui/button";
 
 interface TransactionPaginationProps {
     currentPage: number;
@@ -31,39 +32,40 @@ export function TransactionPagination({
             </p>
 
             <div className="flex items-center gap-2">
-                <button
+                <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => onPageChange(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="p-2 rounded-lg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-foreground"
                     aria-label={t('previous')}
                 >
                     <ChevronLeft className="w-5 h-5" />
-                </button>
+                </Button>
 
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
+                    <Button
                         key={page}
+                        variant={currentPage === page ? "default" : "ghost"}
+                        size="icon"
                         onClick={() => onPageChange(page)}
-                        className={`w-10 h-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-colors ${currentPage === page
-                            ? 'bg-primary text-primary-foreground'
-                            : 'hover:bg-muted text-foreground'
-                            }`}
                         aria-label={`Page ${page}`}
                         aria-current={currentPage === page ? 'page' : undefined}
                     >
                         {page}
-                    </button>
+                    </Button>
                 ))}
 
-                <button
+                <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
-                    className="p-2 rounded-lg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-foreground"
                     aria-label={t('next')}
                 >
                     <ChevronRight className="w-5 h-5" />
-                </button>
+                </Button>
             </div>
         </Section>
     );
 }
+

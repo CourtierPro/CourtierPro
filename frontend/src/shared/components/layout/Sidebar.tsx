@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   Activity,
   Bell,
+  Palette,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/shared/utils/utils";
@@ -141,6 +142,11 @@ export function Sidebar({
             route: "/admin/system-logs",
             icon: <Activity size={iconSize} />,
           },
+          {
+            label: t("showcase"),
+            route: "/dev/showcase",
+            icon: <Palette size={iconSize} />,
+          },
         ];
       default:
         return [];
@@ -212,7 +218,7 @@ export function Sidebar({
                             ),
                           })}
                       </span>
-                      <span>{item.label}</span>
+                      <span className="whitespace-nowrap">{item.label}</span>
                     </button>
                   </li>
                 );

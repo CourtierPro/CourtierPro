@@ -6,10 +6,11 @@ interface ErrorStateProps {
     title?: string;
     message: string;
     onRetry?: () => void;
+    action?: React.ReactNode;
     className?: string;
 }
 
-export function ErrorState({ title = "Something went wrong", message, onRetry, className }: ErrorStateProps) {
+export function ErrorState({ title = "Something went wrong", message, onRetry, action, className }: ErrorStateProps) {
     return (
         <div className={cn("flex flex-col items-center justify-center p-6 rounded-lg bg-destructive/10 border border-destructive/20 text-center", className)}>
             <AlertTriangle className="w-8 h-8 text-destructive mb-4" />
@@ -21,6 +22,7 @@ export function ErrorState({ title = "Something went wrong", message, onRetry, c
                     Retry
                 </Button>
             )}
+            {action && <div className="mt-4">{action}</div>}
         </div>
     );
 }

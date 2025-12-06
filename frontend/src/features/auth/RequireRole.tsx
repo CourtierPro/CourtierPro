@@ -10,7 +10,15 @@ interface RequireRoleProps {
 
 
 export function RequireRole({ allowed, children }: RequireRoleProps) {
-    const { user } = useAuth0();
+    const { user, isLoading } = useAuth0();
+
+    if (isLoading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+        );
+    }
 
     const role = getRoleFromUser(user);
 

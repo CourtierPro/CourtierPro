@@ -12,17 +12,14 @@ import { TransactionSummary } from "@/features/transactions/components/Transacti
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { EmptyState } from "@/shared/components/branded/EmptyState";
-import { useClientTransactions } from "@/features/transactions/api/queries";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
+import { useClientTransactionsPageLogic } from "@/features/transactions/hooks/useClientTransactionsPageLogic";
+import { Button } from "@/shared/components/ui/button";
 
 export function ClientTransactionsPage() {
   const { t } = useTranslation("transactions");
   const navigate = useNavigate();
-
-  // NOTE: replace with real client ID from Auth0 later
-  const mockClientId = "CLIENT123";
-
-  const { data: transactions, isLoading, error } = useClientTransactions(mockClientId);
+  const { transactions, isLoading, error } = useClientTransactionsPageLogic();
 
   if (isLoading) {
     return <LoadingState />;
@@ -41,12 +38,11 @@ export function ClientTransactionsPage() {
           title={t("noTransactionsFound")}
           description={t("noActiveTransactions")}
           action={
-            <button
+            <Button
               onClick={() => navigate("/")}
-              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {t("goHome")}
-            </button>
+            </Button>
           }
         />
       </div>

@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
+import { Button } from "@/shared/components/ui/button";
 import { StageUpdateModal } from '@/features/transactions/components/StageUpdateModal';
 import { useTransaction } from '@/features/transactions/api/queries';
 import { useUpdateTransactionStage, useSaveTransactionNotes } from '@/features/transactions/api/mutations';
@@ -43,8 +45,9 @@ export function TransactionDetail({ transactionId: propId }: TransactionDetailPr
     try {
       await updateStage.mutateAsync({ id: transaction.transactionId, stage: newStage });
       setIsModalOpen(false);
+      toast.success(t('stageUpdated'));
     } catch (error) {
-      console.error('Failed to update stage:', error);
+      toast.error(t('errorUpdatingStage'));
     }
   };
 
@@ -52,8 +55,9 @@ export function TransactionDetail({ transactionId: propId }: TransactionDetailPr
     if (!transaction) return;
     try {
       await saveNotes.mutateAsync({ id: transaction.transactionId, notes });
+      toast.success(t('notesSaved'));
     } catch (error) {
-      console.error('Failed to save notes:', error);
+      toast.error(t('errorSavingNotes'));
     }
   };
 
@@ -63,13 +67,14 @@ export function TransactionDetail({ transactionId: propId }: TransactionDetailPr
         <PageHeader
           title={t('transactionDetails')}
           actions={
-            <button
+            <Button
+              variant="outline"
               onClick={() => navigate('/transactions')}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="gap-2"
             >
               <ChevronLeft className="w-4 h-4" />
               {t('backToList')}
-            </button>
+            </Button>
           }
         />
         <ErrorState message={error.message || "Failed to load transaction"} onRetry={() => window.location.reload()} />
@@ -95,13 +100,14 @@ export function TransactionDetail({ transactionId: propId }: TransactionDetailPr
         title={t('detailsTitle')}
         subtitle={`ID: ${transaction.transactionId}`}
         actions={
-          <button
+          <Button
+            variant="ghost"
             onClick={() => navigate('/transactions')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-muted transition-colors text-foreground"
+            className="gap-2"
           >
             <ChevronLeft className="w-4 h-4" />
             {t('backToList')}
-          </button>
+          </Button>
         }
       />
 

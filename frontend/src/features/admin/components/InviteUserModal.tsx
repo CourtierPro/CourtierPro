@@ -8,6 +8,16 @@
 import React, { type FormEvent, useEffect, useState } from "react";
 import type { AxiosError } from "axios";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/shared/components/ui/select";
 
 import { useInviteUser } from '@/features/admin/api/mutations';
 
@@ -93,16 +103,11 @@ export function InviteUserModal({ open, onClose, onUserCreated, }: InviteUserMod
             });
 
             onUserCreated?.(createdUser);
+            toast.success(t("inviteSent"));
             onClose();
         } catch (err) {
             const axiosErr = err as AxiosError;
-
-            console.error("InviteUserModal - error when creating user:", {
-                message: axiosErr.message,
-                status: axiosErr.response?.status,
-                data: axiosErr.response?.data,
-                headers: axiosErr.response?.headers,
-            });
+            // Removed console.error
 
             const respData = axiosErr.response?.data;
 
@@ -141,11 +146,10 @@ export function InviteUserModal({ open, onClose, onUserCreated, }: InviteUserMod
                         <label htmlFor="email" className="text-sm font-medium">
                             {t("email")} *
                         </label>
-                        <input
+                        <Input
                             id="email"
                             name="email"
                             type="email"
-                            className="w-full rounded-md border px-3 py-2 text-sm"
                             value={form.email}
                             onChange={handleChange}
                             required
@@ -158,10 +162,9 @@ export function InviteUserModal({ open, onClose, onUserCreated, }: InviteUserMod
                             <label htmlFor="firstName" className="text-sm font-medium">
                                 {t("firstName")} *
                             </label>
-                            <input
+                            <Input
                                 id="firstName"
                                 name="firstName"
-                                className="w-full rounded-md border px-3 py-2 text-sm"
                                 value={form.firstName}
                                 onChange={handleChange}
                                 required
@@ -172,10 +175,9 @@ export function InviteUserModal({ open, onClose, onUserCreated, }: InviteUserMod
                             <label htmlFor="lastName" className="text-sm font-medium">
                                 {t("lastName")} *
                             </label>
-                            <input
+                            <Input
                                 id="lastName"
                                 name="lastName"
-                                className="w-full rounded-md border px-3 py-2 text-sm"
                                 value={form.lastName}
                                 onChange={handleChange}
                                 required
@@ -189,17 +191,19 @@ export function InviteUserModal({ open, onClose, onUserCreated, }: InviteUserMod
                             <label htmlFor="role" className="text-sm font-medium">
                                 {t("role")}
                             </label>
-                            <select
-                                id="role"
-                                name="role"
-                                className="w-full rounded-md border px-3 py-2 text-sm"
+                            <Select
                                 value={form.role}
-                                onChange={handleChange}
+                                onValueChange={(value) => setForm((prev) => ({ ...prev, role: value as UserRole }))}
                             >
-                                <option value="BROKER">{t("broker")}</option>
-                                <option value="CLIENT">{t("client")}</option>
-                                <option value="ADMIN">{t("admin")}</option>
-                            </select>
+                                <SelectTrigger id="role" className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="BROKER">{t("broker")}</SelectItem>
+                                    <SelectItem value="CLIENT">{t("client")}</SelectItem>
+                                    <SelectItem value="ADMIN">{t("admin")}</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         <div className="space-y-1">
@@ -209,37 +213,38 @@ export function InviteUserModal({ open, onClose, onUserCreated, }: InviteUserMod
                             >
                                 {t("language")}
                             </label>
-                            <select
-                                id="preferredLanguage"
-                                name="preferredLanguage"
-                                className="w-full rounded-md border px-3 py-2 text-sm"
+                            <Select
                                 value={form.preferredLanguage}
-                                onChange={handleChange}
+                                onValueChange={(value) => setForm((prev) => ({ ...prev, preferredLanguage: value as Language }))}
                             >
-                                <option value="en">{t("english")}</option>
-                                <option value="fr">{t("french")}</option>
-                            </select>
+                                <SelectTrigger id="preferredLanguage" className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="en">{t("english")}</SelectItem>
+                                    <SelectItem value="fr">{t("french")}</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
 
                     {/* Boutons */}
                     <div className="mt-4 flex justify-between">
-                        <button
+                        <Button
                             type="button"
-                            className="text-sm text-orange-600 hover:underline"
+                            variant="ghost"
                             onClick={onClose}
                             disabled={inviteUser.isPending}
                         >
                             {t("close")}
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
                             type="submit"
-                            className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-60"
                             disabled={inviteUser.isPending}
                         >
                             {inviteUser.isPending ? t("sending") : t("sendInvite")}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </div>

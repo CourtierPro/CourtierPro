@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, FileText, ChevronDown } from 'lucide-react';
+import { X, Send, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
+import { Textarea } from '@/shared/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/components/ui/select';
 
 interface RequestDocumentModalProps {
   isOpen: boolean;
@@ -147,14 +157,15 @@ export function RequestDocumentModal({
                 {t('title')}
               </h2>
             </div>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="p-1 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] transition-colors"
               aria-label="Close modal"
             >
-              <X className="w-5 h-5" style={{ color: '#353535' }} />
-            </button>
+              <X className="w-5 h-5" />
+            </Button>
           </div>
 
           {/* Modal Body */}
@@ -174,7 +185,7 @@ export function RequestDocumentModal({
                   {t('required')}
                 </span>
               </label>
-              <input
+              <Input
                 ref={firstInputRef}
                 type="text"
                 id="document-title"
@@ -186,9 +197,7 @@ export function RequestDocumentModal({
                   }
                 }}
                 placeholder={t('documentTitlePlaceholder')}
-                className={`w-full p-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent transition-all ${errors.title ? 'border-red-500' : 'border-gray-200'
-                  }`}
-                style={{ color: '#353535' }}
+                className={errors.title ? 'border-red-500' : ''}
                 aria-required="true"
                 aria-invalid={!!errors.title}
                 aria-describedby={errors.title ? 'title-error' : undefined}
@@ -220,14 +229,12 @@ export function RequestDocumentModal({
                   {t('optional')}
                 </span>
               </label>
-              <textarea
+              <Textarea
                 id="instructions"
                 value={instructions}
                 onChange={(e) => setInstructions(e.target.value)}
                 placeholder={t('instructionsPlaceholder')}
                 rows={4}
-                className="w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent resize-none transition-all"
-                style={{ color: '#353535' }}
                 aria-required="false"
               />
               <p
@@ -253,35 +260,32 @@ export function RequestDocumentModal({
                   {t('required')}
                 </span>
               </label>
-              <div className="relative">
-                <select
+              <Select
+                value={selectedStage}
+                onValueChange={(value) => {
+                  setSelectedStage(value);
+                  if (errors.stage) {
+                    setErrors({ ...errors, stage: undefined });
+                  }
+                }}
+              >
+                <SelectTrigger
                   id="associated-stage"
-                  value={selectedStage}
-                  onChange={(e) => {
-                    setSelectedStage(e.target.value);
-                    if (errors.stage) {
-                      setErrors({ ...errors, stage: undefined });
-                    }
-                  }}
-                  className={`w-full p-3 pr-10 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent appearance-none transition-all ${errors.stage ? 'border-red-500' : 'border-gray-200'
-                    }`}
-                  style={{ color: '#353535' }}
+                  className={`w-full ${errors.stage ? 'border-red-500' : ''}`}
                   aria-required="true"
                   aria-invalid={!!errors.stage}
                   aria-describedby={errors.stage ? 'stage-error' : undefined}
                 >
-                  <option value="">{t('selectStage')}</option>
+                  <SelectValue placeholder={t('selectStage')} />
+                </SelectTrigger>
+                <SelectContent>
                   {stageOptions.map(([key, value]) => (
-                    <option key={key} value={value}>
+                    <SelectItem key={key} value={value}>
                       {value}
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
-                <ChevronDown
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 pointer-events-none"
-                  style={{ color: '#353535', opacity: 0.5 }}
-                />
-              </div>
+                </SelectContent>
+              </Select>
               {errors.stage && (
                 <p
                   id="stage-error"
@@ -309,27 +313,22 @@ export function RequestDocumentModal({
 
           {/* Modal Footer */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-6 border-t border-gray-200 bg-gray-50">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
-              className="flex-1 px-4 py-3 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors border-2 border-gray-200"
-              style={{ color: '#353535', backgroundColor: '#FFFFFF' }}
+              className="flex-1"
             >
               {t('cancel')}
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={!isFormValid}
-              className="flex-1 px-4 py-3 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              style={{
-                backgroundColor: isFormValid ? '#FF6B01' : '#e5e7eb',
-                color: isFormValid ? '#FFFFFF' : '#9ca3af',
-              }}
-              aria-disabled={!isFormValid}
+              className="flex-1 gap-2"
             >
               <Send className="w-5 h-5" />
               {t('sendRequest')}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

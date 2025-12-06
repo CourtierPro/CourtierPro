@@ -1,49 +1,50 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { Suspense, lazy } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { RequireRole } from "@/features/auth/RequireRole";
 import { getRoleFromUser, type AppRole } from "@/features/auth/roleUtils";
 
-import ShowcasePage from "@/pages/ShowcasePage";
+const ShowcasePage = lazy(() => import("@/pages/ShowcasePage"));
 
 // Dashboards
-import { BrokerDashboardPage } from "@/pages/dashboard/BrokerDashboardPage";
-import { ClientDashboardPage } from "@/pages/dashboard/ClientDashboardPage";
-import { AdminDashboardPage } from "@/pages/dashboard/AdminDashboardPage";
+const BrokerDashboardPage = lazy(() => import("@/pages/dashboard/BrokerDashboardPage").then(module => ({ default: module.BrokerDashboardPage })));
+const ClientDashboardPage = lazy(() => import("@/pages/dashboard/ClientDashboardPage").then(module => ({ default: module.ClientDashboardPage })));
+const AdminDashboardPage = lazy(() => import("@/pages/dashboard/AdminDashboardPage").then(module => ({ default: module.AdminDashboardPage })));
 
 // Transactions
-import { BrokerTransactionsPage } from "@/pages/transactions/BrokerTransactionsPage";
-import { ClientTransactionsPage } from "@/pages/transactions/ClientTransactionsPage";
-import { BrokerTransactionDetailsPage } from "@/pages/transactions/BrokerTransactionDetailsPage";
-import { ClientTransactionDetailsPage } from "@/pages/transactions/ClientTransactionDetailsPage";
-import CreateTransactionPage from "@/pages/transactions/CreateTransactionPage";
+const BrokerTransactionsPage = lazy(() => import("@/pages/transactions/BrokerTransactionsPage").then(module => ({ default: module.BrokerTransactionsPage })));
+const ClientTransactionsPage = lazy(() => import("@/pages/transactions/ClientTransactionsPage").then(module => ({ default: module.ClientTransactionsPage })));
+const BrokerTransactionDetailsPage = lazy(() => import("@/pages/transactions/BrokerTransactionDetailsPage").then(module => ({ default: module.BrokerTransactionDetailsPage })));
+const ClientTransactionDetailsPage = lazy(() => import("@/pages/transactions/ClientTransactionDetailsPage").then(module => ({ default: module.ClientTransactionDetailsPage })));
+const CreateTransactionPage = lazy(() => import("@/pages/transactions/CreateTransactionPage"));
 
 // Documents
-import { DocumentsPage } from "@/pages/documents/DocumentsPage";
-import { TransactionDocumentsPage } from "@/pages/documents/TransactionDocumentsPage";
+const DocumentsPage = lazy(() => import("@/pages/documents/DocumentsPage").then(module => ({ default: module.DocumentsPage })));
+const TransactionDocumentsPage = lazy(() => import("@/pages/documents/TransactionDocumentsPage").then(module => ({ default: module.TransactionDocumentsPage })));
 
 // Appointments / analytics / clients / notifications
-import { AppointmentsPage } from "@/pages/appointments/AppointmentsPage";
-import { AnalyticsPage } from "@/pages/analytics/AnalyticsPage";
-import { ClientsPage } from "@/pages/clients/ClientsPage";
-import { NotificationsPage } from "@/pages/notifications/NotificationsPage";
+const AppointmentsPage = lazy(() => import("@/pages/appointments/AppointmentsPage").then(module => ({ default: module.AppointmentsPage })));
+const AnalyticsPage = lazy(() => import("@/pages/analytics/AnalyticsPage").then(module => ({ default: module.AnalyticsPage })));
+const ClientsPage = lazy(() => import("@/pages/clients/ClientsPage").then(module => ({ default: module.ClientsPage })));
+const NotificationsPage = lazy(() => import("@/pages/notifications/NotificationsPage").then(module => ({ default: module.NotificationsPage })));
 
 // Admin
-import { AdminUsersPage } from "@/pages/admin/AdminUsersPage";
-import { AdminSettingsPage } from "@/pages/admin/AdminSettingsPage";
-import { LoginAuditPage } from "@/pages/admin/LoginAuditPage";
-import { SystemLogsPage } from "@/pages/admin/SystemLogsPage";
+const AdminUsersPage = lazy(() => import("@/pages/admin/AdminUsersPage").then(module => ({ default: module.AdminUsersPage })));
+const AdminSettingsPage = lazy(() => import("@/pages/admin/AdminSettingsPage").then(module => ({ default: module.AdminSettingsPage })));
+const LoginAuditPage = lazy(() => import("@/pages/admin/LoginAuditPage").then(module => ({ default: module.LoginAuditPage })));
+const SystemLogsPage = lazy(() => import("@/pages/admin/SystemLogsPage").then(module => ({ default: module.SystemLogsPage })));
 
 // Profile
-import { ProfilePage } from "@/pages/profile/ProfilePage";
+const ProfilePage = lazy(() => import("@/pages/profile/ProfilePage").then(module => ({ default: module.ProfilePage })));
 
 // Error / status pages
-import { UnauthorizedPage } from "@/pages/status/UnauthorizedPage";
-import { ForbiddenPage } from "@/pages/status/ForbiddenPage";
-import { InternalServerErrorPage } from "@/pages/status/InternalServerErrorPage";
-import { ServiceUnavailablePage } from "@/pages/status/ServiceUnavailablePage";
-import { NotFoundPage } from "@/pages/status/NotFoundPage";
+const UnauthorizedPage = lazy(() => import("@/pages/status/UnauthorizedPage").then(module => ({ default: module.UnauthorizedPage })));
+const ForbiddenPage = lazy(() => import("@/pages/status/ForbiddenPage").then(module => ({ default: module.ForbiddenPage })));
+const InternalServerErrorPage = lazy(() => import("@/pages/status/InternalServerErrorPage").then(module => ({ default: module.InternalServerErrorPage })));
+const ServiceUnavailablePage = lazy(() => import("@/pages/status/ServiceUnavailablePage").then(module => ({ default: module.ServiceUnavailablePage })));
+const NotFoundPage = lazy(() => import("@/pages/status/NotFoundPage").then(module => ({ default: module.NotFoundPage })));
 
 export function AppRoutes() {
     const { user } = useAuth0();
@@ -56,282 +57,290 @@ export function AppRoutes() {
     };
 
     return (
-        <Routes>
-            {/* Default redirect based on Auth0 role */}
-            <Route
-                path="/"
-                element={
-                    role ? (
-                        <Navigate to={defaultRouteForRole[role]} replace />
-                    ) : (
-                        <Navigate to="/unauthorized" replace />
-                    )
-                }
-            />
+        <Suspense
+            fallback={
+                <div className="flex min-h-screen items-center justify-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                </div>
+            }
+        >
+            <Routes>
+                {/* Default redirect based on Auth0 role */}
+                <Route
+                    path="/"
+                    element={
+                        role ? (
+                            <Navigate to={defaultRouteForRole[role]} replace />
+                        ) : (
+                            <Navigate to="/unauthorized" replace />
+                        )
+                    }
+                />
 
-            {/* Dashboards */}
-            <Route
-                path="/dashboard/broker"
-                element={
-                    <RequireRole allowed={["broker"]}>
-                        <AppShell>
-                            <BrokerDashboardPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
-            <Route
-                path="/dashboard/client"
-                element={
-                    <RequireRole allowed={["client"]}>
-                        <AppShell>
-                            <ClientDashboardPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
-            <Route
-                path="/dashboard/admin"
-                element={
-                    <RequireRole allowed={["admin"]}>
-                        <AppShell>
-                            <AdminDashboardPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
+                {/* Dashboards */}
+                <Route
+                    path="/dashboard/broker"
+                    element={
+                        <RequireRole allowed={["broker"]}>
+                            <AppShell>
+                                <BrokerDashboardPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
+                <Route
+                    path="/dashboard/client"
+                    element={
+                        <RequireRole allowed={["client"]}>
+                            <AppShell>
+                                <ClientDashboardPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
+                <Route
+                    path="/dashboard/admin"
+                    element={
+                        <RequireRole allowed={["admin"]}>
+                            <AppShell>
+                                <AdminDashboardPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
 
-            {/* Broker transactions list */}
-            <Route
-                path="/transactions"
-                element={
-                    <RequireRole allowed={["broker"]}>
-                        <AppShell>
-                            <BrokerTransactionsPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
+                {/* Broker transactions list */}
+                <Route
+                    path="/transactions"
+                    element={
+                        <RequireRole allowed={["broker"]}>
+                            <AppShell>
+                                <BrokerTransactionsPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
 
-            {/* Create transaction (broker) */}
-            <Route
-                path="/transactions/new"
-                element={
-                    <RequireRole allowed={["broker"]}>
-                        <AppShell>
-                            <CreateTransactionPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
+                {/* Create transaction (broker) */}
+                <Route
+                    path="/transactions/new"
+                    element={
+                        <RequireRole allowed={["broker"]}>
+                            <AppShell>
+                                <CreateTransactionPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
 
-            {/* Client transactions list */}
-            <Route
-                path="/my-transaction"
-                element={
-                    <RequireRole allowed={["client"]}>
-                        <AppShell>
-                            <ClientTransactionsPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
+                {/* Client transactions list */}
+                <Route
+                    path="/my-transaction"
+                    element={
+                        <RequireRole allowed={["client"]}>
+                            <AppShell>
+                                <ClientTransactionsPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
 
-            {/* Transaction details – choose component based on the role */}
-            <Route
-                path="/transactions/:transactionId"
-                element={
-                    <RequireRole allowed={["broker", "client"]}>
-                        <AppShell>
-                            {role === "broker" ? (
-                                <BrokerTransactionDetailsPage />
-                            ) : (
-                                <ClientTransactionDetailsPage />
-                            )}
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
+                {/* Transaction details – choose component based on the role */}
+                <Route
+                    path="/transactions/:transactionId"
+                    element={
+                        <RequireRole allowed={["broker", "client"]}>
+                            <AppShell>
+                                {role === "broker" ? (
+                                    <BrokerTransactionDetailsPage />
+                                ) : (
+                                    <ClientTransactionDetailsPage />
+                                )}
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
 
-            {/* Documents (broker + client) */}
-            <Route
-                path="/documents"
-                element={
-                    <RequireRole allowed={["broker", "client"]}>
-                        <AppShell>
-                            <DocumentsPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
-            <Route
-                path="/transactions/:transactionId/documents"
-                element={
-                    <RequireRole allowed={["broker", "client"]}>
-                        <AppShell>
-                            <TransactionDocumentsPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
+                {/* Documents (broker + client) */}
+                <Route
+                    path="/documents"
+                    element={
+                        <RequireRole allowed={["broker", "client"]}>
+                            <AppShell>
+                                <DocumentsPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
+                <Route
+                    path="/transactions/:transactionId/documents"
+                    element={
+                        <RequireRole allowed={["broker", "client"]}>
+                            <AppShell>
+                                <TransactionDocumentsPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
 
-            {/* Appointments */}
-            <Route
-                path="/appointments"
-                element={
-                    <RequireRole allowed={["broker"]}>
-                        <AppShell>
-                            <AppointmentsPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
+                {/* Appointments */}
+                <Route
+                    path="/appointments"
+                    element={
+                        <RequireRole allowed={["broker"]}>
+                            <AppShell>
+                                <AppointmentsPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
 
-            {/* Analytics */}
-            <Route
-                path="/analytics"
-                element={
-                    <RequireRole allowed={["broker", "admin"]}>
-                        <AppShell>
-                            <AnalyticsPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
+                {/* Analytics */}
+                <Route
+                    path="/analytics"
+                    element={
+                        <RequireRole allowed={["broker", "admin"]}>
+                            <AppShell>
+                                <AnalyticsPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
 
-            {/* Clients */}
-            <Route
-                path="/clients"
-                element={
-                    <RequireRole allowed={["broker"]}>
-                        <AppShell>
-                            <ClientsPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
+                {/* Clients */}
+                <Route
+                    path="/clients"
+                    element={
+                        <RequireRole allowed={["broker"]}>
+                            <AppShell>
+                                <ClientsPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
 
-            {/* Notifications – everyone */}
-            <Route
-                path="/notifications"
-                element={
-                    <RequireRole allowed={["broker", "client", "admin"]}>
-                        <AppShell>
-                            <NotificationsPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
+                {/* Notifications – everyone */}
+                <Route
+                    path="/notifications"
+                    element={
+                        <RequireRole allowed={["broker", "client", "admin"]}>
+                            <AppShell>
+                                <NotificationsPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
 
-            {/* Admin pages – only ADMIN */}
-            <Route
-                path="/admin/users"
-                element={
-                    <RequireRole allowed={["admin"]}>
-                        <AppShell>
-                            <AdminUsersPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
-            <Route
-                path="/admin/settings"
-                element={
-                    <RequireRole allowed={["admin"]}>
-                        <AppShell>
-                            <AdminSettingsPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
-            <Route
-                path="/admin/login-audit"
-                element={
-                    <RequireRole allowed={["admin"]}>
-                        <AppShell>
-                            <LoginAuditPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
-            <Route
-                path="/admin/system-logs"
-                element={
-                    <RequireRole allowed={["admin"]}>
-                        <AppShell>
-                            <SystemLogsPage />
-                        </AppShell>
-                    </RequireRole>
-                }
-            />
+                {/* Admin pages – only ADMIN */}
+                <Route
+                    path="/admin/users"
+                    element={
+                        <RequireRole allowed={["admin"]}>
+                            <AppShell>
+                                <AdminUsersPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
+                <Route
+                    path="/admin/settings"
+                    element={
+                        <RequireRole allowed={["admin"]}>
+                            <AppShell>
+                                <AdminSettingsPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
+                <Route
+                    path="/admin/login-audit"
+                    element={
+                        <RequireRole allowed={["admin"]}>
+                            <AppShell>
+                                <LoginAuditPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
+                <Route
+                    path="/admin/system-logs"
+                    element={
+                        <RequireRole allowed={["admin"]}>
+                            <AppShell>
+                                <SystemLogsPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
 
-            {/* Profile – accessible to every connected role */}
-            <Route
-                path="/profile"
-                element={
-                    <RequireRole allowed={["broker", "client", "admin"]}>
+                {/* Profile – accessible to every connected role */}
+                <Route
+                    path="/profile"
+                    element={
+                        <RequireRole allowed={["broker", "client", "admin"]}>
+                            <AppShell>
+                                <ProfilePage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
+
+                {/* Feedback and UI components showcase */}
+                <Route
+                    path="/dev/showcase"
+                    element={
+                        <RequireRole allowed={["admin"]}>
+                            <AppShell>
+                                <ShowcasePage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
+
+                {/* Error / status pages (used by axios error handler) */}
+                <Route
+                    path="/unauthorized"
+                    element={
                         <AppShell>
-                            <ProfilePage />
+                            <UnauthorizedPage />
                         </AppShell>
-                    </RequireRole>
-                }
-            />
-
-            {/* Feedback and UI components showcase */}
-            <Route
-                path="/dev/showcase"
-                element={
-                    <RequireRole allowed={["admin"]}>
+                    }
+                />
+                <Route
+                    path="/forbidden"
+                    element={
                         <AppShell>
-                            <ShowcasePage />
+                            <ForbiddenPage />
                         </AppShell>
-                    </RequireRole>
-                }
-            />
+                    }
+                />
+                <Route
+                    path="/internal-server-error"
+                    element={
+                        <AppShell>
+                            <InternalServerErrorPage />
+                        </AppShell>
+                    }
+                />
+                <Route
+                    path="/service-unavailable"
+                    element={
+                        <AppShell>
+                            <ServiceUnavailablePage />
+                        </AppShell>
+                    }
+                />
 
-            {/* Error / status pages (used by axios error handler) */}
-            <Route
-                path="/unauthorized"
-                element={
-                    <AppShell>
-                        <UnauthorizedPage />
-                    </AppShell>
-                }
-            />
-            <Route
-                path="/forbidden"
-                element={
-                    <AppShell>
-                        <ForbiddenPage />
-                    </AppShell>
-                }
-            />
-            <Route
-                path="/internal-server-error"
-                element={
-                    <AppShell>
-                        <InternalServerErrorPage />
-                    </AppShell>
-                }
-            />
-            <Route
-                path="/service-unavailable"
-                element={
-                    <AppShell>
-                        <ServiceUnavailablePage />
-                    </AppShell>
-                }
-            />
-
-            {/* Catch-all 404 */}
-            <Route
-                path="*"
-                element={
-                    <AppShell>
-                        <NotFoundPage />
-                    </AppShell>
-                }
-            />
-        </Routes>
+                {/* Catch-all 404 */}
+                <Route
+                    path="*"
+                    element={
+                        <AppShell>
+                            <NotFoundPage />
+                        </AppShell>
+                    }
+                />
+            </Routes>
+        </Suspense>
     );
 }

@@ -6,9 +6,15 @@ auth0:
   domain: ${AUTH0_DOMAIN:dev-xxxxx.us.auth0.com}
   audience: ${AUTH0_AUDIENCE:https://api.courtierpro.dev}
   management:
-    client-id: ${AUTH0_MGMT_CLIENT_ID:}
-    client-secret: ${AUTH0_MGMT_CLIENT_SECRET:}
-    audience: ${AUTH0_MGMT_AUDIENCE:}
+    client-id: ${AUTH0_MGMT_CLIENT_ID}
+    client-secret: ${AUTH0_MGMT_CLIENT_SECRET}
+    audience: ${AUTH0_MGMT_AUDIENCE}
+
+# For production, use encrypted properties or a secrets management service for Gmail credentials.
+gmail:
+  username: ${GMAIL_USERNAME}
+  # In production, set GMAIL_PASSWORD_ENCRYPTED to an encrypted value and use Jasypt or a secrets manager to decrypt.
+  password: ${GMAIL_PASSWORD_ENCRYPTED}
 
 spring:
   datasource:
@@ -18,11 +24,16 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: update  # WARNING: Hybrid schema management! Flyway manages 'login_audit_events'; Hibernate manages all other tables. This can lead to schema conflicts—migrate all tables to Flyway for consistency.
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:migration
 
   security:
     oauth2:

@@ -6,11 +6,11 @@ import { AttributeRow } from "@/shared/components/branded/AttributeRow";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
 import { Button } from "@/shared/components/ui/button";
-import { useUserProfile } from "@/features/profile/api/queries";
+import { useProfilePageLogic } from "@/features/profile/hooks/useProfilePageLogic";
 
 export function ProfilePage() {
   const { t } = useTranslation("profile");
-  const { data: user, isLoading, error, refetch } = useUserProfile();
+  const { user, isLoading, error, refetch } = useProfilePageLogic();
 
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState message={error.message} onRetry={() => refetch()} />;

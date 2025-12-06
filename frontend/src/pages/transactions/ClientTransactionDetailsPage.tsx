@@ -2,6 +2,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
 import { TransactionSummary } from "@/features/transactions/components/TransactionSummary";
 import { ErrorBoundary } from "@/shared/components/error/ErrorBoundary";
+import { ErrorState } from "@/shared/components/branded/ErrorState";
+import { Button } from "@/shared/components/ui/button";
 
 export function ClientTransactionDetailsPage() {
   const { transactionId } = useParams();
@@ -10,18 +12,15 @@ export function ClientTransactionDetailsPage() {
 
   if (!transactionId) {
     return (
-      <div className="p-6">
-        <h1 className="text-xl font-semibold">{t('transactionNotFound')}</h1>
-        <p className="text-sm text-muted-foreground">{t('noTransactionId')}</p>
-
-        <button
-          onClick={() => navigate("/dashboard/client")}
-          className="mt-4 px-4 py-2 rounded-lg"
-          style={{ backgroundColor: "#FF6B01", color: "#FFFFFF" }}
-        >
-          {t('goBack')}
-        </button>
-      </div>
+      <ErrorState
+        title={t('transactionNotFound')}
+        message={t('noTransactionId')}
+        action={
+          <Button onClick={() => navigate('/dashboard/client')}>
+            {t('goBack')}
+          </Button>
+        }
+      />
     );
   }
 

@@ -1,6 +1,14 @@
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Section } from "@/shared/components/branded/Section";
+import { Button } from "@/shared/components/ui/button";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/shared/components/ui/select";
 import { getStagesForSide, enumToLabel } from '@/shared/utils/stages';
 
 interface TransactionFiltersProps {
@@ -35,7 +43,6 @@ export function TransactionFilters({
         if (sideFilter === 'buy') return getStagesForSide('BUY_SIDE').map(enumToLabel);
         if (sideFilter === 'sell') return getStagesForSide('SELL_SIDE').map(enumToLabel);
         const combined = [...getStagesForSide('BUY_SIDE'), ...getStagesForSide('SELL_SIDE')];
-        // Deduplicate by enum
         const uniqueEnums = Array.from(new Set(combined));
         return uniqueEnums.map(enumToLabel);
     })();
@@ -51,16 +58,19 @@ export function TransactionFilters({
                     >
                         {t('transactionSide')}
                     </label>
-                    <select
-                        id="side-filter"
+                    <Select
                         value={sideFilter}
-                        onChange={(e) => onSideFilterChange(e.target.value as 'all' | 'buy' | 'sell')}
-                        className="w-full p-2 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        onValueChange={(value) => onSideFilterChange(value as 'all' | 'buy' | 'sell')}
                     >
-                        <option value="all">{t('all')}</option>
-                        <option value="buy">{t('buy')}</option>
-                        <option value="sell">{t('sell')}</option>
-                    </select>
+                        <SelectTrigger id="side-filter" className="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">{t('all')}</SelectItem>
+                            <SelectItem value="buy">{t('buy')}</SelectItem>
+                            <SelectItem value="sell">{t('sell')}</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 {/* Status Filter */}
@@ -71,17 +81,20 @@ export function TransactionFilters({
                     >
                         {t('status')}
                     </label>
-                    <select
-                        id="status-filter"
+                    <Select
                         value={statusFilter}
-                        onChange={(e) => onStatusFilterChange(e.target.value as 'all' | 'active' | 'closed' | 'terminated')}
-                        className="w-full p-2 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        onValueChange={(value) => onStatusFilterChange(value as 'all' | 'active' | 'closed' | 'terminated')}
                     >
-                        <option value="all">{t('all')}</option>
-                        <option value="active">{t('active')}</option>
-                        <option value="closed">{t('closed')}</option>
-                        <option value="terminated">{t('terminated')}</option>
-                    </select>
+                        <SelectTrigger id="status-filter" className="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">{t('all')}</SelectItem>
+                            <SelectItem value="active">{t('active')}</SelectItem>
+                            <SelectItem value="closed">{t('closed')}</SelectItem>
+                            <SelectItem value="terminated">{t('terminated')}</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 {/* Stage Filter */}
@@ -92,20 +105,23 @@ export function TransactionFilters({
                     >
                         {t('stage')}
                     </label>
-                    <select
-                        id="stage-filter"
+                    <Select
                         value={stageFilter}
-                        onChange={(e) => onStageFilterChange(e.target.value)}
-                        className="w-full p-2 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        onValueChange={onStageFilterChange}
                         disabled={sideFilter === 'all'}
                     >
-                        <option value="all">{t('all')}</option>
-                        {availableStages.map((stage) => (
-                            <option key={stage} value={stage}>
-                                {stage}
-                            </option>
-                        ))}
-                    </select>
+                        <SelectTrigger id="stage-filter" className="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">{t('all')}</SelectItem>
+                            {availableStages.map((stage) => (
+                                <SelectItem key={stage} value={stage}>
+                                    {stage}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 {/* Sort By */}
@@ -116,36 +132,40 @@ export function TransactionFilters({
                     >
                         {t('sortBy')}
                     </label>
-                    <select
-                        id="sort-by"
+                    <Select
                         value={sortBy}
-                        onChange={(e) => onSortByChange(e.target.value as 'dateAsc' | 'dateDesc' | 'nameAsc' | 'nameDesc')}
-                        className="w-full p-2 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        onValueChange={(value) => onSortByChange(value as 'dateAsc' | 'dateDesc' | 'nameAsc' | 'nameDesc')}
                     >
-                        <option value="dateDesc">{t('dateOpenedDesc')}</option>
-                        <option value="dateAsc">{t('dateOpenedAsc')}</option>
-                        {/* Disabled until backend returns clientName */}
-                        <option value="nameAsc" disabled>
-                            {t('clientNameAsc')} (Not available)
-                        </option>
-                        <option value="nameDesc" disabled>
-                            {t('clientNameDesc')} (Not available)
-                        </option>
-                    </select>
+                        <SelectTrigger id="sort-by" className="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="dateDesc">{t('dateOpenedDesc')}</SelectItem>
+                            <SelectItem value="dateAsc">{t('dateOpenedAsc')}</SelectItem>
+                            <SelectItem value="nameAsc" disabled>
+                                {t('clientNameAsc')} (Not available)
+                            </SelectItem>
+                            <SelectItem value="nameDesc" disabled>
+                                {t('clientNameDesc')} (Not available)
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 {/* Clear Filters Button */}
                 <div className="flex items-end">
-                    <button
+                    <Button
+                        variant="secondary"
                         onClick={onResetFilters}
                         disabled={!hasActiveFilters}
-                        className="w-full p-2 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-secondary text-secondary-foreground"
+                        className="w-full gap-2"
                     >
                         <X className="w-4 h-4" />
                         {t('clearFilters')}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </Section>
     );
 }
+

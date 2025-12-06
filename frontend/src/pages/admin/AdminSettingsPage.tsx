@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InviteUserModal } from "@/features/admin/components/InviteUserModal";
 import { PageHeader } from "@/shared/components/branded/PageHeader";
+import { Button } from "@/shared/components/ui/button";
 
 export function AdminSettingsPage() {
     const { t } = useTranslation("admin");
@@ -21,13 +22,11 @@ export function AdminSettingsPage() {
                     />
 
                     {/* Boutton that opens the modal */}
-                    <button
-                        type="button"
-                        className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
+                    <Button
                         onClick={() => setIsInviteOpen(true)}
                     >
                         {t("inviteUser")}
-                    </button>
+                    </Button>
                 </div>
 
                 {/* Simple placeholder card for org settings */}

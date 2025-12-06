@@ -16,7 +16,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
             const pref = getPreferredLanguage(user);
             // Only update if different to avoid unnecessary renders/loops
             if (pref !== i18n.language) {
-                // eslint-disable-next-line react-hooks/set-state-in-effect
+                 
                 setLanguage(pref);
                 i18n.changeLanguage(pref);
             }

@@ -8,12 +8,17 @@
 import { useState } from "react";
 import { Plus, Search, Shield, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { InviteUserModal } from "@/features/admin/components/InviteUserModal";
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { Badge } from "@/shared/components/ui/badge";
 import { useAdminUsers } from "@/features/admin/api/queries";
 import { useSetUserActiveStatus } from "@/features/admin/api/mutations";
+import { logError, getErrorMessage } from "@/shared/utils/error-utils";
 
 export function AdminUsersPage() {
     const { t } = useTranslation("admin");
@@ -27,7 +32,11 @@ export function AdminUsersPage() {
         try {
             await setUserActiveStatus.mutateAsync({ userId, active: !currentStatus });
         } catch (err) {
-            console.error("Failed to toggle user status", err);
+            const message = getErrorMessage(err, t("failedToToggleStatus"));
+            toast.error(message);
+            if (err instanceof Error) {
+                logError(err);
+            }
         }
     };
 
@@ -50,13 +59,12 @@ export function AdminUsersPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <PageHeader title={t("userManagement")} subtitle={t("manageSystemAccess")} />
-                <button
+                <Button
                     onClick={() => setShowInviteModal(true)}
-                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
                 >
                     <Plus className="h-4 w-4 mr-2" />
                     {t("inviteUser")}
-                </button>
+                </Button>
             </div>
 
             {/* Search and Filter Bar */}
@@ -65,9 +73,9 @@ export function AdminUsersPage() {
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Search className="h-5 w-5 text-gray-400" />
                     </div>
-                    <input
+                    <Input
                         type="text"
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+                        className="pl-10"
                         placeholder={t("searchUsers")}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -121,24 +129,25 @@ export function AdminUsersPage() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span
-                                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                                                }`}
+                                        <Badge
+                                            variant={user.active ? "success" : "destructive"}
+                                            className="rounded-full"
                                         >
                                             {user.active ? t("active") : t("inactive")}
-                                        </span>
+                                        </Badge>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {user.preferredLanguage === "en" ? "English" : "Français"}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
                                             onClick={() => handleToggleStatus(user.id, user.active)}
-                                            className={`text-sm ${user.active ? "text-red-600 hover:text-red-900" : "text-green-600 hover:text-green-900"
-                                                }`}
+                                            className={user.active ? "text-red-600 hover:text-red-900 hover:bg-red-50" : "text-green-600 hover:text-green-900 hover:bg-green-50"}
                                         >
                                             {user.active ? t("deactivate") : t("activate")}
-                                        </button>
+                                        </Button>
                                     </td>
                                 </tr>
                             ))

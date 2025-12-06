@@ -1,7 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { getStagesForSide, enumToLabel } from '@/shared/utils/stages';
-import { X, ChevronDown, MessageSquare } from 'lucide-react';
+import { X, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/shared/components/ui/button';
+import { Textarea } from '@/shared/components/ui/textarea';
+import { Checkbox } from '@/shared/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/components/ui/select';
 
 interface StageUpdateModalProps {
   isOpen: boolean;
@@ -131,14 +141,15 @@ export function StageUpdateModal({
             <h2 id="stage-modal-title" style={{ color: '#353535' }}>
               {t('updateTransactionStage')}
             </h2>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="p-1 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] transition-colors"
               aria-label="Close modal"
             >
-              <X className="w-5 h-5" style={{ color: '#353535' }} />
-            </button>
+              <X className="w-5 h-5" />
+            </Button>
           </div>
 
           {/* Modal Body */}
@@ -159,32 +170,29 @@ export function StageUpdateModal({
                 </span>
               </label>
 
-              <div className="relative">
-                <select
-                  ref={firstFocusableRef}
+              <Select
+                value={selectedStage === '' ? undefined : String(selectedStage)}
+                onValueChange={(value) => setSelectedStage(Number(value))}
+              >
+                <SelectTrigger
                   id="stage-select"
-                  value={selectedStage}
-                  onChange={(e) => setSelectedStage(Number(e.target.value))}
-                  className="w-full p-3 pr-10 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent appearance-none"
-                  style={{ color: '#353535' }}
+                  className="w-full"
                   aria-required="true"
                   aria-describedby="stage-description-text"
                 >
-                  <option value="">{t('selectStagePlaceholder')}</option>
+                  <SelectValue placeholder={t('selectStagePlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
                   {stageEnums.map((stageEnum, index) => {
                     const stageNumber = index + 1;
                     return (
-                      <option key={stageEnum} value={stageNumber}>
+                      <SelectItem key={stageEnum} value={String(stageNumber)}>
                         {i18n.language === 'en' ? 'Stage' : 'Étape'} {stageNumber}: {enumToLabel(stageEnum)}
-                      </option>
+                      </SelectItem>
                     );
                   })}
-                </select>
-                <ChevronDown
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 pointer-events-none"
-                  style={{ color: '#353535', opacity: 0.5 }}
-                />
-              </div>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Stage Description */}
@@ -221,41 +229,36 @@ export function StageUpdateModal({
                 {t('progressNote')}
               </label>
 
-              <textarea
+              <Textarea
                 id="progress-note"
                 value={progressNote}
                 onChange={(e) => setProgressNote(e.target.value)}
                 rows={4}
-                className="w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent resize-none"
-                style={{ color: '#353535' }}
                 placeholder={t('progressNotePlaceholder')}
                 aria-describedby="note-help-text"
               />
 
               {/* Visible to Client Checkbox */}
               <div className="mt-3">
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="visible-to-client"
                     checked={visibleToClient}
-                    onChange={(e) => setVisibleToClient(e.target.checked)}
-                    className="mt-1 w-4 h-4 rounded focus:ring-2 focus:ring-[#FF6B01] focus:ring-offset-2"
-                    style={{ accentColor: '#FF6B01' }}
+                    onCheckedChange={(checked) => setVisibleToClient(checked === true)}
                     aria-describedby="visibility-help-text"
                   />
                   <div className="flex-1">
-                    <p style={{ color: '#353535', fontSize: '0.875rem' }}>
+                    <label htmlFor="visible-to-client" className="text-sm cursor-pointer">
                       {t('visibleToClient')}
-                    </p>
+                    </label>
                     <p
                       id="visibility-help-text"
-                      style={{ color: '#353535', opacity: 0.7, fontSize: '0.75rem' }}
-                      className="mt-1"
+                      className="text-xs text-muted-foreground mt-1"
                     >
                       {t('visibleToClientHelp')}
                     </p>
                   </div>
-                </label>
+                </div>
               </div>
             </div>
 
@@ -275,26 +278,21 @@ export function StageUpdateModal({
 
           {/* Modal Footer */}
           <div className="flex items-center gap-3 p-6 border-t border-gray-200">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
-              className="flex-1 px-4 py-3 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors border-2 border-gray-200"
-              style={{ color: '#353535' }}
+              className="flex-1"
             >
               {t('cancel')}
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={!isFormValid}
-              className="flex-1 px-4 py-3 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{
-                backgroundColor: isFormValid ? '#FF6B01' : '#e5e7eb',
-                color: isFormValid ? '#FFFFFF' : '#9ca3af',
-              }}
-              aria-disabled={!isFormValid}
+              className="flex-1"
             >
               {t('updateTransactionStage')}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

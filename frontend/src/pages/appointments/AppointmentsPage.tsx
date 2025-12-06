@@ -1,4 +1,4 @@
-import { useState } from "react";
+
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
 import { EmptyState } from "@/shared/components/branded/EmptyState";
@@ -6,28 +6,22 @@ import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
 import { Calendar, Plus } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
-import { useAppointments } from "@/features/appointments/api/queries";
-import { useCreateAppointment, type CreateAppointmentDTO } from "@/features/appointments/api/mutations";
-import { CreateAppointmentModal, type AppointmentFormData } from "@/features/appointments/components/CreateAppointmentModal";
+import { useAppointmentsPageLogic } from "@/features/appointments/hooks/useAppointmentsPageLogic";
+import { CreateAppointmentModal } from "@/features/appointments/components/CreateAppointmentModal";
 import { AppointmentList } from "@/features/appointments/components/AppointmentList";
 import { useTranslation } from "react-i18next";
 
 export function AppointmentsPage() {
   const { t } = useTranslation('appointments');
-  const { data: appointments = [], isLoading, error, refetch } = useAppointments();
-  const createAppointment = useCreateAppointment();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const handleCreateAppointment = async (data: AppointmentFormData) => {
-    try {
-      await createAppointment.mutateAsync({
-        ...data,
-      } as CreateAppointmentDTO);
-      setIsModalOpen(false);
-    } catch (err) {
-      console.error("Failed to create appointment", err);
-    }
-  };
+  const {
+    appointments,
+    isLoading,
+    error,
+    refetch,
+    isModalOpen,
+    setIsModalOpen,
+    handleCreateAppointment
+  } = useAppointmentsPageLogic();
 
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState message={error.message} onRetry={() => refetch()} />;
@@ -51,10 +45,10 @@ export function AppointmentsPage() {
         <Section>
           <EmptyState
             icon={<Calendar />}
-            title={t('noAppointmentsTitle', 'No appointments scheduled')}
-            description={t('noAppointmentsDesc', "You don't have any upcoming appointments. Schedule one now.")}
+            title={t('noAppointmentsTitle')}
+            description={t('noAppointmentsDesc')}
             action={
-              <Button onClick={() => setIsModalOpen(true)}>{t('scheduleAppointment', 'Schedule Appointment')}</Button>
+              <Button onClick={() => setIsModalOpen(true)}>{t('scheduleAppointment')}</Button>
             }
           />
         </Section>

@@ -11,9 +11,11 @@ interface SectionProps {
 }
 
 export function Section({ title, description, children, className, action }: SectionProps) {
+    const hasHeader = title || description || action;
+
     return (
         <Card className={cn("overflow-hidden", className)}>
-            {(title || description || action) && (
+            {hasHeader && (
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
                     <div className="space-y-1">
                         {title && <CardTitle className="text-lg font-semibold">{title}</CardTitle>}
@@ -22,7 +24,7 @@ export function Section({ title, description, children, className, action }: Sec
                     {action && <div>{action}</div>}
                 </CardHeader>
             )}
-            <CardContent>{children}</CardContent>
+            <CardContent className={cn(!hasHeader && "pt-6")}>{children}</CardContent>
         </Card>
     );
 }

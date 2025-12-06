@@ -11,6 +11,16 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
+import { Textarea } from '@/shared/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/components/ui/select';
 
 type AppointmentType = 'inspection' | 'notary' | 'showing' | 'consultation' | 'walkthrough' | 'meeting';
 
@@ -346,14 +356,15 @@ export function CreateAppointmentModal({
               {t('title')}
             </h2>
           </div>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] transition-colors"
             aria-label="Close modal"
           >
-            <X className="w-5 h-5" style={{ color: '#353535' }} />
-          </button>
+            <X className="w-5 h-5" />
+          </Button>
         </div>
 
         {/* Modal Body */}
@@ -378,7 +389,7 @@ export function CreateAppointmentModal({
                 </span>
               </label>
               <div className="relative">
-                <input
+                <Input
                   type="text"
                   id="client-select"
                   value={clientSearchTerm}
@@ -388,8 +399,7 @@ export function CreateAppointmentModal({
                   }}
                   onFocus={() => setShowClientDropdown(true)}
                   placeholder={t('searchClient')}
-                  className="w-full p-3 pr-10 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent transition-all"
-                  style={{ color: '#353535' }}
+                  className="pr-10"
                   aria-required="true"
                   autoComplete="off"
                 />
@@ -412,14 +422,14 @@ export function CreateAppointmentModal({
                           onClick={() => handleClientSelect(client)}
                           className="w-full text-left p-3 hover:bg-orange-50 focus:outline-none focus:bg-orange-50 transition-colors border-b border-gray-100 last:border-b-0"
                         >
-                          <p style={{ color: '#353535' }} className="mb-1">
+                          <p className="text-foreground mb-1">
                             {client.name}
                           </p>
-                          <p style={{ color: '#353535', opacity: 0.6, fontSize: '0.875rem' }}>
+                          <p className="text-muted-foreground text-sm">
                             {client.email}
                           </p>
                           {client.transactionAddress && (
-                            <p style={{ color: '#FF6B01', fontSize: '0.75rem' }} className="mt-1">
+                            <p className="text-primary text-xs mt-1">
                               {client.transactionAddress}
                             </p>
                           )}
@@ -484,21 +494,21 @@ export function CreateAppointmentModal({
                     {t('required')}
                   </span>
                 </label>
-                <select
-                  id="transaction-select"
+                <Select
                   value={selectedTransactionId}
-                  onChange={(e) => setSelectedTransactionId(e.target.value)}
-                  className="w-full p-3 pr-10 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent appearance-none transition-all"
-                  style={{ color: '#353535' }}
-                  aria-required="true"
+                  onValueChange={setSelectedTransactionId}
                 >
-                  <option value="">{t('selectTransaction')}</option>
-                  {clientTransactions.map((transaction) => (
-                    <option key={transaction.id} value={transaction.id}>
-                      {transaction.address} ({transaction.id})
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="transaction-select" className="w-full" aria-required="true">
+                    <SelectValue placeholder={t('selectTransaction')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientTransactions.map((transaction) => (
+                      <SelectItem key={transaction.id} value={transaction.id}>
+                        {transaction.address} ({transaction.id})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {clientTransactions.length === 0 && (
                   <p style={{ color: '#ef4444', fontSize: '0.75rem' }} className="mt-2">
                     {t('noTransactionsAvailable')}
@@ -526,28 +536,22 @@ export function CreateAppointmentModal({
                 {t('required')}
               </span>
             </label>
-            <div className="relative">
-              <select
-                id="appointment-type"
-                value={appointmentType}
-                onChange={(e) => setAppointmentType(e.target.value as AppointmentType)}
-                className="w-full p-3 pr-10 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent appearance-none transition-all"
-                style={{ color: '#353535' }}
-                aria-required="true"
-              >
-                <option value="">{t('selectType')}</option>
-                <option value="inspection">{t('inspection')}</option>
-                <option value="notary">{t('notary')}</option>
-                <option value="showing">{t('showing')}</option>
-                <option value="consultation">{t('consultation')}</option>
-                <option value="walkthrough">{t('walkthrough')}</option>
-                <option value="meeting">{t('meeting')}</option>
-              </select>
-              <ChevronDown
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 pointer-events-none"
-                style={{ color: '#353535', opacity: 0.5 }}
-              />
-            </div>
+            <Select
+              value={appointmentType}
+              onValueChange={(value) => setAppointmentType(value as AppointmentType)}
+            >
+              <SelectTrigger id="appointment-type" className="w-full" aria-required="true">
+                <SelectValue placeholder={t('selectType')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="inspection">{t('inspection')}</SelectItem>
+                <SelectItem value="notary">{t('notary')}</SelectItem>
+                <SelectItem value="showing">{t('showing')}</SelectItem>
+                <SelectItem value="consultation">{t('consultation')}</SelectItem>
+                <SelectItem value="walkthrough">{t('walkthrough')}</SelectItem>
+                <SelectItem value="meeting">{t('meeting')}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Date */}
@@ -568,22 +572,14 @@ export function CreateAppointmentModal({
                 {t('required')}
               </span>
             </label>
-            <div className="relative">
-              <input
-                type="date"
-                id="appointment-date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                min={getMinDate()}
-                className="w-full p-3 pr-10 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent transition-all"
-                style={{ color: '#353535' }}
-                aria-required="true"
-              />
-              <Calendar
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 pointer-events-none"
-                style={{ color: '#353535', opacity: 0.5 }}
-              />
-            </div>
+            <Input
+              type="date"
+              id="appointment-date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              min={getMinDate()}
+              aria-required="true"
+            />
           </div>
 
           {/* Time */}
@@ -604,27 +600,21 @@ export function CreateAppointmentModal({
                 {t('required')}
               </span>
             </label>
-            <div className="relative">
-              <select
-                id="appointment-time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="w-full p-3 pr-10 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent appearance-none transition-all"
-                style={{ color: '#353535' }}
-                aria-required="true"
-              >
-                <option value="">{t('selectTime')}</option>
+            <Select
+              value={time}
+              onValueChange={setTime}
+            >
+              <SelectTrigger id="appointment-time" className="w-full" aria-required="true">
+                <SelectValue placeholder={t('selectTime')} />
+              </SelectTrigger>
+              <SelectContent>
                 {timeSlots.map((timeSlot) => (
-                  <option key={timeSlot} value={timeSlot}>
+                  <SelectItem key={timeSlot} value={timeSlot}>
                     {formatTimeDisplay(timeSlot)}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
-              <Clock
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 pointer-events-none"
-                style={{ color: '#353535', opacity: 0.5 }}
-              />
-            </div>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Message to Client */}
@@ -645,50 +635,37 @@ export function CreateAppointmentModal({
                 {t('optional')}
               </span>
             </label>
-            <div className="relative">
-              <MessageSquare
-                className="absolute left-3 top-3 w-5 h-5"
-                style={{ color: '#353535', opacity: 0.5 }}
-              />
-              <textarea
-                id="appointment-message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                rows={4}
-                className="w-full p-3 pl-11 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:border-transparent resize-none transition-all"
-                style={{ color: '#353535' }}
-                placeholder={t('messagePlaceholder')}
-                aria-required="false"
-              />
-            </div>
+            <Textarea
+              id="appointment-message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={4}
+              placeholder={t('messagePlaceholder')}
+              aria-required="false"
+            />
           </div>
         </form>
 
         {/* Modal Footer */}
         <div className="p-6 border-t border-gray-200 bg-gray-50">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
-              className="flex-1 px-4 py-3 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors border-2 border-gray-200"
-              style={{ color: '#353535', backgroundColor: '#FFFFFF' }}
+              className="flex-1"
             >
               {t('cancel')}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={handleSubmit}
               disabled={!appointmentType || !date || !time || !selectedClientId || !selectedTransactionId}
-              className="flex-1 px-4 py-3 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#FF6B01] focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              style={{
-                backgroundColor: appointmentType && date && time && selectedClientId && selectedTransactionId ? '#FF6B01' : '#e5e7eb',
-                color: appointmentType && date && time && selectedClientId && selectedTransactionId ? '#FFFFFF' : '#9ca3af',
-              }}
-              aria-disabled={!appointmentType || !date || !time || !selectedClientId || !selectedTransactionId}
+              className="flex-1 gap-2"
             >
               <Send className="w-5 h-5" />
               {t('sendRequest')}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

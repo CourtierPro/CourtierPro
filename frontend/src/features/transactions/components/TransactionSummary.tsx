@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useTransaction } from '@/features/transactions/api/queries';
 import { LoadingState } from '@/shared/components/branded/LoadingState';
 import { ErrorState } from '@/shared/components/branded/ErrorState';
+import { Button } from '@/shared/components/ui/button';
 
 interface TransactionSummaryProps {
   transactionId: string;
@@ -123,12 +124,12 @@ export function TransactionSummary({ transactionId }: TransactionSummaryProps) {
           <div className="p-6 rounded-xl shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('quickActions')}</h3>
             <div className="space-y-3">
-              <button className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+              <Button className="w-full">
                 {t('updateStage')}
-              </button>
-              <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+              </Button>
+              <Button variant="outline" className="w-full">
                 {t('addNote')}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
