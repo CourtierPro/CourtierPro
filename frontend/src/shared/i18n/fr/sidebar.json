@@ -1,0 +1,17 @@
+{
+  "dashboard": "Tableau de bord",
+  "transactions": "Transactions",
+  "documents": "Documents",
+  "appointments": "Rendez-vous",
+  "analytics": "Analytique",
+  "myTransaction": "Ma transaction",
+  "myDocuments": "Mes documents",
+  "manageUsers": "Gérer les utilisateurs",
+  "orgSettings": "Paramètres",
+  "loginAudit": "Audit des connexions",
+  "systemLogs": "Journaux du système",
+  "clients": "Clients",
+  "closeSidebar": "Fermer la barre latérale",
+  "menuLabel": "Menu",
+  "notifications": "Notifications"
+}

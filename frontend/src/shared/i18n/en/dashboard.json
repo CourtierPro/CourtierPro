@@ -1,0 +1,40 @@
+{
+    "broker": {
+        "title": "Broker Dashboard",
+        "subtitle": "Overview of your active transactions and performance.",
+        "activeTransactions": "Active Transactions",
+        "totalCommission": "Total Commission",
+        "activeClients": "Active Clients",
+        "pendingActions": "Pending Actions",
+        "recentActivity": "Recent Activity",
+        "recentActivityDesc": "Latest updates from your transactions.",
+        "activityPlaceholder": "Activity feed placeholder...",
+        "upcomingAppointments": "Upcoming Appointments",
+        "upcomingAppointmentsDesc": "Your schedule for the next 7 days.",
+        "calendarPlaceholder": "Calendar placeholder...",
+        "vsLastMonth": "vs last month",
+        "newToday": "new today"
+    },
+    "client": {
+        "title": "Client Dashboard",
+        "subtitle": "Track your property transactions.",
+        "activeTransactions": "Active Transactions",
+        "documentsNeeded": "Documents Needed",
+        "myTransactions": "My Transactions",
+        "myTransactionsDesc": "Current status of your buying/selling process.",
+        "transactionListPlaceholder": "Transaction list placeholder...",
+        "overdue": "overdue"
+    },
+    "admin": {
+        "title": "Admin Dashboard",
+        "subtitle": "System overview and user management.",
+        "totalUsers": "Total Users",
+        "activeBrokers": "Active Brokers",
+        "systemHealth": "System Health",
+        "systemLogs": "System Logs",
+        "systemLogsDesc": "Recent system events and errors.",
+        "logsPlaceholder": "Logs placeholder...",
+        "thisWeek": "this week",
+        "stable": "stable"
+    }
+}

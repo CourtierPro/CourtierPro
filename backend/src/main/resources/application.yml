@@ -5,12 +5,16 @@ server:
 auth0:
   domain: ${AUTH0_DOMAIN:dev-xxxxx.us.auth0.com}
   audience: ${AUTH0_AUDIENCE:https://api.courtierpro.dev}
+  management:
+    client-id: ${AUTH0_MGMT_CLIENT_ID:}
+    client-secret: ${AUTH0_MGMT_CLIENT_SECRET:}
+    audience: ${AUTH0_MGMT_AUDIENCE:}
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/courtierpro
-    username: courtier
-    password: courtier
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/courtierpro
+    username: ${DB_USER:courtier}
+    password: ${DB_PASS:courtier}
 
   jpa:
     hibernate:

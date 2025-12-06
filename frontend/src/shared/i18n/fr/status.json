@@ -1,0 +1,18 @@
+{
+    "notFoundTitle": "404 – Page non trouvée",
+    "notFoundDesc": "La page que vous recherchez n'existe pas ou a été déplacée.",
+    "notFoundFooter": "Vérifiez l'URL ou revenez en lieu sûr.",
+    "goBack": "Retour",
+    "goHome": "Accueil",
+    "forbiddenTitle": "403 – Interdit",
+    "forbiddenDesc": "Vous n'avez pas la permission d'accéder à cette ressource.",
+    "forbiddenFooter": "Si vous pensez qu'il s'agit d'une erreur, contactez votre administrateur.",
+    "serverErrorTitle": "500 – Erreur interne du serveur",
+    "serverErrorDesc": "Quelque chose s'est mal passé de notre côté. Nous y travaillons.",
+    "serverErrorFooter": "Veuillez réessayer plus tard ou contacter le support.",
+    "serviceUnavailableTitle": "503 – Service indisponible",
+    "serviceUnavailableDesc": "Le service est temporairement indisponible. Veuillez réessayer plus tard.",
+    "unauthorizedTitle": "401 – Non autorisé",
+    "unauthorizedDesc": "Vous devez être connecté pour accéder à cette page.",
+    "login": "Se connecter"
+}

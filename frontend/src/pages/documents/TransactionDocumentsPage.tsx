@@ -1,10 +1,14 @@
+import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/shared/components/branded/PageHeader";
+
 export function TransactionDocumentsPage() {
+  const { t } = useTranslation("documents");
   return (
-    <div className="space-y-2">
-      <h1 className="text-2xl font-semibold">Transaction Documents</h1>
-      <p className="text-sm text-muted-foreground">
-        This is the page for viewing documents associated with a specific transaction.
-      </p>
+    <div className="space-y-6">
+      <PageHeader
+        title={t("transactionDocuments")}
+        subtitle={t("transactionDocumentsSubtitle")}
+      />
     </div>
   );
 }

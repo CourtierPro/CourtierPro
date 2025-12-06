@@ -1,10 +1,14 @@
+import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/shared/components/branded/PageHeader";
+
 export function ClientsPage() {
+  const { t } = useTranslation("clients");
   return (
-    <div className="space-y-2">
-      <h1 className="text-2xl font-semibold">Clients</h1>
-      <p className="text-sm text-muted-foreground">
-        This is the page for managing broker clients in CourtierPro.
-      </p>
+    <div className="space-y-6">
+      <PageHeader
+        title={t("title")}
+        subtitle={t("subtitle")}
+      />
     </div>
   );
 }

@@ -1,0 +1,13 @@
+{
+    "title": "Profile",
+    "subtitle": "Manage your account settings and preferences.",
+    "editProfile": "Edit Profile",
+    "personalInfo": "Personal Information",
+    "fullName": "Full Name",
+    "email": "Email Address",
+    "role": "Role",
+    "professionalDetails": "Professional Details",
+    "agency": "Agency",
+    "licenseNumber": "License Number",
+    "userNotFound": "User not found"
+}

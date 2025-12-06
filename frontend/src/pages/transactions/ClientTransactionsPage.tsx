@@ -1,74 +1,64 @@
-import { useEffect, useState } from "react";
+/**
+ * ClientTransactionsPage
+ * 
+ * Displays a list of transactions for the current client.
+ * Uses `useClientTransactions` query to fetch data.
+ * Implements branded UI components for consistent look and feel.
+ */
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "@/api/axiosInstance";
-import { TransactionSummary } from "@/components/TransactionSummary";
+import { useTranslation } from "react-i18next";
+import { FileText } from "lucide-react";
+import { TransactionSummary } from "@/features/transactions/components/TransactionSummary";
+import { PageHeader } from "@/shared/components/branded/PageHeader";
+import { LoadingState } from "@/shared/components/branded/LoadingState";
+import { EmptyState } from "@/shared/components/branded/EmptyState";
+import { useClientTransactions } from "@/features/transactions/api/queries";
+import { ErrorState } from "@/shared/components/branded/ErrorState";
 
 export function ClientTransactionsPage() {
+  const { t } = useTranslation("transactions");
   const navigate = useNavigate();
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   // NOTE: replace with real client ID from Auth0 later
   const mockClientId = "CLIENT123";
 
-  useEffect(() => {
-    const loadClientTransactions = async () => {
-      try {
-        const res = await axiosInstance.get(`/clients/${mockClientId}/transactions`);
-        setTransactions(res.data);
-      } catch (err) {
-        console.error("Failed to load client transactions:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: transactions, isLoading, error } = useClientTransactions(mockClientId);
 
-    loadClientTransactions();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-semibold">My Transactions</h1>
-        <p className="text-sm text-muted-foreground mt-2">Loading...</p>
-      </div>
-    );
+  if (isLoading) {
+    return <LoadingState />;
   }
 
-  if (transactions.length === 0) {
-    return (
-      <div className="space-y-4 p-6">
-        <h1 className="text-2xl font-semibold">My Transactions</h1>
-        <p className="text-sm text-muted-foreground">
-          You currently have no active transactions.
-        </p>
+  if (error) {
+    return <ErrorState title={t("errorLoadingTransactions")} message={t("couldNotLoadTransactions")} />;
+  }
 
-        <button
-          onClick={() => navigate("/")}
-          className="px-4 py-2 rounded-lg"
-          style={{ backgroundColor: "#FF6B01", color: "#FFFFFF" }}
-        >
-          Return Home
-        </button>
+  if (!transactions || transactions.length === 0) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title={t("myTransactions")} />
+        <EmptyState
+          icon={<FileText className="h-12 w-12 text-muted-foreground" />}
+          title={t("noTransactionsFound")}
+          description={t("noActiveTransactions")}
+          action={
+            <button
+              onClick={() => navigate("/")}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {t("goHome")}
+            </button>
+          }
+        />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">My Transactions</h1>
-      <p className="text-sm text-muted-foreground">
-        View your active, closed, and past transactions.
-      </p>
-
-      <div className="space-y-6">
-        {transactions.map((tx) => (
-          <div key={tx.transactionId} className="rounded-xl shadow p-4 bg-white">
-            <TransactionSummary
-              language="en"
-              transactionId={tx.transactionId}
-            />
-          </div>
+      <PageHeader title={t("myTransactions")} />
+      <div className="grid gap-4">
+        {transactions.map((transaction) => (
+          <TransactionSummary key={transaction.transactionId} transactionId={transaction.transactionId} />
         ))}
       </div>
     </div>

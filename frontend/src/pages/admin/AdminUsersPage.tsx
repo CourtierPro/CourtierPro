@@ -1,156 +1,165 @@
-// src/pages/admin/ManageUsersPage.tsx
-import { useEffect, useState } from "react";
-import {
-    InviteUserModal,
-    type AdminUserResponse,
-} from "@/components/modals/InviteUserModal";
-import { getAdminUsers, setUserActiveStatus } from "@/pages/admin/adminUserApi";
+/**
+ * AdminUsersPage
+ * 
+ * Management page for admin users.
+ * Displays a list of users with filtering and status toggling.
+ * Uses `useAdminUsers` query and `useSetUserActiveStatus` mutation.
+ */
+import { useState } from "react";
+import { Plus, Search, Shield, User } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { InviteUserModal } from "@/features/admin/components/InviteUserModal";
+import { PageHeader } from "@/shared/components/branded/PageHeader";
+import { LoadingState } from "@/shared/components/branded/LoadingState";
+import { ErrorState } from "@/shared/components/branded/ErrorState";
+import { useAdminUsers } from "@/features/admin/api/queries";
+import { useSetUserActiveStatus } from "@/features/admin/api/mutations";
 
 export function AdminUsersPage() {
-    const [users, setUsers] = useState<AdminUserResponse[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const { t } = useTranslation("admin");
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
 
-    const [isInviteOpen, setIsInviteOpen] = useState(false);
+    const { data: users, isLoading, error } = useAdminUsers();
+    const setUserActiveStatus = useSetUserActiveStatus();
 
-    // load users at the beginning
-    useEffect(() => {
-        async function load() {
-            try {
-                setLoading(true);
-                setError(null);
-                const data = await getAdminUsers();
-                setUsers(data);
-            } catch (e) {
-                console.error("Error loading users", e);
-                setError("Unable to load users.");
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        load();
-    }, []);
-
-    // when we create a user it is added to the list
-    const handleUserCreated = (user: AdminUserResponse) => {
-        setUsers((prev) => [user, ...prev]);
-    };
-
-    // Toggle active / inactive
-    const handleToggle = async (user: AdminUserResponse) => {
-        const newActive = !user.active;
-
-        // petit update optimiste
-        setUsers((prev) =>
-            prev.map((u) =>
-                u.id === user.id ? { ...u, active: newActive } : u
-            )
-        );
-
+    const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
         try {
-            const updated = await setUserActiveStatus(user.id, newActive);
-            setUsers((prev) =>
-                prev.map((u) => (u.id === user.id ? updated : u))
-            );
-        } catch (e) {
-            console.error("Error updating user status", e);
-            setError("Unable to update user status.");
-            // rollback
-            setUsers((prev) =>
-                prev.map((u) =>
-                    u.id === user.id ? { ...u, active: user.active } : u
-                )
-            );
+            await setUserActiveStatus.mutateAsync({ userId, active: !currentStatus });
+        } catch (err) {
+            console.error("Failed to toggle user status", err);
         }
     };
+
+    const filteredUsers = users?.filter(
+        (u) =>
+            u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            u.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            u.lastName.toLowerCase().includes(searchTerm.toLowerCase())
+    ) ?? [];
+
+    if (isLoading) {
+        return <LoadingState />;
+    }
+
+    if (error) {
+        return <ErrorState title={t("errorLoadingUsers")} message={t("couldNotLoadUserList")} />;
+    }
 
     return (
-        <>
-            <div className="max-w-6xl mx-auto pt-24 space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold">Manage Users</h1>
-                        <p className="text-sm text-muted-foreground">
-                            Manage brokers, clients and admins in your organization.
-                        </p>
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <PageHeader title={t("userManagement")} subtitle={t("manageSystemAccess")} />
+                <button
+                    onClick={() => setShowInviteModal(true)}
+                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t("inviteUser")}
+                </button>
+            </div>
+
+            {/* Search and Filter Bar */}
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-5 w-5 text-gray-400" />
                     </div>
-
-                    <button
-                        type="button"
-                        className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
-                        onClick={() => setIsInviteOpen(true)}
-                    >
-                        Invite User
-                    </button>
-                </div>
-
-                {error && (
-                    <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                        {error}
-                    </div>
-                )}
-
-                {/* Table */}
-                <div className="rounded-lg border bg-white shadow-sm overflow-x-auto">
-                    {loading ? (
-                        <div className="px-4 py-6 text-sm text-muted-foreground">
-                            Loading users…
-                        </div>
-                    ) : users.length === 0 ? (
-                        <div className="px-4 py-6 text-sm text-muted-foreground">
-                            No users yet. Click “Invite User” to add one.
-                        </div>
-                    ) : (
-                        <table className="min-w-full text-sm">
-                            <thead>
-                            <tr className="bg-muted/60 text-xs uppercase text-muted-foreground">
-                                <th className="px-4 py-2 text-left">Name</th>
-                                <th className="px-4 py-2 text-left">Email</th>
-                                <th className="px-4 py-2 text-left">Role</th>
-                                <th className="px-4 py-2 text-left">Language</th>
-                                <th className="px-4 py-2 text-left">Status</th>
-                                <th className="px-4 py-2 text-right">Toggle</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {users.map((u) => (
-                                <tr key={u.id} className="border-t">
-                                    <td className="px-4 py-2">
-                                        {u.firstName} {u.lastName}
-                                    </td>
-                                    <td className="px-4 py-2 text-xs text-muted-foreground">
-                                        {u.email}
-                                    </td>
-                                    <td className="px-4 py-2 capitalize">{u.role.toLowerCase()}</td>
-                                    <td className="px-4 py-2 uppercase text-xs">
-                                        {u.preferredLanguage}
-                                    </td>
-                                    <td className="px-4 py-2">
-                                        {u.active ? "Active" : "Inactive"}
-                                    </td>
-                                    <td className="px-4 py-2 text-right">
-                                        <input
-                                            type="checkbox"
-                                            checked={u.active}
-                                            onChange={() => handleToggle(u)}
-                                        />
-                                    </td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
-                    )}
+                    <input
+                        type="text"
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+                        placeholder={t("searchUsers")}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                 </div>
             </div>
 
-            {/* Modale d’invitation */}
+            {/* Users Table */}
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200">
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {t("user")}
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {t("role")}
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {t("status")}
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {t("language")}
+                            </th>
+                            <th scope="col" className="relative px-6 py-3">
+                                <span className="sr-only">Actions</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredUsers.length > 0 ? (
+                            filteredUsers.map((user) => (
+                                <tr key={user.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center">
+                                            <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                                <User className="h-5 w-5 text-gray-500" />
+                                            </div>
+                                            <div className="ml-4">
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    {user.firstName} {user.lastName}
+                                                </div>
+                                                <div className="text-sm text-gray-500">{user.email}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center">
+                                            <Shield className="h-4 w-4 text-gray-400 mr-2" />
+                                            <span className="text-sm text-gray-900">{user.role}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span
+                                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                                                }`}
+                                        >
+                                            {user.active ? t("active") : t("inactive")}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {user.preferredLanguage === "en" ? "English" : "Français"}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button
+                                            onClick={() => handleToggleStatus(user.id, user.active)}
+                                            className={`text-sm ${user.active ? "text-red-600 hover:text-red-900" : "text-green-600 hover:text-green-900"
+                                                }`}
+                                        >
+                                            {user.active ? t("deactivate") : t("activate")}
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                    {t("noUsersFound")}
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
             <InviteUserModal
-                open={isInviteOpen}
-                onClose={() => setIsInviteOpen(false)}
-                onUserCreated={handleUserCreated}
+                open={showInviteModal}
+                onClose={() => setShowInviteModal(false)}
+                onUserCreated={() => {
+                    // Query invalidation handles refresh automatically
+                }}
             />
-        </>
+        </div>
     );
 }

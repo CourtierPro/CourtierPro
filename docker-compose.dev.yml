@@ -21,7 +21,10 @@ services:
       - db
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8080
     container_name: courtierpro_frontend
     ports:
       - "8081:80"

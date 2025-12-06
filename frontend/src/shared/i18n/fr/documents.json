@@ -1,0 +1,40 @@
+{
+    "title": "Demander un document supplémentaire",
+    "documentTitle": "Titre du document",
+    "documentTitlePlaceholder": "ex. : Preuve de revenu supplémentaire",
+    "transactionDocumentsPageTitle": "Documents",
+    "transactionDocumentsPageSubtitle": "Gérez tous vos documents de transaction en un seul endroit.",
+    "subtitle": "Gérez tous vos documents de transaction en un seul endroit.",
+    "requestDocument": "Demander un document",
+    "noDocumentsTitle": "Aucun document trouvé",
+    "noDocumentsDesc": "Vous n'avez pas encore téléversé de documents. Commencez par créer une transaction.",
+    "transactionDocuments": "Documents de transaction",
+    "transactionDocumentsSubtitle": "Cette page permet de consulter les documents associés à une transaction spécifique.",
+    "instructions": "Instructions ou description",
+    "instructionsPlaceholder": "Fournissez des détails sur ce que le client doit soumettre...",
+    "associatedStage": "Étape associée",
+    "selectStage": "Sélectionner une étape",
+    "cancel": "Annuler",
+    "sendRequest": "Envoyer la demande",
+    "required": "Requis",
+    "optional": "Optionnel",
+    "documentTitleRequired": "Le titre du document est requis",
+    "stageRequired": "Veuillez sélectionner une étape",
+    "infoText": "Ce document sera ajouté à la liste de contrôle du client sous l'étape <strong>{{stage}}</strong> et marqué comme en attente.",
+    "stages": {
+        "buy": {
+            "offer": "Offre",
+            "inspection": "Inspection",
+            "financing": "Financement",
+            "legalReview": "Révision légale",
+            "closing": "Clôture"
+        },
+        "sell": {
+            "listing": "Inscription",
+            "marketing": "Marketing",
+            "offer": "Offre",
+            "inspection": "Inspection",
+            "closing": "Clôture"
+        }
+    }
+}
