@@ -189,7 +189,7 @@ export default function NanoMix() {
           <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded text-sm">{error}</div>
         )}
 
-        {result && (
+        {result != null && (
           <div className="result-box">
             <div className="flex items-center justify-between mb-2">
               <strong>Result</strong>
