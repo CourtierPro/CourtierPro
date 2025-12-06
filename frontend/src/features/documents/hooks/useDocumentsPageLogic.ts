@@ -18,7 +18,7 @@ export function useDocumentsPageLogic() {
             } as RequestDocumentDTO);
             setIsModalOpen(false);
             toast.success("Document requested successfully");
-        } catch (err) {
+        } catch {
             toast.error("Failed to request document");
         }
     };

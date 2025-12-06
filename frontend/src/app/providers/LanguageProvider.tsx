@@ -8,7 +8,6 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const { i18n } = useTranslation("common");
     const { user, isLoading } = useAuth0();
 
-    // Initialize state lazily if possible, or just default to "en"
     const [language, setLanguage] = useState<"en" | "fr">("en");
 
     useEffect(() => {
@@ -16,7 +15,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
             const pref = getPreferredLanguage(user);
             // Only update if different to avoid unnecessary renders/loops
             if (pref !== i18n.language) {
-                 
+
                 setLanguage(pref);
                 i18n.changeLanguage(pref);
             }

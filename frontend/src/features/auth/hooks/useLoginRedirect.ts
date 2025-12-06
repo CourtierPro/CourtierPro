@@ -7,7 +7,6 @@ export function useLoginRedirect() {
     const { loginWithRedirect, isAuthenticated, isLoading, user } = useAuth0();
     const navigate = useNavigate();
 
-    // Redirect authenticated users to their dashboard
     useEffect(() => {
         if (isAuthenticated && user) {
             const role = getRoleFromUser(user);
@@ -22,7 +21,6 @@ export function useLoginRedirect() {
         }
     }, [isAuthenticated, user, navigate]);
 
-    // Automatically redirect to Auth0 on page load
     useEffect(() => {
         if (!isAuthenticated && !isLoading) {
             loginWithRedirect({

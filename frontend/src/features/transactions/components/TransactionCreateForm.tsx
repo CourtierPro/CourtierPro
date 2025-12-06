@@ -1,10 +1,3 @@
-/**
- * TransactionCreateForm Component
- * 
- * Form for creating a new real estate transaction.
- * Uses `useCreateTransaction` mutation to submit data.
- * Handles validation and error display for form fields.
- */
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, Search, AlertCircle, CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -68,9 +61,7 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
 
   const clientSearchRef = useRef<HTMLDivElement>(null);
 
-  // const t = translations[language]; // Removed
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (clientSearchRef.current && !clientSearchRef.current.contains(event.target as Node)) {
@@ -82,26 +73,22 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Reset initial stage when transaction side changes
   useEffect(() => {
     if (transactionSide) {
       setInitialStage('');
     }
   }, [transactionSide]);
 
-  // Filter clients based on search
   const filteredClients = clients.filter(
     (client) =>
       client.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
       client.email.toLowerCase().includes(clientSearch.toLowerCase())
   );
 
-  // Get available stage enums for the selected side
   const stageEnums = transactionSide
     ? getStagesForSide(transactionSide === 'buy' ? 'BUY_SIDE' : 'SELL_SIDE')
     : [];
 
-  // Validate form
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -125,18 +112,15 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle field blur
   const handleBlur = (field: string) => {
     setTouched({ ...touched, [field]: true });
   };
 
   const createTransaction = useCreateTransaction();
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Mark all fields as touched
     setTouched({
       transactionSide: true,
       client: true,
@@ -198,17 +182,14 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
     }
   };
 
-  // Handle cancel
   const handleCancel = () => {
     onNavigate('/transactions');
   };
 
-  // Check if form is valid for submit button
   const isFormValid = transactionSide && selectedClient && propertyAddress.trim() && initialStage;
 
   return (
     <div className="space-y-6">
-      {/* Back Button */}
       <Button
         variant="ghost"
         onClick={() => onNavigate('/transactions')}
@@ -218,13 +199,11 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
         {t('backToTransactions')}
       </Button>
 
-      {/* Header */}
       <div>
         <h1 style={{ color: '#353535' }}>{t('createTransactionTitle')}</h1>
         <p style={{ color: '#353535', opacity: 0.7 }}>{t('createSubtitle')}</p>
       </div>
 
-      {/* Form */}
       <form onSubmit={handleSubmit} noValidate>
         {errors.form && (
           <div className="mb-4 p-3 rounded border border-red-200 bg-red-50" role="alert">
@@ -236,7 +215,6 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <div className="space-y-6">
-            {/* Transaction Side */}
             <fieldset>
               <legend
                 style={{ color: '#353535' }}
@@ -259,7 +237,6 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                 }}
                 className="grid grid-cols-1 md:grid-cols-2 gap-4"
               >
-                {/* Buy-Side Radio */}
                 <label
                   className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${transactionSide === 'buy'
                     ? 'border-[#FF6B01] bg-[#FFF5F0]'
@@ -282,7 +259,6 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                   </div>
                 </label>
 
-                {/* Sell-Side Radio */}
                 <label
                   className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${transactionSide === 'sell'
                     ? 'border-[#FF6B01] bg-[#FFF5F0]'
@@ -320,9 +296,7 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
               )}
             </fieldset>
 
-            {/* Client and Property Address Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Client Search */}
               <div ref={clientSearchRef}>
                 <label
                   htmlFor="client-search"
@@ -362,7 +336,6 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                     />
                   </div>
 
-                  {/* Dropdown */}
                   {showClientDropdown && (
                     <div
                       className="absolute z-10 w-full mt-2 rounded-lg border border-gray-200 shadow-lg max-h-60 overflow-y-auto"
@@ -426,7 +399,6 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                 )}
               </div>
 
-              {/* Property Address */}
               <div>
                 <label
                   htmlFor="property-address"
@@ -470,7 +442,6 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
               </div>
             </div>
 
-            {/* Initial Stage */}
             <div>
               <label
                 htmlFor="initial-stage"
@@ -536,7 +507,6 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
           </div>
         </div>
 
-        {/* Form Actions */}
         <div className="flex flex-col sm:flex-row items-center gap-4 mt-6">
           <Button
             type="button"

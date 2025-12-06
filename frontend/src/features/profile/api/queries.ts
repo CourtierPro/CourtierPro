@@ -18,8 +18,6 @@ export function useUserProfile() {
     return useQuery({
         queryKey: profileKeys.details(),
         queryFn: async () => {
-            // In a real app: const res = await axiosInstance.get<UserProfile>('/profile');
-            // For now, return mock data
             await new Promise((resolve) => setTimeout(resolve, 500));
             return {
                 id: 'u1',

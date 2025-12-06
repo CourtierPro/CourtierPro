@@ -20,8 +20,12 @@ interface StageUpdateModalProps {
   transactionSide: 'buy' | 'sell';
 }
 
-export function StageUpdateModal({
-  isOpen,
+export function StageUpdateModal(props: StageUpdateModalProps) {
+  if (!props.isOpen) return null;
+  return <StageUpdateForm {...props} />;
+}
+
+function StageUpdateForm({
   onClose,
   onSubmit,
   transactionSide,
@@ -40,24 +44,13 @@ export function StageUpdateModal({
       ? (t('buyStageDescriptions', { returnObjects: true }) as string[])
       : (t('sellStageDescriptions', { returnObjects: true }) as string[]);
 
-  // Reset form when modal opens/closes
   useEffect(() => {
-    if (isOpen) {
-      setSelectedStage('');
-      setProgressNote('');
-      setVisibleToClient(true);
-      // Focus the first input when modal opens
-      setTimeout(() => {
-        firstFocusableRef.current?.focus();
-      }, 100);
-    }
+    setTimeout(() => {
+      firstFocusableRef.current?.focus();
+    }, 100);
+  }, []);
 
-  }, [isOpen]);
-
-  // Handle ESC key and focus trap
   useEffect(() => {
-    if (!isOpen) return;
-
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
@@ -98,7 +91,7 @@ export function StageUpdateModal({
       document.removeEventListener('keydown', handleEscape);
       document.removeEventListener('keydown', handleTabKey);
     };
-  }, [isOpen, onClose]);
+  }, [onClose]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,15 +106,13 @@ export function StageUpdateModal({
     setVisibleToClient(true);
   };
 
-  if (!isOpen) return null;
-
   const isFormValid = selectedStage !== '';
 
   return (
     <div
       className="fixed inset-0 bg-gray-900 bg-opacity-20 flex items-center justify-center z-50 p-4"
       onClick={onClose}
-      aria-hidden={!isOpen}
+      aria-hidden={true}
     >
       <div
         ref={modalRef}
@@ -134,7 +125,6 @@ export function StageUpdateModal({
         aria-describedby="stage-modal-description"
       >
         <form onSubmit={handleSubmit}>
-          {/* Modal Header */}
           <div
             className="flex items-center justify-between p-6 border-b border-gray-200"
           >
@@ -152,9 +142,7 @@ export function StageUpdateModal({
             </Button>
           </div>
 
-          {/* Modal Body */}
           <div className="p-6 space-y-6">
-            {/* Stage Selection */}
             <div>
               <label
                 htmlFor="stage-select"
@@ -195,7 +183,6 @@ export function StageUpdateModal({
               </Select>
             </div>
 
-            {/* Stage Description */}
             {selectedStage !== '' && (
               <div
                 className="p-4 rounded-lg border-l-4 animate-fade-in"
@@ -219,7 +206,6 @@ export function StageUpdateModal({
               </div>
             )}
 
-            {/* Progress Note */}
             <div>
               <label
                 htmlFor="progress-note"
@@ -238,7 +224,6 @@ export function StageUpdateModal({
                 aria-describedby="note-help-text"
               />
 
-              {/* Visible to Client Checkbox */}
               <div className="mt-3">
                 <div className="flex items-start gap-3">
                   <Checkbox
@@ -262,7 +247,6 @@ export function StageUpdateModal({
               </div>
             </div>
 
-            {/* Validation Message */}
             {!isFormValid && (
               <div
                 className="p-3 rounded-lg border border-gray-200"
@@ -276,7 +260,6 @@ export function StageUpdateModal({
             )}
           </div>
 
-          {/* Modal Footer */}
           <div className="flex items-center gap-3 p-6 border-t border-gray-200">
             <Button
               type="button"

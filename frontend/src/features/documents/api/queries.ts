@@ -22,8 +22,6 @@ export function useDocuments() {
     return useQuery({
         queryKey: documentKeys.lists(),
         queryFn: async () => {
-            // In a real app: const res = await axiosInstance.get<Document[]>('/documents');
-            // For now, return mock data or empty array
             try {
                 const res = await axiosInstance.get<Document[]>('/documents');
                 return res.data;

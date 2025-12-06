@@ -1,10 +1,3 @@
-/**
- * AdminUsersPage
- * 
- * Management page for admin users.
- * Displays a list of users with filtering and status toggling.
- * Uses `useAdminUsers` query and `useSetUserActiveStatus` mutation.
- */
 import { useState } from "react";
 import { Plus, Search, Shield, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -67,7 +60,6 @@ export function AdminUsersPage() {
                 </Button>
             </div>
 
-            {/* Search and Filter Bar */}
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -83,7 +75,6 @@ export function AdminUsersPage() {
                 </div>
             </div>
 
-            {/* Users Table */}
             <div className="bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">

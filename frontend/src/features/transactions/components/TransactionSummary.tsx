@@ -1,10 +1,4 @@
 import { getStagesForSide, enumToLabel, resolveStageIndex, isTerminatedStage } from '@/shared/utils/stages';
-/**
- * TransactionSummary Component
- * 
- * Displays a high-level summary of a transaction, including its current stage and progress.
- * Uses `useTransaction` query to fetch data, ensuring it stays up-to-date.
- */
 import { useTranslation } from 'react-i18next';
 import { useTransaction } from '@/features/transactions/api/queries';
 import { LoadingState } from '@/shared/components/branded/LoadingState';
@@ -38,7 +32,6 @@ export function TransactionSummary({ transactionId }: TransactionSummaryProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">
@@ -54,7 +47,6 @@ export function TransactionSummary({ transactionId }: TransactionSummaryProps) {
         </div>
       </div>
 
-      {/* Stage Tracker */}
       <div className="p-6 rounded-xl shadow-md bg-white border border-gray-100">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900">
@@ -65,7 +57,6 @@ export function TransactionSummary({ transactionId }: TransactionSummaryProps) {
           </span>
         </div>
 
-        {/* Progress Bar */}
         <div className="relative">
           <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-100">
             <div
@@ -85,9 +76,7 @@ export function TransactionSummary({ transactionId }: TransactionSummaryProps) {
         </div>
       </div>
 
-      {/* Transaction Details Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Info */}
         <div className="lg:col-span-2 p-6 rounded-xl shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
           <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('transactionDetails')}</h3>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
@@ -119,7 +108,6 @@ export function TransactionSummary({ transactionId }: TransactionSummaryProps) {
           </dl>
         </div>
 
-        {/* Actions / Notes placeholder */}
         <div className="space-y-6">
           <div className="p-6 rounded-xl shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('quickActions')}</h3>

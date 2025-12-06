@@ -16,7 +16,7 @@ export function useAppointmentsPageLogic() {
             } as CreateAppointmentDTO);
             setIsModalOpen(false);
             toast.success("Appointment created successfully");
-        } catch (err) {
+        } catch {
             toast.error("Failed to create appointment");
         }
     };

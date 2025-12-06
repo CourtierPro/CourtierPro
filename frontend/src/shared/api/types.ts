@@ -1,4 +1,3 @@
-// API request/response types used by the frontend
 
 export interface PropertyAddress {
   street: string;

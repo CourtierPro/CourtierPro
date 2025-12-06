@@ -36,11 +36,9 @@ export function RequestDocumentModal({
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
-  // Get stages from translation
   const stages = t('stages', { returnObjects: true }) as Record<string, Record<string, string>>;
   const stageOptions = stages[transactionType] ? Object.entries(stages[transactionType]) : [];
 
-  // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
       setDocumentTitle('');
@@ -48,7 +46,6 @@ export function RequestDocumentModal({
       setSelectedStage(currentStage);
       setErrors({});
 
-      // Focus first input
       setTimeout(() => {
         firstInputRef.current?.focus();
       }, 100);
@@ -56,7 +53,6 @@ export function RequestDocumentModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // Handle ESC key and focus trap
   useEffect(() => {
     if (!isOpen) return;
 
@@ -144,7 +140,6 @@ export function RequestDocumentModal({
         aria-labelledby="request-document-modal-title"
       >
         <form onSubmit={handleSubmit}>
-          {/* Modal Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
               <div
@@ -168,9 +163,7 @@ export function RequestDocumentModal({
             </Button>
           </div>
 
-          {/* Modal Body */}
           <div className="p-6 space-y-6">
-            {/* Document Title Field */}
             <div>
               <label
                 htmlFor="document-title"
@@ -214,7 +207,6 @@ export function RequestDocumentModal({
               )}
             </div>
 
-            {/* Instructions Field */}
             <div>
               <label
                 htmlFor="instructions"
@@ -245,7 +237,6 @@ export function RequestDocumentModal({
               </p>
             </div>
 
-            {/* Associated Stage Field */}
             <div>
               <label
                 htmlFor="associated-stage"
@@ -298,7 +289,6 @@ export function RequestDocumentModal({
               )}
             </div>
 
-            {/* Info Box */}
             <div
               className="p-4 rounded-lg border-2"
               style={{ borderColor: '#e5e7eb', backgroundColor: '#f9fafb' }}
@@ -311,7 +301,6 @@ export function RequestDocumentModal({
             </div>
           </div>
 
-          {/* Modal Footer */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-6 border-t border-gray-200 bg-gray-50">
             <Button
               type="button"

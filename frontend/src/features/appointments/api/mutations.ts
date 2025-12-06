@@ -16,7 +16,6 @@ export function useCreateAppointment() {
     return useMutation({
         mutationFn: async (newAppointment: CreateAppointmentDTO) => {
             // In a real app: const res = await axiosInstance.post('/appointments', newAppointment);
-            // For now, simulate success
             await new Promise((resolve) => setTimeout(resolve, 1000));
             return { ...newAppointment, id: 'temp-id', status: 'pending' } as Appointment;
         },

@@ -62,7 +62,6 @@ export interface AppointmentFormData {
   transactionAddress: string;
 }
 
-// Mock client data
 const mockClients: Client[] = [
   {
     id: 'C-001',
@@ -97,7 +96,6 @@ const mockClients: Client[] = [
   },
 ];
 
-// Mock transaction data
 const mockTransactions: Transaction[] = [
   {
     id: 'TX-1001',
@@ -141,13 +139,11 @@ export function CreateAppointmentModal({
   const modalRef = useRef<HTMLDivElement>(null);
   const clientDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Get minimum date (today)
   const getMinDate = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
   };
 
-  // Get time slots (every 30 minutes from 9 AM to 5 PM)
   const getTimeSlots = () => {
     const slots: string[] = [];
     for (let hour = 9; hour <= 17; hour++) {
@@ -162,28 +158,23 @@ export function CreateAppointmentModal({
 
   const timeSlots = getTimeSlots();
 
-  // Filter clients based on search term
   const filteredClients = mockClients.filter(client =>
     client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
     client.email.toLowerCase().includes(clientSearchTerm.toLowerCase())
   );
 
-  // Get client details
   const getClientDetails = (clientId: string) => {
     return mockClients.find(c => c.id === clientId);
   };
 
-  // Get transaction details
   const getTransactionDetails = (transactionId: string) => {
     return mockTransactions.find(t => t.id === transactionId);
   };
 
-  // Get transactions for selected client
   const getClientTransactions = (clientId: string) => {
     return mockTransactions.filter(t => t.clientId === clientId);
   };
 
-  // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
       setAppointmentType('');
@@ -204,7 +195,6 @@ export function CreateAppointmentModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // Handle ESC key and focus trap
   useEffect(() => {
     if (!isOpen) return;
 
@@ -252,7 +242,6 @@ export function CreateAppointmentModal({
     };
   }, [isOpen, onClose, showClientDropdown]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -276,7 +265,6 @@ export function CreateAppointmentModal({
     setClientSearchTerm(client.name);
     setShowClientDropdown(false);
 
-    // Auto-select transaction if client has one
     if (client.transactionId) {
       setSelectedTransactionId(client.transactionId);
     } else {
@@ -343,7 +331,6 @@ export function CreateAppointmentModal({
         aria-modal="true"
         aria-labelledby="create-appointment-modal-title"
       >
-        {/* Modal Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
           <div className="flex items-center gap-3">
             <div
@@ -367,7 +354,6 @@ export function CreateAppointmentModal({
           </Button>
         </div>
 
-        {/* Modal Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Client Selector - Only visible from calendar */}
           {!fromTransaction && (
@@ -408,7 +394,6 @@ export function CreateAppointmentModal({
                   style={{ color: '#353535', opacity: 0.5 }}
                 />
 
-                {/* Client Dropdown */}
                 {showClientDropdown && (
                   <div
                     className="absolute top-full left-0 right-0 mt-2 rounded-lg border-2 border-gray-200 shadow-lg max-h-60 overflow-y-auto z-20"
@@ -518,7 +503,6 @@ export function CreateAppointmentModal({
             )
           )}
 
-          {/* Appointment Type */}
           <div>
             <label
               htmlFor="appointment-type"
@@ -554,7 +538,6 @@ export function CreateAppointmentModal({
             </Select>
           </div>
 
-          {/* Date */}
           <div>
             <label
               htmlFor="appointment-date"
@@ -582,7 +565,6 @@ export function CreateAppointmentModal({
             />
           </div>
 
-          {/* Time */}
           <div>
             <label
               htmlFor="appointment-time"
@@ -617,7 +599,6 @@ export function CreateAppointmentModal({
             </Select>
           </div>
 
-          {/* Message to Client */}
           <div>
             <label
               htmlFor="appointment-message"
@@ -646,7 +627,6 @@ export function CreateAppointmentModal({
           </div>
         </form>
 
-        {/* Modal Footer */}
         <div className="p-6 border-t border-gray-200 bg-gray-50">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <Button

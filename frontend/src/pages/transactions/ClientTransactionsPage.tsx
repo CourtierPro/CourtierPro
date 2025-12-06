@@ -1,10 +1,3 @@
-/**
- * ClientTransactionsPage
- * 
- * Displays a list of transactions for the current client.
- * Uses `useClientTransactions` query to fetch data.
- * Implements branded UI components for consistent look and feel.
- */
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { FileText } from "lucide-react";

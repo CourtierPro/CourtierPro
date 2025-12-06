@@ -176,9 +176,8 @@ export function TopNav({
                     selectLanguage("en");
                   }
                 }}
-                className={`w-full px-4 py-2 text-left text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none ${
-                  language === "en" ? "bg-slate-50" : ""
-                }`}
+                className={`w-full px-4 py-2 text-left text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none ${language === "en" ? "bg-slate-50" : ""
+                  }`}
                 role="menuitem"
               >
                 English
@@ -191,9 +190,8 @@ export function TopNav({
                     selectLanguage("fr");
                   }
                 }}
-                className={`w-full px-4 py-2 text-left text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none ${
-                  language === "fr" ? "bg-slate-50" : ""
-                }`}
+                className={`w-full px-4 py-2 text-left text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none ${language === "fr" ? "bg-slate-50" : ""
+                  }`}
                 role="menuitem"
               >
                 Français
@@ -206,9 +204,8 @@ export function TopNav({
         <div className="relative" ref={notificationsRef}>
           <button
             className="relative rounded-lg p-2 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors"
-            aria-label={`${t("notifications")}${
-              notificationCount > 0 ? `, ${notificationCount} unread` : ""
-            }`}
+            aria-label={`${t("notifications")}${notificationCount > 0 ? `, ${notificationCount} unread` : ""
+              }`}
             onClick={toggleNotifications}
           >
             <Bell className="w-5 h-5 text-slate-800" />
@@ -246,12 +243,10 @@ export function TopNav({
                     return (
                       <button
                         key={notification.id}
-                        className={`flex w-full items-start gap-3 border-b border-slate-100 p-4 text-left text-sm transition-colors hover:bg-slate-50 focus:bg-slate-50 focus:outline-none ${
-                          notification.unread ? "bg-blue-50" : ""
-                        }`}
+                        className={`flex w-full items-start gap-3 border-b border-slate-100 p-4 text-left text-sm transition-colors hover:bg-slate-50 focus:bg-slate-50 focus:outline-none ${notification.unread ? "bg-blue-50" : ""
+                          }`}
                         role="menuitem"
                         onClick={() => {
-                          // TODO: navigate/mark as read
                           console.log("Notification clicked:", notification.id);
                         }}
                       >
@@ -263,9 +258,8 @@ export function TopNav({
 
                         <div className="min-w-0 flex-1">
                           <p
-                            className={`text-slate-800 ${
-                              notification.unread ? "font-semibold" : ""
-                            }`}
+                            className={`text-slate-800 ${notification.unread ? "font-semibold" : ""
+                              }`}
                           >
                             {notification.title}
                           </p>
@@ -329,8 +323,8 @@ export function TopNav({
                 {userRole === "broker"
                   ? "B"
                   : userRole === "client"
-                  ? "C"
-                  : "A"}
+                    ? "C"
+                    : "A"}
               </span>
             </div>
             <ChevronDown className="hidden h-4 w-4 text-slate-800 sm:block" />

@@ -6,7 +6,6 @@ export function useUpdateUserProfile() {
 
     return useMutation({
         mutationFn: async (data: Partial<UserProfile>) => {
-            // In a real app: const res = await axiosInstance.patch('/profile', data);
             await new Promise((resolve) => setTimeout(resolve, 1000));
             return data;
         },

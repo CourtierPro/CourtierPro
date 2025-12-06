@@ -37,13 +37,11 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     }
   }, [language, i18n]);
 
-  // Reset page when filters change
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPage(1);
   }, [sideFilter, statusFilter, stageFilter, sortBy]);
 
-  // Reset stage filter when side filter changes
   useEffect(() => {
     if (sideFilter !== 'all') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -57,7 +55,6 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     return enumToLabel(stageEnums[idx]);
   };
 
-  // Filter transactions
   const filteredTransactions = transactions.filter((transaction) => {
     if (sideFilter !== 'all') {
       if (sideFilter === 'buy' && transaction.side !== 'BUY_SIDE') return false;
@@ -71,7 +68,6 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     return true;
   });
 
-  // Sort transactions
   const sortedTransactions = [...filteredTransactions].sort((a, b) => {
     switch (sortBy) {
       case 'dateAsc':
@@ -87,7 +83,6 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     }
   });
 
-  // Pagination
   const totalPages = Math.ceil(sortedTransactions.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
@@ -103,7 +98,6 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
 
   const hasActiveFilters = sideFilter !== 'all' || statusFilter !== 'all' || stageFilter !== 'all';
 
-  // Error state
   if (error && !isLoading) {
     return (
       <div className="space-y-6">
@@ -135,8 +129,6 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      {/* Header */}
       <PageHeader
         title={t('title')}
         subtitle={t('subtitle')}
@@ -151,7 +143,6 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
         }
       />
 
-      {/* Filters and Sorting */}
       <TransactionFilters
         sideFilter={sideFilter}
         statusFilter={statusFilter}
@@ -165,7 +156,6 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
         hasActiveFilters={hasActiveFilters}
       />
 
-      {/* Transaction List */}
       {paginatedTransactions.length === 0 ? (
         <Section className="p-12 text-center">
           <Filter className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />

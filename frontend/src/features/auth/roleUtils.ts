@@ -1,11 +1,9 @@
-// src/auth/roleUtils.ts
 import type { User } from "@auth0/auth0-react";
 
 export type AppRole = "broker" | "client" | "admin";
 
 
-export function getRoleFromUser(user: User | undefined | null): AppRole | null
-{
+export function getRoleFromUser(user: User | undefined | null): AppRole | null {
     const rolesClaim = "https://courtierpro.dev/roles";
 
     const roles = (user?.[rolesClaim] as string[] | undefined) ?? [];

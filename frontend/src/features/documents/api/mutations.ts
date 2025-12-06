@@ -13,7 +13,6 @@ export function useRequestDocument() {
 
     return useMutation({
         mutationFn: async (data: RequestDocumentDTO) => {
-            // In a real app: const res = await axiosInstance.post('/documents/request', data);
             await new Promise((resolve) => setTimeout(resolve, 1000));
             return { id: 'temp-id', ...data, status: 'pending', uploadedAt: new Date().toISOString() } as unknown as Document;
         },

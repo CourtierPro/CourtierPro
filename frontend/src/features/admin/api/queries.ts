@@ -1,8 +1,3 @@
-/**
- * Admin Queries
- * 
- * Defines TanStack Query hooks for fetching admin-related data (e.g., users).
- */
 import { useQuery } from '@tanstack/react-query';
 import { getAdminUsers } from '@/features/admin/api/adminUserApi';
 

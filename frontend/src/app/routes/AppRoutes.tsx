@@ -65,7 +65,6 @@ export function AppRoutes() {
             }
         >
             <Routes>
-                {/* Default redirect based on Auth0 role */}
                 <Route
                     path="/"
                     element={
@@ -145,7 +144,7 @@ export function AppRoutes() {
                     }
                 />
 
-                {/* Transaction details – choose component based on the role */}
+                {/* Transaction details */}
                 <Route
                     path="/transactions/:transactionId"
                     element={
@@ -273,7 +272,7 @@ export function AppRoutes() {
                     }
                 />
 
-                {/* Profile – accessible to every connected role */}
+                {/* Profile */}
                 <Route
                     path="/profile"
                     element={
@@ -285,7 +284,7 @@ export function AppRoutes() {
                     }
                 />
 
-                {/* Feedback and UI components showcase */}
+                {/* Showcase */}
                 <Route
                     path="/dev/showcase"
                     element={
@@ -331,7 +330,7 @@ export function AppRoutes() {
                     }
                 />
 
-                {/* Catch-all 404 */}
+                {/* 404 */}
                 <Route
                     path="*"
                     element={

@@ -1,11 +1,5 @@
-/**
- * InviteUserModal Component
- * 
- * Modal for inviting new users (brokers, clients, admins).
- * Uses `useInviteUser` mutation to send invitations.
- */
 
-import React, { type FormEvent, useEffect, useState } from "react";
+import React, { type FormEvent, useState } from "react";
 import type { AxiosError } from "axios";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -26,9 +20,9 @@ type UserRole = "BROKER" | "CLIENT" | "ADMIN";
 type Language = "en" | "fr";
 
 interface InviteUserModalProps {
-    open: boolean; // true = rthe modal is shown
+    open: boolean;
     onClose: () => void;
-    onUserCreated?: (user: AdminUserResponse) => void; // optionnal callback
+    onUserCreated?: (user: AdminUserResponse) => void;
 }
 
 interface InviteFormState {
@@ -57,22 +51,18 @@ const defaultFormState: InviteFormState = {
     preferredLanguage: "en",
 };
 
-export function InviteUserModal({ open, onClose, onUserCreated, }: InviteUserModalProps) {
+export function InviteUserModal(props: InviteUserModalProps) {
+    if (!props.open) return null;
+    return <InviteUserForm {...props} />;
+}
+
+function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
     const { t } = useTranslation("admin");
     const [form, setForm] = useState<InviteFormState>(defaultFormState);
 
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!open) {
-            setForm(defaultFormState);
-            setError(null);
-        }
-    }, [open]);
-
     const inviteUser = useInviteUser();
-
-    if (!open) return null;
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -107,7 +97,6 @@ export function InviteUserModal({ open, onClose, onUserCreated, }: InviteUserMod
             onClose();
         } catch (err) {
             const axiosErr = err as AxiosError;
-            // Removed console.error
 
             const respData = axiosErr.response?.data;
 
@@ -141,7 +130,6 @@ export function InviteUserModal({ open, onClose, onUserCreated, }: InviteUserMod
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-3">
-                    {/* Email */}
                     <div className="space-y-1">
                         <label htmlFor="email" className="text-sm font-medium">
                             {t("email")} *
@@ -156,7 +144,6 @@ export function InviteUserModal({ open, onClose, onUserCreated, }: InviteUserMod
                         />
                     </div>
 
-                    {/* First / Last name */}
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
                             <label htmlFor="firstName" className="text-sm font-medium">
@@ -185,7 +172,6 @@ export function InviteUserModal({ open, onClose, onUserCreated, }: InviteUserMod
                         </div>
                     </div>
 
-                    {/* Role / Language */}
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
                             <label htmlFor="role" className="text-sm font-medium">
@@ -228,7 +214,6 @@ export function InviteUserModal({ open, onClose, onUserCreated, }: InviteUserMod
                         </div>
                     </div>
 
-                    {/* Boutons */}
                     <div className="mt-4 flex justify-between">
                         <Button
                             type="button"

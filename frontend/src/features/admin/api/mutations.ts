@@ -1,9 +1,3 @@
-/**
- * Admin Mutations
- * 
- * Defines TanStack Query mutations for admin actions (e.g., inviting users, toggling status).
- * Handles cache invalidation to refresh lists automatically.
- */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/shared/api/axiosInstance';
 import { adminKeys } from '@/features/admin/api/queries';

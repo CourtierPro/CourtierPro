@@ -26,7 +26,6 @@ export function TransactionTabs({
 
     return (
         <Tabs defaultValue="details" className="w-full">
-            {/* Tabs */}
             <TabsList className="border-b border-border w-full justify-start rounded-none bg-transparent h-auto p-0">
                 <TabsTrigger
                     value="details"
@@ -48,7 +47,6 @@ export function TransactionTabs({
                 </TabsTrigger>
             </TabsList>
 
-            {/* Tab Content */}
             <TabsContent value="details" className="py-4">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Section className="lg:col-span-2 p-6">

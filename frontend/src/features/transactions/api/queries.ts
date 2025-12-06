@@ -1,9 +1,3 @@
-/**
- * Transaction Queries
- * 
- * Defines TanStack Query hooks for fetching transaction data.
- * Centralizes query keys to ensure consistent cache management.
- */
 import { useQuery } from '@tanstack/react-query';
 import axiosInstance from '@/shared/api/axiosInstance';
 

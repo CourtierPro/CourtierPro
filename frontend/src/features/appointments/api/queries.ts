@@ -26,7 +26,6 @@ export function useAppointments() {
         queryKey: appointmentKeys.lists(),
         queryFn: async () => {
             // In a real app: const res = await axiosInstance.get<Appointment[]>('/appointments');
-            // For now, return mock data or empty array if endpoint doesn't exist
             try {
                 const res = await axiosInstance.get<Appointment[]>('/appointments');
                 return res.data;

@@ -1,9 +1,3 @@
-/**
- * Transaction Mutations
- * 
- * Defines TanStack Query mutations for creating and updating transactions.
- * Handles cache invalidation to ensure UI consistency after updates.
- */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/shared/api/axiosInstance';
 import { transactionKeys } from '@/features/transactions/api/queries';
@@ -33,13 +27,9 @@ export function useSaveTransactionNotes() {
 
     return useMutation({
         mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
-            // Simulated API call for notes as per original code
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            // In real app: await axiosInstance.patch(...)
             return { id, notes };
         },
         onSuccess: (_data, variables) => {
-            // In a real app we would invalidate, but since it's simulated we might need to manually update cache or just invalidate
             queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.id) });
         },
     });

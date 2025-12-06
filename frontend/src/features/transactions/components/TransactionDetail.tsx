@@ -31,8 +31,6 @@ export function TransactionDetail({ transactionId: propId }: TransactionDetailPr
 
   const { t } = useTranslation('transactions');
 
-  // Sync notes when transaction loads
-  // Sync notes when transaction loads
   useEffect(() => {
     if (transaction?.notes) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -46,7 +44,7 @@ export function TransactionDetail({ transactionId: propId }: TransactionDetailPr
       await updateStage.mutateAsync({ id: transaction.transactionId, stage: newStage });
       setIsModalOpen(false);
       toast.success(t('stageUpdated'));
-    } catch (error) {
+    } catch {
       toast.error(t('errorUpdatingStage'));
     }
   };
@@ -56,7 +54,7 @@ export function TransactionDetail({ transactionId: propId }: TransactionDetailPr
     try {
       await saveNotes.mutateAsync({ id: transaction.transactionId, notes });
       toast.success(t('notesSaved'));
-    } catch (error) {
+    } catch {
       toast.error(t('errorSavingNotes'));
     }
   };
@@ -95,7 +93,6 @@ export function TransactionDetail({ transactionId: propId }: TransactionDetailPr
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <PageHeader
         title={t('detailsTitle')}
         subtitle={`ID: ${transaction.transactionId}`}
@@ -111,16 +108,13 @@ export function TransactionDetail({ transactionId: propId }: TransactionDetailPr
         }
       />
 
-      {/* Main Info Card */}
       <TransactionInfo transaction={transaction} />
 
-      {/* Stage Tracker */}
       <TransactionStageTracker
         transaction={transaction}
         onUpdateStage={() => setIsModalOpen(true)}
       />
 
-      {/* Tabs */}
       <TransactionTabs
         transaction={transaction}
         notes={notes}

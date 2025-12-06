@@ -50,7 +50,6 @@ export function TransactionFilters({
     return (
         <Section className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                {/* Transaction Side Filter */}
                 <div>
                     <label
                         htmlFor="side-filter"
@@ -73,7 +72,6 @@ export function TransactionFilters({
                     </Select>
                 </div>
 
-                {/* Status Filter */}
                 <div>
                     <label
                         htmlFor="status-filter"
@@ -97,7 +95,6 @@ export function TransactionFilters({
                     </Select>
                 </div>
 
-                {/* Stage Filter */}
                 <div>
                     <label
                         htmlFor="stage-filter"
@@ -124,7 +121,6 @@ export function TransactionFilters({
                     </Select>
                 </div>
 
-                {/* Sort By */}
                 <div>
                     <label
                         htmlFor="sort-by"
@@ -152,7 +148,6 @@ export function TransactionFilters({
                     </Select>
                 </div>
 
-                {/* Clear Filters Button */}
                 <div className="flex items-end">
                     <Button
                         variant="secondary"
