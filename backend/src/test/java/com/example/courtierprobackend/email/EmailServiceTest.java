@@ -1,5 +1,7 @@
 package com.example.courtierprobackend.email;
 
+import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
+import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Transport;
@@ -7,25 +9,50 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import java.time.Instant;
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 class EmailServiceTest {
 
     private EmailService emailService;
+    private OrganizationSettingsService organizationSettingsService;
 
     @BeforeEach
     void setup() {
-        // no Spring – we just pass dummy values
-        emailService = new EmailService("test@example.com", "dummy-password");
+        // Mock organization settings
+        organizationSettingsService = mock(OrganizationSettingsService.class);
+
+        OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
+                .id(UUID.randomUUID())
+                .defaultLanguage("en")
+                .inviteSubjectEn("Welcome")
+                .inviteBodyEn("Hi {{name}}, welcome to CourtierPro.")
+                .inviteSubjectFr("Bienvenue")
+                .inviteBodyFr("Bonjour {{name}}, bienvenue sur CourtierPro.")
+                .updatedAt(Instant.now())
+                .build();
+
+        when(organizationSettingsService.getSettings()).thenReturn(settings);
+
+        // No Spring here, just a simple instance
+        emailService = new EmailService(
+                "test@example.com",
+                "dummy-password",
+                organizationSettingsService
+        );
     }
 
     @Test
     void sendPasswordSetupEmail_returnsTrue_whenTransportSucceeds() {
         try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
-            // Default behavior: do nothing (no exception) when send is called
+            // Default behavior: send does nothing (no exception)
 
             boolean result = emailService.sendPasswordSetupEmail(
                     "user@example.com",
@@ -41,7 +68,7 @@ class EmailServiceTest {
     @Test
     void sendPasswordSetupEmail_returnsFalse_whenTransportThrowsException() throws MessagingException {
         try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
-            // Force Transport.send to fail
+            // Force Transport.send to throw
             transportMock
                     .when(() -> Transport.send(any(Message.class)))
                     .thenThrow(new MessagingException("SMTP error"));

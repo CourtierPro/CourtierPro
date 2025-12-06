@@ -53,52 +53,55 @@ public class UserProvisioningService {
 
     public UserResponse createUser(CreateUserRequest request) {
 
-        // Déterminer le rôle
+        // Determine role from request
         UserRole role = UserRole.valueOf(request.getRole());
 
-        // Créer l'utilisateur dans Auth0 et récupérer "auth0UserId|passwordSetupUrl"
+        // Load organization settings (default language, templates, etc.)
+        OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
+
+        // Effective language: user choice > org default > "en"
+        String effectiveLanguage = request.getPreferredLanguage();
+        if (effectiveLanguage == null || effectiveLanguage.isBlank()) {
+            effectiveLanguage = settings.getDefaultLanguage();
+        }
+        if (effectiveLanguage == null || effectiveLanguage.isBlank()) {
+            effectiveLanguage = "en";
+        }
+
+        // Call Auth0 and get "auth0UserId|passwordSetupUrl"
         String result = auth0ManagementClient.createUser(
                 request.getEmail(),
                 request.getFirstName(),
                 request.getLastName(),
-                role
+                role,
+                effectiveLanguage   // <- push lang to Auth0 too
         );
 
-        // --- Parse du résultat ---
-        String auth0UserId;
+        // Default: all in result
+        String auth0UserId = result;
         String passwordSetupUrl = null;
 
+        // Split "id|url" if present
         int separatorIndex = result.lastIndexOf('|');
-        if (separatorIndex == -1) {
-            // Pas de separator – on assume que seulement le user id est retourné
-            auth0UserId = result;
-            logger.warn(
-                    "Auth0 createUser result did not contain a password setup URL separator '|'. Value was: {}",
-                    result
-            );
-        } else {
+        if (separatorIndex != -1) {
             auth0UserId = result.substring(0, separatorIndex);
 
             if (separatorIndex < result.length() - 1) {
                 passwordSetupUrl = result.substring(separatorIndex + 1);
             }
+        } else {
+            logger.warn(
+                    "Auth0 createUser result did not contain a password setup URL separator '|'. Value was: {}",
+                    result
+            );
         }
-        // --- fin parse ---
 
-        // Lire les paramètres d'organisation (pour la langue par défaut)
-        OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
-
-        String requestedLanguage = request.getPreferredLanguage();
-        String effectiveLanguage =
-                (requestedLanguage != null && !requestedLanguage.isBlank())
-                        ? requestedLanguage
-                        : settings.getDefaultLanguage();
-
-        // Envoyer le courriel avec le lien de setup de mot de passe (si présent)
+        // Send invitation email if we have a password setup URL
         if (passwordSetupUrl != null) {
             boolean emailSent = emailService.sendPasswordSetupEmail(
                     request.getEmail(),
-                    passwordSetupUrl
+                    passwordSetupUrl,
+                    effectiveLanguage   // <- same lang for email
             );
 
             if (!emailSent) {
@@ -110,10 +113,10 @@ public class UserProvisioningService {
             }
         }
 
-        // Créer l'entité locale
+        // Create local user record
         UserAccount account = userMapper.toNewUserEntity(request, auth0UserId);
 
-        // Appliquer la langue si manquante sur l'entité mappée
+        // Persist preferred language if missing on the entity
         if (account.getPreferredLanguage() == null || account.getPreferredLanguage().isBlank()) {
             account.setPreferredLanguage(effectiveLanguage);
         }
@@ -125,16 +128,14 @@ public class UserProvisioningService {
 
     public UserResponse updateStatus(UUID userId, UpdateStatusRequest request) {
         UserAccount account = userAccountRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "User with id " + userId + " not found"
-                ));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "User with id " + userId + " not found"));
 
         boolean active = request.getActive();
         account.setActive(active);
         UserAccount saved = userAccountRepository.save(account);
 
-        // Synchroniser avec Auth0: si active=false -> blocked=true
+        // Sync with Auth0: active=false -> blocked=true
         auth0ManagementClient.setBlocked(account.getAuth0UserId(), !active);
 
         return userMapper.toResponse(saved);

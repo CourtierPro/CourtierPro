@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth0 } from "@auth0/auth0-react";
 
+
 import { Sidebar } from "@/components/Sidebar";
 import { TopNav } from "@/components/TopNav";
 import {
@@ -35,6 +36,10 @@ export function AppShell({ children }: AppShellProps) {
     // Initial language from the claim, otherwise "en"
     const initialLang = getPreferredLanguage(user);
     const [language, setLanguage] = useState<"en" | "fr">(initialLang);
+
+    useEffect(() => {
+        i18n.changeLanguage(language);
+    }, [language, i18n]);
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
