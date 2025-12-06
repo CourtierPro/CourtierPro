@@ -19,7 +19,7 @@ export default function NanoMix() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<any | null>(null);
+  const [result, setResult] = useState<unknown | null>(null);
 
   const parseNumber = (v: string) => {
     const n = Number(v);
@@ -69,10 +69,16 @@ export default function NanoMix() {
       const resp = await axios.post("http://localhost:8000/api/analyze", payload, {
         headers: { "Content-Type": "application/json" },
       });
-      setResult(resp.data);
-    } catch (err: any) {
-      if (err?.response?.data) setError(JSON.stringify(err.response.data));
-      else setError(err?.message || "Unknown error");
+      setResult(resp.data as unknown);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.data) setError(JSON.stringify(err.response.data));
+        else setError(err.message || "Unknown error");
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError(String(err));
+      }
     } finally {
       setLoading(false);
     }

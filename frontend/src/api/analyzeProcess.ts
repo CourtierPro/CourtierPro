@@ -10,9 +10,9 @@ export type AnalyzePayload = {
 
 export class ApiError extends Error {
   status?: number;
-  data?: any;
+  data?: unknown;
 
-  constructor(message: string, status?: number, data?: any) {
+  constructor(message: string, status?: number, data?: unknown) {
     super(message);
     this.name = "ApiError";
     this.status = status;
@@ -32,21 +32,26 @@ const instance = axios.create({
  * Sends payload to POST /api/analyze and returns the backend response body.
  * Throws ApiError on network or API errors so callers can handle them.
  */
-export async function analyzeProcess(payload: AnalyzePayload): Promise<any> {
+export async function analyzeProcess(payload: AnalyzePayload): Promise<unknown> {
   try {
     const resp = await instance.post("/api/analyze", payload);
     return resp.data;
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Axios error handling
     if (axios.isAxiosError(err)) {
       const status = err.response?.status;
       const data = err.response?.data;
-      const message = data?.message || err.message || "Request failed";
+      const maybeData = data as Record<string, unknown> | undefined;
+      const message = (maybeData && (maybeData.message as string | undefined)) || err.message || "Request failed";
       throw new ApiError(message, status, data);
     }
 
     // Non-Axios errors
-    throw new ApiError(err?.message ?? String(err));
+    if (err instanceof Error) {
+      throw new ApiError(err.message);
+    }
+
+    throw new ApiError(String(err));
   }
 }
 

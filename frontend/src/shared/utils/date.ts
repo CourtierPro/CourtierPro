@@ -27,7 +27,7 @@ export function formatDate(value?: string | number | Date | null): string {
     }
     if (Number.isNaN(d.getTime())) return '-';
     return d.toLocaleDateString();
-  } catch (e) {
+  } catch {
     return '-';
   }
 }
@@ -55,7 +55,7 @@ export function formatDateTime(value?: string | number | Date | null): string {
     }
     if (Number.isNaN(d.getTime())) return '-';
     return d.toLocaleString();
-  } catch (e) {
+  } catch {
     return '-';
   }
 }
@@ -75,7 +75,7 @@ export function parseToTimestamp(value?: string | number | Date | null): number 
       t = Date.parse(normalized);
     }
     return Number.isNaN(t) ? 0 : t;
-  } catch (e) {
+  } catch {
     return 0;
   }
 }
