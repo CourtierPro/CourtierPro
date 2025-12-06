@@ -1,0 +1,50 @@
+import { useTranslation } from 'react-i18next';
+import { Section } from "@/shared/components/branded/Section";
+import { StageBadge } from "@/shared/components/branded/StageBadge";
+import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/shared/utils/stages';
+import { type Transaction } from '@/features/transactions/api/queries';
+
+interface TransactionStageTrackerProps {
+    transaction: Transaction;
+    onUpdateStage: () => void;
+}
+
+export function TransactionStageTracker({ transaction, onUpdateStage }: TransactionStageTrackerProps) {
+    const { t } = useTranslation('transactions');
+    const stages = getStagesForSide(transaction.side);
+    const currentStageIndex = resolveStageIndex(transaction.currentStage, stages);
+
+    return (
+        <Section title={t('progress')} className="p-6">
+            <div className="relative">
+                <div className="absolute top-4 left-0 w-full h-0.5 bg-muted -z-10" />
+                <div className="flex justify-between overflow-x-auto pb-4">
+                    {stages.map((stage, index) => {
+                        let status: "completed" | "current" | "upcoming" | "terminated" = "upcoming";
+                        if (transaction.status === 'terminated') status = "terminated";
+                        else if (index < currentStageIndex) status = "completed";
+                        else if (index === currentStageIndex) status = "current";
+
+                        return (
+                            <StageBadge
+                                key={stage}
+                                stageNumber={index + 1}
+                                label={enumToLabel(stage)}
+                                status={status}
+                                className="min-w-[100px]"
+                            />
+                        );
+                    })}
+                </div>
+                <div className="mt-6 flex justify-end">
+                    <button
+                        onClick={onUpdateStage}
+                        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+                    >
+                        {t('updateStage')}
+                    </button>
+                </div>
+            </div>
+        </Section>
+    );
+}
