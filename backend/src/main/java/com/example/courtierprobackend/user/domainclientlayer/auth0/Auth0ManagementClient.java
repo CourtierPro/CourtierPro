@@ -132,13 +132,36 @@ public class Auth0ManagementClient {
         return (String) response.getBody().get("ticket");
     }
 
-    // Create a user in Auth0
-    public String createUser(String email, String firstName, String lastName, UserRole role) {
+    /**
+     * Create a user in Auth0.
+     * We now also push preferredLanguage into user_metadata.preferred_language
+     * so Auth0 Actions can use it to build the lang claim.
+     */
+    public String createUser(
+            String email,
+            String firstName,
+            String lastName,
+            UserRole role,
+            String preferredLanguage
+    ) {
         String token = getManagementToken();
         String url = managementBaseUrl + "/users";
 
+        // Normalize language: en / fr only, default en
+        String safeLang = (preferredLanguage != null && !preferredLanguage.isBlank())
+                ? preferredLanguage.toLowerCase()
+                : "en";
+        if (!safeLang.equals("fr")) {
+            safeLang = "en";
+        }
+
         // Generate temporary password that user will never see
         String tempPassword = generateTemporaryPassword();
+
+        // minimal metadata for language
+        Map<String, Object> userMetadata = Map.of(
+                "preferred_language", safeLang
+        );
 
         // Create user with temporary password - mark email as verified since admin is creating them
         Map<String, Object> body = Map.of(
@@ -147,7 +170,8 @@ public class Auth0ManagementClient {
                 "family_name", lastName,
                 "connection", dbConnection,
                 "password", tempPassword,
-                "email_verified", true  // Admin-created users are pre-verified
+                "email_verified", true,  // Admin-created users are pre-verified
+                "user_metadata", userMetadata // store language in Auth0
         );
 
         HttpHeaders headers = new HttpHeaders();

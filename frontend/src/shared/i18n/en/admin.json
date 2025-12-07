@@ -46,4 +46,93 @@
     "noPasswordResetEvents": "No password reset events found",
     "errorLoadingAudit": "Error loading audit",
     "couldNotLoadPasswordResetAudit": "Could not load password reset audit."
+  "userManagement": "User management",
+  "manageSystemAccess": "Manage who can access CourtierPro.",
+  "inviteUser": "Invite user",
+  "searchUsers": "Search users",
+  "failedToToggleStatus": "Could not change user status.",
+  "errorLoadingUsers": "Could not load users",
+  "couldNotLoadUserList": "Something went wrong while loading the user list.",
+  "user": "User",
+  "role": "Role",
+  "status": "Status",
+  "language": "Language",
+  "active": "active",
+  "inactive": "inactive",
+  "activate": "activate",
+  "deactivate": "deactivate",
+  "noUsersFound": "No users match your search.",
+
+  "inviteUserTitle": "Invite a new user",
+  "inviteUserDesc": "Fill in the information below to send an invitation email.",
+  "inviteUser_emailLabel": "Email",
+  "inviteUser_firstNameLabel": "First name",
+  "inviteUser_lastNameLabel": "Last name",
+  "inviteUser_roleLabel": "Role",
+  "inviteUser_languageLabel": "Language",
+  "inviteUser_close": "Close",
+  "inviteUser_sendInvite": "Send invite",
+
+  "inviteUser_fillAllFields": "Please fill in all required fields.",
+  "inviteUser_inviteSent": "Invitation sent.",
+  "inviteUser_inviteError": "Could not send the invitation. Please try again.",
+  "inviteUser_sending": "Sending…",
+  "inviteUser_role_BROKER": "broker",
+  "inviteUser_role_CLIENT": "client",
+  "inviteUser_role_ADMIN": "admin",
+  "inviteUser_language_en": "English",
+  "inviteUser_language_fr": "French",
+
+  "loginAudit": "Login audit",
+  "loginAuditSubtitle": "View authentication activity and connection diagnostics.",
+  "timestamp": "timestamp",
+  "user": "user",
+  "ipAddress": "ipAddress",
+  "userAgent": "userAgent",
+  "eventId": "eventId",
+
+  "settings": {
+    "messages": {
+      "saved": "Settings saved successfully."
+    },
+    "errors": {
+      "loadFailed": "Could not load settings. Please try again."
+    },
+    "languages": {
+      "en": "English",
+      "fr": "French"
+    },
+    "title": "Admin – Organization Settings",
+    "subtitle": "Manage your organization settings and invite new users to CourtierPro.",
+    "defaultLanguageCard": {
+      "title": "Default language",
+      "description": "New user accounts that don't specify a preferred language will use this default.",
+      "label": "Default language"
+    },
+    "templatesCard": {
+      "title": "Invitation email templates",
+      "description": "Configure the invitation emails sent to new users. Placeholders like {{name}} will be replaced with the user's name or email.",
+      "englishTitle": "English invitation",
+      "frenchTitle": "French invitation",
+      "subject": "Subject",
+      "body": "Email body",
+      "subjectFr": "Subject",
+      "bodyFr": "Email body"
+    },
+    "saveButton": "Save changes",
+    "systemLogs": "System logs",
+    "systemLogsSubtitle": "View system changes and technical diagnostics.",
+    "loading": "Loading…",
+    "noSystemLogs": "No system logs yet.",
+    "systemLogs_when": "Timestamp",
+    "systemLogs_admin": "Admin",
+    "systemLogs_change": "Change",
+    "systemLogs_languageChanged": "Default language changed from {{from}} to {{to}}",
+    "systemLogs_defaultLanguageLabel": "Default language",
+    "systemLogs_languageUnchanged": "Default language did not change",
+    "systemLogs_inviteTemplateEn": "Invitation template (EN)",
+    "systemLogs_inviteTemplateFr": "Invitation template (FR)",
+    "systemLogs_changed": "Changed",
+    "systemLogs_notChanged": "Not changed"
+  }
 }

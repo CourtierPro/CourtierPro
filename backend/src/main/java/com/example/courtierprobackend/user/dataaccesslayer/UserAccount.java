@@ -69,4 +69,10 @@ public class UserAccount {
     }
 
 
+
+    public void setPreferredLanguage(String preferredLanguage) {
+        this.preferredLanguage = preferredLanguage;
+        this.updatedAt = Instant.now();
+    }
+
 }
