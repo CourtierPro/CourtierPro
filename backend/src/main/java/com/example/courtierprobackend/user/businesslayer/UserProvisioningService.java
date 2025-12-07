@@ -68,32 +68,32 @@ public class UserProvisioningService {
             effectiveLanguage = "en";
         }
 
-        // Call Auth0 and get "auth0UserId|passwordSetupUrl"
+        // Create user in Auth0 and get back "auth0UserId|passwordSetupUrl"
         String result = auth0ManagementClient.createUser(
                 request.getEmail(),
                 request.getFirstName(),
                 request.getLastName(),
                 role,
-                effectiveLanguage   // <- push lang to Auth0 too
+                effectiveLanguage
         );
 
-        // Default: all in result
-        String auth0UserId = result;
+        // We use the *last* '|' as separator so it works even if the auth0UserId contains a '|'
+        String auth0UserId;
         String passwordSetupUrl = null;
 
-        // Split "id|url" if present
         int separatorIndex = result.lastIndexOf('|');
-        if (separatorIndex != -1) {
+        if (separatorIndex == -1) {
+            auth0UserId = result;
+            logger.warn(
+                    "Auth0 createUser result did not contain a password setup URL separator '|'. Value was: {}",
+                    result
+            );
+        } else {
             auth0UserId = result.substring(0, separatorIndex);
 
             if (separatorIndex < result.length() - 1) {
                 passwordSetupUrl = result.substring(separatorIndex + 1);
             }
-        } else {
-            logger.warn(
-                    "Auth0 createUser result did not contain a password setup URL separator '|'. Value was: {}",
-                    result
-            );
         }
 
         // Send invitation email if we have a password setup URL
@@ -101,7 +101,7 @@ public class UserProvisioningService {
             boolean emailSent = emailService.sendPasswordSetupEmail(
                     request.getEmail(),
                     passwordSetupUrl,
-                    effectiveLanguage   // <- same lang for email
+                    effectiveLanguage
             );
 
             if (!emailSent) {

@@ -171,7 +171,7 @@ public class Auth0ManagementClient {
                 "connection", dbConnection,
                 "password", tempPassword,
                 "email_verified", true,  // Admin-created users are pre-verified
-                "user_metadata", userMetadata // 👈 NEW: store language in Auth0
+                "user_metadata", userMetadata // store language in Auth0
         );
 
         HttpHeaders headers = new HttpHeaders();

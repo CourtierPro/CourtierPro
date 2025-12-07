@@ -1,33 +1,36 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { TransactionDetail } from '@/components/TransactionDetail';
+import { useTranslation } from 'react-i18next';
+import { TransactionDetail } from '@/features/transactions/components/TransactionDetail';
+import { ErrorBoundary } from '@/shared/components/error/ErrorBoundary';
+import { ErrorState } from '@/shared/components/branded/ErrorState';
+import { Button } from '@/shared/components/ui/button';
 
 export function BrokerTransactionDetailsPage() {
   const { transactionId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation('transactions');
 
   if (!transactionId) {
     return (
-      <div className="p-6">
-        <h1 className="text-xl font-semibold">Transaction Not Found</h1>
-        <p className="text-sm text-muted-foreground">No transaction ID provided.</p>
-        <button
-          onClick={() => navigate('/transactions')}
-          className="mt-4 px-4 py-2 rounded-lg"
-          style={{ backgroundColor: '#FF6B01', color: '#FFFFFF' }}
-        >
-          Go Back
-        </button>
-      </div>
+      <ErrorState
+        title={t('transactionNotFound')}
+        message={t('noTransactionId')}
+        action={
+          <Button onClick={() => navigate('/transactions')}>
+            {t('goBack')}
+          </Button>
+        }
+      />
     );
   }
 
   return (
     <div className="space-y-6">
-      <TransactionDetail
-        transactionId={transactionId}
-        language="en"
-        onNavigate={(route) => navigate(route)}
-      />
+      <ErrorBoundary key={transactionId}>
+        <TransactionDetail
+          transactionId={transactionId}
+        />
+      </ErrorBoundary>
     </div>
   );
 }

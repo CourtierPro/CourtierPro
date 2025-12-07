@@ -36,6 +36,11 @@ public class EmailService {
         this.organizationSettingsService = organizationSettingsService;
     }
 
+
+    public boolean sendPasswordSetupEmail(String toEmail, String passwordSetupUrl) {
+        return sendPasswordSetupEmail(toEmail, passwordSetupUrl, null);
+    }
+
     /**
      * Send the password setup email using org templates and the requested language.
      *
@@ -47,10 +52,10 @@ public class EmailService {
                                           String passwordSetupUrl,
                                           String languageCode) {
         try {
-            // Load org settings (default language + templates)
+            // 1) Charger les settings d’organisation (langue par défaut + templates)
             OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
 
-            // Decide effective language: param > org default > "en"
+            // 2) Déterminer la langue effective : param > default org > "en"
             String effectiveLang = languageCode;
             if (effectiveLang == null || effectiveLang.isBlank()) {
                 effectiveLang = settings.getDefaultLanguage();
@@ -61,7 +66,7 @@ public class EmailService {
 
             boolean isFrench = effectiveLang.equalsIgnoreCase("fr");
 
-            // Subject + body from DB templates
+            // 3) Récupérer subject + body depuis la DB
             String subject;
             String bodyText;
 
@@ -73,7 +78,7 @@ public class EmailService {
                 bodyText = settings.getInviteBodyEn();
             }
 
-            // Simple fallbacks if templates are empty
+            // 4) Fallback si les templates sont vides
             if (subject == null || subject.isBlank()) {
                 subject = isFrench ? "Invitation CourtierPro" : "CourtierPro Invitation";
             }
@@ -83,13 +88,13 @@ public class EmailService {
                         : "Hi {{name}}, your CourtierPro account has been created.";
             }
 
-            // Replace {{name}} placeholder with email for now
+            // 5) Remplacer {{name}} par l’email (pour l’instant)
             String displayName = toEmail;
             if (bodyText.contains("{{name}}")) {
                 bodyText = bodyText.replace("{{name}}", displayName);
             }
 
-            // Static texts (can also move to DB later)
+            // 6) Textes statiques (peuvent aller en DB plus tard)
             String introText;
             String buttonLabel;
             String expiresText;
@@ -107,14 +112,14 @@ public class EmailService {
                 footerText = "Thanks,<br>CourtierPro Team";
             }
 
-            // Pick the HTML template file based on language
+            // 7) Choisir le bon fichier HTML (invite_en.html / invite_fr.html)
             String templatePath = isFrench
                     ? "email-templates/invite_fr.html"
                     : "email-templates/invite_en.html";
 
             String htmlTemplate = loadTemplateFromClasspath(templatePath);
 
-            // Replace placeholders in HTML template
+            // 8) Remplacer les placeholders dans le template HTML
             String emailBody = htmlTemplate;
             emailBody = emailBody.replace("{{subject}}", escapeHtml(subject));
             emailBody = emailBody.replace("{{introText}}", introText);
@@ -124,7 +129,7 @@ public class EmailService {
             emailBody = emailBody.replace("{{expiresText}}", expiresText);
             emailBody = emailBody.replace("{{footerText}}", footerText);
 
-            // SMTP configuration for Gmail
+            // 9) Config SMTP Gmail
             Properties props = new Properties();
             props.put("mail.smtp.auth", "true");
             props.put("mail.smtp.starttls.enable", "true");
@@ -152,6 +157,7 @@ public class EmailService {
 
         } catch (MessagingException | UnsupportedEncodingException e) {
             logger.error("Failed to send password setup email to {}", toEmail, e);
+            logger.warn("Manual password setup URL for {}: {}", toEmail, passwordSetupUrl);
             return false;
         } catch (IOException ioException) {
             logger.error("Failed to load email template from classpath", ioException);
@@ -159,7 +165,7 @@ public class EmailService {
         }
     }
 
-    // Load HTML template from /resources
+    // Charge le template HTML depuis /resources
     private String loadTemplateFromClasspath(String path) throws IOException {
         ClassPathResource resource = new ClassPathResource(path);
 
@@ -169,7 +175,7 @@ public class EmailService {
         }
     }
 
-    // Basic HTML escaping for subject/labels
+    // Petit escape HTML pour subject / labels
     private String escapeHtml(String s) {
         if (s == null) {
             return "";

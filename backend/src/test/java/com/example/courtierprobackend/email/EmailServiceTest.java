@@ -26,22 +26,21 @@ class EmailServiceTest {
 
     @BeforeEach
     void setup() {
-        // Mock organization settings
         organizationSettingsService = mock(OrganizationSettingsService.class);
 
-        OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
-                .id(UUID.randomUUID())
-                .defaultLanguage("en")
-                .inviteSubjectEn("Welcome")
-                .inviteBodyEn("Hi {{name}}, welcome to CourtierPro.")
-                .inviteSubjectFr("Bienvenue")
-                .inviteBodyFr("Bonjour {{name}}, bienvenue sur CourtierPro.")
-                .updatedAt(Instant.now())
-                .build();
+        OrganizationSettingsResponseModel settings =
+                OrganizationSettingsResponseModel.builder()
+                        .id(UUID.randomUUID())
+                        .defaultLanguage("en")
+                        .inviteSubjectEn("Welcome")
+                        .inviteBodyEn("Hi {{name}}, welcome to CourtierPro.")
+                        .inviteSubjectFr("Bienvenue")
+                        .inviteBodyFr("Bonjour {{name}}, bienvenue sur CourtierPro.")
+                        .updatedAt(Instant.now())
+                        .build();
 
         when(organizationSettingsService.getSettings()).thenReturn(settings);
 
-        // No Spring here, just a simple instance
         emailService = new EmailService(
                 "test@example.com",
                 "dummy-password",
@@ -52,15 +51,12 @@ class EmailServiceTest {
     @Test
     void sendPasswordSetupEmail_returnsTrue_whenTransportSucceeds() {
         try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
-            // Default behavior: send does nothing (no exception)
-
             boolean result = emailService.sendPasswordSetupEmail(
                     "user@example.com",
                     "https://example.com/password-setup"
             );
 
             assertTrue(result);
-            // Verify we attempted to send an email
             transportMock.verify(() -> Transport.send(any(Message.class)));
         }
     }
@@ -68,7 +64,6 @@ class EmailServiceTest {
     @Test
     void sendPasswordSetupEmail_returnsFalse_whenTransportThrowsException() throws MessagingException {
         try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
-            // Force Transport.send to throw
             transportMock
                     .when(() -> Transport.send(any(Message.class)))
                     .thenThrow(new MessagingException("SMTP error"));
