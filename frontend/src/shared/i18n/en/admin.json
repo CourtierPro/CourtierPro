@@ -36,5 +36,14 @@
     "sending": "Sending…",
     "sendInvite": "Send invite",
     "fillAllFields": "Please fill all required fields.",
-    "inviteError": "An error occurred while sending the invitation."
+    "inviteError": "An error occurred while sending the invitation.",
+    "passwordResetAuditTitle": "Password Reset Audit",
+    "passwordResetAuditSubtitle": "Track all password reset requests and completions",
+    "email": "Email",
+    "eventType": "Event Type",
+    "timestamp": "Timestamp",
+    "ipAddress": "IP Address",
+    "noPasswordResetEvents": "No password reset events found",
+    "errorLoadingAudit": "Error loading audit",
+    "couldNotLoadPasswordResetAudit": "Could not load password reset audit."
 }

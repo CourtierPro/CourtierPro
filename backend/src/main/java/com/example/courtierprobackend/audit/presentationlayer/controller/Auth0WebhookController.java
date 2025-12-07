@@ -48,8 +48,12 @@ public class Auth0WebhookController {
         try {
             logger.info("Received Auth0 event: type={}, user={}", event.getType(), event.getUserId());
 
-            String ipAddress = extractIpAddress(request);
-            String userAgent = request.getHeader("User-Agent");
+            // Extract IP from event payload (user's actual IP), with fallbacks to headers
+            String ipAddress = extractIpAddress(event, request);
+            // Use user agent from Auth0 event if available, otherwise from request header
+            String userAgent = (event.getUserAgent() != null && !event.getUserAgent().isEmpty()) 
+                    ? event.getUserAgent() 
+                    : request.getHeader("User-Agent");
 
             // Handle different event types
             switch (event.getType()) {
@@ -92,11 +96,19 @@ public class Auth0WebhookController {
         }
     }
 
-    private String extractIpAddress(HttpServletRequest request) {
+    private String extractIpAddress(Auth0LogEvent event, HttpServletRequest request) {
+        // Use IP from Auth0 event payload (actual user's IP)
+        if (event.getIp() != null && !event.getIp().isEmpty()) {
+            return event.getIp();
+        }
+        
+        // Fallback to X-Forwarded-For header
         String ip = request.getHeader("X-Forwarded-For");
         if (ip != null && !ip.isEmpty()) {
             return ip.split(",")[0].trim();
         }
+        
+        // Final fallback to remote address
         return request.getRemoteAddr();
     }
 
@@ -143,15 +155,24 @@ public class Auth0WebhookController {
         @JsonProperty("email")
         private String email;
         
-        // Fallback method to get email
+        // Fallback method to get email with proper validation
         public String getUserEmail() {
-            if (email != null && !email.isEmpty()) {
+            if (email != null && !email.isEmpty() && isValidEmail(email)) {
                 return email;
             }
-            if (userName != null && userName.contains("@")) {
+            if (userName != null && isValidEmail(userName)) {
                 return userName;
             }
             return null;
+        }
+        
+        private boolean isValidEmail(String email) {
+            if (email == null || email.isEmpty()) {
+                return false;
+            }
+            // RFC 5322 compliant email regex pattern
+            String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+            return email.matches(emailRegex);
         }
     }
 }
