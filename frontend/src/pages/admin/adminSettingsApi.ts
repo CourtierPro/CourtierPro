@@ -1,4 +1,5 @@
-import axiosInstance from "@/api/axiosInstance";
+import axiosInstance from "@/shared/api/axiosInstance";
+
 
 // Type of the organization settings payload
 export interface UpdateOrganizationSettingsRequest {

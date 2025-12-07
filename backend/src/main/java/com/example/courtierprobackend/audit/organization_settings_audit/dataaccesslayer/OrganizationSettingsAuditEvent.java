@@ -1,3 +1,4 @@
+// backend/src/main/java/com/example/courtierprobackend/audit/organization_settings_audit/dataaccesslayer/OrganizationSettingsAuditEvent.java
 package com.example.courtierprobackend.audit.organization_settings_audit.dataaccesslayer;
 
 import jakarta.persistence.*;
@@ -19,17 +20,19 @@ public class OrganizationSettingsAuditEvent {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    // When the change happened
     private Instant timestamp;
 
-    // Admin who changed the settings
-    private String adminUserId;   // e.g. Auth0 sub
+    private String adminUserId;
     private String adminEmail;
 
-    // Simple action label
-    private String action;        // e.g. "ORGANIZATION_SETTINGS_UPDATED"
+    @Column(name = "ip_address")
+    private String ipAddress;
 
-    // What changed (keep it simple for now)
+    private String action;
+
     private String previousDefaultLanguage;
     private String newDefaultLanguage;
+
+    private Boolean inviteTemplateEnChanged;
+    private Boolean inviteTemplateFrChanged;
 }

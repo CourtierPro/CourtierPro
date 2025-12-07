@@ -1,3 +1,4 @@
+// backend/src/main/java/com/example/courtierprobackend/Organization/businesslayer/OrganizationSettingsService.java
 package com.example.courtierprobackend.Organization.businesslayer;
 
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
@@ -7,6 +8,7 @@ public interface OrganizationSettingsService {
 
     OrganizationSettingsResponseModel getSettings();
 
-    OrganizationSettingsResponseModel updateSettings(UpdateOrganizationSettingsRequestModel request,
-                                                     String adminUserId);
+    OrganizationSettingsResponseModel updateSettings(
+            UpdateOrganizationSettingsRequestModel request
+    );
 }
