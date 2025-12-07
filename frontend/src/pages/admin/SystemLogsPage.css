@@ -1,0 +1,73 @@
+/* Page wrapper : animation d'entrée douce (comme admin-users) */
+.system-logs-page {
+  padding-bottom: 3rem;
+  animation: fadeInLogsPage 0.35s ease-out both;
+}
+
+@keyframes fadeInLogsPage {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.system-logs-header-wrapper {
+  margin-bottom: 1.5rem;
+}
+
+/* Card : on réutilise .admin-table-card mais on ajoute un léger padding/spacing */
+.system-logs-card {
+  padding: 0.75rem 0.75rem 1.25rem;
+}
+
+/* Textes de status (loading / error / empty state) */
+.system-logs-status {
+  font-size: 0.88rem;
+  padding: 0.6rem 0.9rem;
+  margin: 0.25rem 0.4rem 0.3rem;
+  border-radius: 0.6rem;
+}
+
+.system-logs-status--muted {
+  color: #6b7280;
+  background-color: #f9fafb;
+}
+
+.system-logs-status--error {
+  color: #b91c1c;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+/* Lignes qui apparaissent en “stream” */
+.system-logs-row {
+  opacity: 0;
+  transform: translateY(4px);
+  animation: systemLogRowIn 0.3s ease-out forwards;
+}
+
+@keyframes systemLogRowIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.system-logs-row-1  { animation-delay: 0.02s; }
+.system-logs-row-2  { animation-delay: 0.04s; }
+.system-logs-row-3  { animation-delay: 0.06s; }
+.system-logs-row-4  { animation-delay: 0.08s; }
+.system-logs-row-5  { animation-delay: 0.10s; }
+.system-logs-row-6  { animation-delay: 0.12s; }
+.system-logs-row-7  { animation-delay: 0.14s; }
+.system-logs-row-8  { animation-delay: 0.16s; }
+.system-logs-row-9  { animation-delay: 0.18s; }
+.system-logs-row-10 { animation-delay: 0.20s; }

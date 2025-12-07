@@ -10,6 +10,5 @@ export function LoginPage() {
     return <LoadingSpinner fullscreen message={t('auth.loggingIn')} />;
   }
 
-  // Show nothing while redirecting to Auth0
   return <LoadingSpinner fullscreen message={t('auth.loggingIn')} />;
 }

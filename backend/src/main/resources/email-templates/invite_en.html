@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>{{subject}}</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+<div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #2c3e50;">{{subject}}</h2>
+
+    <p>{{introText}}</p>
+
+    <p>{{bodyText}}</p>
+
+    <table role="presentation" style="margin: 30px 0;">
+        <tr>
+            <td>
+                <a href="{{passwordLink}}"
+                   style="background-color: #4CAF50; color: white; padding: 14px 28px;
+                          text-decoration: none; border-radius: 4px;
+                          display: inline-block; font-weight: bold;">
+                    {{buttonLabel}}
+                </a>
+            </td>
+        </tr>
+    </table>
+
+    <p style="margin-top: 30px;">
+        Or copy and paste this URL into your browser:
+    </p>
+
+    <p style="color: #666; font-size: 12px; word-break: break-all;">
+        {{passwordLink}}
+    </p>
+
+    <p style="margin-top: 30px; color: #999; font-size: 12px;">
+        {{expiresText}}
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+
+    <p style="color: #999; font-size: 12px;">
+        {{footerText}}
+    </p>
+</div>
+</body>
+</html>
