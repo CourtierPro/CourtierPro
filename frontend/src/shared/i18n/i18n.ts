@@ -67,7 +67,7 @@ i18n.use(initReactI18next).init({
 
   lng: "en",
   fallbackLng: "en",
-
+  initImmediate: false,
   ns: ["common", "sidebar", "topnav", "transactions", "appointments", "documents", "dashboard", "admin", "clients", "profile", "analytics", "notifications", "status"],
   defaultNS: "common",
 
