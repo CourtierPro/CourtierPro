@@ -1,4 +1,4 @@
-import axiosInstance from '@/api/axiosInstance';
+import axiosInstance from "@/shared/api/axiosInstance";
 
 export interface LoginAuditEvent {
   id: string;

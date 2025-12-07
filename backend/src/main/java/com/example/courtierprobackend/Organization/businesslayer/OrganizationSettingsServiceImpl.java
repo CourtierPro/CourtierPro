@@ -1,3 +1,4 @@
+// backend/src/main/java/com/example/courtierprobackend/Organization/businesslayer/OrganizationSettingsServiceImpl.java
 package com.example.courtierprobackend.Organization.businesslayer;
 
 import com.example.courtierprobackend.Organization.dataccesslayer.OrganizationSettings;
@@ -6,13 +7,18 @@ import com.example.courtierprobackend.Organization.datamapperlayer.OrganizationS
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
 import com.example.courtierprobackend.Organization.presentationlayer.model.UpdateOrganizationSettingsRequestModel;
 import com.example.courtierprobackend.audit.organization_settings_audit.businesslayer.OrganizationSettingsAuditService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -22,8 +28,8 @@ public class OrganizationSettingsServiceImpl implements OrganizationSettingsServ
 
     private final OrganizationSettingsRepository repository;
     private final OrganizationSettingsMapper mapper;
-
     private final OrganizationSettingsAuditService organizationSettingsAuditService;
+    private final HttpServletRequest httpServletRequest;
 
     @Override
     @Transactional
@@ -36,17 +42,21 @@ public class OrganizationSettingsServiceImpl implements OrganizationSettingsServ
     @Override
     @Transactional
     public OrganizationSettingsResponseModel updateSettings(
-            UpdateOrganizationSettingsRequestModel request,
-            String adminUserId
+            UpdateOrganizationSettingsRequestModel request
     ) {
-
         OrganizationSettings settings = repository.findTopByOrderByUpdatedAtDesc()
                 .orElseGet(this::createDefaultSettings);
 
-        // 🔹 Garder l’ancienne langue pour l’audit
         String previousDefaultLang = settings.getDefaultLanguage();
 
-        // Apply changes
+        boolean inviteTemplateEnChanged =
+                !Objects.equals(settings.getInviteSubjectEn(), request.getInviteSubjectEn()) ||
+                        !Objects.equals(settings.getInviteBodyEn(), request.getInviteBodyEn());
+
+        boolean inviteTemplateFrChanged =
+                !Objects.equals(settings.getInviteSubjectFr(), request.getInviteSubjectFr()) ||
+                        !Objects.equals(settings.getInviteBodyFr(), request.getInviteBodyFr());
+
         settings.setDefaultLanguage(request.getDefaultLanguage());
         settings.setInviteSubjectEn(request.getInviteSubjectEn());
         settings.setInviteBodyEn(request.getInviteBodyEn());
@@ -56,15 +66,37 @@ public class OrganizationSettingsServiceImpl implements OrganizationSettingsServ
 
         OrganizationSettings saved = repository.save(settings);
 
-        log.info("Organization Settings Updated by admin {}. defaultLanguage={}, updatedAt={}",
-                adminUserId, saved.getDefaultLanguage(), saved.getUpdatedAt());
+        String adminUserId = "unknown";
+        String adminEmail = "unknown";
 
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Jwt jwt) {
+            adminUserId = jwt.getSubject();
+            Object emailClaim = jwt.getClaims().get("email");
+            if (emailClaim instanceof String emailStr && !emailStr.isBlank()) {
+                adminEmail = emailStr;
+            }
+        } else if (auth != null) {
+            adminUserId = auth.getName();
+        }
+
+        String ipAddress = httpServletRequest != null
+                ? httpServletRequest.getRemoteAddr()
+                : "unknown";
+
+        log.info(
+                "Organization Settings updated by admin {} (email={}, ip={}). defaultLanguage={}, updatedAt={}",
+                adminUserId, adminEmail, ipAddress, saved.getDefaultLanguage(), saved.getUpdatedAt()
+        );
 
         organizationSettingsAuditService.recordSettingsUpdated(
                 adminUserId,
-                "unknown",
+                adminEmail,
+                ipAddress,
                 previousDefaultLang,
-                saved.getDefaultLanguage()
+                saved.getDefaultLanguage(),
+                inviteTemplateEnChanged,
+                inviteTemplateFrChanged
         );
 
         return mapper.toResponseModel(saved);
