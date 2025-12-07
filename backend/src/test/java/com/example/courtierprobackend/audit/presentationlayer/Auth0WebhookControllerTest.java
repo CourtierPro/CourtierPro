@@ -54,8 +54,8 @@ class Auth0WebhookControllerTest {
                 .recordPasswordResetRequest(
                         eq("auth0|test123"),
                         eq("test@example.com"),
-                        eq("127.0.0.1"),
-                        eq(null)
+                        eq("192.168.1.1"),
+                        eq("Mozilla/5.0")
                 );
     }
 
@@ -84,8 +84,8 @@ class Auth0WebhookControllerTest {
                 .recordPasswordResetCompletion(
                         eq("auth0|test123"),
                         eq("test@example.com"),
-                        eq("127.0.0.1"),
-                        eq(null)
+                        eq("192.168.1.1"),
+                        eq("Mozilla/5.0")
                 );
     }
 
@@ -187,7 +187,8 @@ class Auth0WebhookControllerTest {
                     "date": "2025-12-07T10:00:00Z",
                     "user_id": "auth0|test123",
                     "user_name": "test@example.com",
-                    "ip": "192.168.1.1"
+                    "ip": "192.168.1.1",
+                    "user_agent": "Chrome/120.0"
                 }
                 """;
 
@@ -201,8 +202,8 @@ class Auth0WebhookControllerTest {
                 .recordPasswordResetRequest(
                         eq("auth0|test123"),
                         eq("test@example.com"),
-                        eq("127.0.0.1"),
-                        eq(null)
+                        eq("192.168.1.1"),
+                        eq("Chrome/120.0")
                 );
     }
 
@@ -215,7 +216,9 @@ class Auth0WebhookControllerTest {
                     "type": "fp",
                     "date": "2025-12-07T10:00:00Z",
                     "user_id": "auth0|test123",
-                    "email": "test@example.com"
+                    "email": "test@example.com",
+                    "ip": "192.168.1.1",
+                    "user_agent": "Mozilla/5.0"
                 }
                 """;
 
@@ -224,8 +227,8 @@ class Auth0WebhookControllerTest {
                 .recordPasswordResetRequest(
                         eq("auth0|test123"),
                         eq("test@example.com"),
-                        eq("127.0.0.1"),
-                        eq(null)
+                        eq("192.168.1.1"),
+                        eq("Mozilla/5.0")
                 );
 
         // Act & Assert
@@ -238,14 +241,14 @@ class Auth0WebhookControllerTest {
                 .recordPasswordResetRequest(
                         eq("auth0|test123"),
                         eq("test@example.com"),
-                        eq("127.0.0.1"),
-                        eq(null)
+                        eq("192.168.1.1"),
+                        eq("Mozilla/5.0")
                 );
     }
 
     @Test
     void handleAuth0Event_withCommaSeparatedIpAddresses_shouldUseFirstIp() throws Exception {
-        // Arrange - simulating X-Forwarded-For with multiple IPs
+        // Arrange - no IP in Auth0 event, should fall back to X-Forwarded-For
         String eventJson = """
                 {
                     "log_id": "12345",
@@ -256,7 +259,7 @@ class Auth0WebhookControllerTest {
                 }
                 """;
 
-        // Act & Assert - MockMvc will use 127.0.0.1, but this tests the extraction logic
+        // Act & Assert - Should use first IP from X-Forwarded-For header
         mockMvc.perform(post("/api/webhooks/auth0-events")
                         .header("X-Forwarded-For", "203.0.113.1, 198.51.100.1, 192.0.2.1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -281,7 +284,8 @@ class Auth0WebhookControllerTest {
                     "type": "fp",
                     "date": "2025-12-07T10:00:00Z",
                     "user_id": "auth0|test123",
-                    "user_name": "user@domain.com"
+                    "user_name": "user@domain.com",
+                    "ip": "10.0.0.1"
                 }
                 """;
 
@@ -295,7 +299,7 @@ class Auth0WebhookControllerTest {
                 .recordPasswordResetRequest(
                         eq("auth0|test123"),
                         eq("user@domain.com"),
-                        eq("127.0.0.1"),
+                        eq("10.0.0.1"),
                         eq(null)
                 );
     }
@@ -310,7 +314,8 @@ class Auth0WebhookControllerTest {
                     "date": "2025-12-07T10:00:00Z",
                     "user_id": "auth0|test123",
                     "email": "",
-                    "user_name": "fallback@example.com"
+                    "user_name": "fallback@example.com",
+                    "ip": "172.16.0.1"
                 }
                 """;
 
@@ -324,7 +329,7 @@ class Auth0WebhookControllerTest {
                 .recordPasswordResetRequest(
                         eq("auth0|test123"),
                         eq("fallback@example.com"),
-                        eq("127.0.0.1"),
+                        eq("172.16.0.1"),
                         eq(null)
                 );
     }
