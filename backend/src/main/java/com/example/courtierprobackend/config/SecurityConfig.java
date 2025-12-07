@@ -53,6 +53,7 @@ public class SecurityConfig {
 
                         .requestMatchers("/transactions/**").hasRole("BROKER")
 
+                        .requestMatchers("/api/webhooks/**").permitAll()
 
                         .anyRequest().authenticated()
                 )

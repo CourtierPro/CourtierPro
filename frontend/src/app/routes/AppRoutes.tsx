@@ -35,6 +35,7 @@ const AdminUsersPage = lazy(() => import("@/pages/admin/AdminUsersPage").then(mo
 const AdminSettingsPage = lazy(() => import("@/pages/admin/AdminSettingsPage").then(module => ({ default: module.AdminSettingsPage })));
 const LoginAuditPage = lazy(() => import("@/pages/admin/LoginAuditPage").then(module => ({ default: module.LoginAuditPage })));
 const SystemLogsPage = lazy(() => import("@/pages/admin/SystemLogsPage").then(module => ({ default: module.SystemLogsPage })));
+const PasswordResetAuditPage = lazy(() => import("@/pages/admin/PasswordResetAuditPage").then(module => ({ default: module.PasswordResetAuditPage })));
 
 // Profile
 const ProfilePage = lazy(() => import("@/pages/profile/ProfilePage").then(module => ({ default: module.ProfilePage })));
@@ -267,6 +268,16 @@ export function AppRoutes() {
                         <RequireRole allowed={["admin"]}>
                             <AppShell>
                                 <SystemLogsPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
+                <Route
+                    path="/admin/password-reset-audit"
+                    element={
+                        <RequireRole allowed={["admin"]}>
+                            <AppShell>
+                                <PasswordResetAuditPage />
                             </AppShell>
                         </RequireRole>
                     }
