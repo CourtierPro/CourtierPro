@@ -26,25 +26,25 @@ export function PasswordResetAuditPage() {
     return (
         <div className="space-y-6">
             <PageHeader
-                title="Password Reset Audit"
-                subtitle="Track all password reset requests and completions"
+                title={t("passwordResetAuditTitle")}
+                subtitle={t("passwordResetAuditSubtitle")}
             />
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200" aria-label={t("passwordResetAuditTitle")}>
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Email
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {t("email")}
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Event Type
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {t("eventType")}
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Timestamp
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {t("timestamp")}
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                IP Address
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {t("ipAddress")}
                             </th>
                         </tr>
                     </thead>
@@ -81,8 +81,9 @@ export function PasswordResetAuditPage() {
                                 <td
                                     colSpan={4}
                                     className="px-6 py-12 text-center text-gray-500"
+                                    role="status"
                                 >
-                                    No password reset events found
+                                    {t("noPasswordResetEvents")}
                                 </td>
                             </tr>
                         )}

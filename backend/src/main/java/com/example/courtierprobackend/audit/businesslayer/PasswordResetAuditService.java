@@ -32,6 +32,12 @@ public class PasswordResetAuditService {
             String ipAddress,
             String userAgent
     ) {
+        if (userId == null || userId.trim().isEmpty()) {
+            throw new IllegalArgumentException("userId cannot be null or empty");
+        }
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("email cannot be null or empty");
+        }
         PasswordResetEvent event = PasswordResetEvent.builder()
                 .userId(userId)
                 .email(email)
@@ -56,6 +62,12 @@ public class PasswordResetAuditService {
             String ipAddress,
             String userAgent
     ) {
+        if (userId == null || userId.trim().isEmpty()) {
+            throw new IllegalArgumentException("userId cannot be null or empty");
+        }
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("email cannot be null or empty");
+        }
         PasswordResetEvent event = PasswordResetEvent.builder()
                 .userId(userId)
                 .email(email)

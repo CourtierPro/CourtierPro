@@ -25,12 +25,14 @@ public class AdminPasswordResetAuditController {
 
     /**
      * Get all password reset events for audit purposes
+     * TODO: Implement pagination, filtering by date range, and rate limiting
+     * for better performance and security with large datasets
      */
     @GetMapping
     public List<PasswordResetEventResponse> getAllPasswordResetEvents() {
         List<PasswordResetEvent> events = passwordResetAuditService.getAllPasswordResetEvents();
         return events.stream()
                 .map(PasswordResetEventResponse::from)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

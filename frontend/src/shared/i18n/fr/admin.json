@@ -36,5 +36,14 @@
     "sending": "Envoi en cours…",
     "sendInvite": "Envoyer l'invitation",
     "fillAllFields": "Veuillez remplir tous les champs requis.",
-    "inviteError": "Une erreur s'est produite lors de l'envoi de l'invitation."
+    "inviteError": "Une erreur s'est produite lors de l'envoi de l'invitation.",
+    "passwordResetAuditTitle": "Audit des réinitialisations de mot de passe",
+    "passwordResetAuditSubtitle": "Suivre toutes les demandes et complétions de réinitialisation de mot de passe",
+    "email": "Courriel",
+    "eventType": "Type d'événement",
+    "timestamp": "Horodatage",
+    "ipAddress": "Adresse IP",
+    "noPasswordResetEvents": "Aucun événement de réinitialisation de mot de passe trouvé",
+    "errorLoadingAudit": "Erreur lors du chargement de l'audit",
+    "couldNotLoadPasswordResetAudit": "Impossible de charger l'audit des réinitialisations de mot de passe."
 }
