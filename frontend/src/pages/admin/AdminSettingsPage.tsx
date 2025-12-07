@@ -53,7 +53,7 @@ export function AdminSettingsPage() {
   }, [t]);
 
   // Handle form changes
-  function handleChange(e: any) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     const field = e.target.name;
     const value = e.target.value;
 
