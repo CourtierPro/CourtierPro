@@ -1,4 +1,4 @@
-package com.example.courtierprobackend.datamapperlayer;
+package com.example.courtierprobackend.user.mapper;
 
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserRole;

@@ -248,7 +248,7 @@ export function TopNav({
                           }`}
                         role="menuitem"
                         onClick={() => {
-                          console.log("Notification clicked:", notification.id);
+                          // TODO: Implement notification click handler
                         }}
                       >
                         {Icon ? (

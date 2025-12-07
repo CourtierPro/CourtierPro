@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Button } from "@/shared/components/ui/button";
 
 interface DocumentReviewModalProps {
   open: boolean;
@@ -17,12 +18,9 @@ export function DocumentReviewModal({ open, onClose }: DocumentReviewModalProps)
           This is the modal for reviewing and approving a document (placeholder only).
         </p>
         {/* TODO: show document metadata + approve / reject actions */}
-        <button
-          className="mt-4 text-sm text-orange-600 hover:underline"
-          onClick={onClose}
-        >
+        <Button variant="link" onClick={onClose} className="mt-4 text-orange-600 p-0">
           {t("actions.close")}
-        </button>
+        </Button>
       </div>
     </div>
   );

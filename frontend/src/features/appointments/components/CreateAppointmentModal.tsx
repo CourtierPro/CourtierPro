@@ -401,24 +401,27 @@ export function CreateAppointmentModal({
                   >
                     {filteredClients.length > 0 ? (
                       filteredClients.map((client) => (
-                        <button
+                        <Button
                           key={client.id}
                           type="button"
+                          variant="ghost"
                           onClick={() => handleClientSelect(client)}
-                          className="w-full text-left p-3 hover:bg-orange-50 focus:outline-none focus:bg-orange-50 transition-colors border-b border-gray-100 last:border-b-0"
+                          className="w-full h-auto text-left justify-start p-3 hover:bg-orange-50 focus:bg-orange-50 border-b border-gray-100 last:border-b-0 rounded-none"
                         >
-                          <p className="text-foreground mb-1">
-                            {client.name}
-                          </p>
-                          <p className="text-muted-foreground text-sm">
-                            {client.email}
-                          </p>
-                          {client.transactionAddress && (
-                            <p className="text-primary text-xs mt-1">
-                              {client.transactionAddress}
+                          <div className="flex flex-col items-start">
+                            <p className="text-foreground mb-1">
+                              {client.name}
                             </p>
-                          )}
-                        </button>
+                            <p className="text-muted-foreground text-sm">
+                              {client.email}
+                            </p>
+                            {client.transactionAddress && (
+                              <p className="text-primary text-xs mt-1">
+                                {client.transactionAddress}
+                              </p>
+                            )}
+                          </div>
+                        </Button>
                       ))
                     ) : (
                       <div className="p-4 text-center">

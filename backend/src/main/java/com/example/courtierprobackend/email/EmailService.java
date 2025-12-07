@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 @Service
+@RequiredArgsConstructor
 public class EmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
@@ -150,9 +151,35 @@ public class EmailService {
             message.setSubject(subject);
             message.setContent(emailBody, "text/html; charset=utf-8");
 
-            Transport.send(message);
+    public void sendDocumentSubmittedNotification(DocumentRequest request, String brokerEmail) {
+        String subject = "Document Submitted: " + request.getCustomTitle();
+        String body = "A document has been submitted for transaction " + request.getTransactionRef().getTransactionId();
+        
+        sendEmail(brokerEmail, subject, body);
+    }
 
-            logger.info("Password setup email sent successfully to {}", toEmail);
+    public void sendDocumentStatusUpdatedNotification(DocumentRequest request, String clientEmail) {
+        String subject = "Document Status Updated: " + request.getCustomTitle();
+        String body = "Your document status is now: " + request.getStatus();
+
+        sendEmail(clientEmail, subject, body);
+    }
+
+    private boolean sendEmail(String to, String subject, String body) {
+        SendEmailRequest emailRequest = SendEmailRequest.builder()
+                .destination(Destination.builder().toAddresses(to).build())
+                .message(Message.builder()
+                        .subject(Content.builder().data(subject).build())
+                        .body(Body.builder()
+                                .html(Content.builder().data(body).build()) // Use HTML body
+                                .build())
+                        .build())
+                .source(sourceEmail)
+                .build();
+
+        try {
+            sesClient.sendEmail(emailRequest);
+            logger.info("Email sent successfully to {}", to);
             return true;
 
         } catch (MessagingException | UnsupportedEncodingException e) {

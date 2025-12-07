@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Section } from "@/shared/components/branded/Section";
 import { StageBadge } from "@/shared/components/branded/StageBadge";
+import { Button } from "@/shared/components/ui/button";
 import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/shared/utils/stages';
 import { type Transaction } from '@/features/transactions/api/queries';
 
@@ -37,12 +38,9 @@ export function TransactionStageTracker({ transaction, onUpdateStage }: Transact
                     })}
                 </div>
                 <div className="mt-6 flex justify-end">
-                    <button
-                        onClick={onUpdateStage}
-                        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-                    >
+                    <Button onClick={onUpdateStage}>
                         {t('updateStage')}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </Section>

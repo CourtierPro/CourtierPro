@@ -48,6 +48,10 @@ dependencies {
     testImplementation 'org.mockito:mockito-inline:5.2.0'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testRuntimeOnly 'com.h2database:h2'
+
+    implementation platform('software.amazon.awssdk:bom:2.20.162')
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:ses'
 }
 
 tasks.named('test') {
@@ -67,4 +71,18 @@ jacocoTestReport {
         csv.required = false
         html.outputLocation = layout.buildDirectory.dir("jacocoHtml")
     }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.95
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn jacocoTestCoverageVerification
 }

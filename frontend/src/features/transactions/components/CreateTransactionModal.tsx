@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Button } from "@/shared/components/ui/button";
 
 interface CreateTransactionModalProps {
   open: boolean;
@@ -20,12 +21,9 @@ export function CreateTransactionModal({
           This is the modal for creating a new transaction (placeholder only).
         </p>
         {/* TODO: Implement create transaction form and actions */}
-        <button
-          className="mt-4 text-sm text-orange-600 hover:underline"
-          onClick={onClose}
-        >
+        <Button variant="link" onClick={onClose} className="mt-4 text-orange-600 p-0">
           {t("actions.close")}
-        </button>
+        </Button>
       </div>
     </div>
   );

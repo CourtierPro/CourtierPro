@@ -7,7 +7,15 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Transport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+import software.amazon.awssdk.services.ses.SesClient;
+import software.amazon.awssdk.services.ses.model.SendEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendEmailResponse;
+import software.amazon.awssdk.services.ses.model.SesException;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -19,7 +27,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+/**
+ * Unit tests for EmailService.
+ */
+@ExtendWith(MockitoExtension.class)
 class EmailServiceTest {
+
+    @Mock
+    private SesClient sesClient;
 
     private EmailService emailService;
     private OrganizationSettingsService organizationSettingsService;
@@ -68,13 +83,15 @@ class EmailServiceTest {
                     .when(() -> Transport.send(any(Message.class)))
                     .thenThrow(new MessagingException("SMTP error"));
 
-            boolean result = emailService.sendPasswordSetupEmail(
-                    "user@example.com",
-                    "https://example.com/password-setup"
-            );
+        DocumentRequest documentRequest = DocumentRequest.builder()
+                .requestId("REQ-003")
+                .customTitle("Tax Return")
+                .status(DocumentStatusEnum.REJECTED)
+                .build();
 
-            assertFalse(result);
-            transportMock.verify(() -> Transport.send(any(Message.class)));
-        }
+        // Should not throw
+        emailService.sendDocumentStatusUpdatedNotification(documentRequest, "client@example.com");
+
+        verify(sesClient).sendEmail(any(SendEmailRequest.class));
     }
 }

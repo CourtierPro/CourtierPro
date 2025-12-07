@@ -11,8 +11,6 @@ import com.example.courtierprobackend.user.domainclientlayer.auth0.Auth0Manageme
 import com.example.courtierprobackend.user.presentationlayer.request.CreateUserRequest;
 import com.example.courtierprobackend.user.presentationlayer.request.UpdateStatusRequest;
 import com.example.courtierprobackend.user.presentationlayer.response.UserResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -22,9 +20,6 @@ import java.util.UUID;
 
 @Service
 public class UserProvisioningService {
-
-    private static final Logger logger =
-            LoggerFactory.getLogger(UserProvisioningService.class);
 
     private final UserAccountRepository userAccountRepository;
     private final Auth0ManagementClient auth0ManagementClient;
@@ -44,12 +39,14 @@ public class UserProvisioningService {
         this.emailService = emailService;
     }
 
+
     public List<UserResponse> getAllUsers() {
         return userAccountRepository.findAll()
                 .stream()
                 .map(userMapper::toResponse)
                 .toList();
     }
+
 
     public UserResponse createUser(CreateUserRequest request) {
 
@@ -125,6 +122,7 @@ public class UserProvisioningService {
 
         return userMapper.toResponse(saved);
     }
+
 
     public UserResponse updateStatus(UUID userId, UpdateStatusRequest request) {
         UserAccount account = userAccountRepository.findById(userId)

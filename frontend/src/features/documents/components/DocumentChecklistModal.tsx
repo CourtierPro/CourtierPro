@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Button } from "@/shared/components/ui/button";
 
 interface DocumentChecklistModalProps {
   open: boolean;
@@ -17,12 +18,9 @@ export function DocumentChecklistModal({ open, onClose }: DocumentChecklistModal
           This is the modal for viewing the checklist of required documents for a transaction (placeholder only).
         </p>
         {/* TODO: list required docs + statuses */}
-        <button
-          className="mt-4 text-sm text-orange-600 hover:underline"
-          onClick={onClose}
-        >
+        <Button variant="link" onClick={onClose} className="mt-4 text-orange-600 p-0">
           {t("actions.close")}
-        </button>
+        </Button>
       </div>
     </div>
   );
