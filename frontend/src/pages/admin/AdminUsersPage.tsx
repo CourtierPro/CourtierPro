@@ -1,151 +1,181 @@
 // src/pages/admin/AdminUsersPage.tsx
-import { useEffect, useState } from "react";
-import {
-  InviteUserModal,
-  type AdminUserResponse,
-} from "@/components/modals/InviteUserModal";
-import { getAdminUsers, setUserActiveStatus } from "@/pages/admin/adminUserApi";
+import { useState } from "react";
+import { Plus, Search, Shield, User } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+
+import { InviteUserModal } from "@/features/admin/components/InviteUserModal";
+import { PageHeader } from "@/shared/components/branded/PageHeader";
+import { LoadingState } from "@/shared/components/branded/LoadingState";
+import { ErrorState } from "@/shared/components/branded/ErrorState";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { Badge } from "@/shared/components/ui/badge";
+import { useAdminUsers } from "@/features/admin/api/queries";
+import { useSetUserActiveStatus } from "@/features/admin/api/mutations";
+import { logError, getErrorMessage } from "@/shared/utils/error-utils";
+
 import "./AdminUsersPage.css";
 
 export function AdminUsersPage() {
-  const [users, setUsers] = useState<AdminUserResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation("admin");
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const { data: users, isLoading, error } = useAdminUsers();
+  const setUserActiveStatus = useSetUserActiveStatus();
 
-  // Load users on mount
-  useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getAdminUsers();
-        setUsers(data);
-      } catch (e) {
-        console.error("Error loading users", e);
-        setError("Unable to load users.");
-      } finally {
-        setLoading(false);
+  const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
+    try {
+      await setUserActiveStatus.mutateAsync({ userId, active: !currentStatus });
+    } catch (err) {
+      const message = getErrorMessage(err, t("failedToToggleStatus"));
+      toast.error(message);
+      if (err instanceof Error) {
+        logError(err);
       }
     }
-
-    load();
-  }, []);
-
-  // When a new user is created from the modal, add it at the top of the list
-  const handleUserCreated = (user: AdminUserResponse) => {
-    setUsers((prev) => [user, ...prev]);
   };
 
-  // Toggle active / inactive
-  const handleToggle = async (user: AdminUserResponse) => {
-    const newActive = !user.active;
+  const filteredUsers =
+    users?.filter(
+      (u) =>
+        u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.lastName.toLowerCase().includes(searchTerm.toLowerCase()),
+    ) ?? [];
 
-    // Optimistic update
-    setUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, active: newActive } : u)),
+  if (isLoading) {
+    return <LoadingState />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        title={t("errorLoadingUsers")}
+        message={t("couldNotLoadUserList")}
+      />
     );
-
-    try {
-      const updated = await setUserActiveStatus(user.id, newActive);
-      setUsers((prev) =>
-        prev.map((u) => (u.id === user.id ? updated : u)),
-      );
-    } catch (e) {
-      console.error("Error updating user status", e);
-      setError("Unable to update user status.");
-
-      // Rollback on error
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === user.id ? { ...u, active: user.active } : u,
-        ),
-      );
-    }
-  };
+  }
 
   return (
-    <>
-      <div className="admin-page admin-users-page">
-        {/* Header */}
-        <div className="admin-page-header">
-          <div>
-            <h1 className="admin-page-title">Manage Users</h1>
-            <p className="admin-page-subtitle">
-              Manage brokers, clients and admins in your organization.
-            </p>
+    <div className="admin-users-page">
+      {/* Header */}
+      <div className="admin-users-header">
+        <PageHeader
+          title={t("userManagement")}
+          subtitle={t("manageSystemAccess")}
+        />
+        <Button
+          className="admin-users-invite-btn"
+          onClick={() => setShowInviteModal(true)}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          {t("inviteUser")}
+        </Button>
+      </div>
+
+      {/* Search bar */}
+      <div className="admin-users-search-card">
+        <div className="admin-users-search-wrapper">
+          <div className="admin-users-search-icon">
+            <Search className="h-5 w-5 text-gray-400" />
           </div>
-
-          <button
-            type="button"
-            className="admin-primary-btn"
-            onClick={() => setIsInviteOpen(true)}
-          >
-            Invite User
-          </button>
+          <Input
+            type="text"
+            className="admin-users-search-input"
+            placeholder={t("searchUsers")}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
+      </div>
 
-        {error && <div className="users-alert users-alert-error">{error}</div>}
-
-        {/* Table */}
-        <div className="admin-table-card">
-          {loading ? (
-            <div className="admin-table-empty">Loading users…</div>
-          ) : users.length === 0 ? (
-            <div className="admin-table-empty">
-              No users yet. Click “Invite User” to add one.
-            </div>
+      {/* Users table */}
+      <div className="admin-users-table-card">
+        <table className="admin-users-table">
+          <thead>
+          <tr>
+            <th>{t("user")}</th>
+            <th>{t("role")}</th>
+            <th>{t("status")}</th>
+            <th>{t("language")}</th>
+            <th className="admin-users-actions-col">
+              <span className="sr-only">Actions</span>
+            </th>
+          </tr>
+          </thead>
+          <tbody>
+          {filteredUsers.length > 0 ? (
+            filteredUsers.map((user) => (
+              <tr key={user.id} className="admin-users-row">
+                <td>
+                  <div className="admin-users-user-cell">
+                    <div className="admin-users-avatar">
+                      <User className="h-5 w-5 text-gray-500" />
+                    </div>
+                    <div className="admin-users-user-text">
+                      <div className="admin-users-user-name">
+                        {user.firstName} {user.lastName}
+                      </div>
+                      <div className="admin-users-user-email">
+                        {user.email}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div className="admin-users-role-cell">
+                    <Shield className="h-4 w-4 text-gray-400 mr-2" />
+                    <span>{user.role}</span>
+                  </div>
+                </td>
+                <td>
+                  <Badge
+                    variant={user.active ? "success" : "destructive"}
+                    className="rounded-full"
+                  >
+                    {user.active ? t("active") : t("inactive")}
+                  </Badge>
+                </td>
+                <td className="admin-users-lang-cell">
+                  {user.preferredLanguage === "en" ? "EN" : "FR"}
+                </td>
+                <td className="admin-users-actions-col">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      handleToggleStatus(user.id, user.active)
+                    }
+                    className={
+                      user.active
+                        ? "text-red-600 hover:text-red-900 hover:bg-red-50"
+                        : "text-green-600 hover:text-green-900 hover:bg-green-50"
+                    }
+                  >
+                    {user.active ? t("deactivate") : t("activate")}
+                  </Button>
+                </td>
+              </tr>
+            ))
           ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Language</th>
-                  <th>Status</th>
-                  <th className="admin-table-toggle-col">Toggle</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id}>
-                    <td>
-                      {u.firstName} {u.lastName}
-                    </td>
-                    <td className="admin-table-email">{u.email}</td>
-                    <td className="admin-table-role">
-                      {u.role.toLowerCase()}
-                    </td>
-                    <td className="admin-table-lang">
-                      {u.preferredLanguage}
-                    </td>
-                    <td>{u.active ? "Active" : "Inactive"}</td>
-                    <td className="admin-table-toggle-col">
-                      <label className="user-toggle">
-                        <input
-                          type="checkbox"
-                          checked={u.active}
-                          onChange={() => handleToggle(u)}
-                        />
-                        <span className="user-toggle-slider" />
-                      </label>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <tr>
+              <td colSpan={5} className="admin-users-empty">
+                {t("noUsersFound")}
+              </td>
+            </tr>
           )}
-        </div>
+          </tbody>
+        </table>
       </div>
 
       {/* Invite modal */}
       <InviteUserModal
-        open={isInviteOpen}
-        onClose={() => setIsInviteOpen(false)}
-        onUserCreated={handleUserCreated}
+        open={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        onUserCreated={() => {}}
       />
-    </>
+    </div>
   );
 }

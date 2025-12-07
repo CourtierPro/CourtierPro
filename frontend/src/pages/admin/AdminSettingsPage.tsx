@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
-import { InviteUserModal } from "@/components/modals/InviteUserModal";
+import { InviteUserModal } from "@/features/admin/components/InviteUserModal";
 
 import {
   getOrganizationSettings,
@@ -12,10 +12,8 @@ import {
 
 import type { UpdateOrganizationSettingsRequest } from "./adminSettingsApi";
 
-// Icons
 import { Globe, Mail } from "lucide-react";
 
-// CSS
 import "./AdminSettingsPage.css";
 
 export function AdminSettingsPage() {

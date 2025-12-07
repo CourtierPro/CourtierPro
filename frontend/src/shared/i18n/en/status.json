@@ -1,0 +1,18 @@
+{
+    "notFoundTitle": "404 – Page Not Found",
+    "notFoundDesc": "The page you're looking for doesn't exist or has been moved.",
+    "notFoundFooter": "Check the URL or navigate back to safety.",
+    "goBack": "Go back",
+    "goHome": "Go home",
+    "forbiddenTitle": "403 – Forbidden",
+    "forbiddenDesc": "You do not have permission to access this resource.",
+    "forbiddenFooter": "If you believe this is an error, contact your administrator.",
+    "serverErrorTitle": "500 – Internal Server Error",
+    "serverErrorDesc": "Something went wrong on our end. We're working on it.",
+    "serverErrorFooter": "Please try again later or contact support.",
+    "serviceUnavailableTitle": "503 – Service Unavailable",
+    "serviceUnavailableDesc": "The service is temporarily unavailable. Please try again later.",
+    "unauthorizedTitle": "401 – Unauthorized",
+    "unauthorizedDesc": "You must be logged in to access this page.",
+    "login": "Log In"
+}
