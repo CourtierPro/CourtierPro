@@ -1,24 +1,32 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useDocuments } from '../api/queries';
-import { useRequestDocument, type RequestDocumentDTO } from '../api/mutations';
+import { useRequestDocument } from '../api/mutations';
+import { DocumentPartyEnum, DocumentTypeEnum } from '../types';
+import { useErrorHandler } from '@/shared/hooks/useErrorHandler';
 
-export function useDocumentsPageLogic() {
-    const { data: documents = [], isLoading, error, refetch } = useDocuments();
+export function useDocumentsPageLogic(transactionId: string) {
+    const { data: documents = [], isLoading, error: queryError, refetch } = useDocuments(transactionId);
     const requestDocument = useRequestDocument();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const { handleError } = useErrorHandler();
 
-    const handleRequestDocument = async (documentTitle: string, instructions: string) => {
+    const handleRequestDocument = async (documentTitle: string, instructions: string, _stage: string) => {
         try {
             await requestDocument.mutateAsync({
-                title: documentTitle,
-                message: instructions,
-                recipientEmail: 'client@example.com', // Hardcoded for now, should come from context
-                transactionId: 'tx-1', // Hardcoded for now, should come from context/params
-            } as RequestDocumentDTO);
+                transactionId,
+                data: {
+                    docType: DocumentTypeEnum.OTHER, // Defaulting to OTHER as modal doesn't support type selection yet
+                    customTitle: documentTitle,
+                    expectedFrom: DocumentPartyEnum.BUYER, // Defaulting to BUYER, should be dynamic based on transaction
+                    visibleToClient: true,
+                    brokerNotes: instructions // Mapping instructions to brokerNotes for now
+                }
+            });
             setIsModalOpen(false);
             toast.success("Document requested successfully");
-        } catch {
+        } catch (error) {
+            handleError(error);
             toast.error("Failed to request document");
         }
     };
@@ -26,7 +34,7 @@ export function useDocumentsPageLogic() {
     return {
         documents,
         isLoading,
-        error,
+        error: queryError,
         refetch,
         isModalOpen,
         setIsModalOpen,

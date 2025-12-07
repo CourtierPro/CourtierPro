@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/components/ui/button";
-import { submitDocument } from "../api/documentsApi";
+import { useSubmitDocument } from "../api/mutations";
 import { Loader2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
+import { useErrorHandler } from "@/shared/hooks/useErrorHandler";
 
 interface UploadDocumentModalProps {
   open: boolean;
@@ -24,8 +25,11 @@ export function UploadDocumentModal({
 }: UploadDocumentModalProps) {
   const { t } = useTranslation("documents");
   const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const submitDocument = useSubmitDocument();
+  const isUploading = submitDocument.isPending;
+  const { handleError } = useErrorHandler();
 
   if (!open) return null;
 
@@ -45,19 +49,16 @@ export function UploadDocumentModal({
   const handleSubmit = async () => {
     if (!file) return;
 
-    setIsUploading(true);
     setError(null);
 
     try {
-      await submitDocument(transactionId, requestId, file);
+      await submitDocument.mutateAsync({ transactionId, requestId, file });
       toast.success(t("success.documentUploaded"));
       onSuccess();
     } catch (err) {
-      console.error(err);
+      handleError(err);
       setError(t("errors.uploadFailed"));
       toast.error(t("errors.uploadFailed"));
-    } finally {
-      setIsUploading(false);
     }
   };
 

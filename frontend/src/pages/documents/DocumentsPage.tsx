@@ -12,7 +12,11 @@ import { RequestDocumentModal } from "@/features/documents/components/RequestDoc
 import { DocumentList } from "@/features/documents/components/DocumentList";
 import { useTranslation } from "react-i18next";
 
-export function DocumentsPage() {
+interface DocumentsPageProps {
+  transactionId: string;
+}
+
+export function DocumentsPage({ transactionId }: DocumentsPageProps) {
   const { t } = useTranslation('documents');
   const {
     documents,
@@ -22,7 +26,7 @@ export function DocumentsPage() {
     isModalOpen,
     setIsModalOpen,
     handleRequestDocument
-  } = useDocumentsPageLogic();
+  } = useDocumentsPageLogic(transactionId);
 
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState message={error.message} onRetry={() => refetch()} />;
