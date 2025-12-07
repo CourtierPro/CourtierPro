@@ -19,7 +19,7 @@ import java.util.Collection;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true) // to be able to use @PreAuthorize on controllers
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     private final CorsConfigurationSource corsConfigurationSource;
@@ -28,7 +28,7 @@ public class SecurityConfig {
         this.corsConfigurationSource = corsConfigurationSource;
     }
 
-    // MUST match the name of the claim you put in the Auth0 Action
+    // Must match the name of the claim you put in the Auth0 Action
     private static final String ROLES_CLAIM = "https://courtierpro.dev/roles";
 
     @Bean
@@ -36,50 +36,36 @@ public class SecurityConfig {
 
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
-
                 .csrf(csrf -> csrf.disable())
-
                 .authorizeHttpRequests(auth -> auth
 
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-
                         .requestMatchers("/actuator/**").denyAll()
 
-                        .requestMatchers(HttpMethod.POST,  "/api/admin/users").hasRole("ADMIN")
+                        // Admin user management
+                        .requestMatchers(HttpMethod.POST, "/api/admin/users").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/admin/users/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET,   "/api/admin/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/users").hasRole("ADMIN")
 
-                        .requestMatchers("/transactions/**").hasRole("BROKER")
+                        //  Admin organization settings
+                        .requestMatchers("/api/admin/settings/**").hasRole("ADMIN")
 
                         .requestMatchers("/api/webhooks/**").permitAll()
+                        // Broker-only transaction APIs
+                        .requestMatchers("/transactions/**").hasRole("BROKER")
 
+                        // Everything else must be authenticated
                         .anyRequest().authenticated()
                 )
-
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt
-                                .jwtAuthenticationConverter(jwtAuthenticationConverter())
-                        )
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 );
 
         return http.build();
     }
 
-
-    /**
-     * This bean tells Spring Security how to extract user roles from our Auth0 JWT.
-     *
-     * In our case, roles are inside a custom claim: "https://courtierpro.dev/roles"
-     *
-     * We convert:
-     *   "ADMIN" -> "ROLE_ADMIN"
-     *   "BROKER" -> "ROLE_BROKER"
-     *   "CLIENT" -> "ROLE_CLIENT"
-     *
-     * so that hasRole("ADMIN") / hasRole("BROKER") work correctly.
-     */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
@@ -87,19 +73,6 @@ public class SecurityConfig {
         return converter;
     }
 
-    /**
-     * Extracts roles from our Auth0 custom claim and maps them to Spring authorities.
-     *
-     * Example:
-     *   Auth0 JWT contains:
-     *     "https://courtierpro.dev/roles": ["ADMIN"]
-     *
-     *   This method produces:
-     *     [ new SimpleGrantedAuthority("ROLE_ADMIN") ]
-     *
-     * Spring Security will then understand:
-     *   hasRole("ADMIN")  --> true
-     */
     private Collection<GrantedAuthority> extractAuthoritiesFromJwt(Jwt jwt) {
         Collection<GrantedAuthority> authorities = new ArrayList<>();
 

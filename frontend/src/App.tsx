@@ -4,25 +4,25 @@ import { AppRoutes } from "@/app/routes/AppRoutes";
 import { getRoleFromUser, type AppRole } from "@/features/auth/roleUtils";
 
 export default function App() {
-    const { isAuthenticated, isLoading, loginWithRedirect, user } = useAuth0();
+  const { isAuthenticated, isLoading, user, loginWithRedirect } = useAuth0();
 
-    const role: AppRole | null = getRoleFromUser(user);
+  const role: AppRole | null = getRoleFromUser(user);
 
-    useEffect(() => {
-        if (!isLoading && (!isAuthenticated || !role)) {
-            loginWithRedirect({
-                appState: { returnTo: window.location.pathname },
-            });
-        }
-    }, [isLoading, isAuthenticated, role, loginWithRedirect]);
-
-    if (isLoading || !isAuthenticated || !role) {
-        return (
-            <div className="flex min-h-screen items-center justify-center">
-                <p>{isLoading ? "Loading..." : "Redirecting to login..."}</p>
-            </div>
-        );
+  useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !role)) {
+      loginWithRedirect({
+        appState: { returnTo: window.location.pathname },
+      });
     }
+  }, [isLoading, isAuthenticated, role, loginWithRedirect]);
 
-    return <AppRoutes />;
+  if (isLoading || !isAuthenticated || !role) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>{isLoading ? "Loading..." : "Redirecting to login..."}</p>
+      </div>
+    );
+  }
+
+  return <AppRoutes />;
 }

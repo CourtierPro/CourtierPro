@@ -1,0 +1,164 @@
+.admin-users-page {
+  /* on remonte légèrement toute la page pour coller aux autres écrans */
+  margin-top: -1.25rem;
+  padding: 0 3rem 3rem;
+  animation: fadeInUsers 0.35s ease-out both;
+}
+
+/* header titre + bouton */
+.admin-users-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+/* petit tweak sur le bouton pour matcher Settings */
+.admin-users-invite-btn {
+  border-radius: 999px;
+  padding-inline: 1.8rem;
+}
+
+/* search card */
+.admin-users-search-card {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  padding: 0.9rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.admin-users-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.admin-users-search-icon {
+  position: absolute;
+  inset-block: 0;
+  left: 0.75rem;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.admin-users-search-input {
+  padding-left: 2.5rem;
+}
+
+/* table card */
+.admin-users-table-card {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  overflow-x: auto;
+}
+
+.admin-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.admin-users-table thead tr {
+  background-color: #f9fafb;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  color: #6b7280;
+  letter-spacing: 0.04em;
+}
+
+.admin-users-table th,
+.admin-users-table td {
+  padding: 0.75rem 1.25rem;
+  text-align: left;
+  border-top: 1px solid #e5e7eb;
+}
+
+.admin-users-row {
+  transition:
+    background-color 0.14s ease,
+    transform 0.14s ease,
+    box-shadow 0.14s ease;
+}
+
+.admin-users-row:hover {
+  background-color: #fff7ed;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+/* cellule user (avatar + nom + email) */
+.admin-users-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-users-avatar {
+  flex-shrink: 0;
+  height: 2.5rem;
+  width: 2.5rem;
+  border-radius: 999px;
+  background-color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-users-user-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-users-user-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.admin-users-user-email {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+/* rôle */
+.admin-users-role-cell {
+  display: flex;
+  align-items: center;
+  color: #111827;
+}
+
+/* langue */
+.admin-users-lang-cell {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #4b5563;
+}
+
+/* colonne actions */
+.admin-users-actions-col {
+  text-align: right;
+  width: 7rem;
+}
+
+/* ligne vide */
+.admin-users-empty {
+  padding: 1.6rem 1.25rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* animation globale */
+@keyframes fadeInUsers {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

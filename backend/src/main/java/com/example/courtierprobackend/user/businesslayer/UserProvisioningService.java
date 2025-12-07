@@ -1,5 +1,7 @@
 package com.example.courtierprobackend.user.businesslayer;
 
+import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
+import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
 import com.example.courtierprobackend.datamapperlayer.UserMapper;
 import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
@@ -27,15 +29,18 @@ public class UserProvisioningService {
     private final UserAccountRepository userAccountRepository;
     private final Auth0ManagementClient auth0ManagementClient;
     private final UserMapper userMapper;
+    private final OrganizationSettingsService organizationSettingsService;
     private final EmailService emailService;
 
     public UserProvisioningService(UserAccountRepository userAccountRepository,
                                    Auth0ManagementClient auth0ManagementClient,
                                    UserMapper userMapper,
+                                   OrganizationSettingsService organizationSettingsService,
                                    EmailService emailService) {
         this.userAccountRepository = userAccountRepository;
         this.auth0ManagementClient = auth0ManagementClient;
         this.userMapper = userMapper;
+        this.organizationSettingsService = organizationSettingsService;
         this.emailService = emailService;
     }
 
@@ -48,25 +53,36 @@ public class UserProvisioningService {
 
     public UserResponse createUser(CreateUserRequest request) {
 
-        // Determine role
+        // Determine role from request
         UserRole role = UserRole.valueOf(request.getRole());
+
+        // Load organization settings (default language, templates, etc.)
+        OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
+
+        // Effective language: user choice > org default > "en"
+        String effectiveLanguage = request.getPreferredLanguage();
+        if (effectiveLanguage == null || effectiveLanguage.isBlank()) {
+            effectiveLanguage = settings.getDefaultLanguage();
+        }
+        if (effectiveLanguage == null || effectiveLanguage.isBlank()) {
+            effectiveLanguage = "en";
+        }
 
         // Create user in Auth0 and get back "auth0UserId|passwordSetupUrl"
         String result = auth0ManagementClient.createUser(
                 request.getEmail(),
                 request.getFirstName(),
                 request.getLastName(),
-                role
+                role,
+                effectiveLanguage
         );
 
-        // --- Parse the result safely ---
         // We use the *last* '|' as separator so it works even if the auth0UserId contains a '|'
         String auth0UserId;
         String passwordSetupUrl = null;
 
         int separatorIndex = result.lastIndexOf('|');
         if (separatorIndex == -1) {
-            // No separator – assume only the user id was returned
             auth0UserId = result;
             logger.warn(
                     "Auth0 createUser result did not contain a password setup URL separator '|'. Value was: {}",
@@ -79,13 +95,13 @@ public class UserProvisioningService {
                 passwordSetupUrl = result.substring(separatorIndex + 1);
             }
         }
-        // --- end parsing ---
 
-        // Send email with password setup link (if we have one)
+        // Send invitation email if we have a password setup URL
         if (passwordSetupUrl != null) {
             boolean emailSent = emailService.sendPasswordSetupEmail(
                     request.getEmail(),
-                    passwordSetupUrl
+                    passwordSetupUrl,
+                    effectiveLanguage
             );
 
             if (!emailSent) {
@@ -99,6 +115,12 @@ public class UserProvisioningService {
 
         // Create local user record
         UserAccount account = userMapper.toNewUserEntity(request, auth0UserId);
+
+        // Persist preferred language if missing on the entity
+        if (account.getPreferredLanguage() == null || account.getPreferredLanguage().isBlank()) {
+            account.setPreferredLanguage(effectiveLanguage);
+        }
+
         UserAccount saved = userAccountRepository.save(account);
 
         return userMapper.toResponse(saved);
@@ -106,16 +128,14 @@ public class UserProvisioningService {
 
     public UserResponse updateStatus(UUID userId, UpdateStatusRequest request) {
         UserAccount account = userAccountRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "User with id " + userId + " not found"
-                ));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "User with id " + userId + " not found"));
 
         boolean active = request.getActive();
         account.setActive(active);
         UserAccount saved = userAccountRepository.save(account);
 
-        // Synchronize with Auth0: if active=false -> blocked=true
+        // Sync with Auth0: active=false -> blocked=true
         auth0ManagementClient.setBlocked(account.getAuth0UserId(), !active);
 
         return userMapper.toResponse(saved);
