@@ -1,0 +1,111 @@
+/* InviteUserModal.css */
+
+/* FOND FLOU + FADE-IN */
+.cp-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.40);
+  backdrop-filter: blur(4px);
+  animation: cpModalFadeIn 0.22s ease-out forwards;
+}
+
+/* CARTE DU MODAL */
+.cp-modal-card {
+  width: 100%;
+  max-width: 680px;
+  background: #ffffff;
+  border-radius: 1.1rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.22);
+  padding: 1.9rem 2.1rem 1.7rem;
+  transform-origin: center;
+  animation: cpModalZoomIn 0.22s ease-out forwards;
+}
+
+.cp-modal-card--wide {
+  max-width: 720px;
+}
+
+/* TITRE + SOUS-TITRE */
+.cp-modal-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.3rem;
+}
+
+.cp-modal-subtitle {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 1.4rem;
+}
+
+/* ERREUR */
+.cp-modal-error {
+  margin-bottom: 0.9rem;
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.8rem;
+  border: 1px solid #fecaca;
+  background-color: #fef2f2;
+  color: #b91c1c;
+}
+
+/* FORMULAIRE */
+.cp-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.cp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cp-field-label {
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.cp-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+/* ACTIONS (BOUTONS) */
+.cp-modal-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* ANIMATIONS */
+@keyframes cpModalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cpModalZoomIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
