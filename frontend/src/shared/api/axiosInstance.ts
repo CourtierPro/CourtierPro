@@ -50,9 +50,8 @@ const createAxiosInstance = (): AxiosInstance => {
             }
 
             // If auth is disabled for Playwright tests, never attach an Authorization header.
-            if (import.meta.env.VITE_AUTH_DISABLED === "true") {
-                // Optionally could set a dummy header here, but keep requests unauthenticated.
-            } else if (accessTokenProvider) {
+            // No Authorization header is attached if VITE_AUTH_DISABLED is true.
+            else if (accessTokenProvider) {
                 try {
                     const token = await accessTokenProvider();
 
