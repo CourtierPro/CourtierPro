@@ -30,7 +30,7 @@ public class AdminUserController {
         return service.getAllUsers();
     }
 
-    @PostMapping("/invite")
+    @PostMapping
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         UserResponse response = service.createUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -42,5 +42,10 @@ public class AdminUserController {
                                                      @Valid @RequestBody UpdateStatusRequest request) {
         UserResponse response = service.updateStatus(userId, request);
         return ResponseEntity.ok(response);
+    }
+    @PostMapping("/{userId}/password-reset")
+    public ResponseEntity<Void> triggerPasswordReset(@PathVariable UUID userId) {
+        service.triggerPasswordReset(userId);
+        return ResponseEntity.ok().build();
     }
 }

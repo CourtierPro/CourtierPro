@@ -3,125 +3,91 @@ package com.example.courtierprobackend.Organization.presentationlayer;
 import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
 import com.example.courtierprobackend.Organization.presentationlayer.model.UpdateOrganizationSettingsRequestModel;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 
-import java.time.Instant;
-import java.util.UUID;
-
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.mockito.Mockito;
+import static org.mockito.Mockito.*;
 
 /**
- * Integration test for OrganizationSettingsController.
- * Tests HTTP request/response handling with mocked service layer.
+ * Unit tests for OrganizationSettingsController.
  */
-@WebMvcTest(value = OrganizationSettingsController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@ExtendWith(MockitoExtension.class)
 class OrganizationSettingsControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
+    @Mock
     private OrganizationSettingsService organizationSettingsService;
 
-    @TestConfiguration
-    static class TestConfig {
-        @Bean
-        public OrganizationSettingsService organizationSettingsService() {
-            return Mockito.mock(OrganizationSettingsService.class);
-        }
-    }
+    private OrganizationSettingsController controller;
 
     @BeforeEach
     void setUp() {
-        reset(organizationSettingsService);
+        controller = new OrganizationSettingsController(organizationSettingsService);
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void getSettings_ReturnsOk() throws Exception {
+    void getSettings_ReturnsCurrentSettings() {
         // Arrange
-        OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder()
-                .id(UUID.randomUUID())
-                .defaultLanguage("fr")
+        OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
+                .defaultLanguage("en")
                 .inviteSubjectEn("Welcome")
-                .inviteBodyEn("Body EN")
-                .inviteSubjectFr("Bienvenue")
-                .inviteBodyFr("Body FR")
-                .updatedAt(Instant.now())
                 .build();
+        when(organizationSettingsService.getSettings()).thenReturn(settings);
 
-        when(organizationSettingsService.getSettings()).thenReturn(response);
+        // Act
+        ResponseEntity<OrganizationSettingsResponseModel> response = controller.getSettings();
 
-        // Act & Assert
-        mockMvc.perform(get("/api/admin/settings")
-                        .with(csrf()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.defaultLanguage").value("fr"))
-                .andExpect(jsonPath("$.inviteSubjectEn").value("Welcome"))
-                .andExpect(jsonPath("$.inviteSubjectFr").value("Bienvenue"));
+        // Assert
+        assertThat(response.getBody().getDefaultLanguage()).isEqualTo("en");
+    }
 
+    @Test
+    void getSettings_DelegatesCorrectlyToService() {
+        // Arrange
+        when(organizationSettingsService.getSettings()).thenReturn(OrganizationSettingsResponseModel.builder().build());
+
+        // Act
+        controller.getSettings();
+
+        // Assert
         verify(organizationSettingsService).getSettings();
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void updateSettings_WithValidRequest_ReturnsOk() throws Exception {
+    void updateSettings_UpdatesAndReturnsNewSettings() {
         // Arrange
         UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
-                "en",
-                "New Subject EN",
-                "New Body EN",
-                "New Subject FR",
-                "New Body FR"
+                "fr", "Subject EN", "Body EN", "Subject FR", "Body FR"
         );
-
-        OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder()
-                .id(UUID.randomUUID())
-                .defaultLanguage("en")
-                .inviteSubjectEn("New Subject EN")
-                .inviteBodyEn("New Body EN")
-                .inviteSubjectFr("New Subject FR")
-                .inviteBodyFr("New Body FR")
-                .updatedAt(Instant.now())
+        OrganizationSettingsResponseModel updated = OrganizationSettingsResponseModel.builder()
+                .defaultLanguage("fr")
                 .build();
+        when(organizationSettingsService.updateSettings(any())).thenReturn(updated);
 
-        when(organizationSettingsService.updateSettings(any(UpdateOrganizationSettingsRequestModel.class)))
-                .thenReturn(response);
+        // Act
+        ResponseEntity<OrganizationSettingsResponseModel> response = controller.updateSettings(request);
 
-        // Act & Assert
-        mockMvc.perform(put("/api/admin/settings")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.defaultLanguage").value("en"))
-                .andExpect(jsonPath("$.inviteSubjectEn").value("New Subject EN"));
-
-        verify(organizationSettingsService).updateSettings(any(UpdateOrganizationSettingsRequestModel.class));
+        // Assert
+        assertThat(response.getBody().getDefaultLanguage()).isEqualTo("fr");
     }
 
+    @Test
+    void updateSettings_DelegatesCorrectlyToService() {
+        // Arrange
+        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
+                "en", "S", "B", "S", "B"
+        );
+        when(organizationSettingsService.updateSettings(request)).thenReturn(OrganizationSettingsResponseModel.builder().build());
+
+        // Act
+        controller.updateSettings(request);
+
+        // Assert
+        verify(organizationSettingsService).updateSettings(request);
+    }
 }

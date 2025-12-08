@@ -76,10 +76,10 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
           }));
         }
       })
-      .catch((err) => {
-        console.error("Failed to load organization settings", err);
+      .catch(() => {
+        toast.error(t("inviteUser_settingsLoadError"));
       });
-  }, []);
+  }, [t]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -116,19 +116,20 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
     } catch (err) {
       const axiosErr = err as AxiosError;
       const respData = axiosErr.response?.data;
+      let errorMessage = t("inviteUser_inviteError");
 
       if (typeof respData === "string") {
-        setError(respData);
+        errorMessage = respData;
       } else if (respData && typeof respData === "object") {
         const dataObj = respData as { message?: string; error?: string };
-        setError(
+        errorMessage =
           dataObj.message ??
           dataObj.error ??
-          t("inviteUser_inviteError"),
-        );
-      } else {
-        setError(t("inviteUser_inviteError"));
+          t("inviteUser_inviteError");
       }
+
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 

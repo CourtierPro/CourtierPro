@@ -1,4 +1,4 @@
-package com.example.courtierprobackend.datamapperlayer;
+package com.example.courtierprobackend.user.mapper;
 
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
@@ -26,7 +26,7 @@ public class UserMapper {
 
     public UserResponse toResponse(UserAccount account) {
         return UserResponse.builder()
-                .id(account.getId())
+                .id(account.getAuth0UserId())
                 .email(account.getEmail())
                 .firstName(account.getFirstName())
                 .lastName(account.getLastName())

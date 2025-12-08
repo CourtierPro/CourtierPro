@@ -1,23 +1,27 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { documentKeys, type Document } from '@/features/documents/api/queries';
-
-export interface RequestDocumentDTO {
-    title: string;
-    recipientEmail: string;
-    message: string;
-    transactionId: string;
-}
+import { documentKeys } from '@/features/documents/api/queries';
+import { createDocumentRequest, submitDocument, type CreateDocumentRequestDTO } from './documentsApi';
 
 export function useRequestDocument() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (data: RequestDocumentDTO) => {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            return { id: 'temp-id', ...data, status: 'pending', uploadedAt: new Date().toISOString() } as unknown as Document;
+        mutationFn: ({ transactionId, data }: { transactionId: string; data: CreateDocumentRequestDTO }) =>
+            createDocumentRequest(transactionId, data),
+        onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: documentKeys.lists() });
+    });
+}
+
+export function useSubmitDocument() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ transactionId, requestId, file }: { transactionId: string; requestId: string; file: File }) =>
+            submitDocument(transactionId, requestId, file),
+        onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
         },
     });
 }

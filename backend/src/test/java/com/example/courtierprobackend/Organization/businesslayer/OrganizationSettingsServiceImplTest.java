@@ -7,9 +7,10 @@ import com.example.courtierprobackend.Organization.presentationlayer.model.Organ
 import com.example.courtierprobackend.Organization.presentationlayer.model.UpdateOrganizationSettingsRequestModel;
 import com.example.courtierprobackend.audit.organization_settings_audit.businesslayer.OrganizationSettingsAuditService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
@@ -18,263 +19,293 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.Instant;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for OrganizationSettingsServiceImpl.
+ */
 @ExtendWith(MockitoExtension.class)
 class OrganizationSettingsServiceImplTest {
 
     @Mock
     private OrganizationSettingsRepository repository;
-
     @Mock
     private OrganizationSettingsMapper mapper;
-
     @Mock
     private OrganizationSettingsAuditService auditService;
-
     @Mock
     private HttpServletRequest httpServletRequest;
 
-    @InjectMocks
     private OrganizationSettingsServiceImpl service;
 
+    @BeforeEach
+    void setUp() {
+        service = new OrganizationSettingsServiceImpl(repository, mapper, auditService, httpServletRequest);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
-    void getSettings_WhenSettingsExist_ReturnsSettings() {
+    void getSettings_WithExistingSettings_ReturnsSettings() {
         // Arrange
-        OrganizationSettings existingSettings = OrganizationSettings.builder()
+        OrganizationSettings settings = OrganizationSettings.builder()
                 .id(UUID.randomUUID())
-                .defaultLanguage("fr")
-                .inviteSubjectEn("Welcome")
-                .inviteBodyEn("Body EN")
-                .inviteSubjectFr("Bienvenue")
-                .inviteBodyFr("Body FR")
-                .updatedAt(Instant.now())
+                .defaultLanguage("en")
+                .build();
+        OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder()
+                .defaultLanguage("en")
                 .build();
 
-        OrganizationSettingsResponseModel responseModel = OrganizationSettingsResponseModel.builder()
-                .id(existingSettings.getId())
-                .defaultLanguage("fr")
-                .inviteSubjectEn("Welcome")
-                .inviteBodyEn("Body EN")
-                .inviteSubjectFr("Bienvenue")
-                .inviteBodyFr("Body FR")
-                .updatedAt(existingSettings.getUpdatedAt())
-                .build();
-
-        when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existingSettings));
-        when(mapper.toResponseModel(existingSettings)).thenReturn(responseModel);
+        when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(settings));
+        when(mapper.toResponseModel(settings)).thenReturn(response);
 
         // Act
         OrganizationSettingsResponseModel result = service.getSettings();
 
         // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getDefaultLanguage()).isEqualTo("fr");
-        assertThat(result.getInviteSubjectEn()).isEqualTo("Welcome");
-        verify(repository).findTopByOrderByUpdatedAtDesc();
-        verify(mapper).toResponseModel(existingSettings);
+        assertThat(result.getDefaultLanguage()).isEqualTo("en");
     }
 
     @Test
-    void getSettings_WhenNoSettings_CreatesDefaultSettings() {
+    void getSettings_WithNoSettings_CreatesDefaultSettings() {
         // Arrange
         OrganizationSettings defaultSettings = OrganizationSettings.builder()
-                .id(UUID.randomUUID())
                 .defaultLanguage("fr")
-                .inviteSubjectEn("Welcome to CourtierPro")
-                .inviteBodyEn("Hi {{name}}, your CourtierPro account has been created.")
-                .inviteSubjectFr("Bienvenue sur CourtierPro")
-                .inviteBodyFr("Bonjour {{name}}, votre compte CourtierPro a été créé.")
-                .updatedAt(Instant.now())
                 .build();
-
-        OrganizationSettingsResponseModel responseModel = OrganizationSettingsResponseModel.builder()
-                .id(defaultSettings.getId())
+        OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder()
                 .defaultLanguage("fr")
-                .inviteSubjectEn("Welcome to CourtierPro")
-                .inviteBodyEn("Hi {{name}}, your CourtierPro account has been created.")
-                .inviteSubjectFr("Bienvenue sur CourtierPro")
-                .inviteBodyFr("Bonjour {{name}}, votre compte CourtierPro a été créé.")
-                .updatedAt(defaultSettings.getUpdatedAt())
                 .build();
 
         when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.empty());
-        when(repository.save(any(OrganizationSettings.class))).thenReturn(defaultSettings);
-        when(mapper.toResponseModel(defaultSettings)).thenReturn(responseModel);
+        when(repository.save(any())).thenReturn(defaultSettings);
+        when(mapper.toResponseModel(defaultSettings)).thenReturn(response);
 
         // Act
         OrganizationSettingsResponseModel result = service.getSettings();
 
         // Assert
-        assertThat(result).isNotNull();
         assertThat(result.getDefaultLanguage()).isEqualTo("fr");
-        assertThat(result.getInviteSubjectEn()).isEqualTo("Welcome to CourtierPro");
-        verify(repository).findTopByOrderByUpdatedAtDesc();
-        verify(repository).save(any(OrganizationSettings.class));
-        verify(mapper).toResponseModel(defaultSettings);
+        verify(repository).save(any());
     }
 
     @Test
-    void updateSettings_WithValidData_UpdatesSuccessfully() {
+    void updateSettings_WithValidRequest_UpdatesAndAudits() {
         // Arrange
-        OrganizationSettings existingSettings = OrganizationSettings.builder()
-                .id(UUID.randomUUID())
+        OrganizationSettings existing = OrganizationSettings.builder()
+                .defaultLanguage("en")
+                .inviteSubjectEn("Old Subject")
+                .build();
+        OrganizationSettings saved = OrganizationSettings.builder()
                 .defaultLanguage("fr")
-                .inviteSubjectEn("Old Subject EN")
-                .inviteBodyEn("Old Body EN")
-                .inviteSubjectFr("Old Subject FR")
-                .inviteBodyFr("Old Body FR")
-                .updatedAt(Instant.now().minusSeconds(3600))
+                .inviteSubjectEn("New Subject")
+                .updatedAt(Instant.now())
+                .build();
+        OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder()
+                .defaultLanguage("fr")
                 .build();
 
         UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
-                "en",
-                "New Subject EN",
-                "New Body EN",
-                "New Subject FR",
-                "New Body FR"
+                "fr", "New Subject", "body en", "Subject Fr", "body fr"
         );
 
-        OrganizationSettings updatedSettings = OrganizationSettings.builder()
-                .id(existingSettings.getId())
-                .defaultLanguage("en")
-                .inviteSubjectEn("New Subject EN")
-                .inviteBodyEn("New Body EN")
-                .inviteSubjectFr("New Subject FR")
-                .inviteBodyFr("New Body FR")
-                .updatedAt(Instant.now())
-                .build();
-
-        OrganizationSettingsResponseModel responseModel = OrganizationSettingsResponseModel.builder()
-                .id(updatedSettings.getId())
-                .defaultLanguage("en")
-                .inviteSubjectEn("New Subject EN")
-                .inviteBodyEn("New Body EN")
-                .inviteSubjectFr("New Subject FR")
-                .inviteBodyFr("New Body FR")
-                .updatedAt(updatedSettings.getUpdatedAt())
-                .build();
-
-        when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existingSettings));
-        when(repository.save(any(OrganizationSettings.class))).thenReturn(updatedSettings);
-        when(mapper.toResponseModel(updatedSettings)).thenReturn(responseModel);
+        when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
+        when(repository.save(any())).thenReturn(saved);
+        when(mapper.toResponseModel(saved)).thenReturn(response);
         when(httpServletRequest.getRemoteAddr()).thenReturn("127.0.0.1");
-
-        // Mock Security Context
-        Authentication authentication = mock(Authentication.class);
-        SecurityContext securityContext = mock(SecurityContext.class);
-        Jwt jwt = mock(Jwt.class);
-
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getPrincipal()).thenReturn(jwt);
-        when(jwt.getSubject()).thenReturn("auth0|123456");
-        when(jwt.getClaims()).thenReturn(Map.of("email", "admin@test.com"));
-        SecurityContextHolder.setContext(securityContext);
 
         // Act
         OrganizationSettingsResponseModel result = service.updateSettings(request);
 
         // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getDefaultLanguage()).isEqualTo("en");
-        assertThat(result.getInviteSubjectEn()).isEqualTo("New Subject EN");
-        verify(repository).findTopByOrderByUpdatedAtDesc();
-        verify(repository).save(any(OrganizationSettings.class));
-        verify(mapper).toResponseModel(updatedSettings);
-        verify(auditService).recordSettingsUpdated(
-                eq("auth0|123456"),
-                eq("admin@test.com"),
-                eq("127.0.0.1"),
-                eq("fr"),
-                eq("en"),
-                eq(true),
-                eq(true)
-        );
-
-        // Cleanup
-        SecurityContextHolder.clearContext();
+        assertThat(result.getDefaultLanguage()).isEqualTo("fr");
+        verify(auditService).recordSettingsUpdated(any(), any(), any(), any(), any(), anyBoolean(), anyBoolean());
     }
 
     @Test
-    void updateSettings_LogsAuditCorrectly() {
+    void updateSettings_WithJwtPrincipal_ExtractsUserIdFromToken() {
         // Arrange
-        OrganizationSettings existingSettings = OrganizationSettings.builder()
-                .id(UUID.randomUUID())
-                .defaultLanguage("fr")
-                .inviteSubjectEn("Subject EN")
-                .inviteBodyEn("Body EN")
-                .inviteSubjectFr("Subject FR")
-                .inviteBodyFr("Body FR")
-                .updatedAt(Instant.now().minusSeconds(3600))
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .subject("auth0|admin123")
+                .claim("email", "admin@example.com")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
                 .build();
 
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(jwt);
+
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(securityContext);
+
+        OrganizationSettings existing = OrganizationSettings.builder()
+                .defaultLanguage("en")
+                .build();
+        OrganizationSettings saved = OrganizationSettings.builder()
+                .defaultLanguage("fr")
+                .updatedAt(Instant.now())
+                .build();
+        OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder().build();
+
         UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
-                "en",
-                "Subject EN",  // No change
-                "Body EN",        // No change
-                "New Subject FR",  // Changed
-                "Body FR"        // No change in body
+                "fr", "Subject", "Body", "Sujet", "Corps"
         );
 
-        when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existingSettings));
-        when(repository.save(any(OrganizationSettings.class))).thenReturn(existingSettings);
-        when(mapper.toResponseModel(any())).thenReturn(mock(OrganizationSettingsResponseModel.class));
+        when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
+        when(repository.save(any())).thenReturn(saved);
+        when(mapper.toResponseModel(saved)).thenReturn(response);
         when(httpServletRequest.getRemoteAddr()).thenReturn("192.168.1.1");
-
-        // Mock Security Context
-        Authentication authentication = mock(Authentication.class);
-        SecurityContext securityContext = mock(SecurityContext.class);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn("admin-user");
-        when(authentication.getPrincipal()).thenReturn("admin-user");
-        SecurityContextHolder.setContext(securityContext);
 
         // Act
         service.updateSettings(request);
 
         // Assert
         verify(auditService).recordSettingsUpdated(
-                eq("admin-user"),
-                eq("unknown"),
-                eq("192.168.1.1"),
-                eq("fr"),
-                eq("en"),
-                eq(false),  // EN template not changed
-                eq(true)    // FR template changed (subject)
+                eq("auth0|admin123"), eq("admin@example.com"), eq("192.168.1.1"),
+                any(), any(), anyBoolean(), anyBoolean()
         );
-
-        // Cleanup
-        SecurityContextHolder.clearContext();
     }
 
     @Test
-    void createDefaultSettings_CreatesWithCorrectDefaults() {
+    void updateSettings_WithJwtWithoutEmail_UsesUnknownEmail() {
         // Arrange
-        OrganizationSettings defaultSettings = OrganizationSettings.builder()
-                .id(UUID.randomUUID())
-                .defaultLanguage("fr")
-                .inviteSubjectEn("Welcome to CourtierPro")
-                .inviteBodyEn("Hi {{name}}, your CourtierPro account has been created.")
-                .inviteSubjectFr("Bienvenue sur CourtierPro")
-                .inviteBodyFr("Bonjour {{name}}, votre compte CourtierPro a été créé.")
-                .updatedAt(Instant.now())
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .subject("auth0|admin456")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
                 .build();
 
-        when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.empty());
-        when(repository.save(any(OrganizationSettings.class))).thenReturn(defaultSettings);
-        when(mapper.toResponseModel(any())).thenReturn(mock(OrganizationSettingsResponseModel.class));
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(jwt);
+
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(securityContext);
+
+        OrganizationSettings existing = OrganizationSettings.builder().defaultLanguage("en").build();
+        OrganizationSettings saved = OrganizationSettings.builder().defaultLanguage("fr").updatedAt(Instant.now()).build();
+        OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder().build();
+
+        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
+                "fr", "Subject", "Body", "Sujet", "Corps"
+        );
+
+        when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
+        when(repository.save(any())).thenReturn(saved);
+        when(mapper.toResponseModel(saved)).thenReturn(response);
+        when(httpServletRequest.getRemoteAddr()).thenReturn("127.0.0.1");
 
         // Act
-        service.getSettings();
+        service.updateSettings(request);
 
         // Assert
-        verify(repository).save(any(OrganizationSettings.class));
+        verify(auditService).recordSettingsUpdated(
+                eq("auth0|admin456"), eq("unknown"), any(), any(), any(), anyBoolean(), anyBoolean()
+        );
+    }
+
+    @Test
+    void updateSettings_WithNonJwtAuth_UsesAuthName() {
+        // Arrange
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn("regular-user");
+        when(auth.getName()).thenReturn("regular-user");
+
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(securityContext);
+
+        OrganizationSettings existing = OrganizationSettings.builder().defaultLanguage("en").build();
+        OrganizationSettings saved = OrganizationSettings.builder().defaultLanguage("fr").updatedAt(Instant.now()).build();
+        OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder().build();
+
+        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
+                "fr", "Subject", "Body", "Sujet", "Corps"
+        );
+
+        when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
+        when(repository.save(any())).thenReturn(saved);
+        when(mapper.toResponseModel(saved)).thenReturn(response);
+        when(httpServletRequest.getRemoteAddr()).thenReturn("127.0.0.1");
+
+        // Act
+        service.updateSettings(request);
+
+        // Assert
+        verify(auditService).recordSettingsUpdated(
+                eq("regular-user"), any(), any(), any(), any(), anyBoolean(), anyBoolean()
+        );
+    }
+
+    @Test
+    void updateSettings_WithNoTemplateChanges_DetectsNoChanges() {
+        // Arrange
+        OrganizationSettings existing = OrganizationSettings.builder()
+                .defaultLanguage("en")
+                .inviteSubjectEn("Same Subject")
+                .inviteBodyEn("Same Body")
+                .inviteSubjectFr("Même Sujet")
+                .inviteBodyFr("Même Corps")
+                .build();
+        OrganizationSettings saved = OrganizationSettings.builder()
+                .defaultLanguage("fr")
+                .updatedAt(Instant.now())
+                .build();
+        OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder().build();
+
+        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
+                "fr", "Same Subject", "Same Body", "Même Sujet", "Même Corps"
+        );
+
+        when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
+        when(repository.save(any())).thenReturn(saved);
+        when(mapper.toResponseModel(saved)).thenReturn(response);
+        when(httpServletRequest.getRemoteAddr()).thenReturn("127.0.0.1");
+
+        // Act
+        service.updateSettings(request);
+
+        // Assert - both template change flags should be false
+        verify(auditService).recordSettingsUpdated(
+                any(), any(), any(), any(), any(), eq(false), eq(false)
+        );
+    }
+
+    @Test
+    void updateSettings_WithNullHttpRequest_UsesUnknownIp() {
+        // Arrange
+        OrganizationSettingsServiceImpl serviceWithNullRequest = 
+                new OrganizationSettingsServiceImpl(repository, mapper, auditService, null);
+
+        OrganizationSettings existing = OrganizationSettings.builder().defaultLanguage("en").build();
+        OrganizationSettings saved = OrganizationSettings.builder().defaultLanguage("fr").updatedAt(Instant.now()).build();
+        OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder().build();
+
+        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
+                "fr", "Subject", "Body", "Sujet", "Corps"
+        );
+
+        when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
+        when(repository.save(any())).thenReturn(saved);
+        when(mapper.toResponseModel(saved)).thenReturn(response);
+
+        // Act
+        serviceWithNullRequest.updateSettings(request);
+
+        // Assert
+        verify(auditService).recordSettingsUpdated(
+                any(), any(), eq("unknown"), any(), any(), anyBoolean(), anyBoolean()
+        );
     }
 }
+

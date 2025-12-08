@@ -2,8 +2,6 @@ package com.example.courtierprobackend.user.domainclientlayer.auth0;
 
 import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -18,12 +16,6 @@ import java.util.Map;
 @Component
 public class Auth0ManagementClient {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(Auth0ManagementClient.class);
-
-    // 7 days validity in seconds
-    private static final int PASSWORD_TICKET_TTL_SECONDS = 7 * 24 * 60 * 60;
-
     // RestTemplate to support PATCH
     private final RestTemplate restTemplate;
 
@@ -35,40 +27,37 @@ public class Auth0ManagementClient {
     private final String managementBaseUrl;
     private final String tokenUrl;
 
-    // Frontend URL where the user gets redirected after setting the password
-    private final String passwordSetupResultUrl;
-
     // Auth0 role IDs (from Dashboard → User Management → Roles)
     private final String adminRoleId  = "rol_2zQ5SYaHM3eDsUF3";
     private final String brokerRoleId = "rol_l9MqshX9J77aopLk";
     private final String clientRoleId = "rol_29T806IHSWNeRS2Z";
 
     // “Username-Password-Authentication” is the default name of the “Database” connection created by Auth0.
-    // This is where your users will be created when you provision them via the API with a generated password.
+    //This is where your users will be created when you provision them via the API with a generated password.
+    //Connection Database → email + password stock in Auth0
     private final String dbConnection = "Username-Password-Authentication";
 
     public Auth0ManagementClient(
             @Value("${auth0.domain}") String domain,
             @Value("${auth0.management.client-id}") String clientId,
             @Value("${auth0.management.client-secret}") String clientSecret,
-            @Value("${auth0.management.audience}") String audience,
-            // configurable result URL, with a sensible local default
-            @Value("${app.frontend.password-setup-url:http://localhost:8081/login?passwordSet=true}")
-            String passwordSetupResultUrl
+            @Value("${auth0.management.audience}") String audience
     ) {
         this.domain = domain;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.audience = audience;
-        this.passwordSetupResultUrl = passwordSetupResultUrl;
 
+        // URLs factorisées
         this.managementBaseUrl = "https://" + domain + "/api/v2";
         this.tokenUrl = "https://" + domain + "/oauth/token";
 
+        //  support PATCH
         HttpComponentsClientHttpRequestFactory requestFactory =
                 new HttpComponentsClientHttpRequestFactory();
         this.restTemplate = new RestTemplate(requestFactory);
     }
+
 
     // Obtention of token Management
     private String getManagementToken() {
@@ -86,8 +75,7 @@ public class Auth0ManagementClient {
 
         HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
 
-        ResponseEntity<TokenResponse> response =
-                restTemplate.postForEntity(url, entity, TokenResponse.class);
+        ResponseEntity<TokenResponse> response = restTemplate.postForEntity(url, entity, TokenResponse.class);
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new IllegalStateException("Failed to obtain Auth0 management token");
@@ -98,38 +86,12 @@ public class Auth0ManagementClient {
 
     public record TokenResponse(@JsonProperty("access_token") String accessToken) {}
 
-    // Generate a temporary random password (user will never use this)
-    private String generateTemporaryPassword() {
-        byte[] bytes = new byte[32];
+    // Generate a random password (for the guest user)
+    //until ticket CP-33 is not done, a random password is generated(you can modify it on Auth0 for now)
+    private String generateRandomPassword() {
+        byte[] bytes = new byte[24];
         new SecureRandom().nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes) + "!Aa1";
-    }
-
-    private String createPasswordChangeTicket(String auth0UserId) {
-        String token = getManagementToken();
-        String url = managementBaseUrl + "/tickets/password-change";
-
-        Map<String, Object> body = Map.of(
-                "user_id", auth0UserId,
-                "result_url", passwordSetupResultUrl,
-                "ttl_sec", PASSWORD_TICKET_TTL_SECONDS,
-                "mark_email_as_verified", true
-        );
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(token);
-
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
-        ResponseEntity<Map> response =
-                restTemplate.postForEntity(url, entity, Map.class);
-
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new IllegalStateException("Failed to create password change ticket");
-        }
-
-        return (String) response.getBody().get("ticket");
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     /**
@@ -145,6 +107,7 @@ public class Auth0ManagementClient {
             String preferredLanguage
     ) {
         String token = getManagementToken();
+
         String url = managementBaseUrl + "/users";
 
         // Normalize language: en / fr only, default en
@@ -156,7 +119,7 @@ public class Auth0ManagementClient {
         }
 
         // Generate temporary password that user will never see
-        String tempPassword = generateTemporaryPassword();
+        String tempPassword = generateRandomPassword();
 
         // minimal metadata for language
         Map<String, Object> userMetadata = Map.of(
@@ -180,8 +143,16 @@ public class Auth0ManagementClient {
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
-        ResponseEntity<Auth0UserResponse> response =
-                restTemplate.postForEntity(url, entity, Auth0UserResponse.class);
+        ResponseEntity<Auth0UserResponse> response;
+        try {
+            response = restTemplate.postForEntity(url, entity, Auth0UserResponse.class);
+        } catch (org.springframework.web.client.HttpClientErrorException.Conflict e) {
+            // 409 Conflict - user already exists in Auth0
+            throw new IllegalArgumentException("A user with email " + email + " already exists.");
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            // Other client errors (400, 401, 403, etc.)
+            throw new IllegalStateException("Auth0 error: " + e.getStatusCode() + " - " + e.getResponseBodyAsString());
+        }
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new IllegalStateException("Failed to create Auth0 user");
@@ -189,35 +160,15 @@ public class Auth0ManagementClient {
 
         String auth0UserId = response.getBody().userId();
 
-        // Assign role
         assignRole(token, auth0UserId, role);
 
-        // Create password change ticket and return the URL
-        // The calling service will send the email
-        try {
-            String passwordSetupUrl = createPasswordChangeTicket(auth0UserId);
-            logger.info("Password setup URL created for {} (Auth0 user {}): {}",
-                    email, auth0UserId, passwordSetupUrl);
-
-            // NOTE: we still return a pipe-delimited string for backward compatibility.
-            // The service layer parses this safely (using lastIndexOf('|')).
-            return auth0UserId + "|" + passwordSetupUrl;
-
-        } catch (Exception e) {
-            // Don't block user creation if ticket creation fails,
-            // but log clearly so we can act on it.
-            logger.error(
-                    "Failed to create password setup ticket for Auth0 user {} ({})",
-                    auth0UserId, email, e
-            );
-            // Caller will handle missing URL (only the ID is returned).
-            return auth0UserId;
-        }
+        return auth0UserId;
     }
 
     public record Auth0UserResponse(@JsonProperty("user_id") String userId) {}
 
     // Assign a role in Auth0
+
     private void assignRole(String token, String auth0UserId, UserRole role) {
 
         String roleId = switch (role) {
@@ -242,9 +193,7 @@ public class Auth0ManagementClient {
                 restTemplate.postForEntity(url, entity, Void.class);
 
         if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new IllegalStateException(
-                    "Failed to assign role " + role + " to user " + auth0UserId
-            );
+            throw new IllegalStateException("Failed to assign role " + role + " to user " + auth0UserId);
         }
     }
 
@@ -268,9 +217,140 @@ public class Auth0ManagementClient {
                 restTemplate.exchange(url, HttpMethod.PATCH, entity, Void.class);
 
         if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new IllegalStateException(
-                    "Failed to set blocked=" + blocked + " for " + auth0UserId
-            );
+            throw new IllegalStateException("Failed to set blocked=" + blocked + " for " + auth0UserId);
         }
+    }
+
+    /**
+     * Creates a password change ticket for a user to set their initial password.
+     * Returns the URL that the user can use to set their password.
+     */
+    public String createPasswordChangeTicket(String auth0UserId) {
+        String token = getManagementToken();
+
+        String url = managementBaseUrl + "/tickets/password-change";
+
+        Map<String, Object> body = Map.of(
+                "user_id", auth0UserId,
+                "result_url", "https://courtierpro.dev/login", // Redirect after password set
+                "ttl_sec", 604800, // 7 days
+                "mark_email_as_verified", true
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<PasswordChangeTicketResponse> response =
+                restTemplate.postForEntity(url, entity, PasswordChangeTicketResponse.class);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new IllegalStateException("Failed to create password change ticket for " + auth0UserId);
+        }
+
+        return response.getBody().ticket();
+    }
+
+    record PasswordChangeTicketResponse(String ticket) {}
+
+    // ==================== USER SYNC METHODS ====================
+
+    /**
+     * DTO for users returned by the Auth0 Management API.
+     */
+    public record Auth0User(
+            @JsonProperty("user_id") String userId,
+            @JsonProperty("email") String email,
+            @JsonProperty("given_name") String givenName,
+            @JsonProperty("family_name") String familyName,
+            @JsonProperty("user_metadata") Map<String, Object> userMetadata
+    ) {
+        public String getPreferredLanguage() {
+            if (userMetadata == null) return "en";
+            Object lang = userMetadata.get("preferred_language");
+            return lang != null ? lang.toString() : "en";
+        }
+    }
+
+    /**
+     * DTO for roles returned by the Auth0 Management API.
+     */
+    public record Auth0Role(
+            @JsonProperty("id") String id,
+            @JsonProperty("name") String name
+    ) {}
+
+    /**
+     * Fetches all users from Auth0 using pagination.
+     * Returns a list of Auth0User objects.
+     */
+    public List<Auth0User> listAllUsers() {
+        String token = getManagementToken();
+        List<Auth0User> allUsers = new java.util.ArrayList<>();
+        int page = 0;
+        int perPage = 100;
+        boolean hasMore = true;
+
+        while (hasMore) {
+            String url = managementBaseUrl + "/users?per_page=" + perPage + "&page=" + page + "&include_totals=false";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(token);
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<Auth0User[]> response = restTemplate.exchange(
+                    url, HttpMethod.GET, entity, Auth0User[].class);
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                Auth0User[] users = response.getBody();
+                allUsers.addAll(java.util.Arrays.asList(users));
+                hasMore = users.length == perPage; // If we got a full page, there might be more
+                page++;
+            } else {
+                hasMore = false;
+            }
+        }
+
+        return allUsers;
+    }
+
+    /**
+     * Fetches the roles assigned to a specific Auth0 user.
+     * Returns a list of Auth0Role objects.
+     */
+    public List<Auth0Role> getUserRoles(String auth0UserId) {
+        String token = getManagementToken();
+        String url = managementBaseUrl + "/users/" + auth0UserId + "/roles";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Auth0Role[]> response = restTemplate.exchange(
+                url, HttpMethod.GET, entity, Auth0Role[].class);
+
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            return java.util.Arrays.asList(response.getBody());
+        }
+
+        return List.of();
+    }
+
+    /**
+     * Maps an Auth0 role name to the local UserRole enum.
+     * Returns CLIENT as default if no matching role is found.
+     */
+    public UserRole mapRoleToUserRole(List<Auth0Role> roles) {
+        for (Auth0Role role : roles) {
+            String name = role.name().toLowerCase();
+            if (name.contains("admin")) return UserRole.ADMIN;
+            if (name.contains("broker")) return UserRole.BROKER;
+            if (name.contains("client")) return UserRole.CLIENT;
+        }
+        return UserRole.CLIENT; // Default to CLIENT if no role found
     }
 }

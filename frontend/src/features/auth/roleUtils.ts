@@ -8,9 +8,9 @@ export function getRoleFromUser(user: User | undefined | null): AppRole | null {
 
     const roles = (user?.[rolesClaim] as string[] | undefined) ?? [];
 
-    if (roles.includes("ADMIN")) return "admin";
-    if (roles.includes("BROKER")) return "broker";
-    if (roles.includes("CLIENT")) return "client";
+    if (roles.some(r => r.toUpperCase() === "ADMIN")) return "admin";
+    if (roles.some(r => r.toUpperCase() === "BROKER")) return "broker";
+    if (roles.some(r => r.toUpperCase() === "CLIENT")) return "client";
 
     return null;
 }

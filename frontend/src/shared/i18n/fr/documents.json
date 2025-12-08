@@ -36,5 +36,53 @@
             "inspection": "Inspection",
             "closing": "Clôture"
         }
+    },
+    "types": {
+        "MORTGAGE_PRE_APPROVAL": "Pré-approbation hypothécaire",
+        "MORTGAGE_APPROVAL": "Approbation hypothécaire",
+        "PROOF_OF_FUNDS": "Preuve de fonds",
+        "ID_VERIFICATION": "Vérification d'identité",
+        "EMPLOYMENT_LETTER": "Lettre d'emploi",
+        "PAY_STUBS": "Talons de paie",
+        "CREDIT_REPORT": "Rapport de crédit",
+        "CERTIFICATE_OF_LOCATION": "Certificat de localisation",
+        "PROMISE_TO_PURCHASE": "Promesse d'achat",
+        "INSPECTION_REPORT": "Rapport d'inspection",
+        "INSURANCE_LETTER": "Lettre d'assurance",
+        "BANK_STATEMENT": "Relevé bancaire",
+        "OTHER": "Autre"
+    },
+    "documentType": "Type de document",
+    "selectDocumentType": "Sélectionner un type de document",
+    "documentTypeRequired": "Veuillez sélectionner un type de document",
+    "view": "Voir",
+    "upload": "Téléverser",
+    "lastUpdated": "Dernière mise à jour",
+    "status": {
+        "REQUESTED": "Demandé",
+        "SUBMITTED": "Soumis",
+        "APPROVED": "Approuvé",
+        "NEEDS_REVISION": "Révision requise"
+    },
+    "errors": {
+        "viewFailed": "Échec du chargement du document",
+        "uploadFailed": "Échec du téléversement",
+        "fileTooLarge": "Le fichier est trop volumineux (max 25 Mo)"
+    },
+    "globalTitle": "Mes documents",
+    "globalSubtitle": "Consultez et gérez tous vos documents pour toutes vos transactions.",
+    "uploadSuccess": "Document téléversé avec succès",
+    "modals": {
+        "uploadDocument": "Téléverser un document"
+    },
+    "uploadingFor": "Téléversement pour",
+    "clickToSelectFile": "Cliquez pour sélectionner un fichier",
+    "maxSize": "Taille max : {{size}}",
+    "actions": {
+        "cancel": "Annuler",
+        "upload": "Téléverser"
+    },
+    "success": {
+        "documentUploaded": "Document téléversé avec succès"
     }
 }

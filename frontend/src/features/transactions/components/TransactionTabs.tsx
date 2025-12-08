@@ -6,6 +6,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/components/ui/tabs";
 import { type Transaction } from '@/features/transactions/api/queries';
+import { DocumentsPage } from '@/pages/documents/DocumentsPage';
 
 interface TransactionTabsProps {
     transaction: Transaction;
@@ -80,9 +81,7 @@ export function TransactionTabs({
             </TabsContent>
 
             <TabsContent value="documents" className="py-4">
-                <Section className="p-12 text-center">
-                    <p className="text-muted-foreground">{t('documentsPlaceholder')}</p>
-                </Section>
+                <DocumentsPage transactionId={transaction.transactionId} />
             </TabsContent>
 
             <TabsContent value="appointments" className="py-4">

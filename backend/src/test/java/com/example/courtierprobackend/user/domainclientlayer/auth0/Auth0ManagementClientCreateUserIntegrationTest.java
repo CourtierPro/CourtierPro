@@ -1,5 +1,8 @@
 package com.example.courtierprobackend.user.domainclientlayer.auth0;
 
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
 import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +33,7 @@ import static org.mockito.Mockito.*;
  * and test the complete HTTP call chain.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class Auth0ManagementClientCreateUserIntegrationTest {
 
     @Mock
@@ -43,8 +47,7 @@ class Auth0ManagementClientCreateUserIntegrationTest {
                 "test.auth0.com",
                 "test-client-id",
                 "test-client-secret",
-                "https://test.auth0.com/api/v2/",
-                "http://localhost:3000/password-setup"
+                "https://test.auth0.com/api/v2/"
         );
         ReflectionTestUtils.setField(client, "restTemplate", restTemplate);
     }
@@ -93,9 +96,7 @@ class Auth0ManagementClientCreateUserIntegrationTest {
 
         String result = client.createUser("test@example.com", "John", "Doe", UserRole.BROKER, "en");
 
-        assertThat(result).contains("auth0|user123");
-        assertThat(result).contains("https://test.auth0.com/reset?ticket=abc123");
-        assertThat(result).contains("|"); // Pipe separator
+        assertThat(result).isEqualTo("auth0|user123");
     }
 
     @Test

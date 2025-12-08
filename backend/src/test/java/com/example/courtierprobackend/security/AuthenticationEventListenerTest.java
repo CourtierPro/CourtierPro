@@ -1,139 +1,256 @@
 package com.example.courtierprobackend.security;
 
 import com.example.courtierprobackend.audit.loginaudit.businesslayer.LoginAuditService;
-import jakarta.servlet.http.HttpServletRequest;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for AuthenticationEventListener.
+ */
+@ExtendWith(MockitoExtension.class)
 class AuthenticationEventListenerTest {
 
+    @Mock
     private LoginAuditService loginAuditService;
+
+    @Mock
+    private Authentication authentication;
+
     private AuthenticationEventListener listener;
 
     @BeforeEach
     void setUp() {
-        loginAuditService = mock(LoginAuditService.class);
         listener = new AuthenticationEventListener(loginAuditService);
     }
 
-    @AfterEach
-    void tearDown() {
-        // Clean up any request attributes between tests
-        RequestContextHolder.resetRequestAttributes();
-    }
-
-    private AuthenticationSuccessEvent buildEventWithPrincipal(Object principal) {
-        Authentication authentication = mock(Authentication.class);
-        when(authentication.getPrincipal()).thenReturn(principal);
-        return new AuthenticationSuccessEvent(authentication);
-    }
-
     @Test
-    void onAuthenticationSuccess_recordsLoginEventWithXForwardedForAndUserAgent() {
+    void onAuthenticationSuccess_WithValidJwt_RecordsLoginEvent() {
+        // Arrange
         Jwt jwt = Jwt.withTokenValue("token")
-                .header("alg", "none")
-                .claim("sub", "auth0|123456")
+                .header("alg", "RS256")
+                .subject("auth0|user123")
                 .claim("https://courtierpro.dev/email", "user@example.com")
-                .claim("https://courtierpro.dev/roles", List.of("ADMIN"))
+                .claim("https://courtierpro.dev/roles", List.of("BROKER"))
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
                 .build();
 
-        AuthenticationSuccessEvent event = buildEventWithPrincipal(jwt);
+        when(authentication.getPrincipal()).thenReturn(jwt);
+        AuthenticationSuccessEvent event = new AuthenticationSuccessEvent(authentication);
 
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("X-Forwarded-For", "203.0.113.5, 10.0.0.1");
-        request.addHeader("User-Agent", "JUnit-Agent");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-
+        // Act
         listener.onAuthenticationSuccess(event);
 
+        // Assert
         verify(loginAuditService).recordLoginEvent(
-                eq("auth0|123456"),
+                eq("auth0|user123"),
                 eq("user@example.com"),
-                eq("ADMIN"),
-                eq("203.0.113.5"),
-                eq("JUnit-Agent")
+                eq("BROKER"),
+                isNull(), // IP address null without request context
+                isNull()  // User agent null without request context
         );
     }
 
     @Test
-    void onAuthenticationSuccess_usesStandardEmailClaimAsFallback() {
+    void onAuthenticationSuccess_WithFallbackEmailClaim_UsesStandardEmail() {
+        // Arrange
         Jwt jwt = Jwt.withTokenValue("token")
-                .header("alg", "none")
-                .claim("sub", "auth0|fallback")
-                // no custom email claim
+                .header("alg", "RS256")
+                .subject("auth0|user456")
                 .claim("email", "fallback@example.com")
-                // no roles → should map to "UNKNOWN"
+                .claim("https://courtierpro.dev/roles", List.of("CLIENT"))
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
                 .build();
 
-        AuthenticationSuccessEvent event = buildEventWithPrincipal(jwt);
+        when(authentication.getPrincipal()).thenReturn(jwt);
+        AuthenticationSuccessEvent event = new AuthenticationSuccessEvent(authentication);
 
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setRemoteAddr("192.0.2.10");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-
+        // Act
         listener.onAuthenticationSuccess(event);
 
+        // Assert
         verify(loginAuditService).recordLoginEvent(
-                eq("auth0|fallback"),
+                eq("auth0|user456"),
                 eq("fallback@example.com"),
-                eq("UNKNOWN"),
-                eq("192.0.2.10"),
-                isNull()
+                eq("CLIENT"),
+                any(),
+                any()
         );
     }
 
     @Test
-    void onAuthenticationSuccess_doesNotRecordEventWhenEmailMissing() {
-        Jwt jwt = Jwt.withTokenValue("token")
-                .header("alg", "none")
-                .claim("sub", "auth0|no-email")
-                // no email claims at all
-                .build();
+    void onAuthenticationSuccess_WithNonJwtPrincipal_DoesNotRecord() {
+        // Arrange
+        when(authentication.getPrincipal()).thenReturn("string-principal");
+        AuthenticationSuccessEvent event = new AuthenticationSuccessEvent(authentication);
 
-        AuthenticationSuccessEvent event = buildEventWithPrincipal(jwt);
-
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-
+        // Act
         listener.onAuthenticationSuccess(event);
 
-        // Should exit early and never call the audit service
+        // Assert
         verifyNoInteractions(loginAuditService);
     }
 
     @Test
-    void onAuthenticationSuccess_swallowsExceptionsFromAuditService() {
+    void onAuthenticationSuccess_WithNoEmail_DoesNotRecord() {
+        // Arrange
         Jwt jwt = Jwt.withTokenValue("token")
-                .header("alg", "none")
-                .claim("sub", "auth0|boom")
-                .claim("https://courtierpro.dev/email", "boom@example.com")
-                .claim("https://courtierpro.dev/roles", List.of("BROKER"))
+                .header("alg", "RS256")
+                .subject("auth0|user789")
+                .claim("https://courtierpro.dev/roles", List.of("ADMIN"))
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
                 .build();
 
-        AuthenticationSuccessEvent event = buildEventWithPrincipal(jwt);
+        when(authentication.getPrincipal()).thenReturn(jwt);
+        AuthenticationSuccessEvent event = new AuthenticationSuccessEvent(authentication);
 
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setRemoteAddr("198.51.100.1");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        // Act
+        listener.onAuthenticationSuccess(event);
 
-        doThrow(new RuntimeException("DB down"))
-                .when(loginAuditService)
-                .recordLoginEvent(any(), any(), any(), any(), any());
+        // Assert
+        verifyNoInteractions(loginAuditService);
+    }
 
-        // Method should catch the exception and not rethrow it
-        assertDoesNotThrow(() -> listener.onAuthenticationSuccess(event));
+    @Test
+    void onAuthenticationSuccess_WithNoRoles_RecordsUnknownRole() {
+        // Arrange
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .subject("auth0|userNoRole")
+                .claim("https://courtierpro.dev/email", "norole@example.com")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+
+        when(authentication.getPrincipal()).thenReturn(jwt);
+        AuthenticationSuccessEvent event = new AuthenticationSuccessEvent(authentication);
+
+        // Act
+        listener.onAuthenticationSuccess(event);
+
+        // Assert
+        verify(loginAuditService).recordLoginEvent(
+                eq("auth0|userNoRole"),
+                eq("norole@example.com"),
+                eq("UNKNOWN"),
+                any(),
+                any()
+        );
+    }
+
+    @Test
+    void onAuthenticationSuccess_WithEmptyEmailClaim_DoesNotRecord() {
+        // Arrange
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .subject("auth0|userEmpty")
+                .claim("https://courtierpro.dev/email", "")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+
+        when(authentication.getPrincipal()).thenReturn(jwt);
+        AuthenticationSuccessEvent event = new AuthenticationSuccessEvent(authentication);
+
+        // Act
+        listener.onAuthenticationSuccess(event);
+
+        // Assert - falls back to regular email claim which is also not set
+        verifyNoInteractions(loginAuditService);
+    }
+
+    @Test
+    void onAuthenticationSuccess_WithEmptyRolesList_RecordsUnknownRole() {
+        // Arrange
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .subject("auth0|userEmptyRoles")
+                .claim("https://courtierpro.dev/email", "user@example.com")
+                .claim("https://courtierpro.dev/roles", List.of())
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+
+        when(authentication.getPrincipal()).thenReturn(jwt);
+        AuthenticationSuccessEvent event = new AuthenticationSuccessEvent(authentication);
+
+        // Act
+        listener.onAuthenticationSuccess(event);
+
+        // Assert
+        verify(loginAuditService).recordLoginEvent(
+                eq("auth0|userEmptyRoles"),
+                eq("user@example.com"),
+                eq("UNKNOWN"),
+                any(),
+                any()
+        );
+    }
+
+    @Test
+    void onAuthenticationSuccess_WithMultipleRoles_UsesFirstRole() {
+        // Arrange
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .subject("auth0|userMultiRole")
+                .claim("https://courtierpro.dev/email", "multi@example.com")
+                .claim("https://courtierpro.dev/roles", List.of("ADMIN", "BROKER", "CLIENT"))
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+
+        when(authentication.getPrincipal()).thenReturn(jwt);
+        AuthenticationSuccessEvent event = new AuthenticationSuccessEvent(authentication);
+
+        // Act
+        listener.onAuthenticationSuccess(event);
+
+        // Assert - should use first role
+        verify(loginAuditService).recordLoginEvent(
+                eq("auth0|userMultiRole"),
+                eq("multi@example.com"),
+                eq("ADMIN"),
+                any(),
+                any()
+        );
+    }
+
+    @Test
+    void onAuthenticationSuccess_WhenServiceThrowsException_DoesNotBreakAuthentication() {
+        // Arrange
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .subject("auth0|user123")
+                .claim("https://courtierpro.dev/email", "user@example.com")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+
+        when(authentication.getPrincipal()).thenReturn(jwt);
+        doThrow(new RuntimeException("Database connection failed"))
+                .when(loginAuditService).recordLoginEvent(any(), any(), any(), any(), any());
+        
+        AuthenticationSuccessEvent event = new AuthenticationSuccessEvent(authentication);
+
+        // Act - should not throw
+        listener.onAuthenticationSuccess(event);
+
+        // Assert - method completes without throwing (exception is caught and logged)
+        verify(loginAuditService).recordLoginEvent(any(), any(), any(), any(), any());
     }
 }

@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Filter, Plus } from 'lucide-react';
-import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/shared/utils/stages';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
 import { Button } from "@/shared/components/ui/button";
-import { useTransactions, type Transaction } from '@/features/transactions/api/queries';
+import { useTransactions } from '@/features/transactions/api/queries';
 import { TransactionFilters } from './TransactionFilters';
 import { TransactionTable } from './TransactionTable';
 import { TransactionCards } from './TransactionCards';
@@ -24,13 +23,17 @@ import { parseToTimestamp } from '@/shared/utils/date';
 
 
 export function TransactionList({ language, onNavigate }: TransactionListProps) {
-  const { data: transactions = [], isLoading, error, refetch } = useTransactions();
-
   const [sideFilter, setSideFilter] = useState<'all' | 'buy' | 'sell'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed' | 'terminated'>('all');
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc' | 'nameAsc' | 'nameDesc'>('dateDesc');
   const [currentPage, setCurrentPage] = useState(1);
+
+  const { data: transactions = [], isLoading, error, refetch } = useTransactions({
+    status: statusFilter,
+    stage: stageFilter,
+    side: sideFilter
+  });
 
   const { t, i18n } = useTranslation('transactions');
 
@@ -63,49 +66,31 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     setCurrentPage(1);
   };
 
-  const getStageName = (tx: Transaction) => {
-    const stageEnums = getStagesForSide(tx.side);
-    const idx = resolveStageIndex(tx.currentStage, stageEnums);
-    return enumToLabel(stageEnums[idx]);
-  };
 
-  const filteredTransactions = transactions.filter((transaction) => {
-    if (sideFilter !== 'all') {
-      if (sideFilter === 'buy' && transaction.side !== 'BUY_SIDE') return false;
-      if (sideFilter === 'sell' && transaction.side !== 'SELL_SIDE') return false;
+  const sortedTransactions = [...transactions].sort((a, b) => {
+    // fallback to openedDate if openedAt is missing
+    const aRaw = a.openedAt ?? a.openedDate ?? '';
+    const bRaw = b.openedAt ?? b.openedDate ?? '';
+
+    const aTime = parseToTimestamp(aRaw);
+    const bTime = parseToTimestamp(bRaw);
+
+    switch (sortBy) {
+      case 'dateAsc':
+        return aTime - bTime;
+
+      case 'dateDesc':
+        return bTime - aTime;
+
+      // keep defaults exactly as before
+      case 'nameAsc':
+      case 'nameDesc':
+        return 0;
+
+      default:
+        return 0;
     }
-
-    if (statusFilter !== 'all' && transaction.status !== statusFilter) return false;
-
-    if (stageFilter !== 'all' && getStageName(transaction) !== stageFilter) return false;
-
-    return true;
   });
-
-  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
-  // fallback to openedDate if openedAt is missing
-  const aRaw = a.openedAt ?? a.openedDate ?? '';
-  const bRaw = b.openedAt ?? b.openedDate ?? '';
-
-  const aTime = parseToTimestamp(aRaw);
-  const bTime = parseToTimestamp(bRaw);
-
-  switch (sortBy) {
-    case 'dateAsc':
-      return aTime - bTime;
-
-    case 'dateDesc':
-      return bTime - aTime;
-
-    // keep defaults exactly as before
-    case 'nameAsc':
-    case 'nameDesc':
-      return 0;
-
-    default:
-      return 0;
-  }
-});
 
 
   const totalPages = Math.ceil(sortedTransactions.length / ITEMS_PER_PAGE);

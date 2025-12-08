@@ -8,7 +8,7 @@ import lombok.Value;
 
 @Value
 @Builder
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@AllArgsConstructor
 public class UpdateStatusRequest {
 
     @NotNull(message = "Active field is required")

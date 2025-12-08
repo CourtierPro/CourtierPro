@@ -1,14 +1,12 @@
-import { useTranslation } from "react-i18next";
-import { PageHeader } from "@/shared/components/branded/PageHeader";
+import { useParams } from "react-router-dom";
+import { DocumentsPage } from "./DocumentsPage";
 
 export function TransactionDocumentsPage() {
-  const { t } = useTranslation("documents");
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title={t("transactionDocuments")}
-        subtitle={t("transactionDocumentsSubtitle")}
-      />
-    </div>
-  );
+  const { transactionId } = useParams<{ transactionId: string }>();
+
+  if (!transactionId) {
+    return null; // Or some error state
+  }
+
+  return <DocumentsPage transactionId={transactionId} />;
 }

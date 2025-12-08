@@ -1,0 +1,553 @@
+package com.example.courtierprobackend.documents.businesslayer;
+
+import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
+import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
+import com.example.courtierprobackend.documents.datalayer.SubmittedDocument;
+import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
+import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
+import com.example.courtierprobackend.documents.datalayer.enums.DocumentPartyEnum;
+import com.example.courtierprobackend.documents.datalayer.enums.UploadedByRefEnum;
+import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject;
+import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestRequestDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
+import com.example.courtierprobackend.email.EmailService;
+import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import com.example.courtierprobackend.transactions.datalayer.Transaction;
+import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
+import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
+import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
+import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
+import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * Unit tests for DocumentRequestServiceImpl.
+ */
+@ExtendWith(MockitoExtension.class)
+class DocumentRequestServiceImplTest {
+
+    @Mock
+    private DocumentRequestRepository repository;
+    @Mock
+    private S3StorageService storageService;
+    @Mock
+    private EmailService emailService;
+    @Mock
+    private TransactionRepository transactionRepository;
+    @Mock
+    private UserAccountRepository userAccountRepository;
+
+    private DocumentRequestServiceImpl service;
+
+    @BeforeEach
+    void setUp() {
+        service = new DocumentRequestServiceImpl(repository, storageService, emailService, transactionRepository, userAccountRepository);
+    }
+
+    // ========== getDocumentsForTransaction Tests ==========
+
+    @Test
+    void getDocumentsForTransaction_WithValidAccess_ReturnsDocuments() {
+        // Arrange
+        String transactionId = "TX-123";
+        String userId = "broker-1";
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+        tx.setClientId("client-1");
+        
+        DocumentRequest doc = new DocumentRequest();
+        doc.setRequestId("REQ-1");
+        doc.setTransactionRef(new TransactionRef(transactionId, "client-1", TransactionSide.BUY_SIDE));
+        doc.setDocType(DocumentTypeEnum.ID_VERIFICATION);
+        doc.setStatus(DocumentStatusEnum.REQUESTED);
+        doc.setSubmittedDocuments(new ArrayList<>());
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(repository.findByTransactionRef_TransactionId(transactionId)).thenReturn(List.of(doc));
+
+        // Act
+        List<DocumentRequestResponseDTO> result = service.getDocumentsForTransaction(transactionId, userId);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getRequestId()).isEqualTo("REQ-1");
+    }
+
+    @Test
+    void getDocumentsForTransaction_WithNoAccess_ThrowsNotFoundException() {
+        // Arrange
+        String transactionId = "TX-123";
+        String userId = "other-user";
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId("broker-1");
+        tx.setClientId("client-1");
+        
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> service.getDocumentsForTransaction(transactionId, userId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("You do not have access");
+    }
+
+    // ========== createDocumentRequest Tests ==========
+
+    @Test
+    void createDocumentRequest_WithValidData_CreatesRequest() {
+        // Arrange
+        String transactionId = "TX-123";
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId("broker-1");
+        tx.setClientId("client-1");
+        tx.setSide(TransactionSide.BUY_SIDE);
+        
+        DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+        dto.setDocType(DocumentTypeEnum.BANK_STATEMENT);
+        dto.setCustomTitle("Bank Statement Q1");
+        dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
+        
+        UserAccount client = new UserAccount("client-1", "client@test.com", "John", "Doe", UserRole.CLIENT, "en");
+        UserAccount broker = new UserAccount("broker-1", "broker@test.com", "Jane", "Smith", UserRole.BROKER, "en");
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(userAccountRepository.findByAuth0UserId("client-1")).thenReturn(Optional.of(client));
+        when(userAccountRepository.findByAuth0UserId("broker-1")).thenReturn(Optional.of(broker));
+        when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        DocumentRequestResponseDTO result = service.createDocumentRequest(transactionId, dto);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getDocType()).isEqualTo(DocumentTypeEnum.BANK_STATEMENT);
+        verify(emailService).sendDocumentRequestedNotification(anyString(), anyString(), anyString(), anyString());
+    }
+
+    // ========== submitDocument Tests ==========
+
+    @Test
+    void submitDocument_WithValidData_UploadsAndNotifies() throws IOException {
+        // Arrange
+        String transactionId = "TX-123";
+        String requestId = "REQ-1";
+        String uploaderId = "client-1";
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId("broker-1");
+        tx.setClientId("client-1");
+        
+        DocumentRequest request = new DocumentRequest();
+        request.setRequestId(requestId);
+        request.setTransactionRef(new TransactionRef(transactionId, "client-1", TransactionSide.BUY_SIDE));
+        request.setDocType(DocumentTypeEnum.PAY_STUBS);
+        request.setCustomTitle("Pay Stub");
+        request.setStatus(DocumentStatusEnum.REQUESTED);
+        request.setSubmittedDocuments(new ArrayList<>());
+        
+        UserAccount broker = new UserAccount("broker-1", "broker@test.com", "Jane", "Smith", UserRole.BROKER, "en");
+        UserAccount client = new UserAccount("client-1", "client@test.com", "John", "Doe", UserRole.CLIENT, "en");
+        
+        MockMultipartFile file = new MockMultipartFile("file", "paystub.pdf", "application/pdf", "content".getBytes());
+        StorageObject storageObject = StorageObject.builder().s3Key("key").fileName("test.pdf").build();
+
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(storageService.uploadFile(any(), eq(transactionId), eq(requestId))).thenReturn(storageObject);
+        when(userAccountRepository.findByAuth0UserId("broker-1")).thenReturn(Optional.of(broker));
+        when(userAccountRepository.findByAuth0UserId("client-1")).thenReturn(Optional.of(client));
+        when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        DocumentRequestResponseDTO result = service.submitDocument(transactionId, requestId, file, uploaderId, UploadedByRefEnum.CLIENT);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.SUBMITTED);
+        verify(emailService).sendDocumentSubmittedNotification(any(), eq("broker@test.com"), eq("John Doe"), anyString());
+    }
+
+    @Test
+    void submitDocument_WithMismatchedTransaction_ThrowsInvalidInputException() throws IOException {
+        // Arrange
+        String transactionId = "TX-123";
+        String requestId = "REQ-1";
+        
+        DocumentRequest request = new DocumentRequest();
+        request.setRequestId(requestId);
+        request.setTransactionRef(new TransactionRef("TX-OTHER", "client-1", TransactionSide.BUY_SIDE));
+        
+        MockMultipartFile file = new MockMultipartFile("file", "test.pdf", "application/pdf", "content".getBytes());
+
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+
+        // Act & Assert
+        assertThatThrownBy(() -> service.submitDocument(transactionId, requestId, file, "client-1", UploadedByRefEnum.CLIENT))
+                .isInstanceOf(InvalidInputException.class)
+                .hasMessageContaining("does not belong to transaction");
+    }
+
+    // ========== getDocumentDownloadUrl Tests ==========
+
+    @Test
+    void getDocumentDownloadUrl_WithValidAccess_ReturnsUrl() {
+        // Arrange
+        String requestId = "REQ-1";
+        String documentId = "DOC-1";
+        String userId = "broker-1";
+        String transactionId = "TX-123";
+        
+        SubmittedDocument submittedDoc = SubmittedDocument.builder()
+                .documentId(documentId)
+                .storageObject(StorageObject.builder().s3Key("path/to/file.pdf").build())
+                .build();
+        
+        DocumentRequest request = new DocumentRequest();
+        request.setRequestId(requestId);
+        request.setTransactionRef(new TransactionRef(transactionId, "client-1", TransactionSide.BUY_SIDE));
+        request.setSubmittedDocuments(List.of(submittedDoc));
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+        tx.setClientId("client-1");
+
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(storageService.generatePresignedUrl("path/to/file.pdf")).thenReturn("https://presigned.url");
+
+        // Act
+        String result = service.getDocumentDownloadUrl(requestId, documentId, userId);
+
+        // Assert
+        assertThat(result).isEqualTo("https://presigned.url");
+    }
+
+    @Test
+    void getDocumentDownloadUrl_WithNoAccess_ThrowsNotFoundException() {
+        // Arrange
+        String requestId = "REQ-1";
+        String transactionId = "TX-123";
+        
+        DocumentRequest request = new DocumentRequest();
+        request.setRequestId(requestId);
+        request.setTransactionRef(new TransactionRef(transactionId, "client-1", TransactionSide.BUY_SIDE));
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId("broker-1");
+        tx.setClientId("client-1");
+
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> service.getDocumentDownloadUrl(requestId, "DOC-1", "other-user"))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("You do not have access");
+    }
+
+    // ========== getAllDocumentsForUser Tests ==========
+
+    @Test
+    void getAllDocumentsForUser_WithDocuments_ReturnsList() {
+        // Arrange
+        String userId = "client-1";
+        
+        DocumentRequest doc1 = new DocumentRequest();
+        doc1.setRequestId("REQ-1");
+        doc1.setTransactionRef(new TransactionRef("TX-1", userId, TransactionSide.BUY_SIDE));
+        doc1.setDocType(DocumentTypeEnum.ID_VERIFICATION);
+        doc1.setStatus(DocumentStatusEnum.REQUESTED);
+        doc1.setSubmittedDocuments(new ArrayList<>());
+        
+        DocumentRequest doc2 = new DocumentRequest();
+        doc2.setRequestId("REQ-2");
+        doc2.setTransactionRef(new TransactionRef("TX-2", userId, TransactionSide.SELL_SIDE));
+        doc2.setDocType(DocumentTypeEnum.BANK_STATEMENT);
+        doc2.setStatus(DocumentStatusEnum.SUBMITTED);
+        doc2.setSubmittedDocuments(new ArrayList<>());
+
+        when(repository.findByUserId(userId)).thenReturn(List.of(doc1, doc2));
+
+        // Act
+        List<DocumentRequestResponseDTO> result = service.getAllDocumentsForUser(userId);
+
+        // Assert
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getRequestId()).isEqualTo("REQ-1");
+        assertThat(result.get(1).getRequestId()).isEqualTo("REQ-2");
+    }
+
+    @Test
+    void getAllDocumentsForUser_WithNoDocuments_ReturnsEmptyList() {
+        // Arrange
+        String userId = "client-no-docs";
+        when(repository.findByUserId(userId)).thenReturn(List.of());
+
+        // Act
+        List<DocumentRequestResponseDTO> result = service.getAllDocumentsForUser(userId);
+
+        // Assert
+        assertThat(result).isEmpty();
+    }
+
+    // ========== getDocumentRequest Tests ==========
+
+    @Test
+    void getDocumentRequest_WithValidAccess_ReturnsDocument() {
+        // Arrange
+        String requestId = "REQ-1";
+        String userId = "broker-1";
+        String transactionId = "TX-123";
+        
+        DocumentRequest request = new DocumentRequest();
+        request.setRequestId(requestId);
+        request.setTransactionRef(new TransactionRef(transactionId, "client-1", TransactionSide.BUY_SIDE));
+        request.setDocType(DocumentTypeEnum.PAY_STUBS);
+        request.setStatus(DocumentStatusEnum.REQUESTED);
+        request.setSubmittedDocuments(new ArrayList<>());
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+        tx.setClientId("client-1");
+
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act
+        DocumentRequestResponseDTO result = service.getDocumentRequest(requestId, userId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getRequestId()).isEqualTo(requestId);
+        assertThat(result.getDocType()).isEqualTo(DocumentTypeEnum.PAY_STUBS);
+    }
+
+    @Test
+    void getDocumentRequest_WithClientAccess_ReturnsDocument() {
+        // Arrange
+        String requestId = "REQ-1";
+        String clientId = "client-1";
+        String transactionId = "TX-123";
+        
+        DocumentRequest request = new DocumentRequest();
+        request.setRequestId(requestId);
+        request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+        request.setDocType(DocumentTypeEnum.EMPLOYMENT_LETTER);
+        request.setStatus(DocumentStatusEnum.REQUESTED);
+        request.setSubmittedDocuments(new ArrayList<>());
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId("broker-1");
+        tx.setClientId(clientId);
+
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act
+        DocumentRequestResponseDTO result = service.getDocumentRequest(requestId, clientId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getRequestId()).isEqualTo(requestId);
+    }
+
+    @Test
+    void getDocumentRequest_NotFound_ThrowsNotFoundException() {
+        // Arrange
+        String requestId = "NON-EXISTENT";
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> service.getDocumentRequest(requestId, "user-1"))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Document request not found");
+    }
+
+    @Test
+    void getDocumentRequest_WithNoAccess_ThrowsNotFoundException() {
+        // Arrange
+        String requestId = "REQ-1";
+        String transactionId = "TX-123";
+        
+        DocumentRequest request = new DocumentRequest();
+        request.setRequestId(requestId);
+        request.setTransactionRef(new TransactionRef(transactionId, "client-1", TransactionSide.BUY_SIDE));
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId("broker-1");
+        tx.setClientId("client-1");
+
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> service.getDocumentRequest(requestId, "unauthorized-user"))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("You do not have access");
+    }
+
+    // ========== updateDocumentRequest Tests ==========
+
+    @Test
+    void updateDocumentRequest_WithValidData_UpdatesRequest() {
+        // Arrange
+        String requestId = "REQ-1";
+        
+        DocumentRequest existingRequest = new DocumentRequest();
+        existingRequest.setRequestId(requestId);
+        existingRequest.setDocType(DocumentTypeEnum.ID_VERIFICATION);
+        existingRequest.setCustomTitle("Old Title");
+        existingRequest.setSubmittedDocuments(new ArrayList<>());
+        
+        DocumentRequestRequestDTO updateDTO = new DocumentRequestRequestDTO();
+        updateDTO.setCustomTitle("New Title");
+        updateDTO.setBrokerNotes("Updated notes");
+
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.of(existingRequest));
+        when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        DocumentRequestResponseDTO result = service.updateDocumentRequest(requestId, updateDTO);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getCustomTitle()).isEqualTo("New Title");
+        assertThat(result.getBrokerNotes()).isEqualTo("Updated notes");
+    }
+
+    @Test
+    void updateDocumentRequest_NotFound_ThrowsNotFoundException() {
+        // Arrange
+        String requestId = "NON-EXISTENT";
+        DocumentRequestRequestDTO updateDTO = new DocumentRequestRequestDTO();
+        
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> service.updateDocumentRequest(requestId, updateDTO))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Document request not found");
+    }
+
+    @Test
+    void updateDocumentRequest_WithPartialData_OnlyUpdatesProvidedFields() {
+        // Arrange
+        String requestId = "REQ-1";
+        
+        DocumentRequest existingRequest = new DocumentRequest();
+        existingRequest.setRequestId(requestId);
+        existingRequest.setDocType(DocumentTypeEnum.BANK_STATEMENT);
+        existingRequest.setCustomTitle("Original Title");
+        existingRequest.setBrokerNotes("Original Notes");
+        existingRequest.setVisibleToClient(true);
+        existingRequest.setSubmittedDocuments(new ArrayList<>());
+        
+        DocumentRequestRequestDTO updateDTO = new DocumentRequestRequestDTO();
+        updateDTO.setCustomTitle("Updated Title");
+        // Other fields are null - should not be updated
+
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.of(existingRequest));
+        when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        DocumentRequestResponseDTO result = service.updateDocumentRequest(requestId, updateDTO);
+
+        // Assert
+        assertThat(result.getCustomTitle()).isEqualTo("Updated Title");
+        assertThat(result.getBrokerNotes()).isEqualTo("Original Notes"); // Unchanged
+    }
+
+    // ========== deleteDocumentRequest Tests ==========
+
+    @Test
+    void deleteDocumentRequest_WithValidId_DeletesSuccessfully() {
+        // Arrange
+        String requestId = "REQ-1";
+        DocumentRequest request = new DocumentRequest();
+        request.setRequestId(requestId);
+
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+
+        // Act
+        service.deleteDocumentRequest(requestId);
+
+        // Assert
+        verify(repository).delete(request);
+    }
+
+    @Test
+    void deleteDocumentRequest_NotFound_ThrowsNotFoundException() {
+        // Arrange
+        String requestId = "NON-EXISTENT";
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> service.deleteDocumentRequest(requestId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Document request not found");
+    }
+
+    // ========== getDocumentDownloadUrl Additional Tests ==========
+
+    @Test
+    void getDocumentDownloadUrl_WithNonExistentDocument_ThrowsNotFoundException() {
+        // Arrange
+        String requestId = "REQ-1";
+        String documentId = "DOC-NOT-FOUND";
+        String userId = "broker-1";
+        String transactionId = "TX-123";
+        
+        SubmittedDocument submittedDoc = SubmittedDocument.builder()
+                .documentId("DOC-OTHER")
+                .storageObject(StorageObject.builder().s3Key("path/to/other.pdf").build())
+                .build();
+        
+        DocumentRequest request = new DocumentRequest();
+        request.setRequestId(requestId);
+        request.setTransactionRef(new TransactionRef(transactionId, "client-1", TransactionSide.BUY_SIDE));
+        request.setSubmittedDocuments(List.of(submittedDoc));
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+        tx.setClientId("client-1");
+
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> service.getDocumentDownloadUrl(requestId, documentId, userId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Submitted document not found");
+    }
+}
+

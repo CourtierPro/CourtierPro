@@ -10,6 +10,8 @@ import com.example.courtierprobackend.transactions.exceptions.DuplicateTransacti
 import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
 import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
 import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,14 @@ import com.example.courtierprobackend.transactions.datalayer.enums.TimelineEntry
 public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepository repo;
+    private final UserAccountRepository userAccountRepository;
+
+    private String lookupClientName(String clientId) {
+        if (clientId == null) return "Unknown Client";
+        return userAccountRepository.findByAuth0UserId(clientId)
+                .map(u -> u.getFirstName() + " " + u.getLastName())
+                .orElse("Unknown Client");
+    }
 
     @Override
     public TransactionResponseDTO createTransaction(TransactionRequestDTO dto) {
@@ -95,7 +105,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         Transaction saved = repo.save(tx);
 
-        return EntityDtoUtil.toResponse(saved);
+        return EntityDtoUtil.toResponse(saved, lookupClientName(saved.getClientId()));
     }
 
     @Override
@@ -157,25 +167,79 @@ public class TransactionServiceImpl implements TransactionService {
 
 
     @Override
-    public List<TransactionResponseDTO> getBrokerTransactions(String brokerId) {
+    public List<TransactionResponseDTO> getBrokerTransactions(String brokerId, String statusStr, String stageStr, String sideStr) {
 
-        List<Transaction> transactions = repo.findAllByBrokerId(brokerId);
+        TransactionStatus status = null;
+        if (statusStr != null && !statusStr.isBlank() && !statusStr.equalsIgnoreCase("all")) {
+            try {
+                status = TransactionStatus.valueOf(statusStr.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // ignore invalid status, treat as null (all)
+            }
+        }
+
+        TransactionSide side = null;
+        if (sideStr != null && !sideStr.isBlank() && !sideStr.equalsIgnoreCase("all")) {
+            try {
+                side = TransactionSide.valueOf(sideStr.toUpperCase() + "_SIDE"); // Frontend sends "buy"/"sell", enum is BUY_SIDE/SELL_SIDE
+                if (sideStr.equalsIgnoreCase("buy")) side = TransactionSide.BUY_SIDE;
+                if (sideStr.equalsIgnoreCase("sell")) side = TransactionSide.SELL_SIDE;
+            } catch (IllegalArgumentException e) {
+                 // try direct match
+                 try {
+                     side = TransactionSide.valueOf(sideStr.toUpperCase());
+                 } catch (IllegalArgumentException ex) {
+                     // ignore
+                 }
+            }
+        }
+
+        Enum<?> stage = null;
+        if (stageStr != null && !stageStr.isBlank() && !stageStr.equalsIgnoreCase("all")) {
+            // Try BuyerStage
+            try {
+                stage = BuyerStage.valueOf(stageStr);
+            } catch (IllegalArgumentException e) {
+                // Try SellerStage
+                try {
+                    stage = SellerStage.valueOf(stageStr);
+                } catch (IllegalArgumentException ex) {
+                    // ignore
+                }
+            }
+        }
+
+        List<Transaction> transactions = repo.findAllByFilters(brokerId, status, side, stage);
 
         return transactions.stream()
-                .map(EntityDtoUtil::toResponse)
+                .map(tx -> EntityDtoUtil.toResponse(tx, lookupClientName(tx.getClientId())))
                 .toList();
     }
 
     @Override
-    public TransactionResponseDTO getByTransactionId(String transactionId, String brokerId) {
+    public List<TransactionResponseDTO> getClientTransactions(String clientId) {
+
+        List<Transaction> transactions = repo.findAllByClientId(clientId);
+
+        return transactions.stream()
+                .map(tx -> EntityDtoUtil.toResponse(tx, lookupClientName(tx.getClientId())))
+                .toList();
+    }
+
+    @Override
+    public TransactionResponseDTO getByTransactionId(String transactionId, String userId) {
 
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        if (!tx.getBrokerId().equals(brokerId)) {
+        // Allow access if the user is the broker OR the client
+        boolean isBroker = tx.getBrokerId().equals(userId);
+        boolean isClient = tx.getClientId().equals(userId);
+
+        if (!isBroker && !isClient) {
             throw new NotFoundException("You do not have access to this transaction");
         }
 
-        return EntityDtoUtil.toResponse(tx);
+        return EntityDtoUtil.toResponse(tx, lookupClientName(tx.getClientId()));
     }
 }
