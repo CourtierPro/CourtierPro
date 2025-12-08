@@ -96,7 +96,7 @@ public class Auth0ManagementClient {
         return response.getBody().accessToken();
     }
 
-    private record TokenResponse(@JsonProperty("access_token") String accessToken) {}
+    public record TokenResponse(@JsonProperty("access_token") String accessToken) {}
 
     // Generate a temporary random password (user will never use this)
     private String generateTemporaryPassword() {
@@ -215,7 +215,7 @@ public class Auth0ManagementClient {
         }
     }
 
-    private record Auth0UserResponse(@JsonProperty("user_id") String userId) {}
+    public record Auth0UserResponse(@JsonProperty("user_id") String userId) {}
 
     // Assign a role in Auth0
     private void assignRole(String token, String auth0UserId, UserRole role) {
