@@ -57,7 +57,7 @@ export function LoginAuditPage() {
             <TableRow>
               <TableHead className="w-[50px]"></TableHead>
               <TableHead>{t("timestamp")}</TableHead>
-              <TableHead>{t("user")}</TableHead>
+              <TableHead>{t("loginUser")}</TableHead>
               <TableHead>{t("role")}</TableHead>
               <TableHead>{t("ipAddress")}</TableHead>
             </TableRow>
