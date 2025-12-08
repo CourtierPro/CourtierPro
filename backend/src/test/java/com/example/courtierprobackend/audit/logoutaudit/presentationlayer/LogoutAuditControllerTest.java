@@ -200,7 +200,7 @@ class LogoutAuditControllerTest {
 
     @Test
     void recordLogout_invalidReason_defaultsToManual() throws Exception {
-        // given
+        // given - invalid_reason should fail validation due to @Pattern constraint
         String requestBody = """
                 {
                   "reason": "invalid_reason",
@@ -208,7 +208,7 @@ class LogoutAuditControllerTest {
                 }
                 """;
 
-        // when/then
+        // when/then - expect 400 Bad Request due to validation failure
         mockMvc.perform(post("/auth/logout")
                         .with(jwt()
                                 .jwt(jwt -> jwt
@@ -218,16 +218,10 @@ class LogoutAuditControllerTest {
                         )
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isOk());
+                .andExpect(status().isBadRequest());
 
-        verify(logoutAuditService).recordLogoutEvent(
-                any(),
-                any(),
-                eq(LogoutAuditEvent.LogoutReason.MANUAL), // Should default to MANUAL
-                any(),
-                any(),
-                any()
-        );
+        // Validation fails before service is called
+        verifyNoInteractions(logoutAuditService);
     }
 
     @Test
@@ -257,7 +251,7 @@ class LogoutAuditControllerTest {
         when(logoutAuditService.getAllLogoutEvents())
                 .thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/api/admin/logout-audit"))
+        mockMvc.perform(get("/auth/api/admin/logout-audit"))
                 .andExpect(status().isOk());
 
         verify(logoutAuditService).getAllLogoutEvents();
@@ -269,7 +263,7 @@ class LogoutAuditControllerTest {
         when(logoutAuditService.getLogoutEventsByUser("auth0|123"))
                 .thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/api/admin/logout-audit/user/auth0|123"))
+        mockMvc.perform(get("/auth/api/admin/logout-audit/user/auth0|123"))
                 .andExpect(status().isOk());
 
         verify(logoutAuditService).getLogoutEventsByUser("auth0|123");
@@ -281,7 +275,7 @@ class LogoutAuditControllerTest {
         when(logoutAuditService.getLogoutEventsByReason(LogoutAuditEvent.LogoutReason.SESSION_TIMEOUT))
                 .thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/api/admin/logout-audit/reason/SESSION_TIMEOUT"))
+        mockMvc.perform(get("/auth/api/admin/logout-audit/reason/SESSION_TIMEOUT"))
                 .andExpect(status().isOk());
 
         verify(logoutAuditService).getLogoutEventsByReason(LogoutAuditEvent.LogoutReason.SESSION_TIMEOUT);
