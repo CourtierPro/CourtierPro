@@ -1,4 +1,4 @@
-package com.example.courtierprobackend.audit.dataaccesslayer;
+package com.example.courtierprobackend.audit.loginaudit.dataaccesslayer;
 
 import jakarta.persistence.*;
 import lombok.*;

@@ -52,6 +52,9 @@ public class SecurityConfig {
                         //  Admin organization settings
                         .requestMatchers("/api/admin/settings/**").hasRole("ADMIN")
 
+                        // TODO: Implement webhook signature verification (HMAC/JWT) or IP allowlisting
+                        // Currently exposed without authentication - Auth0 should sign webhook payloads
+                        .requestMatchers("/api/webhooks/**").permitAll()
                         // Broker-only transaction APIs
                         .requestMatchers("/transactions/**").hasRole("BROKER")
 

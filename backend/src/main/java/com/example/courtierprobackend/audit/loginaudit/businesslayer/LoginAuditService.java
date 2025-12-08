@@ -1,7 +1,7 @@
-package com.example.courtierprobackend.audit.businesslayer;
+package com.example.courtierprobackend.audit.loginaudit.businesslayer;
 
-import com.example.courtierprobackend.audit.dataaccesslayer.LoginAuditEvent;
-import com.example.courtierprobackend.audit.dataaccesslayer.LoginAuditEventRepository;
+import com.example.courtierprobackend.audit.loginaudit.dataaccesslayer.LoginAuditEvent;
+import com.example.courtierprobackend.audit.loginaudit.dataaccesslayer.LoginAuditEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
