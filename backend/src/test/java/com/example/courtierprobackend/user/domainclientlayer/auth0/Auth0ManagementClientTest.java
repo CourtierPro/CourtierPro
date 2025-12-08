@@ -21,7 +21,7 @@ import static org.mockito.Mockito.when;
  * Unit test for Auth0ManagementClient.
  * Tests simple utility methods (password generation, initialization).
  */
-class Auth0ManagementClientUnitTest {
+class Auth0ManagementClientTest {
 
     @Test
     void generateTemporaryPassword_hasUpperLowerDigitAndSymbol() {
@@ -59,31 +59,5 @@ class Auth0ManagementClientUnitTest {
         ReflectionTestUtils.invokeMethod(client, "assignRole", "token123", "auth0|user", UserRole.BROKER);
     }
 
-    @Test
-    void getManagementToken_returnsAccessToken() {
-        // Simplified test: verify constructor initializes correctly
-        Auth0ManagementClient client = new Auth0ManagementClient(
-                "example.auth0.com",
-                "clientId",
-                "clientSecret",
-                "https://example.auth0.com/api/v2/",
-                "http://localhost/result"
-        );
-        
-        assertThat(client).isNotNull();
-    }
 
-    @Test
-    void setBlocked_invokesRestTemplate() {
-        // Test that constructor initializes correctly
-        Auth0ManagementClient client = new Auth0ManagementClient(
-                "example.auth0.com",
-                "clientId",
-                "clientSecret",
-                "https://example.auth0.com/api/v2/",
-                "http://localhost/result"
-        );
-
-        assertThat(client).isNotNull();
-    }
 }

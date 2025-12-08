@@ -40,7 +40,7 @@ import org.mockito.Mockito;
  */
 @WebMvcTest(value = AdminUserController.class)
 @AutoConfigureMockMvc(addFilters = false)
-class AdminUserControllerIntegrationTest {
+class AdminUserControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

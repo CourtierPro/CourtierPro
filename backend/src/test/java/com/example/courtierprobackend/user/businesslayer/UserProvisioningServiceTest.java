@@ -134,7 +134,7 @@ class UserProvisioningServiceTest {
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getEmail()).isEqualTo("newuser@test.com");
-                assertThat(result.getRole()).isEqualTo("BROKER");
+        assertThat(result.getRole()).isEqualTo("BROKER");
         verify(auth0ManagementClient).createUser("newuser@test.com", "New", "User", UserRole.BROKER, "en");
         verify(emailService).sendPasswordSetupEmail("newuser@test.com", "https://setup-password-url.com", "en");
         verify(userAccountRepository).save(any(UserAccount.class));
