@@ -69,11 +69,6 @@ export function AppShell({ children }: AppShellProps) {
   }, [authDisabled, isAuthenticated, getAccessTokenSilently]);
 
   const handleNavigate = (route: string) => {
-    if (authDisabled) {
-      window.history.pushState({}, "", route);
-      window.dispatchEvent(new PopStateEvent("popstate"));
-      return;
-    }
     navigate(route);
   };
 
