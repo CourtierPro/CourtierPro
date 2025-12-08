@@ -23,7 +23,7 @@ export function RequireRole({ allowed, children }: RequireRoleProps) {
         );
     }
 
-    const role = authDisabled ? ("broker" as AppRole) : getRoleFromUser(user);
+    const role = authDisabled ? "broker" : getRoleFromUser(user);
 
     if (!role) {
         return <Navigate to="/unauthorized" replace />;
