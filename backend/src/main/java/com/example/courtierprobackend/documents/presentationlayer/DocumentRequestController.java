@@ -74,4 +74,14 @@ public class DocumentRequestController {
 
         return ResponseEntity.ok(service.submitDocument(transactionId, requestId, file, userId, uploaderType));
     }
+
+    @GetMapping("/{requestId}/documents/{documentId}/download")
+    public ResponseEntity<java.util.Map<String, String>> getDocumentDownloadUrl(
+            @PathVariable String transactionId,
+            @PathVariable String requestId,
+            @PathVariable String documentId
+    ) {
+        String url = service.getDocumentDownloadUrl(requestId, documentId);
+        return ResponseEntity.ok(java.util.Map.of("url", url));
+    }
 }

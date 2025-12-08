@@ -19,11 +19,12 @@ import {
   DialogFooter,
 } from '@/shared/components/ui/dialog';
 import { Label } from '@/shared/components/ui/label';
+import { DocumentTypeEnum } from '@/features/documents/types';
 
 interface RequestDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (documentTitle: string, instructions: string, stage: string) => void;
+  onSubmit: (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string) => void;
   transactionType: 'buy' | 'sell';
   currentStage: string;
 }
@@ -36,34 +37,46 @@ export function RequestDocumentModal({
   currentStage,
 }: RequestDocumentModalProps) {
   const { t, i18n } = useTranslation('documents');
-  const [documentTitle, setDocumentTitle] = useState('');
+  const [selectedDocType, setSelectedDocType] = useState<DocumentTypeEnum | ''>('');
+  const [customTitle, setCustomTitle] = useState('');
   const [instructions, setInstructions] = useState('');
   const [selectedStage, setSelectedStage] = useState('');
-  const [errors, setErrors] = useState<{ title?: string; stage?: string }>({});
+  const [errors, setErrors] = useState<{ docType?: string; customTitle?: string; stage?: string }>({});
 
-  const firstInputRef = useRef<HTMLInputElement>(null);
+  const customTitleInputRef = useRef<HTMLInputElement>(null);
 
   const stages = t('stages', { returnObjects: true }) as Record<string, Record<string, string>>;
   const stageOptions = stages[transactionType] ? Object.entries(stages[transactionType]) : [];
 
+  const docTypeOptions = Object.values(DocumentTypeEnum);
+
   useEffect(() => {
     if (isOpen) {
-      setDocumentTitle('');
+      setSelectedDocType('');
+      setCustomTitle('');
       setInstructions('');
       setSelectedStage(currentStage);
       setErrors({});
-
-      setTimeout(() => {
-        firstInputRef.current?.focus();
-      }, 100);
     }
   }, [isOpen, currentStage]);
 
-  const validateForm = (): boolean => {
-    const newErrors: { title?: string; stage?: string } = {};
+  useEffect(() => {
+    if (selectedDocType === DocumentTypeEnum.OTHER) {
+      setTimeout(() => {
+        customTitleInputRef.current?.focus();
+      }, 100);
+    }
+  }, [selectedDocType]);
 
-    if (!documentTitle.trim()) {
-      newErrors.title = t('documentTitleRequired');
+  const validateForm = (): boolean => {
+    const newErrors: { docType?: string; customTitle?: string; stage?: string } = {};
+
+    if (!selectedDocType) {
+      newErrors.docType = t('documentTypeRequired');
+    }
+
+    if (selectedDocType === DocumentTypeEnum.OTHER && !customTitle.trim()) {
+      newErrors.customTitle = t('documentTitleRequired');
     }
 
     if (!selectedStage) {
@@ -78,12 +91,20 @@ export function RequestDocumentModal({
     e.preventDefault();
 
     if (validateForm()) {
-      onSubmit(documentTitle.trim(), instructions.trim(), selectedStage);
+      onSubmit(
+        selectedDocType as DocumentTypeEnum,
+        selectedDocType === DocumentTypeEnum.OTHER ? customTitle.trim() : '',
+        instructions.trim(),
+        selectedStage
+      );
       onClose();
     }
   };
 
-  const isFormValid = documentTitle.trim().length > 0 && selectedStage.length > 0;
+  const isFormValid =
+    selectedDocType &&
+    (selectedDocType !== DocumentTypeEnum.OTHER || customTitle.trim().length > 0) &&
+    selectedStage.length > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -98,32 +119,72 @@ export function RequestDocumentModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
+
+          {/* Document Type Select */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="document-title" className="text-gray-700">
-                {t('documentTitle')}
+              <Label htmlFor="document-type" className="text-gray-700">
+                {t('documentType')}
               </Label>
               <span className="text-red-500 text-sm">{t('required')}</span>
             </div>
-            <Input
-              ref={firstInputRef}
-              type="text"
-              id="document-title"
-              value={documentTitle}
-              onChange={(e) => {
-                setDocumentTitle(e.target.value);
-                if (errors.title) {
-                  setErrors({ ...errors, title: undefined });
+            <Select
+              value={selectedDocType}
+              onValueChange={(value) => {
+                setSelectedDocType(value as DocumentTypeEnum);
+                if (errors.docType) {
+                  setErrors({ ...errors, docType: undefined });
                 }
               }}
-              placeholder={t('documentTitlePlaceholder')}
-              className={errors.title ? 'border-red-500' : ''}
-              aria-invalid={!!errors.title}
-            />
-            {errors.title && (
-              <p className="text-red-500 text-sm">{errors.title}</p>
+            >
+              <SelectTrigger
+                id="document-type"
+                className={errors.docType ? 'border-red-500' : ''}
+              >
+                <SelectValue placeholder={t('selectDocumentType')} />
+              </SelectTrigger>
+              <SelectContent>
+                {docTypeOptions.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {t(`types.${type}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.docType && (
+              <p className="text-red-500 text-sm">{errors.docType}</p>
             )}
           </div>
+
+          {/* Custom Title Input (Conditional) */}
+          {selectedDocType === DocumentTypeEnum.OTHER && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="custom-title" className="text-gray-700">
+                  {t('documentTitle')}
+                </Label>
+                <span className="text-red-500 text-sm">{t('required')}</span>
+              </div>
+              <Input
+                ref={customTitleInputRef}
+                type="text"
+                id="custom-title"
+                value={customTitle}
+                onChange={(e) => {
+                  setCustomTitle(e.target.value);
+                  if (errors.customTitle) {
+                    setErrors({ ...errors, customTitle: undefined });
+                  }
+                }}
+                placeholder={t('documentTitlePlaceholder')}
+                className={errors.customTitle ? 'border-red-500' : ''}
+                aria-invalid={!!errors.customTitle}
+              />
+              {errors.customTitle && (
+                <p className="text-red-500 text-sm">{errors.customTitle}</p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">

@@ -17,6 +17,7 @@ import { useCreateTransaction } from '../api/mutations';
 import type { TransactionRequestDTO } from '@/shared/api/types';
 import { getStagesForSide, enumToLabel } from '@/shared/utils/stages';
 import { logError, getErrorMessage } from '@/shared/utils/error-utils';
+import { useClientsForDisplay } from '@/features/clients';
 
 
 interface TransactionCreateFormProps {
@@ -40,24 +41,7 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
-  const [clients, setClients] = useState<Client[]>([]);
-
-  const mockClients: Client[] = [
-    { id: 'CLI-001', name: 'Sarah Johnson', email: 'sarah.johnson@email.com' },
-    { id: 'CLI-002', name: 'Michael Chen', email: 'michael.chen@email.com' },
-    { id: 'CLI-003', name: 'Emma Williams', email: 'emma.williams@email.com' },
-    { id: 'CLI-004', name: 'David Brown', email: 'david.brown@email.com' },
-    { id: 'CLI-005', name: 'Lisa Anderson', email: 'lisa.anderson@email.com' },
-    { id: 'CLI-006', name: 'James Wilson', email: 'james.wilson@email.com' },
-    { id: 'CLI-007', name: 'Maria Garcia', email: 'maria.garcia@email.com' },
-    { id: 'CLI-008', name: 'Robert Taylor', email: 'robert.taylor@email.com' },
-  ];
-
-  // TODO: replace later with real API GET /clients for broker
-  useEffect(() => {
-    setClients(mockClients); // temporary until API exists
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { data: clients = [] } = useClientsForDisplay();
 
   const clientSearchRef = useRef<HTMLDivElement>(null);
 
@@ -200,29 +184,27 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
       </Button>
 
       <div>
-        <h1 style={{ color: '#353535' }}>{t('createTransactionTitle')}</h1>
-        <p style={{ color: '#353535', opacity: 0.7 }}>{t('createSubtitle')}</p>
+        <h1 className="text-foreground">{t('createTransactionTitle')}</h1>
+        <p className="text-muted-foreground">{t('createSubtitle')}</p>
       </div>
 
       <form onSubmit={handleSubmit} noValidate>
         {errors.form && (
           <div className="mb-4 p-3 rounded border border-red-200 bg-red-50" role="alert">
-            <p style={{ color: '#ef4444' }}>{errors.form}</p>
+            <p className="text-destructive">{errors.form}</p>
           </div>
         )}
         <div
-          className="p-6 rounded-xl shadow-md"
-          style={{ backgroundColor: '#FFFFFF' }}
+          className="p-6 rounded-xl shadow-md bg-white"
         >
           <div className="space-y-6">
             <fieldset>
               <legend
-                style={{ color: '#353535' }}
-                className="mb-3 flex items-center gap-2"
+                className="mb-3 flex items-center gap-2 text-foreground"
               >
                 {t('transactionSide')}
                 <span
-                  style={{ color: '#ef4444', fontSize: '0.875rem' }}
+                  className="text-destructive text-sm"
                   aria-label="required"
                 >
                   *
@@ -246,12 +228,12 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                   <div className="flex items-start gap-3">
                     <RadioGroupItem value="buy" id="buy" className="mt-1" />
                     <div className="flex-1 cursor-pointer" onClick={() => setTransactionSide('buy')}>
-                      <p style={{ color: '#353535' }} className="mb-1 font-medium">
+                      <p className="text-foreground mb-1 font-medium">
                         {t('buySide')}
                       </p>
                       <p
                         id="buy-side-description"
-                        style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }}
+                        className="text-muted-foreground text-sm"
                       >
                         {t('buySideDescription')}
                       </p>
@@ -268,12 +250,12 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                   <div className="flex items-start gap-3">
                     <RadioGroupItem value="sell" id="sell" className="mt-1" />
                     <div className="flex-1 cursor-pointer" onClick={() => setTransactionSide('sell')}>
-                      <p style={{ color: '#353535' }} className="mb-1 font-medium">
+                      <p className="text-foreground mb-1 font-medium">
                         {t('sellSide')}
                       </p>
                       <p
                         id="sell-side-description"
-                        style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }}
+                        className="text-muted-foreground text-sm"
                       >
                         {t('sellSideDescription')}
                       </p>
@@ -288,8 +270,8 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                   role="alert"
                   aria-live="polite"
                 >
-                  <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
-                  <p style={{ color: '#ef4444', fontSize: '0.875rem' }}>
+                  <AlertCircle className="w-4 h-4 text-destructive" />
+                  <p className="text-destructive text-sm">
                     {errors.transactionSide}
                   </p>
                 </div>
@@ -300,12 +282,11 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
               <div ref={clientSearchRef}>
                 <label
                   htmlFor="client-search"
-                  style={{ color: '#353535' }}
-                  className="block mb-2 flex items-center gap-2"
+                  className="block mb-2 flex items-center gap-2 text-foreground"
                 >
                   {t('client')}
                   <span
-                    style={{ color: '#ef4444', fontSize: '0.875rem' }}
+                    className="text-destructive text-sm"
                     aria-label="required"
                   >
                     *
@@ -331,20 +312,18 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                       aria-invalid={touched.client && errors.client ? 'true' : 'false'}
                     />
                     <Search
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5"
-                      style={{ color: '#353535', opacity: 0.5 }}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground/50"
                     />
                   </div>
 
                   {showClientDropdown && (
                     <div
-                      className="absolute z-10 w-full mt-2 rounded-lg border border-gray-200 shadow-lg max-h-60 overflow-y-auto"
-                      style={{ backgroundColor: '#FFFFFF' }}
+                      className="absolute z-10 w-full mt-2 rounded-lg border border-gray-200 shadow-lg max-h-60 overflow-y-auto bg-white"
                       role="listbox"
                       aria-label="Client list"
                     >
                       {filteredClients.length === 0 ? (
-                        <div className="p-4 text-center" style={{ color: '#353535', opacity: 0.7 }}>
+                        <div className="p-4 text-center text-muted-foreground">
                           {t('noClientsFound')}
                         </div>
                       ) : (
@@ -361,8 +340,8 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                             role="option"
                             aria-selected={selectedClient?.id === client.id}
                           >
-                            <p style={{ color: '#353535' }}>{client.name}</p>
-                            <p style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }}>
+                            <p className="text-foreground">{client.name}</p>
+                            <p className="text-muted-foreground text-sm">
                               {client.email}
                             </p>
                           </button>
@@ -374,11 +353,10 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
 
                 {selectedClient && (
                   <div
-                    className="flex items-center gap-2 mt-2 p-2 rounded-lg"
-                    style={{ backgroundColor: '#f0fdf4' }}
+                    className="flex items-center gap-2 mt-2 p-2 rounded-lg bg-emerald-50"
                   >
-                    <CheckCircle className="w-4 h-4" style={{ color: '#10b981' }} />
-                    <p style={{ color: '#10b981', fontSize: '0.875rem' }}>
+                    <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    <p className="text-emerald-500 text-sm">
                       {selectedClient.name} {i18n.language === 'en' ? 'selected' : 'sélectionné'}
                     </p>
                   </div>
@@ -391,8 +369,8 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                     role="alert"
                     aria-live="polite"
                   >
-                    <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
-                    <p style={{ color: '#ef4444', fontSize: '0.875rem' }}>
+                    <AlertCircle className="w-4 h-4 text-destructive" />
+                    <p className="text-destructive text-sm">
                       {errors.client}
                     </p>
                   </div>
@@ -402,12 +380,11 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
               <div>
                 <label
                   htmlFor="property-address"
-                  style={{ color: '#353535' }}
-                  className="block mb-2 flex items-center gap-2"
+                  className="block mb-2 flex items-center gap-2 text-foreground"
                 >
                   {t('propertyAddress')}
                   <span
-                    style={{ color: '#ef4444', fontSize: '0.875rem' }}
+                    className="text-destructive text-sm"
                     aria-label="required"
                   >
                     *
@@ -433,8 +410,8 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                     role="alert"
                     aria-live="polite"
                   >
-                    <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
-                    <p style={{ color: '#ef4444', fontSize: '0.875rem' }}>
+                    <AlertCircle className="w-4 h-4 text-destructive" />
+                    <p className="text-destructive text-sm">
                       {errors.propertyAddress}
                     </p>
                   </div>
@@ -445,12 +422,11 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
             <div>
               <label
                 htmlFor="initial-stage"
-                style={{ color: '#353535' }}
-                className="block mb-2 flex items-center gap-2"
+                className="block mb-2 flex items-center gap-2 text-foreground"
               >
                 {t('initialStage')}
                 <span
-                  style={{ color: '#ef4444', fontSize: '0.875rem' }}
+                  className="text-destructive text-sm"
                   aria-label="required"
                 >
                   *
@@ -483,7 +459,7 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
               </Select>
 
               {!transactionSide && (
-                <p style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }} className="mt-2">
+                <p className="text-muted-foreground text-sm mt-2">
                   {i18n.language === 'en'
                     ? t('errorSelectSide')
                     : t('errorSelectSide')}
@@ -497,8 +473,8 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                   role="alert"
                   aria-live="polite"
                 >
-                  <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
-                  <p style={{ color: '#ef4444', fontSize: '0.875rem' }}>
+                  <AlertCircle className="w-4 h-4 text-destructive" />
+                  <p className="text-destructive text-sm">
                     {errors.initialStage}
                   </p>
                 </div>

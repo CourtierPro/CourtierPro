@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   X,
   Calendar,
@@ -21,23 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select';
+import { useClientsForDisplay, type ClientDisplay } from '@/features/clients';
+import { useTransactions, type Transaction } from '@/features/transactions/api/queries';
 
 type AppointmentType = 'inspection' | 'notary' | 'showing' | 'consultation' | 'walkthrough' | 'meeting';
-
-interface Client {
-  id: string;
-  name: string;
-  email: string;
-  transactionId?: string;
-  transactionAddress?: string;
-}
-
-interface Transaction {
-  id: string;
-  address: string;
-  clientId: string;
-  clientName: string;
-}
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -62,61 +49,6 @@ export interface AppointmentFormData {
   transactionAddress: string;
 }
 
-const mockClients: Client[] = [
-  {
-    id: 'C-001',
-    name: 'John Smith',
-    email: 'john.smith@email.com',
-    transactionId: 'TX-1001',
-    transactionAddress: '123 Maple Street, Montreal, QC',
-  },
-  {
-    id: 'C-002',
-    name: 'Emma Johnson',
-    email: 'emma.j@email.com',
-    transactionId: 'TX-1002',
-    transactionAddress: '456 Oak Avenue, Montreal, QC',
-  },
-  {
-    id: 'C-003',
-    name: 'Michael Brown',
-    email: 'mbrown@email.com',
-    transactionId: 'TX-1003',
-    transactionAddress: '789 Pine Road, Montreal, QC',
-  },
-  {
-    id: 'C-004',
-    name: 'Sarah Davis',
-    email: 'sarah.davis@email.com',
-  },
-  {
-    id: 'C-005',
-    name: 'David Wilson',
-    email: 'dwilson@email.com',
-  },
-];
-
-const mockTransactions: Transaction[] = [
-  {
-    id: 'TX-1001',
-    address: '123 Maple Street, Montreal, QC',
-    clientId: 'C-001',
-    clientName: 'John Smith',
-  },
-  {
-    id: 'TX-1002',
-    address: '456 Oak Avenue, Montreal, QC',
-    clientId: 'C-002',
-    clientName: 'Emma Johnson',
-  },
-  {
-    id: 'TX-1003',
-    address: '789 Pine Road, Montreal, QC',
-    clientId: 'C-003',
-    clientName: 'Michael Brown',
-  },
-];
-
 export function CreateAppointmentModal({
   isOpen,
   onClose,
@@ -139,6 +71,10 @@ export function CreateAppointmentModal({
   const modalRef = useRef<HTMLDivElement>(null);
   const clientDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Fetch real client and transaction data
+  const { data: clients = [] } = useClientsForDisplay();
+  const { data: transactions = [] } = useTransactions();
+
   const getMinDate = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -158,21 +94,22 @@ export function CreateAppointmentModal({
 
   const timeSlots = getTimeSlots();
 
-  const filteredClients = mockClients.filter(client =>
-    client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-    client.email.toLowerCase().includes(clientSearchTerm.toLowerCase())
-  );
+  const filteredClients = useMemo(() =>
+    clients.filter(client =>
+      client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+      client.email.toLowerCase().includes(clientSearchTerm.toLowerCase())
+    ), [clients, clientSearchTerm]);
 
-  const getClientDetails = (clientId: string) => {
-    return mockClients.find(c => c.id === clientId);
+  const getClientDetails = (clientId: string): ClientDisplay | undefined => {
+    return clients.find(c => c.id === clientId);
   };
 
-  const getTransactionDetails = (transactionId: string) => {
-    return mockTransactions.find(t => t.id === transactionId);
+  const getTransactionDetails = (transactionId: string): Transaction | undefined => {
+    return transactions.find(t => t.transactionId === transactionId);
   };
 
-  const getClientTransactions = (clientId: string) => {
-    return mockTransactions.filter(t => t.clientId === clientId);
+  const getClientTransactions = (clientId: string): Transaction[] => {
+    return transactions.filter(t => t.clientId === clientId);
   };
 
   useEffect(() => {
@@ -260,16 +197,12 @@ export function CreateAppointmentModal({
     }
   }, [showClientDropdown]);
 
-  const handleClientSelect = (client: Client) => {
+  const handleClientSelect = (client: ClientDisplay) => {
     setSelectedClientId(client.id);
     setClientSearchTerm(client.name);
     setShowClientDropdown(false);
-
-    if (client.transactionId) {
-      setSelectedTransactionId(client.transactionId);
-    } else {
-      setSelectedTransactionId('');
-    }
+    // Transaction will be selected separately
+    setSelectedTransactionId('');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -295,7 +228,7 @@ export function CreateAppointmentModal({
       clientId: selectedClientId,
       clientName: clientDetails.name,
       transactionId: selectedTransactionId,
-      transactionAddress: transactionDetails.address,
+      transactionAddress: transactionDetails.propertyAddress?.street || '',
     };
 
     onSubmit(appointmentData);
@@ -415,11 +348,6 @@ export function CreateAppointmentModal({
                             <p className="text-muted-foreground text-sm">
                               {client.email}
                             </p>
-                            {client.transactionAddress && (
-                              <p className="text-primary text-xs mt-1">
-                                {client.transactionAddress}
-                              </p>
-                            )}
                           </div>
                         </Button>
                       ))
@@ -491,8 +419,8 @@ export function CreateAppointmentModal({
                   </SelectTrigger>
                   <SelectContent>
                     {clientTransactions.map((transaction) => (
-                      <SelectItem key={transaction.id} value={transaction.id}>
-                        {transaction.address} ({transaction.id})
+                      <SelectItem key={transaction.transactionId} value={transaction.transactionId}>
+                        {transaction.propertyAddress?.street || 'Unknown'} ({transaction.transactionId})
                       </SelectItem>
                     ))}
                   </SelectContent>

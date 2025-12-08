@@ -12,6 +12,7 @@ export const transactionKeys = {
 export interface Transaction {
     transactionId: string;
     clientId: string;
+    clientName: string;
     propertyAddress: {
         street: string;
         city: string;
@@ -32,9 +33,7 @@ export function useTransactions() {
     return useQuery({
         queryKey: transactionKeys.lists(),
         queryFn: async () => {
-            const res = await axiosInstance.get<Transaction[]>('/transactions', {
-                headers: { 'x-broker-id': 'BROKER1' },
-            });
+            const res = await axiosInstance.get<Transaction[]>('/transactions');
             return res.data;
         },
     });
@@ -44,9 +43,7 @@ export function useTransaction(id: string | undefined) {
     return useQuery({
         queryKey: transactionKeys.detail(id!),
         queryFn: async () => {
-            const res = await axiosInstance.get<Transaction>(`/transactions/${id}`, {
-                headers: { 'x-broker-id': 'BROKER1' },
-            });
+            const res = await axiosInstance.get<Transaction>(`/transactions/${id}`);
             return res.data;
         },
         enabled: !!id,

@@ -17,6 +17,8 @@ import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
+import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
+import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,16 +46,23 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<DocumentRequestResponseDTO> getAllDocumentsForUser(String userId) {
+        return repository.findByUserId(userId).stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
     public DocumentRequestResponseDTO getDocumentRequest(String requestId) {
         DocumentRequest request = repository.findByRequestId(requestId)
-                .orElseThrow(() -> new RuntimeException("Document request not found: " + requestId));
+                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
         return mapToResponseDTO(request);
     }
 
     @Transactional
     public DocumentRequestResponseDTO createDocumentRequest(String transactionId, DocumentRequestRequestDTO requestDTO) {
         Transaction tx = transactionRepository.findByTransactionId(transactionId)
-                .orElseThrow(() -> new RuntimeException("Transaction not found: " + transactionId));
+                .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
 
         DocumentRequest request = new DocumentRequest();
         request.setRequestId(UUID.randomUUID().toString());
@@ -66,13 +75,35 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         request.setBrokerNotes(requestDTO.getBrokerNotes());
         request.setLastUpdatedAt(LocalDateTime.now());
 
-        return mapToResponseDTO(repository.save(request));
+        DocumentRequest savedRequest = repository.save(request);
+
+        // Notify client via email
+        UserAccount client = userAccountRepository.findById(UUID.fromString(tx.getClientId()))
+                .orElse(null);
+        UserAccount broker = userAccountRepository.findById(UUID.fromString(tx.getBrokerId()))
+                .orElse(null);
+
+        if (client != null && broker != null) {
+            String documentName = requestDTO.getCustomTitle() != null ? 
+                    requestDTO.getCustomTitle() : requestDTO.getDocType().toString();
+            String clientName = client.getFirstName() + " " + client.getLastName();
+            String brokerName = broker.getFirstName() + " " + broker.getLastName();
+            
+            emailService.sendDocumentRequestedNotification(
+                    client.getEmail(), 
+                    clientName, 
+                    brokerName, 
+                    documentName
+            );
+        }
+
+        return mapToResponseDTO(savedRequest);
     }
 
     @Transactional
     public DocumentRequestResponseDTO updateDocumentRequest(String requestId, DocumentRequestRequestDTO requestDTO) {
         DocumentRequest request = repository.findByRequestId(requestId)
-                .orElseThrow(() -> new RuntimeException("Document request not found: " + requestId));
+                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
 
         if (requestDTO.getDocType() != null) request.setDocType(requestDTO.getDocType());
         if (requestDTO.getCustomTitle() != null) request.setCustomTitle(requestDTO.getCustomTitle());
@@ -88,17 +119,17 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
     @Transactional
     public void deleteDocumentRequest(String requestId) {
         DocumentRequest request = repository.findByRequestId(requestId)
-                .orElseThrow(() -> new RuntimeException("Document request not found: " + requestId));
+                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
         repository.delete(request);
     }
 
     @Transactional
     public DocumentRequestResponseDTO submitDocument(String transactionId, String requestId, MultipartFile file, String uploaderId, UploadedByRefEnum uploaderType) throws IOException {
         DocumentRequest request = repository.findByRequestId(requestId)
-                .orElseThrow(() -> new RuntimeException("Document request not found: " + requestId));
+                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
 
         if (!request.getTransactionRef().getTransactionId().equals(transactionId)) {
-            throw new RuntimeException("Document request does not belong to transaction: " + transactionId);
+            throw new InvalidInputException("Document request does not belong to transaction: " + transactionId);
         }
 
         StorageObject storageObject = storageService.uploadFile(file, transactionId, requestId);
@@ -125,12 +156,20 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
 
         // Notify broker
         Transaction tx = transactionRepository.findByTransactionId(transactionId)
-                .orElseThrow(() -> new RuntimeException("Transaction not found: " + transactionId));
+                .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
         
         UserAccount broker = userAccountRepository.findById(UUID.fromString(tx.getBrokerId()))
-                .orElseThrow(() -> new RuntimeException("Broker not found: " + tx.getBrokerId()));
+                .orElseThrow(() -> new NotFoundException("Broker not found: " + tx.getBrokerId()));
 
-        emailService.sendDocumentSubmittedNotification(savedRequest, broker.getEmail()); 
+        // Get uploader name (Client)
+        String uploaderName = "Unknown Client";
+        if (uploaderType == UploadedByRefEnum.CLIENT) {
+             uploaderName = userAccountRepository.findById(UUID.fromString(uploaderId))
+                    .map(u -> u.getFirstName() + " " + u.getLastName())
+                    .orElse("Unknown Client");
+        }
+
+        emailService.sendDocumentSubmittedNotification(savedRequest, broker.getEmail(), uploaderName, savedRequest.getCustomTitle() != null ? savedRequest.getCustomTitle() : savedRequest.getDocType().toString()); 
 
         return mapToResponseDTO(savedRequest);
     }
@@ -159,5 +198,18 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 .uploadedBy(submission.getUploadedBy())
                 .storageObject(submission.getStorageObject())
                 .build();
+    }
+
+    @Override
+    public String getDocumentDownloadUrl(String requestId, String documentId) {
+        DocumentRequest request = repository.findByRequestId(requestId)
+                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+
+        SubmittedDocument submittedDocument = request.getSubmittedDocuments().stream()
+                .filter(doc -> doc.getDocumentId().equals(documentId))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Submitted document not found: " + documentId));
+
+        return storageService.generatePresignedUrl(submittedDocument.getStorageObject().getS3Key());
     }
 }

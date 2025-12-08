@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/components/ui/button";
-import { useSubmitDocument } from "../api/mutations";
+import { useSubmitDocument } from "@/features/documents/api/mutations";
 import { Loader2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { useErrorHandler } from "@/shared/hooks/useErrorHandler";

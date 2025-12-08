@@ -6,7 +6,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/components/ui/tabs";
 import { type Transaction } from '@/features/transactions/api/queries';
-import { RequiredDocumentsList } from '@/features/documents/components/RequiredDocumentsList';
+import { DocumentsPage } from '@/pages/documents/DocumentsPage';
 
 interface TransactionTabsProps {
     transaction: Transaction;
@@ -73,7 +73,6 @@ export function TransactionTabs({
                             onClick={onSaveNotes}
                             disabled={isSavingNotes}
                             className="w-full"
-                            style={{ backgroundColor: '#F3F4F6', color: '#1F2937' }}
                         >
                             {isSavingNotes ? t('saving') : t('saveNotes')}
                         </Button>
@@ -82,9 +81,7 @@ export function TransactionTabs({
             </TabsContent>
 
             <TabsContent value="documents" className="py-4">
-                <Section className="p-6">
-                    <RequiredDocumentsList transactionId={transaction.transactionId} />
-                </Section>
+                <DocumentsPage transactionId={transaction.transactionId} />
             </TabsContent>
 
             <TabsContent value="appointments" className="py-4">

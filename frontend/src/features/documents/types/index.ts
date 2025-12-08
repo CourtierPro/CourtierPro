@@ -19,6 +19,7 @@ export type DocumentPartyEnum = typeof DocumentPartyEnum[keyof typeof DocumentPa
 
 export const DocumentTypeEnum = {
     MORTGAGE_PRE_APPROVAL: 'MORTGAGE_PRE_APPROVAL',
+    MORTGAGE_APPROVAL: 'MORTGAGE_APPROVAL',
     PROOF_OF_FUNDS: 'PROOF_OF_FUNDS',
     ID_VERIFICATION: 'ID_VERIFICATION',
     EMPLOYMENT_LETTER: 'EMPLOYMENT_LETTER',

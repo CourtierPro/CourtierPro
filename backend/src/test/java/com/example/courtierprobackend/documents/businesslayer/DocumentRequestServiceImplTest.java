@@ -72,7 +72,7 @@ class DocumentRequestServiceImplTest {
     void setUp() {
         TransactionRef transactionRef = TransactionRef.builder()
                 .transactionId("TX-123")
-                .clientId("CLIENT-1")
+                .clientId("00000000-0000-0000-0000-000000000002")
                 .side(TransactionSide.BUY_SIDE)
                 .build();
 
@@ -92,8 +92,8 @@ class DocumentRequestServiceImplTest {
 
         sampleTransaction = new Transaction();
         sampleTransaction.setTransactionId("TX-123");
-        sampleTransaction.setClientId("CLIENT-1");
-        sampleTransaction.setBrokerId("BROKER-1");
+        sampleTransaction.setClientId("00000000-0000-0000-0000-000000000002");
+        sampleTransaction.setBrokerId("00000000-0000-0000-0000-000000000001");
         sampleTransaction.setSide(TransactionSide.BUY_SIDE);
 
         sampleBroker = new UserAccount();

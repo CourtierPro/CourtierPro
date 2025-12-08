@@ -12,6 +12,7 @@ import lombok.Data;
 public class TransactionResponseDTO {
     private String transactionId;
     private String clientId;
+    private String clientName;
     private String brokerId;
     private TransactionSide side;
     private PropertyAddress propertyAddress;

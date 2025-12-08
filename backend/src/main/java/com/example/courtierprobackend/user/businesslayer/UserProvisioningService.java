@@ -47,6 +47,13 @@ public class UserProvisioningService {
                 .toList();
     }
 
+    public List<UserResponse> getClients() {
+        return userAccountRepository.findByRole(UserRole.CLIENT)
+                .stream()
+                .map(userMapper::toResponse)
+                .toList();
+    }
+
 
     public UserResponse createUser(CreateUserRequest request) {
 
@@ -119,6 +126,16 @@ public class UserProvisioningService {
         }
 
         UserAccount saved = userAccountRepository.save(account);
+
+        // Generate password change ticket and send welcome email
+        try {
+            String passwordSetupUrl = auth0ManagementClient.createPasswordChangeTicket(auth0UserId);
+            emailService.sendPasswordSetupEmail(request.getEmail(), passwordSetupUrl);
+        } catch (Exception e) {
+            // Log error but don't fail the user creation
+            // The admin can resend the invite later if needed
+            System.err.println("Failed to send welcome email to " + request.getEmail() + ": " + e.getMessage());
+        }
 
         return userMapper.toResponse(saved);
     }

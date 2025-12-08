@@ -212,4 +212,38 @@ public class Auth0ManagementClient {
             throw new IllegalStateException("Failed to set blocked=" + blocked + " for " + auth0UserId);
         }
     }
+
+    /**
+     * Creates a password change ticket for a user to set their initial password.
+     * Returns the URL that the user can use to set their password.
+     */
+    public String createPasswordChangeTicket(String auth0UserId) {
+        String token = getManagementToken();
+
+        String url = managementBaseUrl + "/tickets/password-change";
+
+        Map<String, Object> body = Map.of(
+                "user_id", auth0UserId,
+                "result_url", "https://courtierpro.dev/login", // Redirect after password set
+                "ttl_sec", 604800, // 7 days
+                "mark_email_as_verified", true
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<PasswordChangeTicketResponse> response =
+                restTemplate.postForEntity(url, entity, PasswordChangeTicketResponse.class);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new IllegalStateException("Failed to create password change ticket for " + auth0UserId);
+        }
+
+        return response.getBody().ticket();
+    }
+
+    private record PasswordChangeTicketResponse(String ticket) {}
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Globe, Bell, Menu, ChevronDown } from "lucide-react";
 import { formatDateTime } from '@/shared/utils/date';
 import { useTranslation } from "react-i18next";
+import { Button } from "@/shared/components/ui/button";
 
 interface NotificationItem {
   id: string | number;
@@ -118,14 +119,16 @@ export function TopNav({
       {/* Left section */}
       <div className="flex items-center gap-4">
         {/* Mobile menu toggle */}
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onMenuToggle}
-          className="p-2 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors md:hidden"
+          className="md:hidden"
           aria-label={t("menu")}
           aria-expanded="false"
         >
           <Menu className="w-6 h-6 text-slate-800" />
-        </button>
+        </Button>
 
         {/* Logo */}
         <div className="flex items-center gap-3">
@@ -142,7 +145,8 @@ export function TopNav({
       <div className="flex items-center gap-2 md:gap-4">
         {/* Language selector */}
         <div className="relative" ref={languageRef}>
-          <button
+          <Button
+            variant="ghost"
             onClick={toggleLanguageMenu}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -153,7 +157,7 @@ export function TopNav({
                 setIsLanguageMenuOpen(false);
               }
             }}
-            className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors"
+            className="flex items-center gap-2 px-3 py-2"
             aria-label={t("language")}
             aria-expanded={isLanguageMenuOpen}
             aria-haspopup="true"
@@ -162,7 +166,7 @@ export function TopNav({
             <span className="hidden sm:inline text-slate-800">
               {language.toUpperCase()}
             </span>
-          </button>
+          </Button>
           {isLanguageMenuOpen && (
             <div
               className="absolute right-0 mt-2 w-32 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
@@ -203,8 +207,10 @@ export function TopNav({
 
         {/* Notifications */}
         <div className="relative" ref={notificationsRef}>
-          <button
-            className="relative rounded-lg p-2 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors"
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative"
             aria-label={`${t("notifications")}${notificationCount > 0 ? `, ${notificationCount} unread` : ""
               }`}
             onClick={toggleNotifications}
@@ -218,7 +224,7 @@ export function TopNav({
                 {notificationCount}
               </span>
             )}
-          </button>
+          </Button>
           {isNotificationsOpen && (
             <div
               className="absolute right-0 mt-2 w-80 max-h-96 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg md:w-96"
@@ -303,7 +309,8 @@ export function TopNav({
 
         {/* User avatar + menu */}
         <div className="relative" ref={userMenuRef}>
-          <button
+          <Button
+            variant="ghost"
             onClick={toggleUserMenu}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -314,7 +321,7 @@ export function TopNav({
                 setIsUserMenuOpen(false);
               }
             }}
-            className="flex items-center gap-2 rounded-lg p-1 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors"
+            className="flex items-center gap-2 p-1"
             aria-label={t("userMenu")}
             aria-expanded={isUserMenuOpen}
             aria-haspopup="true"
@@ -329,7 +336,7 @@ export function TopNav({
               </span>
             </div>
             <ChevronDown className="hidden h-4 w-4 text-slate-800 sm:block" />
-          </button>
+          </Button>
           {isUserMenuOpen && (
             <div
               className="absolute right-0 mt-2 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"

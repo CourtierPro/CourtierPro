@@ -21,4 +21,8 @@ public interface DocumentRequestService {
     void deleteDocumentRequest(String requestId);
 
     DocumentRequestResponseDTO submitDocument(String transactionId, String requestId, MultipartFile file, String uploaderId, UploadedByRefEnum uploaderType) throws IOException;
+
+    List<DocumentRequestResponseDTO> getAllDocumentsForUser(String userId);
+
+    String getDocumentDownloadUrl(String requestId, String documentId);
 }

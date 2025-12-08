@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Section } from "@/shared/components/branded/Section";
 import { StageBadge } from "@/shared/components/branded/StageBadge";
 import { Button } from "@/shared/components/ui/button";
-import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/shared/utils/stages';
+import { getStagesForSide, resolveStageIndex } from '@/shared/utils/stages';
 import { type Transaction } from '@/features/transactions/api/queries';
 
 interface TransactionStageTrackerProps {
@@ -30,7 +30,7 @@ export function TransactionStageTracker({ transaction, onUpdateStage }: Transact
                             <StageBadge
                                 key={stage}
                                 stageNumber={index + 1}
-                                label={enumToLabel(stage)}
+                                label={t(`stages.${transaction.side === 'BUY_SIDE' ? 'buy' : 'sell'}.${stage.toLowerCase()}`)}
                                 status={status}
                                 className="min-w-[100px]"
                             />

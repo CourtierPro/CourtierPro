@@ -10,8 +10,7 @@ export function useUpdateTransactionStage() {
         mutationFn: async ({ id, stage }: { id: string; stage: number }) => {
             const res = await axiosInstance.patch(
                 `/transactions/${id}/stage`,
-                { stage },
-                { headers: { 'x-broker-id': 'BROKER1' } }
+                { stage }
             );
             return res.data;
         },
@@ -42,8 +41,7 @@ export function useCreateTransaction() {
         mutationFn: async (payload: TransactionRequestDTO) => {
             const res = await axiosInstance.post(
                 '/transactions',
-                payload,
-                { headers: { 'x-broker-id': 'BROKER1' } }
+                payload
             );
             return res.data;
         },

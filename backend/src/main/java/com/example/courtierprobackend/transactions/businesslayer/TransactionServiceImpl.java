@@ -10,6 +10,8 @@ import com.example.courtierprobackend.transactions.exceptions.DuplicateTransacti
 import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
 import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
 import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,19 @@ import com.example.courtierprobackend.transactions.datalayer.enums.TimelineEntry
 public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepository repo;
+    private final UserAccountRepository userAccountRepository;
+
+    private String lookupClientName(String clientId) {
+        if (clientId == null) return "Unknown Client";
+        try {
+            UUID uuid = UUID.fromString(clientId);
+            return userAccountRepository.findById(uuid)
+                    .map(u -> u.getFirstName() + " " + u.getLastName())
+                    .orElse("Unknown Client");
+        } catch (IllegalArgumentException e) {
+            return "Unknown Client";
+        }
+    }
 
     @Override
     public TransactionResponseDTO createTransaction(TransactionRequestDTO dto) {
@@ -95,7 +110,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         Transaction saved = repo.save(tx);
 
-        return EntityDtoUtil.toResponse(saved);
+        return EntityDtoUtil.toResponse(saved, lookupClientName(saved.getClientId()));
     }
 
     @Override
@@ -162,7 +177,7 @@ public class TransactionServiceImpl implements TransactionService {
         List<Transaction> transactions = repo.findAllByBrokerId(brokerId);
 
         return transactions.stream()
-                .map(EntityDtoUtil::toResponse)
+                .map(tx -> EntityDtoUtil.toResponse(tx, lookupClientName(tx.getClientId())))
                 .toList();
     }
 
@@ -176,6 +191,6 @@ public class TransactionServiceImpl implements TransactionService {
             throw new NotFoundException("You do not have access to this transaction");
         }
 
-        return EntityDtoUtil.toResponse(tx);
+        return EntityDtoUtil.toResponse(tx, lookupClientName(tx.getClientId()));
     }
 }

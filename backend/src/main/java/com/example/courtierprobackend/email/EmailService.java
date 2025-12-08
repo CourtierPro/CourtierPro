@@ -158,6 +158,33 @@ public class EmailService {
         sendEmail(brokerEmail, subject, body);
     }
 
+    public void sendDocumentRequestedNotification(String clientEmail, String clientName, String brokerName, String documentName) {
+        String subject = "Document Requested: " + documentName;
+        String htmlBody = String.format("""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                </head>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <h2 style="color: #2c3e50;">Document Request</h2>
+                        <p>Hello %s,</p>
+                        <p>Your broker <strong>%s</strong> has requested the following document:</p>
+                        <p style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; font-size: 16px;">
+                            <strong>%s</strong>
+                        </p>
+                        <p>Please log in to CourtierPro to upload this document.</p>
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                        <p style="color: #999; font-size: 12px;">Thanks,<br>CourtierPro Team</p>
+                    </div>
+                </body>
+                </html>
+                """, clientName, brokerName, documentName);
+        
+        sendEmail(clientEmail, subject, htmlBody);
+    }
+
     public void sendDocumentStatusUpdatedNotification(DocumentRequest request, String clientEmail) {
         String subject = "Document Status Updated: " + request.getCustomTitle();
         String body = "Your document status is now: " + request.getStatus();

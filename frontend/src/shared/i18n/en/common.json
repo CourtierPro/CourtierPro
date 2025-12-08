@@ -41,6 +41,7 @@
     "documentChecklist": "Document Checklist",
     "scheduleAppointment": "Schedule Appointment",
     "createTransaction": "Create Transaction",
-    "inviteClient": "Invite Client"
+    "inviteClient": "Invite Client",
+    "comingSoon": "This feature is coming soon."
   }
 }
