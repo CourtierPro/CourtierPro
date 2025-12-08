@@ -41,14 +41,16 @@ export function getPreferredLanguage(
  */
 export function getTestRole(): AppRole {
     const testRole = import.meta.env.VITE_TEST_ROLE as string | undefined;
+    const validRoles: AppRole[] = ["broker", "client", "admin"];
     
-    if (testRole === "client") return "client";
-    if (testRole === "admin") return "admin";
-    if (testRole === "broker") return "broker";
+    // Check if the provided role is valid
+    if (testRole && validRoles.includes(testRole as AppRole)) {
+        return testRole as AppRole;
+    }
     
     // Warn if an invalid value was provided
-    if (testRole && testRole !== "broker" && testRole !== "client" && testRole !== "admin") {
-        console.warn(`Invalid VITE_TEST_ROLE value: "${testRole}". Defaulting to "broker". Valid values are: "broker", "client", "admin".`);
+    if (testRole && !validRoles.includes(testRole as AppRole)) {
+        console.warn(`Invalid VITE_TEST_ROLE value: "${testRole}". Defaulting to "broker". Valid values are: ${validRoles.map(r => `"${r}"`).join(", ")}.`);
     }
     
     // Default to "broker" for backward compatibility
