@@ -15,6 +15,8 @@ import {
 
 import { registerAccessTokenProvider } from "@/shared/api/axiosInstance";
 import { useLanguage } from "@/app/providers/LanguageContext";
+import { useSessionTimeout } from "@/features/auth/hooks/useSessionTimeout";
+import { useLogout } from "@/features/auth/hooks/useLogout";
 
 type AppShellProps = {
   children: ReactNode;
@@ -30,7 +32,17 @@ export function AppShell({ children }: AppShellProps) {
   // language context
   const { language, setLanguage } = useLanguage();
 
-  const { user, logout, getAccessTokenSilently, isAuthenticated } = useAuth0();
+  const { user, getAccessTokenSilently, isAuthenticated } = useAuth0();
+
+  // Centralized logout with event logging
+  const logout = useLogout();
+
+  // Session timeout - auto logout after 30 minutes of inactivity
+  useSessionTimeout({
+    timeout: 30 * 60 * 1000, // 30 minutes
+    onTimeout: () => logout({ reason: 'session_timeout' }),
+    enabled: isAuthenticated,
+  });
 
   // role
   const userRole: AppRole = (authDisabled ? ("broker" as AppRole) : (getRoleFromUser(user) ?? "broker"));
@@ -40,7 +52,7 @@ export function AppShell({ children }: AppShellProps) {
 
   // ensure LanguageContext syncs with user preferred language
   useEffect(() => {
-    if (authDisabled) return;
+    const authDisabled = import.meta.env.VITE_AUTH_DISABLED === "true"; // Unify authDisabled behavior
 
     if (initialLang && initialLang !== language) {
       setLanguage(initialLang);
@@ -72,10 +84,14 @@ export function AppShell({ children }: AppShellProps) {
     navigate(route);
   };
 
+<<<<<<< HEAD
   const handleLogout = () => {
     if (authDisabled) return;
     logout({ logoutParams: { returnTo: window.location.origin } });
   };
+=======
+  const handleLogout = () => logout({ reason: 'manual' });
+>>>>>>> main
 
   const handleLanguageChange = (lang: "en" | "fr") => {
     setLanguage(lang);
@@ -102,9 +118,9 @@ export function AppShell({ children }: AppShellProps) {
           onLanguageChange={handleLanguageChange}
           userRole={userRole}
           onLogout={handleLogout}
-          onNavigate={handleNavigate}
-        />
-
+    const handleLogout = () => {
+      if (authDisabled) return; // Unify logout signature
+      logout({ reason: 'manual' });
         <main className="flex-1 bg-muted/40 p-4 overflow-auto">
           <ErrorBoundary key={location.pathname}>
             {children}

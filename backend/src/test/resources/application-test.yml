@@ -25,6 +25,31 @@ spring:
           audiences:
             - https://test-api.courtierpro.dev
 
+  flyway:
+    enabled: false
+
+  mail:
+    host: localhost
+    port: 1025
+    username: test
+    password: test
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+# Actuator configuration
+management:
+  health:
+    mail:
+      enabled: false  # Disable mail health check in tests
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info,metrics
+
 auth0:
   domain: test-domain.us.auth0.com
   audience: https://test-api.courtierpro.dev
@@ -32,3 +57,17 @@ auth0:
     client-id: test-client-id
     client-secret: test-client-secret
     audience: https://test-domain.us.auth0.com/api/v2/
+
+gmail:
+  username: test@example.com
+  password: test-password
+
+# Frontend URL for password setup
+app:
+  frontend:
+    password-setup-url: http://localhost:3000/password-setup
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: WARN
