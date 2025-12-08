@@ -1,7 +1,7 @@
-package com.example.courtierprobackend.audit.businesslayer;
+package com.example.courtierprobackend.audit.logoutaudit.businesslayer;
 
-import com.example.courtierprobackend.audit.dataaccesslayer.LogoutAuditEvent;
-import com.example.courtierprobackend.audit.dataaccesslayer.LogoutAuditEventRepository;
+import com.example.courtierprobackend.audit.logoutaudit.dataaccesslayer.LogoutAuditEvent;
+import com.example.courtierprobackend.audit.logoutaudit.dataaccesslayer.LogoutAuditEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
