@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test('broker creates a new transaction', async ({ page }) => {
   // Visit dashboard directly (Auth0 bypassed)
@@ -28,11 +28,9 @@ test('broker creates a new transaction', async ({ page }) => {
   // Create transaction
   await page.getByRole('button', { name: 'Create Transaction' }).click();
 
-// Back to Transactions page
-await page.getByRole('button', { name: /^Transactions$/ }).click();
+  // Back to Transactions page
+  await page.getByRole('button', { name: /^Transactions$/ }).click();
 
-// Wait for the row to appear
-await page.waitForSelector('text=33 riverside saint-lambert', { timeout: 15000 });
-
-
+  // Verify transaction appears in the list
+  await expect(page.getByText('33 riverside saint-lambert')).toBeVisible();
 });
