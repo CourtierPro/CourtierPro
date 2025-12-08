@@ -1,8 +1,7 @@
-package com.example.courtierprobackend.audit.presentationlayer;
+package com.example.courtierprobackend.audit.passwordresetaudit.presentationlayer;
 
-import com.example.courtierprobackend.audit.businesslayer.PasswordResetAuditService;
-import com.example.courtierprobackend.audit.dataaccesslayer.PasswordResetEvent;
-import com.example.courtierprobackend.audit.presentationlayer.controller.AdminPasswordResetAuditController;
+import com.example.courtierprobackend.audit.passwordresetaudit.businesslayer.PasswordResetAuditService;
+import com.example.courtierprobackend.audit.passwordresetaudit.dataaccesslayer.PasswordResetEvent;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;

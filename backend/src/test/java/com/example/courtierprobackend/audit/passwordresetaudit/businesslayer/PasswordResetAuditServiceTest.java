@@ -1,7 +1,7 @@
-package com.example.courtierprobackend.audit.businesslayer;
+package com.example.courtierprobackend.audit.passwordresetaudit.businesslayer;
 
-import com.example.courtierprobackend.audit.dataaccesslayer.PasswordResetEvent;
-import com.example.courtierprobackend.audit.dataaccesslayer.PasswordResetEventRepository;
+import com.example.courtierprobackend.audit.passwordresetaudit.dataaccesslayer.PasswordResetEvent;
+import com.example.courtierprobackend.audit.passwordresetaudit.dataaccesslayer.PasswordResetEventRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

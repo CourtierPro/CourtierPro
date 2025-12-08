@@ -1,6 +1,6 @@
-package com.example.courtierprobackend.audit.presentationlayer.controller;
+package com.example.courtierprobackend.audit.passwordresetaudit.presentationlayer;
 
-import com.example.courtierprobackend.audit.businesslayer.PasswordResetAuditService;
+import com.example.courtierprobackend.audit.passwordresetaudit.businesslayer.PasswordResetAuditService;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
