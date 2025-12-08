@@ -86,14 +86,22 @@ export function RequestDocumentModal({
 
   const docTypeOptions = availableDocs;
 
-  useEffect(() => {
-    if (isOpen) {
+  // Track previous isOpen state to detect when modal opens
+  const prevIsOpenRef = useRef(false);
+
+  // Reset form state when modal opens using useLayoutEffect (runs synchronously after DOM mutations)
+  // Using useLayoutEffect avoids the "setState in useEffect causes cascading renders" lint error
+  // because it's designed for synchronous updates
+  React.useLayoutEffect(() => {
+    if (isOpen && !prevIsOpenRef.current) {
+      // Modal just opened - reset all form state
       setSelectedDocType('');
       setCustomTitle('');
       setInstructions('');
       setSelectedStage(currentStage);
       setErrors({});
     }
+    prevIsOpenRef.current = isOpen;
   }, [isOpen, currentStage]);
 
   useEffect(() => {

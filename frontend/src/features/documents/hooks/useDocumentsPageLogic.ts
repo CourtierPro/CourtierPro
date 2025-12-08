@@ -11,7 +11,7 @@ export function useDocumentsPageLogic(transactionId: string) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { handleError } = useErrorHandler();
 
-    const handleRequestDocument = async (docType: DocumentTypeEnum, customTitle: string, instructions: string, _stage: string) => {
+    const handleRequestDocument = async (docType: DocumentTypeEnum, customTitle: string, instructions: string) => {
         try {
             await requestDocument.mutateAsync({
                 transactionId,

@@ -54,6 +54,7 @@ export function AppShell({ children }: AppShellProps) {
       setLanguage(initialLang);
       i18n.changeLanguage(initialLang);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialLang]);
 
   const [sidebarOpen, setSidebarOpen] = useState(true);

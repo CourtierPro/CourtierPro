@@ -79,7 +79,7 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
       .catch(() => {
         toast.error(t("inviteUser_settingsLoadError"));
       });
-  }, []);
+  }, [t]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,

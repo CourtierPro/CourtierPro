@@ -62,11 +62,7 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (transactionSide) {
-      setInitialStage('');
-    }
-  }, [transactionSide]);
+
 
   const filteredClients = clients.filter(
     (client) =>
@@ -231,6 +227,7 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                 value={transactionSide}
                 onValueChange={(val) => {
                   setTransactionSide(val as 'buy' | 'sell');
+                  setInitialStage(''); // Reset stage when side changes
                   handleBlur('transactionSide');
                 }}
                 className="grid grid-cols-1 md:grid-cols-2 gap-4"
@@ -243,7 +240,10 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                 >
                   <div className="flex items-start gap-3">
                     <RadioGroupItem value="buy" id="buy" className="mt-1" />
-                    <div className="flex-1 cursor-pointer" onClick={() => setTransactionSide('buy')}>
+                    <div className="flex-1 cursor-pointer" onClick={() => {
+                      setTransactionSide('buy');
+                      setInitialStage('');
+                    }}>
                       <p className="text-foreground mb-1 font-medium">
                         {t('buySide')}
                       </p>
@@ -265,7 +265,10 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                 >
                   <div className="flex items-start gap-3">
                     <RadioGroupItem value="sell" id="sell" className="mt-1" />
-                    <div className="flex-1 cursor-pointer" onClick={() => setTransactionSide('sell')}>
+                    <div className="flex-1 cursor-pointer" onClick={() => {
+                      setTransactionSide('sell');
+                      setInitialStage('');
+                    }}>
                       <p className="text-foreground mb-1 font-medium">
                         {t('sellSide')}
                       </p>
