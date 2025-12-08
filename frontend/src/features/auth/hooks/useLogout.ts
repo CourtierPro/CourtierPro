@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import axiosInstance from '@/shared/api/axiosInstance';
+import { logLogoutEvent } from '../api/logoutApi';
 
 export interface LogoutOptions {
   /**
@@ -41,7 +41,7 @@ export function useLogout() {
 
       try {
         // 1. Log the logout event to backend
-        await axiosInstance.post('/auth/logout', {
+        await logLogoutEvent({
           reason,
           timestamp: new Date().toISOString(),
         }).catch((error) => {

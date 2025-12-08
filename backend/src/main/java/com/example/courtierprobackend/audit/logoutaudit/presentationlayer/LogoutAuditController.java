@@ -73,9 +73,16 @@ public class LogoutAuditController {
 
     @GetMapping("/logout-audit/reason/{reason}")
     @PreAuthorize("hasRole('ADMIN')")
-    public List<LogoutAuditEvent> getLogoutEventsByReason(@PathVariable String reason) {
-        LogoutAuditEvent.LogoutReason logoutReason = LogoutAuditEvent.LogoutReason.valueOf(reason.toUpperCase());
-        return logoutAuditService.getLogoutEventsByReason(logoutReason);
+    public ResponseEntity<List<LogoutAuditEvent>> getLogoutEventsByReason(@PathVariable String reason) {
+        try {
+            LogoutAuditEvent.LogoutReason logoutReason = LogoutAuditEvent.LogoutReason.valueOf(reason.toUpperCase());
+            return ResponseEntity.ok(logoutAuditService.getLogoutEventsByReason(logoutReason));
+        } catch (IllegalArgumentException e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST,
+                "Invalid logout reason: " + reason + ". Valid values are: MANUAL, SESSION_TIMEOUT, FORCED"
+            );
+        }
     }
 
     private LogoutAuditEvent.LogoutReason parseLogoutReason(String reason) {

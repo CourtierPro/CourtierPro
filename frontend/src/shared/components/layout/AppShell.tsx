@@ -37,7 +37,7 @@ export function AppShell({ children }: AppShellProps) {
 
   // Session timeout - auto logout after 30 minutes of inactivity
   useSessionTimeout({
-    timeout: 1 * 60 * 1000, // 30 minutes
+    timeout: 30 * 60 * 1000, // 30 minutes
     onTimeout: () => logout({ reason: 'session_timeout' }),
     enabled: isAuthenticated,
   });
