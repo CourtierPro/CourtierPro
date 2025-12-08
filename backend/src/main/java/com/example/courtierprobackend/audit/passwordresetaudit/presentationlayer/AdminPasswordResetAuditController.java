@@ -1,8 +1,7 @@
-package com.example.courtierprobackend.audit.presentationlayer.controller;
+package com.example.courtierprobackend.audit.passwordresetaudit.presentationlayer;
 
-import com.example.courtierprobackend.audit.businesslayer.PasswordResetAuditService;
-import com.example.courtierprobackend.audit.dataaccesslayer.PasswordResetEvent;
-import com.example.courtierprobackend.audit.presentationlayer.response.PasswordResetEventResponse;
+import com.example.courtierprobackend.audit.passwordresetaudit.businesslayer.PasswordResetAuditService;
+import com.example.courtierprobackend.audit.passwordresetaudit.dataaccesslayer.PasswordResetEvent;
 import lombok.AllArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;

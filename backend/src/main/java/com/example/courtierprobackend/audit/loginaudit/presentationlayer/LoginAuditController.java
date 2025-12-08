@@ -1,7 +1,7 @@
-package com.example.courtierprobackend.audit.presentationlayer;
+package com.example.courtierprobackend.audit.loginaudit.presentationlayer;
 
-import com.example.courtierprobackend.audit.businesslayer.LoginAuditService;
-import com.example.courtierprobackend.audit.dataaccesslayer.LoginAuditEvent;
+import com.example.courtierprobackend.audit.loginaudit.businesslayer.LoginAuditService;
+import com.example.courtierprobackend.audit.loginaudit.dataaccesslayer.LoginAuditEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;

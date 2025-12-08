@@ -1,7 +1,6 @@
-package com.example.courtierprobackend.audit.presentationlayer;
+package com.example.courtierprobackend.audit.passwordresetaudit.presentationlayer;
 
-import com.example.courtierprobackend.audit.businesslayer.PasswordResetAuditService;
-import com.example.courtierprobackend.audit.presentationlayer.controller.Auth0WebhookController;
+import com.example.courtierprobackend.audit.passwordresetaudit.businesslayer.PasswordResetAuditService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

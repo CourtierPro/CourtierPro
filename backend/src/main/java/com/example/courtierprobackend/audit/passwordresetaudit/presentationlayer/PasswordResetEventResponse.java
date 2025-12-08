@@ -1,6 +1,6 @@
-package com.example.courtierprobackend.audit.presentationlayer.response;
+package com.example.courtierprobackend.audit.passwordresetaudit.presentationlayer;
 
-import com.example.courtierprobackend.audit.dataaccesslayer.PasswordResetEvent;
+import com.example.courtierprobackend.audit.passwordresetaudit.dataaccesslayer.PasswordResetEvent;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
