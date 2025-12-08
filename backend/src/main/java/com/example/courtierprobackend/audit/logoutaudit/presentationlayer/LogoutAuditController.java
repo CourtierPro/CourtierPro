@@ -3,14 +3,19 @@ package com.example.courtierprobackend.audit.logoutaudit.presentationlayer;
 import com.example.courtierprobackend.audit.logoutaudit.businesslayer.LogoutAuditService;
 import com.example.courtierprobackend.audit.logoutaudit.dataaccesslayer.LogoutAuditEvent;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +28,7 @@ public class LogoutAuditController {
 
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> recordLogout(
-            @RequestBody LogoutRequestDto request,
+            @Valid @RequestBody LogoutRequestDto request,
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest httpRequest
     ) {
@@ -48,10 +53,18 @@ public class LogoutAuditController {
         // Parse the reason
         LogoutAuditEvent.LogoutReason reason = parseLogoutReason(request.reason());
 
-        // Parse timestamp
-        Instant timestamp = request.timestamp() != null
-                ? Instant.parse(request.timestamp())
-                : Instant.now();
+        // Parse timestamp with error handling
+        Instant timestamp;
+        try {
+            timestamp = request.timestamp() != null
+                    ? Instant.parse(request.timestamp())
+                    : Instant.now();
+        } catch (DateTimeParseException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid timestamp format. Expected ISO-8601 format (e.g., 2025-12-07T12:00:00.000Z)"
+            );
+        }
 
         // Record the logout event
         logoutAuditService.recordLogoutEvent(userId, email, reason, timestamp, ipAddress, userAgent);
@@ -59,19 +72,19 @@ public class LogoutAuditController {
         return ResponseEntity.ok(Map.of("message", "Logout event recorded successfully"));
     }
 
-    @GetMapping("/logout-audit")
+    @GetMapping("/api/admin/logout-audit")
     @PreAuthorize("hasRole('ADMIN')")
     public List<LogoutAuditEvent> getAllLogoutEvents() {
         return logoutAuditService.getAllLogoutEvents();
     }
 
-    @GetMapping("/logout-audit/user/{userId}")
+    @GetMapping("/api/admin/logout-audit/user/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
     public List<LogoutAuditEvent> getLogoutEventsByUser(@PathVariable String userId) {
         return logoutAuditService.getLogoutEventsByUser(userId);
     }
 
-    @GetMapping("/logout-audit/reason/{reason}")
+    @GetMapping("/api/admin/logout-audit/reason/{reason}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<LogoutAuditEvent>> getLogoutEventsByReason(@PathVariable String reason) {
         try {
@@ -124,5 +137,11 @@ public class LogoutAuditController {
     }
 
     // DTO for request body
-    public record LogoutRequestDto(String reason, String timestamp) {}
+    public record LogoutRequestDto(
+            @Pattern(regexp = "manual|session_timeout|forced", message = "Reason must be one of: manual, session_timeout, forced")
+            String reason,
+
+            @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$", message = "Timestamp must be in ISO-8601 format")
+            String timestamp
+    ) {}
 }

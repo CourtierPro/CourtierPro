@@ -257,7 +257,7 @@ class LogoutAuditControllerTest {
         when(logoutAuditService.getAllLogoutEvents())
                 .thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/auth/logout-audit"))
+        mockMvc.perform(get("/api/admin/logout-audit"))
                 .andExpect(status().isOk());
 
         verify(logoutAuditService).getAllLogoutEvents();
@@ -269,7 +269,7 @@ class LogoutAuditControllerTest {
         when(logoutAuditService.getLogoutEventsByUser("auth0|123"))
                 .thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/auth/logout-audit/user/auth0|123"))
+        mockMvc.perform(get("/api/admin/logout-audit/user/auth0|123"))
                 .andExpect(status().isOk());
 
         verify(logoutAuditService).getLogoutEventsByUser("auth0|123");
@@ -281,7 +281,7 @@ class LogoutAuditControllerTest {
         when(logoutAuditService.getLogoutEventsByReason(LogoutAuditEvent.LogoutReason.SESSION_TIMEOUT))
                 .thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/auth/logout-audit/reason/SESSION_TIMEOUT"))
+        mockMvc.perform(get("/api/admin/logout-audit/reason/SESSION_TIMEOUT"))
                 .andExpect(status().isOk());
 
         verify(logoutAuditService).getLogoutEventsByReason(LogoutAuditEvent.LogoutReason.SESSION_TIMEOUT);
@@ -289,7 +289,7 @@ class LogoutAuditControllerTest {
 
     @Test
     void getAllLogoutEvents_unauthenticated_returnsUnauthorized() throws Exception {
-        mockMvc.perform(get("/auth/logout-audit"))
+        mockMvc.perform(get("/api/admin/logout-audit"))
                 .andExpect(status().isUnauthorized());
 
         verifyNoInteractions(logoutAuditService);
@@ -299,7 +299,7 @@ class LogoutAuditControllerTest {
     @Test
     @WithMockUser(roles = "BROKER")
     void getAllLogoutEvents_nonAdmin_isForbidden() throws Exception {
-        mockMvc.perform(get("/auth/logout-audit"))
+        mockMvc.perform(get("/api/admin/logout-audit"))
                 .andExpect(status().isForbidden());
 
         verifyNoInteractions(logoutAuditService);
