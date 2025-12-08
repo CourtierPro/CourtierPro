@@ -1,7 +1,7 @@
-package com.example.courtierprobackend.audit.presentationlayer;
+package com.example.courtierprobackend.audit.logoutaudit.presentationlayer;
 
-import com.example.courtierprobackend.audit.businesslayer.LogoutAuditService;
-import com.example.courtierprobackend.audit.dataaccesslayer.LogoutAuditEvent;
+import com.example.courtierprobackend.audit.logoutaudit.businesslayer.LogoutAuditService;
+import com.example.courtierprobackend.audit.logoutaudit.dataaccesslayer.LogoutAuditEvent;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

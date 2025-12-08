@@ -1,4 +1,4 @@
-package com.example.courtierprobackend.audit.dataaccesslayer;
+package com.example.courtierprobackend.audit.logoutaudit.dataaccesslayer;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
