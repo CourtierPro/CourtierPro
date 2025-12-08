@@ -51,7 +51,18 @@ class DocumentRequestControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(new org.springframework.web.method.support.HandlerMethodArgumentResolver() {
+                    @Override
+                    public boolean supportsParameter(org.springframework.core.MethodParameter parameter) {
+                        return parameter.getParameterType().equals(Jwt.class);
+                    }
+                    @Override
+                    public Object resolveArgument(org.springframework.core.MethodParameter parameter, org.springframework.web.method.support.ModelAndViewContainer mavContainer, org.springframework.web.context.request.NativeWebRequest webRequest, org.springframework.web.bind.support.WebDataBinderFactory binderFactory) {
+                        return null; 
+                    }
+                })
+                .build();
         objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules();
 
@@ -194,7 +205,7 @@ class DocumentRequestControllerTest {
                 eq("TX-123"),
                 eq("REQ-001"),
                 any(),
-                eq("anonymous"),
+                eq("BROKER-1"),
                 eq(UploadedByRefEnum.CLIENT)
         )).thenReturn(submittedResponse);
 
@@ -206,7 +217,8 @@ class DocumentRequestControllerTest {
         );
 
         mockMvc.perform(multipart("/transactions/TX-123/documents/REQ-001/submit")
-                        .file(file))
+                        .file(file)
+                        .header("x-broker-id", "BROKER-1")) // Add auth header
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUBMITTED"));
 
@@ -214,7 +226,7 @@ class DocumentRequestControllerTest {
                 eq("TX-123"),
                 eq("REQ-001"),
                 any(),
-                eq("anonymous"),
+                eq("BROKER-1"), // Expect BROKER-1 from header
                 eq(UploadedByRefEnum.CLIENT)
         );
     }

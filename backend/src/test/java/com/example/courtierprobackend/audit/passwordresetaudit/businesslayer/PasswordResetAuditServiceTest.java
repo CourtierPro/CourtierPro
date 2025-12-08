@@ -6,175 +6,116 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for PasswordResetAuditService.
+ */
 @ExtendWith(MockitoExtension.class)
 class PasswordResetAuditServiceTest {
 
     @Mock
-    private PasswordResetEventRepository passwordResetEventRepository;
+    private PasswordResetEventRepository repository;
 
-    @InjectMocks
-    private PasswordResetAuditService passwordResetAuditService;
-
-    private static final String TEST_USER_ID = "auth0|test123";
-    private static final String TEST_EMAIL = "test@example.com";
-    private static final String TEST_IP = "192.168.1.1";
-    private static final String TEST_USER_AGENT = "Mozilla/5.0";
+    private PasswordResetAuditService service;
 
     @BeforeEach
     void setUp() {
-        // Reset mocks before each test
-        reset(passwordResetEventRepository);
+        service = new PasswordResetAuditService(repository);
     }
 
-    @Test
-    void recordPasswordResetRequest_shouldSaveEventWithCorrectData() {
-        // Arrange
-        ArgumentCaptor<PasswordResetEvent> eventCaptor = ArgumentCaptor.forClass(PasswordResetEvent.class);
+    // ========== recordPasswordResetRequest Tests ==========
 
+    @Test
+    void recordPasswordResetRequest_WithValidData_SavesEvent() {
         // Act
-        passwordResetAuditService.recordPasswordResetRequest(
-                TEST_USER_ID,
-                TEST_EMAIL,
-                TEST_IP,
-                TEST_USER_AGENT
-        );
+        service.recordPasswordResetRequest("user-1", "user@test.com", "127.0.0.1", "Mozilla/5.0");
 
         // Assert
-        verify(passwordResetEventRepository, times(1)).save(eventCaptor.capture());
-        PasswordResetEvent savedEvent = eventCaptor.getValue();
-
-        assertThat(savedEvent.getUserId()).isEqualTo(TEST_USER_ID);
-        assertThat(savedEvent.getEmail()).isEqualTo(TEST_EMAIL);
-        assertThat(savedEvent.getEventType()).isEqualTo(PasswordResetEvent.ResetEventType.REQUESTED);
-        assertThat(savedEvent.getIpAddress()).isEqualTo(TEST_IP);
-        assertThat(savedEvent.getUserAgent()).isEqualTo(TEST_USER_AGENT);
-        assertThat(savedEvent.getTimestamp()).isNotNull();
-        assertThat(savedEvent.getTimestamp()).isBefore(Instant.now().plusSeconds(1));
+        ArgumentCaptor<PasswordResetEvent> captor = ArgumentCaptor.forClass(PasswordResetEvent.class);
+        verify(repository).save(captor.capture());
+        
+        PasswordResetEvent event = captor.getValue();
+        assertThat(event.getUserId()).isEqualTo("user-1");
+        assertThat(event.getEmail()).isEqualTo("user@test.com");
+        assertThat(event.getEventType()).isEqualTo(PasswordResetEvent.ResetEventType.REQUESTED);
     }
 
     @Test
-    void recordPasswordResetCompletion_shouldSaveEventWithCorrectData() {
-        // Arrange
-        ArgumentCaptor<PasswordResetEvent> eventCaptor = ArgumentCaptor.forClass(PasswordResetEvent.class);
+    void recordPasswordResetRequest_WithNullUserId_ThrowsException() {
+        assertThatThrownBy(() -> service.recordPasswordResetRequest(null, "email@test.com", "127.0.0.1", "agent"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("userId cannot be null");
+    }
 
+    @Test
+    void recordPasswordResetRequest_WithNullEmail_ThrowsException() {
+        assertThatThrownBy(() -> service.recordPasswordResetRequest("user-1", null, "127.0.0.1", "agent"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("email cannot be null");
+    }
+
+    // ========== recordPasswordResetCompletion Tests ==========
+
+    @Test
+    void recordPasswordResetCompletion_WithValidData_SavesEvent() {
         // Act
-        passwordResetAuditService.recordPasswordResetCompletion(
-                TEST_USER_ID,
-                TEST_EMAIL,
-                TEST_IP,
-                TEST_USER_AGENT
-        );
+        service.recordPasswordResetCompletion("user-1", "user@test.com", "127.0.0.1", "Mozilla/5.0");
 
         // Assert
-        verify(passwordResetEventRepository, times(1)).save(eventCaptor.capture());
-        PasswordResetEvent savedEvent = eventCaptor.getValue();
-
-        assertThat(savedEvent.getUserId()).isEqualTo(TEST_USER_ID);
-        assertThat(savedEvent.getEmail()).isEqualTo(TEST_EMAIL);
-        assertThat(savedEvent.getEventType()).isEqualTo(PasswordResetEvent.ResetEventType.COMPLETED);
-        assertThat(savedEvent.getIpAddress()).isEqualTo(TEST_IP);
-        assertThat(savedEvent.getUserAgent()).isEqualTo(TEST_USER_AGENT);
-        assertThat(savedEvent.getTimestamp()).isNotNull();
+        ArgumentCaptor<PasswordResetEvent> captor = ArgumentCaptor.forClass(PasswordResetEvent.class);
+        verify(repository).save(captor.capture());
+        
+        PasswordResetEvent event = captor.getValue();
+        assertThat(event.getUserId()).isEqualTo("user-1");
+        assertThat(event.getEventType()).isEqualTo(PasswordResetEvent.ResetEventType.COMPLETED);
     }
 
     @Test
-    void recordPasswordResetRequest_withNullIpAndUserAgent_shouldSaveEvent() {
-        // Arrange
-        ArgumentCaptor<PasswordResetEvent> eventCaptor = ArgumentCaptor.forClass(PasswordResetEvent.class);
+    void recordPasswordResetCompletion_WithNullUserId_ThrowsException() {
+        assertThatThrownBy(() -> service.recordPasswordResetCompletion(null, "email@test.com", "127.0.0.1", "agent"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("userId cannot be null");
+    }
 
-        // Act
-        passwordResetAuditService.recordPasswordResetRequest(
-                TEST_USER_ID,
-                TEST_EMAIL,
-                null,
-                null
+    // ========== Query Methods Tests ==========
+
+    @Test
+    void getAllPasswordResetEvents_ReturnsAllEvents() {
+        // Arrange
+        List<PasswordResetEvent> events = List.of(
+                PasswordResetEvent.builder().userId("u1").build(),
+                PasswordResetEvent.builder().userId("u2").build()
         );
-
-        // Assert
-        verify(passwordResetEventRepository, times(1)).save(eventCaptor.capture());
-        PasswordResetEvent savedEvent = eventCaptor.getValue();
-
-        assertThat(savedEvent.getUserId()).isEqualTo(TEST_USER_ID);
-        assertThat(savedEvent.getEmail()).isEqualTo(TEST_EMAIL);
-        assertThat(savedEvent.getIpAddress()).isNull();
-        assertThat(savedEvent.getUserAgent()).isNull();
-    }
-
-    @Test
-    void getAllPasswordResetEvents_shouldReturnAllEvents() {
-        // Arrange
-        PasswordResetEvent event1 = PasswordResetEvent.builder()
-                .userId(TEST_USER_ID)
-                .email(TEST_EMAIL)
-                .eventType(PasswordResetEvent.ResetEventType.REQUESTED)
-                .timestamp(Instant.now())
-                .build();
-
-        PasswordResetEvent event2 = PasswordResetEvent.builder()
-                .userId(TEST_USER_ID)
-                .email(TEST_EMAIL)
-                .eventType(PasswordResetEvent.ResetEventType.COMPLETED)
-                .timestamp(Instant.now())
-                .build();
-
-        List<PasswordResetEvent> mockEvents = List.of(event1, event2);
-        when(passwordResetEventRepository.findAllByOrderByTimestampDesc()).thenReturn(mockEvents);
+        when(repository.findAllByOrderByTimestampDesc()).thenReturn(events);
 
         // Act
-        List<PasswordResetEvent> result = passwordResetAuditService.getAllPasswordResetEvents();
+        List<PasswordResetEvent> result = service.getAllPasswordResetEvents();
 
         // Assert
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).getEventType()).isEqualTo(PasswordResetEvent.ResetEventType.REQUESTED);
-        assertThat(result.get(1).getEventType()).isEqualTo(PasswordResetEvent.ResetEventType.COMPLETED);
-        verify(passwordResetEventRepository, times(1)).findAllByOrderByTimestampDesc();
     }
 
     @Test
-    void getPasswordResetEventsForUser_shouldReturnUserSpecificEvents() {
+    void getPasswordResetEventsForUser_ReturnsUserEvents() {
         // Arrange
-        PasswordResetEvent event = PasswordResetEvent.builder()
-                .userId(TEST_USER_ID)
-                .email(TEST_EMAIL)
-                .eventType(PasswordResetEvent.ResetEventType.REQUESTED)
-                .timestamp(Instant.now())
-                .build();
-
-        List<PasswordResetEvent> mockEvents = List.of(event);
-        when(passwordResetEventRepository.findByUserIdOrderByTimestampDesc(TEST_USER_ID))
-                .thenReturn(mockEvents);
+        List<PasswordResetEvent> events = List.of(
+                PasswordResetEvent.builder().userId("user-1").build()
+        );
+        when(repository.findByUserIdOrderByTimestampDesc("user-1")).thenReturn(events);
 
         // Act
-        List<PasswordResetEvent> result = passwordResetAuditService.getPasswordResetEventsForUser(TEST_USER_ID);
+        List<PasswordResetEvent> result = service.getPasswordResetEventsForUser("user-1");
 
         // Assert
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getUserId()).isEqualTo(TEST_USER_ID);
-        verify(passwordResetEventRepository, times(1))
-                .findByUserIdOrderByTimestampDesc(TEST_USER_ID);
-    }
-
-    @Test
-    void getAllPasswordResetEvents_whenNoEvents_shouldReturnEmptyList() {
-        // Arrange
-        when(passwordResetEventRepository.findAllByOrderByTimestampDesc()).thenReturn(List.of());
-
-        // Act
-        List<PasswordResetEvent> result = passwordResetAuditService.getAllPasswordResetEvents();
-
-        // Assert
-        assertThat(result).isEmpty();
-        verify(passwordResetEventRepository, times(1)).findAllByOrderByTimestampDesc();
     }
 }

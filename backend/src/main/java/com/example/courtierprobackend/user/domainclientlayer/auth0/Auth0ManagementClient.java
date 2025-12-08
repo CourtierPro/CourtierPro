@@ -253,7 +253,7 @@ public class Auth0ManagementClient {
         return response.getBody().ticket();
     }
 
-    private record PasswordChangeTicketResponse(String ticket) {}
+    record PasswordChangeTicketResponse(String ticket) {}
 
     // ==================== USER SYNC METHODS ====================
 

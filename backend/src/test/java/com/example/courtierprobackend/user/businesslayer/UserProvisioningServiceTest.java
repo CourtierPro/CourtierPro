@@ -1,9 +1,9 @@
-import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
-import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
+package com.example.courtierprobackend.user.businesslayer;
 
 import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
-import com.example.courtierprobackend.datamapperlayer.UserMapper;
+
+import com.example.courtierprobackend.user.mapper.UserMapper;
 import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
@@ -46,7 +46,7 @@ class UserProvisioningServiceTest {
     private UserMapper userMapper;
 
     @Mock
-    private OrganizationSettingsService organizationSettingsService;
+    private UserAccountRepository userAccountRepository;
 
     @Mock
     private EmailService emailService;
@@ -61,7 +61,7 @@ class UserProvisioningServiceTest {
         UserAccount user2 = new UserAccount("auth0|456", "user2@test.com", "Jane", "Smith", UserRole.ADMIN, "fr");
 
         UserResponse response1 = UserResponse.builder()
-                .id(user1.getId())
+                .id(user1.getId().toString())
                 .email("user1@test.com")
                 .firstName("John")
                 .lastName("Doe")
@@ -71,7 +71,7 @@ class UserProvisioningServiceTest {
                 .build();
 
         UserResponse response2 = UserResponse.builder()
-                .id(user2.getId())
+                .id(user2.getId().toString())
                 .email("user2@test.com")
                 .firstName("Jane")
                 .lastName("Smith")
@@ -116,7 +116,7 @@ class UserProvisioningServiceTest {
         UserAccount savedUser = new UserAccount("auth0|789", "newuser@test.com", "New", "User", UserRole.BROKER, "en");
 
         UserResponse userResponse = UserResponse.builder()
-                .id(savedUser.getId())
+                .id(savedUser.getId().toString())
                 .email("newuser@test.com")
                 .firstName("New")
                 .lastName("User")
@@ -127,7 +127,8 @@ class UserProvisioningServiceTest {
 
         when(organizationSettingsService.getSettings()).thenReturn(orgSettings);
         when(auth0ManagementClient.createUser(anyString(), anyString(), anyString(), any(UserRole.class), anyString()))
-                .thenReturn("auth0|789|https://setup-password-url.com");
+                .thenReturn("auth0|789");
+        when(auth0ManagementClient.createPasswordChangeTicket(anyString())).thenReturn("https://setup-password-url.com");
         when(emailService.sendPasswordSetupEmail(anyString(), anyString(), anyString())).thenReturn(true);
         when(userMapper.toNewUserEntity(any(CreateUserRequest.class), anyString())).thenReturn(savedUser);
         when(userAccountRepository.save(any(UserAccount.class))).thenReturn(savedUser);
@@ -163,14 +164,15 @@ class UserProvisioningServiceTest {
         UserAccount savedUser = new UserAccount("auth0|999", "newuser@test.com", "New", "User", UserRole.ADMIN, "fr");
 
         UserResponse userResponse = UserResponse.builder()
-                .id(savedUser.getId())
+                .id(savedUser.getId().toString())
                 .email("newuser@test.com")
                 .preferredLanguage("fr")
                 .build();
 
         when(organizationSettingsService.getSettings()).thenReturn(orgSettings);
         when(auth0ManagementClient.createUser(anyString(), anyString(), anyString(), any(UserRole.class), eq("fr")))
-                .thenReturn("auth0|999|https://setup-url.com");
+                .thenReturn("auth0|999");
+        when(auth0ManagementClient.createPasswordChangeTicket(anyString())).thenReturn("https://setup-url.com");
         when(emailService.sendPasswordSetupEmail(anyString(), anyString(), eq("fr"))).thenReturn(true);
         when(userMapper.toNewUserEntity(any(CreateUserRequest.class), anyString())).thenReturn(savedUser);
         when(userAccountRepository.save(any(UserAccount.class))).thenReturn(savedUser);
@@ -207,7 +209,8 @@ class UserProvisioningServiceTest {
 
         when(organizationSettingsService.getSettings()).thenReturn(orgSettings);
         when(auth0ManagementClient.createUser(anyString(), anyString(), anyString(), any(UserRole.class), anyString()))
-                .thenReturn("auth0|555|https://password-setup.com");
+                .thenReturn("auth0|555");
+        when(auth0ManagementClient.createPasswordChangeTicket(anyString())).thenReturn("https://password-setup.com");
         when(emailService.sendPasswordSetupEmail("test@example.com", "https://password-setup.com", "en"))
                 .thenReturn(true);
         when(userMapper.toNewUserEntity(any(), anyString())).thenReturn(savedUser);
@@ -266,7 +269,7 @@ class UserProvisioningServiceTest {
                 .build();
 
         UserResponse userResponse = UserResponse.builder()
-                .id(userId)
+                .id(userId.toString())
                 .email("user@test.com")
                 .active(false)
                 .build();
@@ -325,5 +328,53 @@ class UserProvisioningServiceTest {
         verify(userAccountRepository).findById(userId);
         verify(userAccountRepository, never()).save(any());
         verify(auth0ManagementClient, never()).setBlocked(anyString(), anyBoolean());
+    }
+    @Test
+    void triggerPasswordReset_Success() {
+        // Arrange
+        UUID userId = UUID.randomUUID();
+        UserAccount user = new UserAccount("auth0|123", "user@test.com", "John", "Doe", UserRole.BROKER, "en");
+        
+        // when(organizationSettingsService.getSettings())
+        //      .thenReturn(OrganizationSettingsResponseModel.builder().defaultLanguage("en").build());
+        when(userAccountRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(auth0ManagementClient.createPasswordChangeTicket("auth0|123")).thenReturn("https://ticket.url");
+        when(emailService.sendPasswordSetupEmail("user@test.com", "https://ticket.url", "en")).thenReturn(true);
+
+        // Act
+        service.triggerPasswordReset(userId);
+
+        // Assert
+        verify(emailService).sendPasswordSetupEmail("user@test.com", "https://ticket.url", "en");
+    }
+
+    @Test
+    void triggerPasswordReset_UserNotFound_ThrowsException() {
+        // Arrange
+        UUID userId = UUID.randomUUID();
+        when(userAccountRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> service.triggerPasswordReset(userId))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("User not found");
+        
+        verify(emailService, never()).sendPasswordSetupEmail(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void triggerPasswordReset_NoAuth0Id_ThrowsException() {
+        // Arrange
+        UUID userId = UUID.randomUUID();
+        UserAccount user = new UserAccount(null, "user@test.com", "John", "Doe", UserRole.BROKER, "en");
+        
+        when(userAccountRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        // Act & Assert
+        assertThatThrownBy(() -> service.triggerPasswordReset(userId))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("User has no Auth0 ID");
+                
+        verify(emailService, never()).sendPasswordSetupEmail(anyString(), anyString(), anyString());
     }
 }

@@ -127,4 +127,29 @@ public class UserProvisioningService {
 
         return userMapper.toResponse(saved);
     }
+    public void triggerPasswordReset(UUID userId) {
+        UserAccount account = userAccountRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (account.getAuth0UserId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User has no Auth0 ID");
+        }
+
+        try {
+            // 1. Generate password change ticket
+            String ticketUrl = auth0ManagementClient.createPasswordChangeTicket(account.getAuth0UserId());
+
+            // 2. Determine language (fallback to org default if null)
+            String language = account.getPreferredLanguage();
+            if (language == null) {
+                language = organizationSettingsService.getSettings().getDefaultLanguage();
+            }
+
+            // 3. Send email
+            emailService.sendPasswordSetupEmail(account.getEmail(), ticketUrl, language);
+        } catch (Exception e) {
+            logger.error("Failed to trigger password reset for user {}", userId, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to trigger password reset", e);
+        }
+    }
 }

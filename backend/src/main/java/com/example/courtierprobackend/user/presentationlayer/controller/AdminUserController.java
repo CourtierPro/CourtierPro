@@ -43,4 +43,9 @@ public class AdminUserController {
         UserResponse response = service.updateStatus(userId, request);
         return ResponseEntity.ok(response);
     }
+    @PostMapping("/{userId}/password-reset")
+    public ResponseEntity<Void> triggerPasswordReset(@PathVariable UUID userId) {
+        service.triggerPasswordReset(userId);
+        return ResponseEntity.ok().build();
+    }
 }

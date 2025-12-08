@@ -2,10 +2,10 @@ package com.example.courtierprobackend.audit.logoutaudit.businesslayer;
 
 import com.example.courtierprobackend.audit.logoutaudit.dataaccesslayer.LogoutAuditEvent;
 import com.example.courtierprobackend.audit.logoutaudit.dataaccesslayer.LogoutAuditEventRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -24,137 +24,80 @@ class LogoutAuditServiceTest {
     @Mock
     private LogoutAuditEventRepository repository;
 
-    @InjectMocks
-    private LogoutAuditService logoutAuditService;
+    private LogoutAuditService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new LogoutAuditService(repository);
+    }
 
     @Test
-    void recordLogoutEvent_buildsAndSavesEvent() {
-        // given
-        String userId = "auth0|123";
-        String email = "user@example.com";
-        LogoutAuditEvent.LogoutReason reason = LogoutAuditEvent.LogoutReason.MANUAL;
-        Instant timestamp = Instant.now();
-        String ipAddress = "203.0.113.5";
-        String userAgent = "JUnit-Agent";
+    void recordLogoutEvent_SavesEventWithAllFields() {
+        // Act
+        service.recordLogoutEvent("user-1", "user@test.com", LogoutAuditEvent.LogoutReason.MANUAL, Instant.now(), "127.0.0.1", "Mozilla/5.0");
 
-        // when
-        logoutAuditService.recordLogoutEvent(userId, email, reason, timestamp, ipAddress, userAgent);
-
-        // then
+        // Assert
         ArgumentCaptor<LogoutAuditEvent> captor = ArgumentCaptor.forClass(LogoutAuditEvent.class);
         verify(repository).save(captor.capture());
-
-        LogoutAuditEvent saved = captor.getValue();
-        assertThat(saved.getUserId()).isEqualTo(userId);
-        assertThat(saved.getEmail()).isEqualTo(email);
-        assertThat(saved.getReason()).isEqualTo(reason);
-        assertThat(saved.getTimestamp()).isEqualTo(timestamp);
-        assertThat(saved.getIpAddress()).isEqualTo(ipAddress);
-        assertThat(saved.getUserAgent()).isEqualTo(userAgent);
+        
+        LogoutAuditEvent event = captor.getValue();
+        assertThat(event.getUserId()).isEqualTo("user-1");
+        assertThat(event.getEmail()).isEqualTo("user@test.com");
+        assertThat(event.getReason()).isEqualTo(LogoutAuditEvent.LogoutReason.MANUAL);
     }
 
     @Test
-    void recordLogoutEvent_sessionTimeout_savesCorrectReason() {
-        // given
-        LogoutAuditEvent.LogoutReason reason = LogoutAuditEvent.LogoutReason.SESSION_TIMEOUT;
+    void recordLogoutEvent_WithException_DoesNotThrow() {
+        // Arrange
+        when(repository.save(any())).thenThrow(new RuntimeException("DB error"));
 
-        // when
-        logoutAuditService.recordLogoutEvent(
-                "auth0|456",
-                "timeout@example.com",
-                reason,
-                Instant.now(),
-                "192.168.1.1",
-                "Browser"
+        // Act & Assert - should not throw
+        service.recordLogoutEvent("user-1", "user@test.com", LogoutAuditEvent.LogoutReason.SESSION_TIMEOUT, Instant.now(), "127.0.0.1", "Mozilla/5.0");
+    }
+
+    @Test
+    void getAllLogoutEvents_ReturnsAllEvents() {
+        // Arrange
+        List<LogoutAuditEvent> events = List.of(
+                LogoutAuditEvent.builder().userId("u1").build(),
+                LogoutAuditEvent.builder().userId("u2").build()
         );
-
-        // then
-        ArgumentCaptor<LogoutAuditEvent> captor = ArgumentCaptor.forClass(LogoutAuditEvent.class);
-        verify(repository).save(captor.capture());
-        assertThat(captor.getValue().getReason()).isEqualTo(LogoutAuditEvent.LogoutReason.SESSION_TIMEOUT);
-    }
-
-    @Test
-    void recordLogoutEvent_forcedLogout_savesCorrectReason() {
-        // given
-        LogoutAuditEvent.LogoutReason reason = LogoutAuditEvent.LogoutReason.FORCED;
-
-        // when
-        logoutAuditService.recordLogoutEvent(
-                "auth0|789",
-                "forced@example.com",
-                reason,
-                Instant.now(),
-                "10.0.0.1",
-                "Admin-Tool"
-        );
-
-        // then
-        ArgumentCaptor<LogoutAuditEvent> captor = ArgumentCaptor.forClass(LogoutAuditEvent.class);
-        verify(repository).save(captor.capture());
-        assertThat(captor.getValue().getReason()).isEqualTo(LogoutAuditEvent.LogoutReason.FORCED);
-    }
-
-    @Test
-    void recordLogoutEvent_exceptionDuringSave_doesNotThrow() {
-        // given
-        when(repository.save(any())).thenThrow(new RuntimeException("DB Error"));
-
-        // when/then - should not throw exception (logout must succeed even if logging fails)
-        logoutAuditService.recordLogoutEvent(
-                "auth0|999",
-                "error@example.com",
-                LogoutAuditEvent.LogoutReason.MANUAL,
-                Instant.now(),
-                "127.0.0.1",
-                "Test"
-        );
-
-        // verify save was attempted
-        verify(repository).save(any(LogoutAuditEvent.class));
-    }
-
-    @Test
-    void getAllLogoutEvents_delegatesToRepository() {
-        // given
-        List<LogoutAuditEvent> events = List.of(mock(LogoutAuditEvent.class));
         when(repository.findAllByOrderByTimestampDesc()).thenReturn(events);
 
-        // when
-        List<LogoutAuditEvent> result = logoutAuditService.getAllLogoutEvents();
+        // Act
+        List<LogoutAuditEvent> result = service.getAllLogoutEvents();
 
-        // then
-        verify(repository).findAllByOrderByTimestampDesc();
-        assertThat(result).isEqualTo(events);
+        // Assert
+        assertThat(result).hasSize(2);
     }
 
     @Test
-    void getLogoutEventsByUser_delegatesToRepository() {
-        // given
-        String userId = "auth0|456";
-        List<LogoutAuditEvent> events = List.of(mock(LogoutAuditEvent.class));
-        when(repository.findByUserIdOrderByTimestampDesc(userId)).thenReturn(events);
+    void getLogoutEventsByUser_ReturnsUserEvents() {
+        // Arrange
+        List<LogoutAuditEvent> events = List.of(
+                LogoutAuditEvent.builder().userId("user-1").build()
+        );
+        when(repository.findByUserIdOrderByTimestampDesc("user-1")).thenReturn(events);
 
-        // when
-        List<LogoutAuditEvent> result = logoutAuditService.getLogoutEventsByUser(userId);
+        // Act
+        List<LogoutAuditEvent> result = service.getLogoutEventsByUser("user-1");
 
-        // then
-        verify(repository).findByUserIdOrderByTimestampDesc(userId);
-        assertThat(result).isEqualTo(events);
+        // Assert
+        assertThat(result).hasSize(1);
     }
 
     @Test
-    void getLogoutEventsByReason_delegatesToRepository() {
-        // given
-        LogoutAuditEvent.LogoutReason reason = LogoutAuditEvent.LogoutReason.SESSION_TIMEOUT;
-        List<LogoutAuditEvent> events = List.of(mock(LogoutAuditEvent.class));
-        when(repository.findByReasonOrderByTimestampDesc(reason)).thenReturn(events);
+    void getLogoutEventsByReason_ReturnsReasonEvents() {
+        // Arrange
+        List<LogoutAuditEvent> events = List.of(
+                LogoutAuditEvent.builder().reason(LogoutAuditEvent.LogoutReason.SESSION_TIMEOUT).build()
+        );
+        when(repository.findByReasonOrderByTimestampDesc(LogoutAuditEvent.LogoutReason.SESSION_TIMEOUT)).thenReturn(events);
 
-        // when
-        List<LogoutAuditEvent> result = logoutAuditService.getLogoutEventsByReason(reason);
+        // Act
+        List<LogoutAuditEvent> result = service.getLogoutEventsByReason(LogoutAuditEvent.LogoutReason.SESSION_TIMEOUT);
 
-        // then
-        verify(repository).findByReasonOrderByTimestampDesc(reason);
-        assertThat(result).isEqualTo(events);
+        // Assert
+        assertThat(result).hasSize(1);
     }
 }

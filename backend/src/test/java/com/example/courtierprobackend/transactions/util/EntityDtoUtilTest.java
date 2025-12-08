@@ -40,7 +40,7 @@ class EntityDtoUtilTest {
         tx.setPropertyAddress(address);
 
         // Act
-        TransactionResponseDTO result = EntityDtoUtil.toResponse(tx);
+        TransactionResponseDTO result = EntityDtoUtil.toResponse(tx, "Test Client");
 
         // Assert
         assertThat(result.getTransactionId()).isEqualTo("TX-123");
@@ -66,7 +66,7 @@ class EntityDtoUtilTest {
         tx.setOpenedAt(LocalDateTime.of(2025, 2, 20, 14, 30));
 
         // Act
-        TransactionResponseDTO result = EntityDtoUtil.toResponse(tx);
+        TransactionResponseDTO result = EntityDtoUtil.toResponse(tx, "Test Client");
 
         // Assert
         assertThat(result.getCurrentStage()).isEqualTo("SELLER_LISTING_PUBLISHED");
@@ -84,7 +84,7 @@ class EntityDtoUtilTest {
         tx.setOpenedAt(null);
 
         // Act
-        TransactionResponseDTO result = EntityDtoUtil.toResponse(tx);
+        TransactionResponseDTO result = EntityDtoUtil.toResponse(tx, "Test Client");
 
         // Assert
         assertThat(result.getOpenedDate()).isNull();
@@ -101,7 +101,7 @@ class EntityDtoUtilTest {
         tx.setBuyerStage(null);
 
         // Act
-        TransactionResponseDTO result = EntityDtoUtil.toResponse(tx);
+        TransactionResponseDTO result = EntityDtoUtil.toResponse(tx, "Test Client");
 
         // Assert
         assertThat(result.getCurrentStage()).isEqualTo("UNKNOWN_BUYER_STAGE");
@@ -118,7 +118,7 @@ class EntityDtoUtilTest {
         tx.setSellerStage(null);
 
         // Act
-        TransactionResponseDTO result = EntityDtoUtil.toResponse(tx);
+        TransactionResponseDTO result = EntityDtoUtil.toResponse(tx, "Test Client");
 
         // Assert
         assertThat(result.getCurrentStage()).isEqualTo("UNKNOWN_SELLER_STAGE");
