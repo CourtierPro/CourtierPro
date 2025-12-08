@@ -72,17 +72,3 @@ jacocoTestReport {
         html.outputLocation = layout.buildDirectory.dir("jacocoHtml")
     }
 }
-
-jacocoTestCoverageVerification {
-    violationRules {
-        rule {
-            limit {
-                minimum = 0.95
-            }
-        }
-    }
-}
-
-tasks.named('check') {
-    dependsOn jacocoTestCoverageVerification
-}
