@@ -4,15 +4,17 @@ import { useNavigate } from 'react-router-dom';
 import { getRoleFromUser } from '../roleUtils';
 
 export function useLoginRedirect() {
-    // Short-circuit when auth is disabled for playwright runs
-    if (import.meta.env.VITE_AUTH_DISABLED === "true") {
-        return { isLoading: false };
-    }
+    const authDisabled = import.meta.env.VITE_AUTH_DISABLED === "true";
 
-    const { loginWithRedirect, isAuthenticated, isLoading, user } = useAuth0();
+    const { loginWithRedirect, isAuthenticated: rawIsAuthenticated, isLoading: rawIsLoading, user } = useAuth0();
     const navigate = useNavigate();
 
+    const isLoading = authDisabled ? false : rawIsLoading;
+    const isAuthenticated = authDisabled ? true : rawIsAuthenticated;
+
     useEffect(() => {
+        if (authDisabled) return;
+
         if (isAuthenticated && user) {
             const role = getRoleFromUser(user);
             if (role) {
@@ -24,15 +26,17 @@ export function useLoginRedirect() {
                 navigate(dashboards[role as keyof typeof dashboards], { replace: true });
             }
         }
-    }, [isAuthenticated, user, navigate]);
+    }, [authDisabled, isAuthenticated, user, navigate]);
 
     useEffect(() => {
+        if (authDisabled) return;
+
         if (!isAuthenticated && !isLoading) {
-            loginWithRedirect({
+            void loginWithRedirect({
                 appState: { returnTo: window.location.pathname },
             });
         }
-    }, [isAuthenticated, isLoading, loginWithRedirect]);
+    }, [authDisabled, isAuthenticated, isLoading, loginWithRedirect]);
 
     return { isLoading };
 }

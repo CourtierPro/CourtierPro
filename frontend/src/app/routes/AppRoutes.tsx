@@ -47,14 +47,9 @@ const ServiceUnavailablePage = lazy(() => import("@/pages/status/ServiceUnavaila
 const NotFoundPage = lazy(() => import("@/pages/status/NotFoundPage").then(module => ({ default: module.NotFoundPage })));
 
 export function AppRoutes() {
-    // Determine role without calling useAuth0 when auth is disabled for Playwright
-    let role: AppRole | null = null;
-    if (import.meta.env.VITE_AUTH_DISABLED === "true") {
-        role = "broker"; // default test role
-    } else {
-        const { user } = useAuth0();
-        role = getRoleFromUser(user);
-    }
+    const authDisabled = import.meta.env.VITE_AUTH_DISABLED === "true";
+    const { user } = useAuth0();
+    const role: AppRole | null = authDisabled ? "broker" : getRoleFromUser(user);
 
     const defaultRouteForRole: Record<AppRole, string> = {
         broker: "/dashboard/broker",

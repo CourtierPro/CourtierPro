@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test('broker creates a new transaction', async ({ page }) => {
   // Visit dashboard directly (Auth0 bypassed)

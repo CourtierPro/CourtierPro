@@ -10,12 +10,10 @@ interface RequireRoleProps {
 
 
 export function RequireRole({ allowed, children }: RequireRoleProps) {
-    // When running Playwright locally, bypass role checks entirely.
-    if (import.meta.env.VITE_AUTH_DISABLED === "true") {
-        return <>{children}</>;
-    }
+    const authDisabled = import.meta.env.VITE_AUTH_DISABLED === "true";
 
-    const { user, isLoading } = useAuth0();
+    const { user, isLoading: rawIsLoading } = useAuth0();
+    const isLoading = authDisabled ? false : rawIsLoading;
 
     if (isLoading) {
         return (
@@ -25,7 +23,7 @@ export function RequireRole({ allowed, children }: RequireRoleProps) {
         );
     }
 
-    const role = getRoleFromUser(user);
+    const role = authDisabled ? ("broker" as AppRole) : getRoleFromUser(user);
 
     if (!role) {
         return <Navigate to="/unauthorized" replace />;

@@ -4,22 +4,25 @@ import { AppRoutes } from "@/app/routes/AppRoutes";
 import { getRoleFromUser, type AppRole } from "@/features/auth/roleUtils";
 
 export default function App() {
-  // When running Playwright locally disable auth and render routes directly
-  if (import.meta.env.VITE_AUTH_DISABLED === "true") {
-    return <AppRoutes />;
-  }
+  const authDisabled = import.meta.env.VITE_AUTH_DISABLED === "true";
 
-  const { isAuthenticated, isLoading, user, loginWithRedirect } = useAuth0();
+  const { isAuthenticated: rawIsAuthenticated, isLoading: rawIsLoading, user, loginWithRedirect } = useAuth0();
 
-  const role: AppRole | null = getRoleFromUser(user);
+  // When auth is disabled for Playwright, override values so app treats user as authenticated
+  const isLoading = authDisabled ? false : rawIsLoading;
+  const isAuthenticated = authDisabled ? true : rawIsAuthenticated;
+
+  const role: AppRole | null = authDisabled ? "broker" : getRoleFromUser(user);
 
   useEffect(() => {
+    if (authDisabled) return;
+
     if (!isLoading && (!isAuthenticated || !role)) {
-      loginWithRedirect({
+      void loginWithRedirect({
         appState: { returnTo: window.location.pathname },
       });
     }
-  }, [isLoading, isAuthenticated, role, loginWithRedirect]);
+  }, [authDisabled, isLoading, isAuthenticated, role, loginWithRedirect]);
 
   if (isLoading || !isAuthenticated || !role) {
     return (

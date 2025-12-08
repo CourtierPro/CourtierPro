@@ -10,20 +10,24 @@ interface RequireAuthProps {
 export function RequireAuth({ children }: RequireAuthProps) {
   const { t } = useTranslation("common");
 
-  // When running Playwright locally we disable Auth0 entirely and short-circuit.
-  if (import.meta.env.VITE_AUTH_DISABLED === "true") {
-    return <>{children}</>;
-  }
+  const authDisabled = import.meta.env.VITE_AUTH_DISABLED === "true";
 
-  const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
+  const { isAuthenticated: rawIsAuthenticated, isLoading: rawIsLoading, loginWithRedirect } = useAuth0();
+
+  const isLoading = authDisabled ? false : rawIsLoading;
+  const isAuthenticated = authDisabled ? true : rawIsAuthenticated;
 
   useEffect(() => {
+    if (authDisabled) return;
+
     if (!isLoading && !isAuthenticated) {
       void loginWithRedirect({
         appState: { returnTo: window.location.pathname },
       });
     }
-  }, [isLoading, isAuthenticated, loginWithRedirect]);
+  }, [authDisabled, isLoading, isAuthenticated, loginWithRedirect]);
+
+  if (authDisabled) return <>{children}</>;
 
   if (isLoading) {
     return (
