@@ -35,7 +35,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     if (authDisabled) {
         const staticValue = {
             language: "en" as "en" | "fr",
-            // cast a no-op to the proper function type to avoid unused var lint
+            // No-op function since language switching is disabled in test mode
             setLanguage: (() => {}) as (lang: "en" | "fr") => void,
         };
 
