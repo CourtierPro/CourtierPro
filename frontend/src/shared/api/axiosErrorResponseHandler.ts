@@ -3,17 +3,9 @@ import {
   AppError,
   UnauthorizedError,
   ForbiddenError,
-  NotFoundError,
   logError,
 } from "@/shared/utils/error-utils";
-
-// Centralized redirect mapping
-const errorPageRedirects: Record<number, string> = {
-  401: "/unauthorized",
-  403: "/forbidden",
-  500: "/internal-server-error",
-  503: "/service-unavailable",
-};
+import { toast } from "sonner";
 
 export default function axiosErrorResponseHandler(
   error: AxiosError,
@@ -32,14 +24,23 @@ export default function axiosErrorResponseHandler(
   switch (statusCode) {
     case 401:
       appError = new UnauthorizedError(message, { statusCode, cause: error });
-      // FE will use this to show "session expired" toast on login
+      // Mark session as expired for login page to show toast
       sessionStorage.setItem("sessionExpired", "true");
+      // Show toast instead of hard redirect
+      toast.error("Session expired. Please log in again.");
       break;
     case 403:
       appError = new ForbiddenError(message, { statusCode, cause: error });
+      // Show toast for permission error - don't redirect authenticated users
+      toast.error("You don't have permission to perform this action.");
       break;
-    case 404:
-      appError = new NotFoundError(message, { statusCode, cause: error });
+    case 500:
+      appError = new AppError(message, { statusCode, cause: error });
+      toast.error("An unexpected server error occurred.");
+      break;
+    case 503:
+      appError = new AppError(message, { statusCode, cause: error });
+      toast.error("Service temporarily unavailable. Please try again later.");
       break;
     default:
       appError = new AppError(message, { statusCode, cause: error });
@@ -48,11 +49,8 @@ export default function axiosErrorResponseHandler(
   // Centralized logging
   logError(appError);
 
-  // Handle known global errors with redirects
-  const redirectPath = errorPageRedirects[statusCode];
-
-  if (redirectPath && typeof window !== "undefined") {
-    window.location.href = redirectPath;
-    return;
-  }
+  // Note: We no longer do hard redirects here.
+  // Components should handle errors via TanStack Query's error states
+  // or the thrown error from axios.
 }
+

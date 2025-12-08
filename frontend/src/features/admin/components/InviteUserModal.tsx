@@ -76,8 +76,8 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
           }));
         }
       })
-      .catch((err) => {
-        console.error("Failed to load organization settings", err);
+      .catch(() => {
+        toast.error(t("inviteUser_settingsLoadError"));
       });
   }, []);
 

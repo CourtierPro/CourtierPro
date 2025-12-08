@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Button } from "@/shared/components/ui/button";
 import "./InviteClientModal.css";
 
 interface InviteClientModalProps {
@@ -20,9 +21,9 @@ export function InviteClientModal({ open, onClose }: InviteClientModalProps) {
         </p>
 
         <div className="cp-modal-actions">
-          <button className="cp-modal-close-btn" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose}>
             {t("actions.close")}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

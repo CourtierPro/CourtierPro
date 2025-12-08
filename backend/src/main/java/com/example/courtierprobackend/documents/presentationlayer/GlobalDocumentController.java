@@ -4,6 +4,7 @@ import com.example.courtierprobackend.documents.businesslayer.DocumentRequestSer
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/documents")
 @RequiredArgsConstructor
+@PreAuthorize("isAuthenticated()")
 public class GlobalDocumentController {
 
     private final DocumentRequestService service;

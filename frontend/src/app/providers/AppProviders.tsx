@@ -7,10 +7,10 @@ import { AuthProvider } from "@/app/providers/AuthProvider";
 import { LanguageProvider } from "@/app/providers/LanguageProvider";
 import { queryClient } from "@/shared/api/queryClient";
 
-// TODO: Move these to environment variables or config file
-const domain = "dev-y7mhv7ttykx4kz4f.us.auth0.com";
-const clientId = "JJIaYMFFtbZqGwP1XKyOx1XcFTPO9Qlr";
-const audience = "https://api.courtierpro.dev";
+// Auth0 configuration from environment variables
+const domain = import.meta.env.VITE_AUTH0_DOMAIN || "dev-y7mhv7ttykx4kz4f.us.auth0.com";
+const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID || "JJIaYMFFtbZqGwP1XKyOx1XcFTPO9Qlr";
+const audience = import.meta.env.VITE_AUTH0_AUDIENCE || "https://api.courtierpro.dev";
 
 function Auth0ProviderWithNavigate({ children }: { children: ReactNode }) {
     const navigate = useNavigate();

@@ -119,7 +119,7 @@ public class Auth0ManagementClient {
         }
 
         // Generate temporary password that user will never see
-        String tempPassword = generateTemporaryPassword();
+        String tempPassword = generateRandomPassword();
 
         // minimal metadata for language
         Map<String, Object> userMetadata = Map.of(
@@ -143,8 +143,16 @@ public class Auth0ManagementClient {
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
-        ResponseEntity<Auth0UserResponse> response =
-                restTemplate.postForEntity(url, entity, Auth0UserResponse.class);
+        ResponseEntity<Auth0UserResponse> response;
+        try {
+            response = restTemplate.postForEntity(url, entity, Auth0UserResponse.class);
+        } catch (org.springframework.web.client.HttpClientErrorException.Conflict e) {
+            // 409 Conflict - user already exists in Auth0
+            throw new IllegalArgumentException("A user with email " + email + " already exists.");
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            // Other client errors (400, 401, 403, etc.)
+            throw new IllegalStateException("Auth0 error: " + e.getStatusCode() + " - " + e.getResponseBodyAsString());
+        }
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new IllegalStateException("Failed to create Auth0 user");

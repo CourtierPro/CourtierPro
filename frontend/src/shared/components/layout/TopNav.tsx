@@ -254,7 +254,8 @@ export function TopNav({
                           }`}
                         role="menuitem"
                         onClick={() => {
-                          // TODO: Implement notification click handler
+                          setIsNotificationsOpen(false);
+                          onNavigate(`/notifications?id=${notification.id}`);
                         }}
                       >
                         {Icon ? (
