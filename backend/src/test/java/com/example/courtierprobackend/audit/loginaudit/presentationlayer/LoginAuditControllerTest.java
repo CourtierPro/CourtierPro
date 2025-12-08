@@ -1,6 +1,6 @@
-package com.example.courtierprobackend.audit.presentationlayer;
+package com.example.courtierprobackend.audit.loginaudit.presentationlayer;
 
-import com.example.courtierprobackend.audit.businesslayer.LoginAuditService;
+import com.example.courtierprobackend.audit.loginaudit.businesslayer.LoginAuditService;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
