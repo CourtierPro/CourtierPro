@@ -6,11 +6,12 @@
   inset: 0;
   z-index: 50;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   background: rgba(15, 23, 42, 0.40);
   backdrop-filter: blur(4px);
   animation: cpModalFadeIn 0.22s ease-out forwards;
+  padding-top: 1rem;
 }
 
 /* CARTE DU MODAL */
