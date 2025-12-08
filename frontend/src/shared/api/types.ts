@@ -19,6 +19,7 @@ export interface TransactionRequestDTO {
 export interface TransactionResponseDTO {
   transactionId: string;
   clientId: string;
+  clientName: string;
   brokerId: string;
   side: TransactionSideEnum;
   currentStage: string;

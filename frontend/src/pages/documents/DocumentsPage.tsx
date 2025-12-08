@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
 import { EmptyState } from "@/shared/components/branded/EmptyState";
@@ -9,10 +10,16 @@ import { Button } from "@/shared/components/ui/button";
 
 import { useDocumentsPageLogic } from "@/features/documents/hooks/useDocumentsPageLogic";
 import { RequestDocumentModal } from "@/features/documents/components/RequestDocumentModal";
+import { UploadDocumentModal } from "@/features/documents/components/UploadDocumentModal";
 import { DocumentList } from "@/features/documents/components/DocumentList";
 import { useTranslation } from "react-i18next";
+import { type DocumentRequest } from "@/features/documents/types";
 
-export function DocumentsPage() {
+interface DocumentsPageProps {
+  transactionId: string;
+}
+
+export function DocumentsPage({ transactionId }: DocumentsPageProps) {
   const { t } = useTranslation('documents');
   const {
     documents,
@@ -22,7 +29,21 @@ export function DocumentsPage() {
     isModalOpen,
     setIsModalOpen,
     handleRequestDocument
-  } = useDocumentsPageLogic();
+  } = useDocumentsPageLogic(transactionId);
+
+  const [selectedDocument, setSelectedDocument] = useState<DocumentRequest | null>(null);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+
+  const handleUploadClick = (document: DocumentRequest) => {
+    setSelectedDocument(document);
+    setIsUploadModalOpen(true);
+  };
+
+  const handleUploadSuccess = () => {
+    refetch();
+    setIsUploadModalOpen(false);
+    setSelectedDocument(null);
+  };
 
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState message={error.message} onRetry={() => refetch()} />;
@@ -54,7 +75,7 @@ export function DocumentsPage() {
           />
         </Section>
       ) : (
-        <DocumentList documents={documents} />
+        <DocumentList documents={documents} onUpload={handleUploadClick} />
       )}
 
       <RequestDocumentModal
@@ -64,6 +85,18 @@ export function DocumentsPage() {
         transactionType="buy"
         currentStage="offer"
       />
+
+      {selectedDocument && (
+        <UploadDocumentModal
+          open={isUploadModalOpen}
+          onClose={() => setIsUploadModalOpen(false)}
+          requestId={selectedDocument.requestId}
+          transactionId={transactionId}
+          documentTitle={selectedDocument.customTitle || t(`types.${selectedDocument.docType}`)}
+          onSuccess={handleUploadSuccess}
+        />
+      )}
     </div>
   );
 }
+

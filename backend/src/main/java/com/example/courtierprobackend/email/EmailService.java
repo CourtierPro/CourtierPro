@@ -2,6 +2,7 @@ package com.example.courtierprobackend.email;
 
 import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
+import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -36,7 +37,6 @@ public class EmailService {
         this.organizationSettingsService = organizationSettingsService;
     }
 
-
     public boolean sendPasswordSetupEmail(String toEmail, String passwordSetupUrl) {
         return sendPasswordSetupEmail(toEmail, passwordSetupUrl, null);
     }
@@ -52,10 +52,8 @@ public class EmailService {
                                           String passwordSetupUrl,
                                           String languageCode) {
         try {
-            // 1) Charger les settings d’organisation (langue par défaut + templates)
             OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
 
-            // 2) Déterminer la langue effective : param > default org > "en"
             String effectiveLang = languageCode;
             if (effectiveLang == null || effectiveLang.isBlank()) {
                 effectiveLang = settings.getDefaultLanguage();
@@ -66,7 +64,6 @@ public class EmailService {
 
             boolean isFrench = effectiveLang.equalsIgnoreCase("fr");
 
-            // 3) Récupérer subject + body depuis la DB
             String subject;
             String bodyText;
 
@@ -78,7 +75,6 @@ public class EmailService {
                 bodyText = settings.getInviteBodyEn();
             }
 
-            // 4) Fallback si les templates sont vides
             if (subject == null || subject.isBlank()) {
                 subject = isFrench ? "Invitation CourtierPro" : "CourtierPro Invitation";
             }
@@ -88,13 +84,11 @@ public class EmailService {
                         : "Hi {{name}}, your CourtierPro account has been created.";
             }
 
-            // 5) Remplacer {{name}} par l’email (pour l’instant)
             String displayName = toEmail;
             if (bodyText.contains("{{name}}")) {
                 bodyText = bodyText.replace("{{name}}", displayName);
             }
 
-            // 6) Textes statiques (peuvent aller en DB plus tard)
             String introText;
             String buttonLabel;
             String expiresText;
@@ -112,14 +106,12 @@ public class EmailService {
                 footerText = "Thanks,<br>CourtierPro Team";
             }
 
-            // 7) Choisir le bon fichier HTML (invite_en.html / invite_fr.html)
             String templatePath = isFrench
                     ? "email-templates/invite_fr.html"
                     : "email-templates/invite_en.html";
 
             String htmlTemplate = loadTemplateFromClasspath(templatePath);
 
-            // 8) Remplacer les placeholders dans le template HTML
             String emailBody = htmlTemplate;
             emailBody = emailBody.replace("{{subject}}", escapeHtml(subject));
             emailBody = emailBody.replace("{{introText}}", introText);
@@ -129,32 +121,7 @@ public class EmailService {
             emailBody = emailBody.replace("{{expiresText}}", expiresText);
             emailBody = emailBody.replace("{{footerText}}", footerText);
 
-            // 9) Config SMTP Gmail
-            Properties props = new Properties();
-            props.put("mail.smtp.auth", "true");
-            props.put("mail.smtp.starttls.enable", "true");
-            props.put("mail.smtp.host", "smtp.gmail.com");
-            props.put("mail.smtp.port", "587");
-            props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
-
-            Session session = Session.getInstance(props, new Authenticator() {
-                @Override
-                protected PasswordAuthentication getPasswordAuthentication() {
-                    return new PasswordAuthentication(gmailUsername, gmailPassword);
-                }
-            });
-
-            Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress(gmailUsername, "CourtierPro"));
-            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
-            message.setSubject(subject);
-            message.setContent(emailBody, "text/html; charset=utf-8");
-
-            Transport.send(message);
-
-            logger.info("Password setup email sent successfully to {}", toEmail);
-            return true;
-
+            return sendEmail(toEmail, subject, emailBody);
         } catch (MessagingException | UnsupportedEncodingException e) {
             logger.error("Failed to send password setup email to {}", toEmail, e);
             logger.warn("Manual password setup URL for {}: {}", toEmail, passwordSetupUrl);
@@ -165,7 +132,106 @@ public class EmailService {
         }
     }
 
-    // Charge le template HTML depuis /resources
+    public void sendDocumentSubmittedNotification(DocumentRequest request, String brokerEmail, String uploaderName, String documentName) {
+        String subject = "Document Submitted: " + documentName;
+        String htmlBody = String.format("""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                </head>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <h2 style="color: #2c3e50;">Document Submitted</h2>
+                        <p>Hello,</p>
+                        <p>A document has been submitted by <strong>%s</strong>:</p>
+                        <p style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; font-size: 16px;">
+                            <strong>%s</strong>
+                        </p>
+                        <p>Transaction ID: %s</p>
+                        <p>Please log in to CourtierPro to review this document.</p>
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                        <p style="color: #999; font-size: 12px;">Thanks,<br>CourtierPro Team</p>
+                    </div>
+                </body>
+                </html>
+                """, uploaderName, documentName, request.getTransactionRef().getTransactionId());
+        
+        try {
+            sendEmail(brokerEmail, subject, htmlBody);
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            logger.error("Failed to send document submitted notification to {}", brokerEmail, e);
+        }
+    }
+
+    public void sendDocumentRequestedNotification(String clientEmail, String clientName, String brokerName, String documentName) {
+        String subject = "Document Requested: " + documentName;
+        String htmlBody = String.format("""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                </head>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <h2 style="color: #2c3e50;">Document Request</h2>
+                        <p>Hello %s,</p>
+                        <p>Your broker <strong>%s</strong> has requested the following document:</p>
+                        <p style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; font-size: 16px;">
+                            <strong>%s</strong>
+                        </p>
+                        <p>Please log in to CourtierPro to upload this document.</p>
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                        <p style="color: #999; font-size: 12px;">Thanks,<br>CourtierPro Team</p>
+                    </div>
+                </body>
+                </html>
+                """, clientName, brokerName, documentName);
+        
+        try {
+            sendEmail(clientEmail, subject, htmlBody);
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            logger.error("Failed to send document requested notification to {}", clientEmail, e);
+        }
+    }
+
+    public void sendDocumentStatusUpdatedNotification(DocumentRequest request, String clientEmail) {
+        String subject = "Document Status Updated: " + request.getCustomTitle();
+        String body = "Your document status is now: " + request.getStatus();
+
+        try {
+            sendEmail(clientEmail, subject, body);
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            logger.error("Failed to send document status notification to {}", clientEmail, e);
+        }
+    }
+
+    private boolean sendEmail(String to, String subject, String body) throws MessagingException, UnsupportedEncodingException {
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", "smtp.gmail.com");
+        props.put("mail.smtp.port", "587");
+        props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
+
+        Session session = Session.getInstance(props, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(gmailUsername, gmailPassword);
+            }
+        });
+
+        Message message = new MimeMessage(session);
+        message.setFrom(new InternetAddress(gmailUsername, "CourtierPro"));
+        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
+        message.setSubject(subject);
+        message.setContent(body, "text/html; charset=utf-8");
+
+        Transport.send(message);
+        logger.info("Email sent successfully to {}", to);
+        return true;
+    }
+
     private String loadTemplateFromClasspath(String path) throws IOException {
         ClassPathResource resource = new ClassPathResource(path);
 
@@ -175,7 +241,6 @@ public class EmailService {
         }
     }
 
-    // Petit escape HTML pour subject / labels
     private String escapeHtml(String s) {
         if (s == null) {
             return "";

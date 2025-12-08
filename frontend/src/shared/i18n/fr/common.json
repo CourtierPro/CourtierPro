@@ -41,6 +41,7 @@
     "documentChecklist": "Liste de contrôle des documents",
     "scheduleAppointment": "Planifier un rendez-vous",
     "createTransaction": "Créer une transaction",
-    "inviteClient": "Inviter un client"
+    "inviteClient": "Inviter un client",
+    "comingSoon": "Cette fonctionnalité sera bientôt disponible."
   }
 }

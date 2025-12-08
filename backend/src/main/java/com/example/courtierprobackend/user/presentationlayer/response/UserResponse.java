@@ -12,7 +12,7 @@ import java.util.UUID;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class UserResponse {
 
-    UUID id;
+    String id;
     String email;
     String firstName;
     String lastName;

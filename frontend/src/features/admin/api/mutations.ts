@@ -9,7 +9,7 @@ export interface InviteUserPayload {
     role: 'BROKER' | 'CLIENT' | 'ADMIN';
     firstName?: string;
     lastName?: string;
-  preferredLanguage: 'en' | 'fr';
+    preferredLanguage: 'en' | 'fr';
 }
 
 export function useInviteUser() {
@@ -17,7 +17,7 @@ export function useInviteUser() {
 
     return useMutation({
         mutationFn: async (payload: InviteUserPayload) => {
-            const res = await axiosInstance.post<AdminUserResponse>('/api/admin/users/invite', payload);
+            const res = await axiosInstance.post<AdminUserResponse>('/api/admin/users', payload);
             return res.data;
         },
         onSuccess: () => {

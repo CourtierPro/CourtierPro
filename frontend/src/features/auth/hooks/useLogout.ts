@@ -44,16 +44,13 @@ export function useLogout() {
         await logLogoutEvent({
           reason,
           timestamp: new Date().toISOString(),
-        }).catch((error) => {
-          // Don't block logout if logging fails
-          console.error('Failed to log logout event:', error);
+        }).catch(() => {
+          // Silently ignore - don't block logout if logging fails
         });
 
         // 2. Clear any local storage items (tokens, user data, etc.)
         // Auth0 SDK handles its own token storage, but clear any app-specific items
         sessionStorage.removeItem('sessionExpired');
-        // Add any other items you want to clear:
-        // localStorage.removeItem('yourAppData');
 
         // 3. Call Auth0 logout endpoint
         // This will:
@@ -66,9 +63,9 @@ export function useLogout() {
             returnTo: window.location.origin,
           },
         });
-      } catch (error) {
-        console.error('Logout error:', error);
-        
+      } catch {
+        // Silently handle error - still attempt Auth0 logout
+
         // Even if there's an error, still attempt Auth0 logout
         auth0Logout({
           logoutParams: {

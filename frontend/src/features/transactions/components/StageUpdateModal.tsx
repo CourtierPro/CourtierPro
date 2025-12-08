@@ -116,8 +116,7 @@ function StageUpdateForm({
     >
       <div
         ref={modalRef}
-        className="rounded-xl shadow-xl w-full max-w-md mx-auto"
-        style={{ backgroundColor: '#FFFFFF' }}
+        className="rounded-xl shadow-xl w-full max-w-md mx-auto bg-white"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -146,12 +145,11 @@ function StageUpdateForm({
             <div>
               <label
                 htmlFor="stage-select"
-                style={{ color: '#353535' }}
-                className="block mb-2 flex items-center gap-2"
+                className="block mb-2 flex items-center gap-2 text-foreground"
               >
                 {t('selectNewStage')}
                 <span
-                  style={{ color: '#ef4444', fontSize: '0.875rem' }}
+                  className="text-destructive text-sm"
                   aria-label="required"
                 >
                   *
@@ -185,22 +183,18 @@ function StageUpdateForm({
 
             {selectedStage !== '' && (
               <div
-                className="p-4 rounded-lg border-l-4 animate-fade-in"
-                style={{
-                  backgroundColor: '#FFF5F0',
-                  borderLeftColor: '#FF6B01',
-                }}
+                className="p-4 rounded-lg border-l-4 animate-fade-in bg-orange-50 border-l-primary"
                 id="stage-description-text"
                 role="status"
                 aria-live="polite"
               >
                 <div className="flex items-start gap-2 mb-2">
-                  <MessageSquare className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#FF6B01' }} />
-                  <p style={{ color: '#353535', fontSize: '0.875rem' }}>
+                  <MessageSquare className="w-5 h-5 flex-shrink-0 mt-0.5 text-primary" />
+                  <p className="text-foreground text-sm">
                     <span className="opacity-70">{t('stageDescriptionLabel')}:</span>
                   </p>
                 </div>
-                <p style={{ color: '#353535', fontSize: '0.875rem' }}>
+                <p className="text-foreground text-sm">
                   {stageDescriptions[(selectedStage as number) - 1] ?? ''}
                 </p>
               </div>
@@ -209,8 +203,7 @@ function StageUpdateForm({
             <div>
               <label
                 htmlFor="progress-note"
-                style={{ color: '#353535' }}
-                className="block mb-2"
+                className="block mb-2 text-foreground"
               >
                 {t('progressNote')}
               </label>
@@ -249,11 +242,10 @@ function StageUpdateForm({
 
             {!isFormValid && (
               <div
-                className="p-3 rounded-lg border border-gray-200"
-                style={{ backgroundColor: '#f9fafb' }}
+                className="p-3 rounded-lg border border-gray-200 bg-muted"
                 role="status"
               >
-                <p style={{ color: '#353535', opacity: 0.7, fontSize: '0.875rem' }}>
+                <p className="text-muted-foreground text-sm">
                   {t('selectStageFirst')}
                 </p>
               </div>

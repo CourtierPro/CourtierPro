@@ -35,5 +35,53 @@
             "inspection": "Inspection",
             "closing": "Closing"
         }
+    },
+    "types": {
+        "MORTGAGE_PRE_APPROVAL": "Mortgage Pre-Approval",
+        "MORTGAGE_APPROVAL": "Mortgage Approval",
+        "PROOF_OF_FUNDS": "Proof of Funds",
+        "ID_VERIFICATION": "ID Verification",
+        "EMPLOYMENT_LETTER": "Employment Letter",
+        "PAY_STUBS": "Pay Stubs",
+        "CREDIT_REPORT": "Credit Report",
+        "CERTIFICATE_OF_LOCATION": "Certificate of Location",
+        "PROMISE_TO_PURCHASE": "Promise to Purchase",
+        "INSPECTION_REPORT": "Inspection Report",
+        "INSURANCE_LETTER": "Insurance Letter",
+        "BANK_STATEMENT": "Bank Statement",
+        "OTHER": "Other"
+    },
+    "documentType": "Document Type",
+    "selectDocumentType": "Select a document type",
+    "documentTypeRequired": "Please select a document type",
+    "view": "View",
+    "upload": "Upload",
+    "lastUpdated": "Last updated",
+    "status": {
+        "REQUESTED": "Requested",
+        "SUBMITTED": "Submitted",
+        "APPROVED": "Approved",
+        "NEEDS_REVISION": "Needs Revision"
+    },
+    "errors": {
+        "viewFailed": "Failed to load document",
+        "uploadFailed": "Upload failed",
+        "fileTooLarge": "File is too large (max 25MB)"
+    },
+    "globalTitle": "My Documents",
+    "globalSubtitle": "View and manage all your documents across transactions.",
+    "uploadSuccess": "Document uploaded successfully",
+    "modals": {
+        "uploadDocument": "Upload Document"
+    },
+    "uploadingFor": "Uploading for",
+    "clickToSelectFile": "Click to select file",
+    "maxSize": "Max size: {{size}}",
+    "actions": {
+        "cancel": "Cancel",
+        "upload": "Upload"
+    },
+    "success": {
+        "documentUploaded": "Document uploaded successfully"
     }
 }

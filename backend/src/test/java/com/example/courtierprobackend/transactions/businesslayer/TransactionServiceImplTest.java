@@ -10,6 +10,7 @@ import com.example.courtierprobackend.transactions.datalayer.repositories.Transa
 import com.example.courtierprobackend.transactions.exceptions.DuplicateTransactionException;
 import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
 import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,11 +37,19 @@ class TransactionServiceImplTest {
     @Mock
     private TransactionRepository transactionRepository;
 
+    @Mock
+    private UserAccountRepository userAccountRepository;
+
     private TransactionServiceImpl transactionService;
 
     @BeforeEach
     void setup() {
-        transactionService = new TransactionServiceImpl(transactionRepository);
+        // Explicitly close mocks if open, though usually not needed with Extension, 
+        // but explicit open helps if Extension context is weird.
+        // Actually, just relying on constructor injection should be enough if fields are mocked.
+        // But let's try just fixing the logic first.
+        transactionService = new TransactionServiceImpl(transactionRepository, userAccountRepository);
+        lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
     }
 
     // ========== createTransaction Tests ==========
@@ -390,26 +399,74 @@ class TransactionServiceImplTest {
         // Arrange
         String brokerId = "broker-1";
         List<Transaction> transactions = List.of(new Transaction(), new Transaction());
-        when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(transactions);
+        when(transactionRepository.findAllByFilters(eq(brokerId), any(), any(), any())).thenReturn(transactions);
 
         // Act
-        List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(brokerId);
+        List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(brokerId, null, null, null);
 
         // Assert
         assertThat(result).hasSize(2);
-        verify(transactionRepository).findAllByBrokerId(brokerId);
+        verify(transactionRepository).findAllByFilters(eq(brokerId), any(), any(), any());
     }
 
     @Test
     void getBrokerTransactions_withNoBrokerTransactions_returnsEmptyList() {
         // Arrange
-        when(transactionRepository.findAllByBrokerId(anyString())).thenReturn(List.of());
+        when(transactionRepository.findAllByFilters(anyString(), any(), any(), any())).thenReturn(List.of());
 
         // Act
-        List<TransactionResponseDTO> result = transactionService.getBrokerTransactions("broker-1");
+        List<TransactionResponseDTO> result = transactionService.getBrokerTransactions("broker-1", null, null, null);
 
         // Assert
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getBrokerTransactions_withFilters_passesCorrectFilters() {
+        // Arrange
+        String brokerId = "broker-1";
+        
+        // Act
+        transactionService.getBrokerTransactions(brokerId, "ACTIVE", "BUY", "BUYER_PREQUALIFY_FINANCIALLY");
+
+        // Assert
+        verify(transactionRepository).findAllByFilters(eq(brokerId), eq(TransactionStatus.ACTIVE), any(), any());
+    }
+
+    @Test
+    void getBrokerTransactions_withInvalidStatus_passesNull() {
+        // Arrange
+        String brokerId = "broker-1";
+
+        // Act
+        transactionService.getBrokerTransactions(brokerId, "INVALID_STATUS", null, null);
+
+        // Assert
+        verify(transactionRepository).findAllByFilters(eq(brokerId), isNull(), isNull(), isNull());
+    }
+    
+    @Test
+    void getBrokerTransactions_withSellSideFilter_passesCorrectFilters() {
+        // Arrange
+        String brokerId = "broker-1";
+
+        // Act
+        transactionService.getBrokerTransactions(brokerId, null, "sell", "SELLER_INITIAL_CONSULTATION");
+
+        // Assert
+        verify(transactionRepository).findAllByFilters(eq(brokerId), isNull(), any(), any());
+    }
+    
+    @Test
+    void getBrokerTransactions_withInvalidFilters_passesNulls() {
+        // Arrange
+        String brokerId = "broker-1";
+
+        // Act
+        transactionService.getBrokerTransactions(brokerId, "invalid", "invalid", "invalid");
+
+        // Assert
+        verify(transactionRepository).findAllByFilters(eq(brokerId), isNull(), isNull(), isNull());
     }
 
     // ========== getByTransactionId Tests ==========
@@ -423,6 +480,7 @@ class TransactionServiceImplTest {
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(brokerId);
+        tx.setClientId("client-1");
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
 
         // Act
@@ -448,6 +506,7 @@ class TransactionServiceImplTest {
         // Arrange
         Transaction tx = new Transaction();
         tx.setBrokerId("different-broker");
+        tx.setClientId("client-1");
         when(transactionRepository.findByTransactionId(anyString())).thenReturn(Optional.of(tx));
 
         // Act & Assert

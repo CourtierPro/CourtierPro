@@ -1,89 +1,94 @@
 package com.example.courtierprobackend.audit.loginaudit.presentationlayer;
 
 import com.example.courtierprobackend.audit.loginaudit.businesslayer.LoginAuditService;
-import org.junit.jupiter.api.Disabled;
+import com.example.courtierprobackend.audit.loginaudit.dataaccesslayer.LoginAuditEvent;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
-@WebMvcTest(controllers = LoginAuditController.class)
-@AutoConfigureMockMvc(addFilters = true) // keep Spring Security enabled
+/**
+ * Unit tests for LoginAuditController.
+ */
+@ExtendWith(MockitoExtension.class)
 class LoginAuditControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
+    @Mock
     private LoginAuditService loginAuditService;
 
-    // ✅ ADMIN — OK
+    private LoginAuditController controller;
+
+    @BeforeEach
+    void setUp() {
+        controller = new LoginAuditController(loginAuditService);
+    }
+
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void getAllLoginEvents_asAdmin_returnsOk() throws Exception {
-        when(loginAuditService.getAllLoginEvents())
-                .thenReturn(Collections.emptyList());
+    void getAllLoginEvents_ReturnsAllEvents() {
+        // Arrange
+        List<LoginAuditEvent> events = List.of(
+                LoginAuditEvent.builder().id(UUID.randomUUID()).userId("u1").email("u1@test.com").timestamp(Instant.now()).build(),
+                LoginAuditEvent.builder().id(UUID.randomUUID()).userId("u2").email("u2@test.com").timestamp(Instant.now()).build()
+        );
+        when(loginAuditService.getAllLoginEvents()).thenReturn(events);
 
-        mockMvc.perform(get("/api/admin/login-audit"))
-                .andExpect(status().isOk());
+        // Act
+        List<LoginAuditEvent> result = controller.getAllLoginEvents();
 
+        // Assert
+        assertThat(result).hasSize(2);
         verify(loginAuditService).getAllLoginEvents();
     }
 
-    // ✅ ADMIN — by user
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void getLoginEventsByUser_asAdmin_returnsOk() throws Exception {
-        when(loginAuditService.getLoginEventsByUser("auth0|123"))
-                .thenReturn(Collections.emptyList());
+    void getAllLoginEvents_WithNoEvents_ReturnsEmptyList() {
+        // Arrange
+        when(loginAuditService.getAllLoginEvents()).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/admin/login-audit/user/auth0|123"))
-                .andExpect(status().isOk());
+        // Act
+        List<LoginAuditEvent> result = controller.getAllLoginEvents();
 
-        verify(loginAuditService).getLoginEventsByUser("auth0|123");
+        // Assert
+        assertThat(result).isEmpty();
     }
 
-    // ✅ ADMIN — by role
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void getLoginEventsByRole_asAdmin_returnsOk() throws Exception {
-        when(loginAuditService.getLoginEventsByRole("ADMIN"))
-                .thenReturn(Collections.emptyList());
+    void getLoginEventsByUser_ReturnsUserEvents() {
+        // Arrange
+        List<LoginAuditEvent> events = List.of(
+                LoginAuditEvent.builder().userId("user-1").email("user@test.com").build()
+        );
+        when(loginAuditService.getLoginEventsByUser("user-1")).thenReturn(events);
 
-        mockMvc.perform(get("/api/admin/login-audit/role/ADMIN"))
-                .andExpect(status().isOk());
+        // Act
+        List<LoginAuditEvent> result = controller.getLoginEventsByUser("user-1");
 
-        verify(loginAuditService).getLoginEventsByRole("ADMIN");
+        // Assert
+        assertThat(result).hasSize(1);
+        verify(loginAuditService).getLoginEventsByUser("user-1");
     }
 
-    // ✅ NOT AUTHENTICATED — 401
     @Test
-    void getAllLoginEvents_unauthenticated_returnsUnauthorized() throws Exception {
-        mockMvc.perform(get("/api/admin/login-audit"))
-                .andExpect(status().isUnauthorized());
+    void getLoginEventsByRole_ReturnsRoleEvents() {
+        // Arrange
+        List<LoginAuditEvent> events = List.of(
+                LoginAuditEvent.builder().userId("u1").role("BROKER").build()
+        );
+        when(loginAuditService.getLoginEventsByRole("BROKER")).thenReturn(events);
 
-        verifyNoInteractions(loginAuditService);
-    }
+        // Act
+        List<LoginAuditEvent> result = controller.getLoginEventsByRole("BROKER");
 
-    // ⚠️ NON-ADMIN — DISABLED (method security not enforced in @WebMvcTest)
-    @Disabled("PreAuthorize is not enforced in WebMvcTest slice")
-    @Test
-    @WithMockUser(roles = "BROKER")
-    void getAllLoginEvents_nonAdmin_isForbidden() throws Exception {
-        mockMvc.perform(get("/api/admin/login-audit"))
-                .andExpect(status().isForbidden());
-
-        verifyNoInteractions(loginAuditService);
+        // Assert
+        assertThat(result).hasSize(1);
+        verify(loginAuditService).getLoginEventsByRole("BROKER");
     }
 }

@@ -1,6 +1,7 @@
 // frontend/src/pages/admin/SystemLogsPage.tsx
 import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 import { PageHeader } from "@/shared/components/branded/PageHeader";
@@ -42,8 +43,8 @@ export function SystemLogsPage() {
           setLogs(data);
           setError(null);
         }
-      } catch (err) {
-        console.error("Failed to load system logs", err);
+      } catch {
+        toast.error(t("settings.errors.loadFailed"));
         if (isMounted) {
           setError(t("settings.errors.loadFailed"));
         }
@@ -141,9 +142,8 @@ export function SystemLogsPage() {
               {logs.map((log, index) => (
                 <Fragment key={log.id}>
                   <TableRow
-                    className={`system-logs-row cursor-pointer hover:bg-muted/50 system-logs-row-${
-                      index + 1
-                    }`}
+                    className={`system-logs-row cursor-pointer hover:bg-muted/50 system-logs-row-${index + 1
+                      }`}
                     onClick={() => toggleRow(log.id)}
                   >
                     <TableCell>

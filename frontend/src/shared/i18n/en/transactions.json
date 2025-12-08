@@ -169,5 +169,30 @@
   "goHome": "Go Home",
   "stepOf": "Step {{current}} of {{total}}",
   "transactionId": "Transaction ID",
-  "quickActions": "Quick Actions"
+  "quickActions": "Quick Actions",
+  "stages": {
+    "buy": {
+      "buyer_prequalify_financially": "Prequalify Financially",
+      "buyer_shop_for_property": "Shop for Property",
+      "buyer_submit_offer": "Submit Offer",
+      "buyer_offer_accepted": "Offer Accepted",
+      "buyer_home_inspection": "Home Inspection",
+      "buyer_financing_finalized": "Financing Finalized",
+      "buyer_first_notary_appointment": "First Notary Appointment",
+      "buyer_second_notary_appointment": "Second Notary Appointment",
+      "buyer_occupancy": "Occupancy",
+      "buyer_terminated": "Terminated"
+    },
+    "sell": {
+      "seller_initial_consultation": "Initial Consultation",
+      "seller_listing_published": "Listing Published",
+      "seller_review_offers": "Review Offers",
+      "seller_accept_best_offer": "Accept Best Offer",
+      "seller_conditions_met": "Conditions Met",
+      "seller_notary_coordination": "Notary Coordination",
+      "seller_notary_appointment": "Notary Appointment",
+      "seller_handover_keys": "Handover Keys",
+      "seller_terminated": "Terminated"
+    }
+  }
 }

@@ -78,12 +78,12 @@ export function TransactionSummary({ transactionId }: TransactionSummaryProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 p-6 rounded-xl shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
+        <div className="lg:col-span-2 p-6 rounded-xl shadow-md bg-white">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('transactionDetails')}</h3>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
             <div>
               <dt className="text-sm font-medium text-gray-500">{t('client')}</dt>
-              <dd className="mt-1 text-sm text-gray-900">{transaction.clientId}</dd>
+              <dd className="mt-1 text-sm text-gray-900">{transaction.clientName}</dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">{t('status')}</dt>
@@ -110,7 +110,7 @@ export function TransactionSummary({ transactionId }: TransactionSummaryProps) {
         </div>
 
         <div className="space-y-6">
-          <div className="p-6 rounded-xl shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
+          <div className="p-6 rounded-xl shadow-md bg-white">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('quickActions')}</h3>
             <div className="space-y-3">
               <Button className="w-full">

@@ -1,6 +1,6 @@
 package com.example.courtierprobackend.user.datamapperlayer;
 
-import com.example.courtierprobackend.datamapperlayer.UserMapper;
+import com.example.courtierprobackend.user.mapper.UserMapper;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
 import com.example.courtierprobackend.user.presentationlayer.request.CreateUserRequest;
@@ -52,7 +52,7 @@ class UserMapperTest {
 
         UserResponse response = mapper.toResponse(account);
 
-        assertThat(response.getId()).isEqualTo(account.getId());
+        assertThat(response.getId()).isEqualTo(account.getAuth0UserId());
         assertThat(response.getEmail()).isEqualTo("broker@test.com");
         assertThat(response.getFirstName()).isEqualTo("Jane");
         assertThat(response.getLastName()).isEqualTo("Smith");

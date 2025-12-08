@@ -61,12 +61,12 @@ export function TransactionTable({ transactions, onNavigate }: TransactionTableP
                                 }}
                                 tabIndex={0}
                                 className="border-t border-border hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary cursor-pointer transition-colors"
-                                aria-label={`View transaction for ${transaction.clientId}`}
+                                aria-label={`View transaction for ${transaction.clientName}`}
                             >
                                 <td className="p-4 text-foreground">
                                     <div className="flex items-center gap-2">
                                         <Users className="w-4 h-4 text-primary" />
-                                        {transaction.clientId}
+                                        {transaction.clientName}
                                     </div>
                                 </td>
                                 <td className="p-4 text-foreground">

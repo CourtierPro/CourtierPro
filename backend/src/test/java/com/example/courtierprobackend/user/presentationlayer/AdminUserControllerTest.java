@@ -69,7 +69,7 @@ class AdminUserControllerTest {
     void getAllUsers_ReturnsUsersList() throws Exception {
         // Arrange
         UserResponse user1 = UserResponse.builder()
-                .id(UUID.randomUUID())
+                .id(UUID.randomUUID().toString())
                 .email("user1@test.com")
                 .firstName("John")
                 .lastName("Doe")
@@ -79,7 +79,7 @@ class AdminUserControllerTest {
                 .build();
 
         UserResponse user2 = UserResponse.builder()
-                .id(UUID.randomUUID())
+                .id(UUID.randomUUID().toString())
                 .email("user2@test.com")
                 .firstName("Jane")
                 .lastName("Smith")
@@ -114,7 +114,7 @@ class AdminUserControllerTest {
                 .build();
 
         UserResponse response = UserResponse.builder()
-                .id(UUID.randomUUID())
+                .id(UUID.randomUUID().toString())
                 .email("newuser@test.com")
                 .firstName("New")
                 .lastName("User")
@@ -126,7 +126,7 @@ class AdminUserControllerTest {
         when(userProvisioningService.createUser(any(CreateUserRequest.class))).thenReturn(response);
 
         // Act & Assert
-        mockMvc.perform(post("/api/admin/users/invite")
+        mockMvc.perform(post("/api/admin/users")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -149,7 +149,7 @@ class AdminUserControllerTest {
                 .build();
 
         UserResponse response = UserResponse.builder()
-                .id(userId)
+                .id(userId.toString())
                 .email("user@test.com")
                 .firstName("John")
                 .lastName("Doe")
@@ -170,6 +170,20 @@ class AdminUserControllerTest {
                 .andExpect(jsonPath("$.active").value(false));
 
         verify(userProvisioningService).updateStatus(eq(userId), any(UpdateStatusRequest.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void triggerPasswordReset_WithValidUserId_ReturnsOk() throws Exception {
+        // Arrange
+        UUID userId = UUID.randomUUID();
+
+        // Act & Assert
+        mockMvc.perform(post("/api/admin/users/{userId}/password-reset", userId)
+                        .with(csrf()))
+                .andExpect(status().isOk());
+
+        verify(userProvisioningService).triggerPasswordReset(userId);
     }
 
 }

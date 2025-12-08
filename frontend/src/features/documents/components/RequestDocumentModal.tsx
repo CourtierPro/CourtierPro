@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, FileText } from 'lucide-react';
+import { Send, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -11,11 +11,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/shared/components/ui/dialog';
+import { Label } from '@/shared/components/ui/label';
+import { DocumentTypeEnum } from '@/features/documents/types';
+
+import { useTransactionStages } from '@/features/transactions/hooks/useTransactionStages';
+import { enumToLabel } from '@/shared/utils/stages';
 
 interface RequestDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (documentTitle: string, instructions: string, stage: string) => void;
+  onSubmit: (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string) => void;
   transactionType: 'buy' | 'sell';
   currentStage: string;
 }
@@ -28,79 +40,87 @@ export function RequestDocumentModal({
   currentStage,
 }: RequestDocumentModalProps) {
   const { t, i18n } = useTranslation('documents');
-  const [documentTitle, setDocumentTitle] = useState('');
+  const [selectedDocType, setSelectedDocType] = useState<DocumentTypeEnum | ''>('');
+  const [customTitle, setCustomTitle] = useState('');
   const [instructions, setInstructions] = useState('');
   const [selectedStage, setSelectedStage] = useState('');
-  const [errors, setErrors] = useState<{ title?: string; stage?: string }>({});
+  const [errors, setErrors] = useState<{ docType?: string; customTitle?: string; stage?: string }>({});
 
-  const modalRef = useRef<HTMLDivElement>(null);
-  const firstInputRef = useRef<HTMLInputElement>(null);
+  const customTitleInputRef = useRef<HTMLInputElement>(null);
 
-  const stages = t('stages', { returnObjects: true }) as Record<string, Record<string, string>>;
-  const stageOptions = stages[transactionType] ? Object.entries(stages[transactionType]) : [];
+  // Fetch dynamic stages from backend
+  const side = transactionType === 'buy' ? 'BUY_SIDE' : 'SELL_SIDE';
+  const { stages, isLoading: isLoadingStages } = useTransactionStages(side);
 
-  useEffect(() => {
-    if (isOpen) {
-      setDocumentTitle('');
+  // Map stages to options (value = enum, label = formatted string)
+  const stageOptions = stages.map(stage => ({
+    value: stage,
+    label: enumToLabel(stage)
+  }));
+
+  // Define which documents are for which side
+  const buySideDocs = [
+    DocumentTypeEnum.MORTGAGE_PRE_APPROVAL,
+    DocumentTypeEnum.MORTGAGE_APPROVAL,
+    DocumentTypeEnum.PROOF_OF_FUNDS,
+    DocumentTypeEnum.ID_VERIFICATION,
+    DocumentTypeEnum.EMPLOYMENT_LETTER,
+    DocumentTypeEnum.PAY_STUBS,
+    DocumentTypeEnum.CREDIT_REPORT,
+    DocumentTypeEnum.PROMISE_TO_PURCHASE,
+    DocumentTypeEnum.INSPECTION_REPORT,
+    DocumentTypeEnum.INSURANCE_LETTER,
+    DocumentTypeEnum.BANK_STATEMENT,
+    DocumentTypeEnum.OTHER,
+  ];
+
+  const sellSideDocs = [
+    DocumentTypeEnum.CERTIFICATE_OF_LOCATION,
+    DocumentTypeEnum.ID_VERIFICATION,
+    DocumentTypeEnum.PROMISE_TO_PURCHASE,
+    DocumentTypeEnum.INSPECTION_REPORT,
+    DocumentTypeEnum.OTHER,
+  ];
+
+  const availableDocs = transactionType === 'buy' ? buySideDocs : sellSideDocs;
+
+  const docTypeOptions = availableDocs;
+
+  // Track previous isOpen state to detect when modal opens
+  const prevIsOpenRef = useRef(false);
+
+  // Reset form state when modal opens using useLayoutEffect (runs synchronously after DOM mutations)
+  // Using useLayoutEffect avoids the "setState in useEffect causes cascading renders" lint error
+  // because it's designed for synchronous updates
+  React.useLayoutEffect(() => {
+    if (isOpen && !prevIsOpenRef.current) {
+      // Modal just opened - reset all form state
+      setSelectedDocType('');
+      setCustomTitle('');
       setInstructions('');
       setSelectedStage(currentStage);
       setErrors({});
-
-      setTimeout(() => {
-        firstInputRef.current?.focus();
-      }, 100);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, currentStage]);
 
   useEffect(() => {
-    if (!isOpen) return;
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    const handleTabKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return;
-
-      const focusableElements = modalRef.current?.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-
-      if (!focusableElements || focusableElements.length === 0) return;
-
-      const firstElement = focusableElements[0] as HTMLElement;
-      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-
-      if (e.shiftKey) {
-        if (document.activeElement === firstElement) {
-          e.preventDefault();
-          lastElement.focus();
-        }
-      } else {
-        if (document.activeElement === lastElement) {
-          e.preventDefault();
-          firstElement.focus();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    document.addEventListener('keydown', handleTabKey);
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.removeEventListener('keydown', handleTabKey);
-    };
-  }, [isOpen, onClose]);
+    if (selectedDocType === DocumentTypeEnum.OTHER) {
+      setTimeout(() => {
+        customTitleInputRef.current?.focus();
+      }, 100);
+    }
+  }, [selectedDocType]);
 
   const validateForm = (): boolean => {
-    const newErrors: { title?: string; stage?: string } = {};
+    const newErrors: { docType?: string; customTitle?: string; stage?: string } = {};
 
-    if (!documentTitle.trim()) {
-      newErrors.title = t('documentTitleRequired');
+    if (!selectedDocType) {
+      newErrors.docType = t('documentTypeRequired');
+    }
+
+    if (selectedDocType === DocumentTypeEnum.OTHER && !customTitle.trim()) {
+      newErrors.customTitle = t('documentTitleRequired');
     }
 
     if (!selectedStage) {
@@ -115,212 +135,183 @@ export function RequestDocumentModal({
     e.preventDefault();
 
     if (validateForm()) {
-      onSubmit(documentTitle.trim(), instructions.trim(), selectedStage);
+      onSubmit(
+        selectedDocType as DocumentTypeEnum,
+        selectedDocType === DocumentTypeEnum.OTHER ? customTitle.trim() : '',
+        instructions.trim(),
+        selectedStage
+      );
       onClose();
     }
   };
 
-  const isFormValid = documentTitle.trim().length > 0 && selectedStage.length > 0;
-
-  if (!isOpen) return null;
+  const isFormValid =
+    selectedDocType &&
+    (selectedDocType !== DocumentTypeEnum.OTHER || customTitle.trim().length > 0) &&
+    selectedStage.length > 0;
 
   return (
-    <div
-      className="fixed inset-0 bg-gray-900 bg-opacity-20 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-      aria-hidden={!isOpen}
-    >
-      <div
-        ref={modalRef}
-        className="rounded-xl shadow-xl w-full max-w-lg mx-auto"
-        style={{ backgroundColor: '#FFFFFF' }}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="request-document-modal-title"
-      >
-        <form onSubmit={handleSubmit}>
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <div className="flex items-center gap-3">
-              <div
-                className="p-2 rounded-lg"
-                style={{ backgroundColor: '#FFF5F0' }}
-              >
-                <FileText className="w-6 h-6" style={{ color: '#FF6B01' }} />
-              </div>
-              <h2 id="request-document-modal-title" style={{ color: '#353535' }}>
-                {t('title')}
-              </h2>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-orange-50">
+              <FileText className="w-6 h-6 text-orange-500" />
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              aria-label="Close modal"
+            <DialogTitle className="text-gray-800">{t('title')}</DialogTitle>
+          </div>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6 py-4">
+
+          {/* Document Type Select */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="document-type" className="text-gray-700">
+                {t('documentType')}
+              </Label>
+              <span className="text-red-500 text-sm">{t('required')}</span>
+            </div>
+            <Select
+              value={selectedDocType}
+              onValueChange={(value) => {
+                setSelectedDocType(value as DocumentTypeEnum);
+                if (errors.docType) {
+                  setErrors({ ...errors, docType: undefined });
+                }
+              }}
             >
-              <X className="w-5 h-5" />
-            </Button>
+              <SelectTrigger
+                id="document-type"
+                className={errors.docType ? 'border-red-500' : ''}
+              >
+                <SelectValue placeholder={t('selectDocumentType')} />
+              </SelectTrigger>
+              <SelectContent>
+                {docTypeOptions.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {t(`types.${type}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.docType && (
+              <p className="text-red-500 text-sm">{errors.docType}</p>
+            )}
           </div>
 
-          <div className="p-6 space-y-6">
-            <div>
-              <label
-                htmlFor="document-title"
-                style={{ color: '#353535' }}
-                className="block mb-2 flex items-center justify-between"
-              >
-                <span>{t('documentTitle')}</span>
-                <span
-                  style={{ color: '#ef4444', fontSize: '0.875rem' }}
-                  aria-label="required"
-                >
-                  {t('required')}
-                </span>
-              </label>
+          {/* Custom Title Input (Conditional) */}
+          {selectedDocType === DocumentTypeEnum.OTHER && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="custom-title" className="text-gray-700">
+                  {t('documentTitle')}
+                </Label>
+                <span className="text-red-500 text-sm">{t('required')}</span>
+              </div>
               <Input
-                ref={firstInputRef}
+                ref={customTitleInputRef}
                 type="text"
-                id="document-title"
-                value={documentTitle}
+                id="custom-title"
+                value={customTitle}
                 onChange={(e) => {
-                  setDocumentTitle(e.target.value);
-                  if (errors.title) {
-                    setErrors({ ...errors, title: undefined });
+                  setCustomTitle(e.target.value);
+                  if (errors.customTitle) {
+                    setErrors({ ...errors, customTitle: undefined });
                   }
                 }}
                 placeholder={t('documentTitlePlaceholder')}
-                className={errors.title ? 'border-red-500' : ''}
-                aria-required="true"
-                aria-invalid={!!errors.title}
-                aria-describedby={errors.title ? 'title-error' : undefined}
+                className={errors.customTitle ? 'border-red-500' : ''}
+                aria-invalid={!!errors.customTitle}
               />
-              {errors.title && (
-                <p
-                  id="title-error"
-                  style={{ color: '#ef4444', fontSize: '0.875rem' }}
-                  className="mt-2"
-                  role="alert"
-                >
-                  {errors.title}
-                </p>
+              {errors.customTitle && (
+                <p className="text-red-500 text-sm">{errors.customTitle}</p>
               )}
             </div>
+          )}
 
-            <div>
-              <label
-                htmlFor="instructions"
-                style={{ color: '#353535' }}
-                className="block mb-2 flex items-center justify-between"
-              >
-                <span>{t('instructions')}</span>
-                <span
-                  style={{ color: '#6b7280', fontSize: '0.875rem' }}
-                  aria-label="optional"
-                >
-                  {t('optional')}
-                </span>
-              </label>
-              <Textarea
-                id="instructions"
-                value={instructions}
-                onChange={(e) => setInstructions(e.target.value)}
-                placeholder={t('instructionsPlaceholder')}
-                rows={4}
-                aria-required="false"
-              />
-              <p
-                style={{ color: '#6b7280', fontSize: '0.875rem' }}
-                className="mt-2"
-              >
-                {instructions.length} {i18n.language === 'en' ? 'characters' : 'caractères'}
-              </p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="instructions" className="text-gray-700">
+                {t('instructions')}
+              </Label>
+              <span className="text-gray-500 text-sm">{t('optional')}</span>
             </div>
-
-            <div>
-              <label
-                htmlFor="associated-stage"
-                style={{ color: '#353535' }}
-                className="block mb-2 flex items-center justify-between"
-              >
-                <span>{t('associatedStage')}</span>
-                <span
-                  style={{ color: '#ef4444', fontSize: '0.875rem' }}
-                  aria-label="required"
-                >
-                  {t('required')}
-                </span>
-              </label>
-              <Select
-                value={selectedStage}
-                onValueChange={(value) => {
-                  setSelectedStage(value);
-                  if (errors.stage) {
-                    setErrors({ ...errors, stage: undefined });
-                  }
-                }}
-              >
-                <SelectTrigger
-                  id="associated-stage"
-                  className={`w-full ${errors.stage ? 'border-red-500' : ''}`}
-                  aria-required="true"
-                  aria-invalid={!!errors.stage}
-                  aria-describedby={errors.stage ? 'stage-error' : undefined}
-                >
-                  <SelectValue placeholder={t('selectStage')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {stageOptions.map(([key, value]) => (
-                    <SelectItem key={key} value={value}>
-                      {value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.stage && (
-                <p
-                  id="stage-error"
-                  style={{ color: '#ef4444', fontSize: '0.875rem' }}
-                  className="mt-2"
-                  role="alert"
-                >
-                  {errors.stage}
-                </p>
-              )}
-            </div>
-
-            <div
-              className="p-4 rounded-lg border-2"
-              style={{ borderColor: '#e5e7eb', backgroundColor: '#f9fafb' }}
-            >
-              <p style={{ color: '#353535', fontSize: '0.875rem' }}
-                dangerouslySetInnerHTML={{
-                  __html: t('infoText', { stage: selectedStage || (i18n.language === 'en' ? 'selected stage' : 'sélectionnée') })
-                }}
-              />
-            </div>
+            <Textarea
+              id="instructions"
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              placeholder={t('instructionsPlaceholder')}
+              rows={4}
+            />
+            <p className="text-gray-500 text-sm text-right">
+              {instructions.length} {i18n.language === 'en' ? 'characters' : 'caractères'}
+            </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-6 border-t border-gray-200 bg-gray-50">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="flex-1"
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="associated-stage" className="text-gray-700">
+                {t('associatedStage')}
+              </Label>
+              <span className="text-red-500 text-sm">{t('required')}</span>
+            </div>
+            <Select
+              value={selectedStage}
+              onValueChange={(value) => {
+                setSelectedStage(value);
+                if (errors.stage) {
+                  setErrors({ ...errors, stage: undefined });
+                }
+              }}
             >
+              <SelectTrigger
+                id="associated-stage"
+                className={errors.stage ? 'border-red-500' : ''}
+              >
+                <SelectValue placeholder={t('selectStage')} />
+              </SelectTrigger>
+              <SelectContent>
+                {isLoadingStages ? (
+                  <div className="p-2 text-sm text-gray-500 text-center">
+                    {t('loading')}...
+                  </div>
+                ) : (
+                  stageOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {errors.stage && (
+              <p className="text-red-500 text-sm">{errors.stage}</p>
+            )}
+          </div>
+
+          <div className="p-4 rounded-lg border-2 border-gray-200 bg-gray-50">
+            <p
+              className="text-gray-700 text-sm"
+              dangerouslySetInnerHTML={{
+                __html: t('infoText', {
+                  stage: selectedStage || (i18n.language === 'en' ? 'selected stage' : 'sélectionnée'),
+                }),
+              }}
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={onClose}>
               {t('cancel')}
             </Button>
-            <Button
-              type="submit"
-              disabled={!isFormValid}
-              className="flex-1 gap-2"
-            >
-              <Send className="w-5 h-5" />
+            <Button type="submit" disabled={!isFormValid} className="gap-2">
+              <Send className="w-4 h-4" />
               {t('sendRequest')}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

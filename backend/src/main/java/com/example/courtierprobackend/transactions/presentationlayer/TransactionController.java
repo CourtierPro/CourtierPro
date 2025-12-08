@@ -22,17 +22,16 @@ import java.util.List;
 @RestController
 @RequestMapping("/transactions")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('BROKER')")
 public class TransactionController {
 
     private final TransactionService service;
 
-    // -------- BrokerId extraction (PROD = Auth0, DEV = x-broker-id) --------
-    private String resolveBrokerId(Jwt jwt, String headerBrokerId) {
+    // -------- UserId extraction (PROD = Auth0, DEV = x-broker-id / x-user-id) --------
+    private String resolveUserId(Jwt jwt, String headerId) {
 
-        // DEV mode: x-broker-id header
-        if (StringUtils.hasText(headerBrokerId)) {
-            return headerBrokerId;
+        // DEV mode: header
+        if (StringUtils.hasText(headerId)) {
+            return headerId;
         }
 
         // PROD mode: Auth0 token
@@ -50,12 +49,13 @@ public class TransactionController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<TransactionResponseDTO> createTransaction(
             @Valid @RequestBody TransactionRequestDTO dto,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        String brokerId = resolveBrokerId(jwt, brokerHeader);
+        String brokerId = resolveUserId(jwt, brokerHeader);
         dto.setBrokerId(brokerId);
 
         TransactionResponseDTO response = service.createTransaction(dto);
@@ -63,13 +63,14 @@ public class TransactionController {
     }
 
     @PostMapping("/{transactionId}/notes")
+    @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<TimelineEntryDTO> createNote(
             @PathVariable String transactionId,
             @Valid @RequestBody NoteRequestDTO note,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        String brokerId = resolveBrokerId(jwt, brokerHeader);
+        String brokerId = resolveUserId(jwt, brokerHeader);
         note.setTransactionId(transactionId);
 
         TimelineEntryDTO created = service.createNote(transactionId, note, brokerId);
@@ -77,31 +78,37 @@ public class TransactionController {
     }
 
     @GetMapping("/{transactionId}/notes")
+    @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<List<TimelineEntryDTO>> getNotes(
             @PathVariable String transactionId,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        String brokerId = resolveBrokerId(jwt, brokerHeader);
+        String brokerId = resolveUserId(jwt, brokerHeader);
         return ResponseEntity.ok(service.getNotes(transactionId, brokerId));
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<List<TransactionResponseDTO>> getBrokerTransactions(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String stage,
+            @RequestParam(required = false) String side,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        String brokerId = resolveBrokerId(jwt, brokerHeader);
-        return ResponseEntity.ok(service.getBrokerTransactions(brokerId));
+        String brokerId = resolveUserId(jwt, brokerHeader);
+        return ResponseEntity.ok(service.getBrokerTransactions(brokerId, status, stage, side));
     }
 
     @GetMapping("/{transactionId}")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
     public ResponseEntity<TransactionResponseDTO> getTransactionById(
             @PathVariable String transactionId,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        String brokerId = resolveBrokerId(jwt, brokerHeader);
-        return ResponseEntity.ok(service.getByTransactionId(transactionId, brokerId));
+        String userId = resolveUserId(jwt, brokerHeader);
+        return ResponseEntity.ok(service.getByTransactionId(transactionId, userId));
     }
 }

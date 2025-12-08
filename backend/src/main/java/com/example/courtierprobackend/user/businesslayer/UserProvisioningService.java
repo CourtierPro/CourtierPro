@@ -2,12 +2,12 @@ package com.example.courtierprobackend.user.businesslayer;
 
 import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
-import com.example.courtierprobackend.datamapperlayer.UserMapper;
 import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
 import com.example.courtierprobackend.user.domainclientlayer.auth0.Auth0ManagementClient;
+import com.example.courtierprobackend.user.mapper.UserMapper;
 import com.example.courtierprobackend.user.presentationlayer.request.CreateUserRequest;
 import com.example.courtierprobackend.user.presentationlayer.request.UpdateStatusRequest;
 import com.example.courtierprobackend.user.presentationlayer.response.UserResponse;
@@ -23,8 +23,7 @@ import java.util.UUID;
 @Service
 public class UserProvisioningService {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(UserProvisioningService.class);
+    private static final Logger logger = LoggerFactory.getLogger(UserProvisioningService.class);
 
     private final UserAccountRepository userAccountRepository;
     private final Auth0ManagementClient auth0ManagementClient;
@@ -44,12 +43,21 @@ public class UserProvisioningService {
         this.emailService = emailService;
     }
 
+
     public List<UserResponse> getAllUsers() {
         return userAccountRepository.findAll()
                 .stream()
                 .map(userMapper::toResponse)
                 .toList();
     }
+
+    public List<UserResponse> getClients() {
+        return userAccountRepository.findByRole(UserRole.CLIENT)
+                .stream()
+                .map(userMapper::toResponse)
+                .toList();
+    }
+
 
     public UserResponse createUser(CreateUserRequest request) {
 
@@ -77,41 +85,8 @@ public class UserProvisioningService {
                 effectiveLanguage
         );
 
-        // We use the *last* '|' as separator so it works even if the auth0UserId contains a '|'
-        String auth0UserId;
-        String passwordSetupUrl = null;
-
-        int separatorIndex = result.lastIndexOf('|');
-        if (separatorIndex == -1) {
-            auth0UserId = result;
-            logger.warn(
-                    "Auth0 createUser result did not contain a password setup URL separator '|'. Value was: {}",
-                    result
-            );
-        } else {
-            auth0UserId = result.substring(0, separatorIndex);
-
-            if (separatorIndex < result.length() - 1) {
-                passwordSetupUrl = result.substring(separatorIndex + 1);
-            }
-        }
-
-        // Send invitation email if we have a password setup URL
-        if (passwordSetupUrl != null) {
-            boolean emailSent = emailService.sendPasswordSetupEmail(
-                    request.getEmail(),
-                    passwordSetupUrl,
-                    effectiveLanguage
-            );
-
-            if (!emailSent) {
-                logger.warn(
-                        "User created (Auth0 id: {}) but password setup email could not be sent to {}",
-                        auth0UserId,
-                        request.getEmail()
-                );
-            }
-        }
+        // Auth0 createUser returns just the auth0UserId
+        String auth0UserId = result;
 
         // Create local user record
         UserAccount account = userMapper.toNewUserEntity(request, auth0UserId);
@@ -123,8 +98,20 @@ public class UserProvisioningService {
 
         UserAccount saved = userAccountRepository.save(account);
 
+        // Generate password change ticket and send welcome email
+        try {
+            String passwordSetupUrl = auth0ManagementClient.createPasswordChangeTicket(auth0UserId);
+            emailService.sendPasswordSetupEmail(request.getEmail(), passwordSetupUrl, effectiveLanguage);
+        } catch (Exception e) {
+            // Log error but don't fail the user creation
+            // The admin can resend the invite later if needed
+            logger.warn("User created (Auth0 id: {}) but password setup email could not be sent to {}: {}",
+                    auth0UserId, request.getEmail(), e.getMessage());
+        }
+
         return userMapper.toResponse(saved);
     }
+
 
     public UserResponse updateStatus(UUID userId, UpdateStatusRequest request) {
         UserAccount account = userAccountRepository.findById(userId)
@@ -139,5 +126,30 @@ public class UserProvisioningService {
         auth0ManagementClient.setBlocked(account.getAuth0UserId(), !active);
 
         return userMapper.toResponse(saved);
+    }
+    public void triggerPasswordReset(UUID userId) {
+        UserAccount account = userAccountRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (account.getAuth0UserId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User has no Auth0 ID");
+        }
+
+        try {
+            // 1. Generate password change ticket
+            String ticketUrl = auth0ManagementClient.createPasswordChangeTicket(account.getAuth0UserId());
+
+            // 2. Determine language (fallback to org default if null)
+            String language = account.getPreferredLanguage();
+            if (language == null) {
+                language = organizationSettingsService.getSettings().getDefaultLanguage();
+            }
+
+            // 3. Send email
+            emailService.sendPasswordSetupEmail(account.getEmail(), ticketUrl, language);
+        } catch (Exception e) {
+            logger.error("Failed to trigger password reset for user {}", userId, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to trigger password reset", e);
+        }
     }
 }

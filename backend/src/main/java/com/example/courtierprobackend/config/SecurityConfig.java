@@ -58,7 +58,14 @@ public class SecurityConfig {
                         // TODO: Implement webhook signature verification (HMAC/JWT) or IP allowlisting
                         // Currently exposed without authentication - Auth0 should sign webhook payloads
                         .requestMatchers("/api/webhooks/**").permitAll()
-                        // Broker-only transaction APIs
+                        // Document APIs
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/documents").hasAnyRole("BROKER", "CLIENT")
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*").hasAnyRole("BROKER", "CLIENT")
+                        .requestMatchers(HttpMethod.POST, "/transactions/*/documents/*/submit").hasAnyRole("BROKER", "CLIENT")
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*/documents/*/download").hasAnyRole("BROKER", "CLIENT")
+
+                        // Transaction APIs
+                        .requestMatchers(HttpMethod.GET, "/transactions/*").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers("/transactions/**").hasRole("BROKER")
 
                         // Everything else must be authenticated
@@ -85,7 +92,7 @@ public class SecurityConfig {
 
         if (rolesObj instanceof Collection<?> roles) {
             for (Object role : roles) {
-                String roleName = String.valueOf(role);
+                String roleName = String.valueOf(role).toUpperCase();
                 authorities.add(new SimpleGrantedAuthority("ROLE_" + roleName));
             }
         }

@@ -2,8 +2,19 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 import { InviteUserModal } from "@/features/admin/components/InviteUserModal";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { Textarea } from "@/shared/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 
 import {
   getOrganizationSettings,
@@ -42,8 +53,8 @@ export function AdminSettingsPage() {
           inviteSubjectFr: data.inviteSubjectFr,
           inviteBodyFr: data.inviteBodyFr,
         });
-      } catch (err) {
-        console.error(err);
+      } catch {
+        toast.error(t("settings.errors.loadFailed"));
         setError(t("settings.errors.loadFailed"));
       } finally {
         setIsLoading(false);
@@ -93,8 +104,8 @@ export function AdminSettingsPage() {
       });
 
       setSaveMessage(t("settings.messages.saved"));
-    } catch (err) {
-      console.error(err);
+    } catch {
+      toast.error(t("settings.errors.saveFailed"));
       setError(t("settings.errors.saveFailed"));
     } finally {
       setIsSaving(false);
@@ -147,16 +158,21 @@ export function AdminSettingsPage() {
                     {t("settings.defaultLanguageCard.label")}
                   </label>
 
-                  <select
-                    name="defaultLanguage"
-                    value={form?.defaultLanguage ?? ""}
-                    className="admin-settings-select"
+                  <Select
+                    value={form?.defaultLanguage ?? "en"}
+                    onValueChange={(value) => {
+                      setForm((prev) => prev ? { ...prev, defaultLanguage: value } : prev);
+                    }}
                     disabled={isDisabled}
-                    onChange={handleChange}
                   >
-                    <option value="en">{t("settings.languages.en")}</option>
-                    <option value="fr">{t("settings.languages.fr")}</option>
-                  </select>
+                    <SelectTrigger className="admin-settings-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">{t("settings.languages.en")}</SelectItem>
+                      <SelectItem value="fr">{t("settings.languages.fr")}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </form>
             </div>
@@ -188,7 +204,7 @@ export function AdminSettingsPage() {
                       <label className="admin-settings-field-label">
                         {t("settings.templatesCard.subject")}
                       </label>
-                      <input
+                      <Input
                         type="text"
                         name="inviteSubjectEn"
                         className="admin-settings-input"
@@ -202,7 +218,7 @@ export function AdminSettingsPage() {
                       <label className="admin-settings-field-label">
                         {t("settings.templatesCard.body")}
                       </label>
-                      <textarea
+                      <Textarea
                         name="inviteBodyEn"
                         className="admin-settings-textarea"
                         disabled={isDisabled}
@@ -222,7 +238,7 @@ export function AdminSettingsPage() {
                       <label className="admin-settings-field-label">
                         {t("settings.templatesCard.subjectFr")}
                       </label>
-                      <input
+                      <Input
                         type="text"
                         name="inviteSubjectFr"
                         className="admin-settings-input"
@@ -236,7 +252,7 @@ export function AdminSettingsPage() {
                       <label className="admin-settings-field-label">
                         {t("settings.templatesCard.bodyFr")}
                       </label>
-                      <textarea
+                      <Textarea
                         name="inviteBodyFr"
                         className="admin-settings-textarea"
                         disabled={isDisabled}
@@ -248,13 +264,13 @@ export function AdminSettingsPage() {
                 </div>
 
                 <div className="admin-settings-actions">
-                  <button
+                  <Button
                     type="submit"
                     disabled={isDisabled}
                     className="admin-settings-saveButton"
                   >
                     {t("settings.saveButton")}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>

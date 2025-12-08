@@ -106,7 +106,7 @@ class TransactionControllerTest {
                 .brokerId("auth0|broker-1")
                 .build();
 
-        when(transactionService.getBrokerTransactions("auth0|broker-1"))
+        when(transactionService.getBrokerTransactions(eq("auth0|broker-1"), any(), any(), any()))
                 .thenReturn(List.of(tx1, tx2));
 
         // Act & Assert
@@ -117,14 +117,14 @@ class TransactionControllerTest {
                 .andExpect(jsonPath("$[0].transactionId").value("TX-1"))
                 .andExpect(jsonPath("$[1].transactionId").value("TX-2"));
 
-        verify(transactionService).getBrokerTransactions("auth0|broker-1");
+        verify(transactionService).getBrokerTransactions(eq("auth0|broker-1"), any(), any(), any());
     }
 
     @Test
     @WithMockUser(roles = "BROKER")
     void getBrokerTransactions_withHeaderBrokerId_usesHeader() throws Exception {
         // Arrange
-        when(transactionService.getBrokerTransactions("broker-header"))
+        when(transactionService.getBrokerTransactions(eq("broker-header"), any(), any(), any()))
                 .thenReturn(List.of());
 
         // Act & Assert
@@ -134,7 +134,7 @@ class TransactionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
-        verify(transactionService).getBrokerTransactions("broker-header");
+        verify(transactionService).getBrokerTransactions(eq("broker-header"), any(), any(), any());
     }
 
     // ========== getTransactionById Tests ==========

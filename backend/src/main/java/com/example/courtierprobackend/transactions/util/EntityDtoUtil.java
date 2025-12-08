@@ -13,10 +13,11 @@ public class EntityDtoUtil {
     /* =========================================================
        TRANSACTION -> RESPONSE DTO
        ========================================================= */
-    public static TransactionResponseDTO toResponse(Transaction t) {
+    public static TransactionResponseDTO toResponse(Transaction t, String clientName) {
         return TransactionResponseDTO.builder()
                 .transactionId(t.getTransactionId())
                 .clientId(t.getClientId())
+                .clientName(clientName)
                 .brokerId(t.getBrokerId())
                 .side(t.getSide())
                 .propertyAddress(t.getPropertyAddress())

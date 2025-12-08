@@ -21,7 +21,7 @@ const ClientTransactionDetailsPage = lazy(() => import("@/pages/transactions/Cli
 const CreateTransactionPage = lazy(() => import("@/pages/transactions/CreateTransactionPage"));
 
 // Documents
-const DocumentsPage = lazy(() => import("@/pages/documents/DocumentsPage").then(module => ({ default: module.DocumentsPage })));
+const GlobalDocumentsPage = lazy(() => import("@/pages/documents/GlobalDocumentsPage").then(module => ({ default: module.GlobalDocumentsPage })));
 const TransactionDocumentsPage = lazy(() => import("@/pages/documents/TransactionDocumentsPage").then(module => ({ default: module.TransactionDocumentsPage })));
 
 // Appointments / analytics / clients / notifications
@@ -167,7 +167,17 @@ export function AppRoutes() {
                     element={
                         <RequireRole allowed={["broker", "client"]}>
                             <AppShell>
-                                <DocumentsPage />
+                                <GlobalDocumentsPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
+                <Route
+                    path="/my-documents"
+                    element={
+                        <RequireRole allowed={["client"]}>
+                            <AppShell>
+                                <GlobalDocumentsPage />
                             </AppShell>
                         </RequireRole>
                     }
@@ -183,11 +193,11 @@ export function AppRoutes() {
                     }
                 />
 
-                {/* Appointments */}
+                {/* Appointments (broker + client) */}
                 <Route
                     path="/appointments"
                     element={
-                        <RequireRole allowed={["broker"]}>
+                        <RequireRole allowed={["broker", "client"]}>
                             <AppShell>
                                 <AppointmentsPage />
                             </AppShell>

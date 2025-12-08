@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/shared/utils/utils";
+import { Button } from "@/shared/components/ui/button";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -181,16 +182,16 @@ export function Sidebar({
         aria-label="Sidebar navigation"
       >
         <div className="flex h-full flex-col pt-16 md:pt-0">
-          {/* Mobile header */}
           <div className="flex items-center justify-between p-4 md:hidden">
             <span className="text-slate-800">{t("menuLabel")}</span>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors"
               aria-label={t("closeSidebar")}
             >
               <ChevronLeft className="w-5 h-5 text-slate-800" />
-            </button>
+            </Button>
           </div>
 
           {/* Navigation items */}

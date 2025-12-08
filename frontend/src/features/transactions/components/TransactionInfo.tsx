@@ -42,7 +42,7 @@ export function TransactionInfo({ transaction }: TransactionInfoProps) {
                 </div>
                 <div className="text-right">
                     <p className="text-sm text-muted-foreground">{t('client')}</p>
-                    <p className="text-lg font-medium text-foreground">{transaction.clientId}</p>
+                    <p className="text-lg font-medium text-foreground">{transaction.clientName}</p>
                     <p className="text-sm text-muted-foreground mt-2">{t('openedDate')}</p>
                     <p className="text-lg font-medium text-foreground">
                         {formatDate(transaction.openedDate ?? transaction.openedAt)}

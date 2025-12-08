@@ -1,0 +1,30 @@
+package com.example.courtierprobackend.documents.presentationlayer.models;
+
+import com.example.courtierprobackend.documents.datalayer.enums.DocumentPartyEnum;
+import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
+import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
+import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class DocumentRequestResponseDTO {
+    private String requestId;
+    private TransactionRef transactionRef;
+    private DocumentTypeEnum docType;
+    private String customTitle;
+    private DocumentStatusEnum status;
+    private DocumentPartyEnum expectedFrom;
+    private List<SubmittedDocumentResponseDTO> submittedDocuments;
+    private String brokerNotes;
+    private LocalDateTime lastUpdatedAt;
+    private boolean visibleToClient;
+}

@@ -107,3 +107,6 @@ out/
 /temp
 /cache
 .zipignore
+.agent
+coutier-pro.md
+GEMINI.md

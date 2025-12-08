@@ -34,13 +34,13 @@ export function TransactionCards({ transactions, onNavigate }: TransactionCardsP
                         }
                     }}
                     className="w-full p-4 rounded-xl shadow-sm border border-border bg-card text-card-foreground hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all text-left"
-                    aria-label={`View transaction for ${transaction.clientId}`}
+                    aria-label={`View transaction for ${transaction.clientName}`}
                 >
                     <div className="space-y-3">
                         <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2 flex-1">
                                 <Users className="w-5 h-5 flex-shrink-0 text-primary" />
-                                <p className="font-medium">{transaction.clientId}</p>
+                                <p className="font-medium">{transaction.clientName}</p>
                             </div>
                             <StatusBadge status={transaction.status} />
                         </div>

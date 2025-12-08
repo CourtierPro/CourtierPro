@@ -2,11 +2,13 @@ package com.example.courtierprobackend.user.dataaccesslayer;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Getter
+@Setter
 @Entity
 @Table(name = "user_accounts")
 public class UserAccount {
@@ -40,7 +42,7 @@ public class UserAccount {
     private Instant updatedAt;
 
 
-    protected UserAccount() {
+    public UserAccount() {
     }
 
     public UserAccount(String auth0UserId,
