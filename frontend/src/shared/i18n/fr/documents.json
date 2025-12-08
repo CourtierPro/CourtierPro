@@ -71,5 +71,18 @@
     },
     "globalTitle": "Mes documents",
     "globalSubtitle": "Consultez et gérez tous vos documents pour toutes vos transactions.",
-    "uploadSuccess": "Document téléversé avec succès"
+    "uploadSuccess": "Document téléversé avec succès",
+    "modals": {
+        "uploadDocument": "Téléverser un document"
+    },
+    "uploadingFor": "Téléversement pour",
+    "clickToSelectFile": "Cliquez pour sélectionner un fichier",
+    "maxSize": "Taille max : {{size}}",
+    "actions": {
+        "cancel": "Annuler",
+        "upload": "Téléverser"
+    },
+    "success": {
+        "documentUploaded": "Document téléversé avec succès"
+    }
 }

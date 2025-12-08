@@ -173,6 +173,16 @@ export function AppRoutes() {
                     }
                 />
                 <Route
+                    path="/my-documents"
+                    element={
+                        <RequireRole allowed={["client"]}>
+                            <AppShell>
+                                <GlobalDocumentsPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
+                <Route
                     path="/transactions/:transactionId/documents"
                     element={
                         <RequireRole allowed={["broker", "client"]}>
@@ -183,11 +193,11 @@ export function AppRoutes() {
                     }
                 />
 
-                {/* Appointments */}
+                {/* Appointments (broker + client) */}
                 <Route
                     path="/appointments"
                     element={
-                        <RequireRole allowed={["broker"]}>
+                        <RequireRole allowed={["broker", "client"]}>
                             <AppShell>
                                 <AppointmentsPage />
                             </AppShell>

@@ -40,7 +40,14 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
     private final TransactionRepository transactionRepository;
     private final UserAccountRepository userAccountRepository;
 
-    public List<DocumentRequestResponseDTO> getDocumentsForTransaction(String transactionId) {
+    public List<DocumentRequestResponseDTO> getDocumentsForTransaction(String transactionId, String userId) {
+        Transaction tx = transactionRepository.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
+
+        if (!tx.getBrokerId().equals(userId) && !tx.getClientId().equals(userId)) {
+            throw new NotFoundException("You do not have access to this transaction");
+        }
+
         return repository.findByTransactionRef_TransactionId(transactionId).stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
@@ -53,9 +60,17 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 .collect(Collectors.toList());
     }
 
-    public DocumentRequestResponseDTO getDocumentRequest(String requestId) {
+    public DocumentRequestResponseDTO getDocumentRequest(String requestId, String userId) {
         DocumentRequest request = repository.findByRequestId(requestId)
                 .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+
+        Transaction tx = transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        if (!tx.getBrokerId().equals(userId) && !tx.getClientId().equals(userId)) {
+            throw new NotFoundException("You do not have access to this document request");
+        }
+
         return mapToResponseDTO(request);
     }
 
@@ -78,9 +93,9 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         DocumentRequest savedRequest = repository.save(request);
 
         // Notify client via email
-        UserAccount client = userAccountRepository.findById(UUID.fromString(tx.getClientId()))
+        UserAccount client = userAccountRepository.findByAuth0UserId(tx.getClientId())
                 .orElse(null);
-        UserAccount broker = userAccountRepository.findById(UUID.fromString(tx.getBrokerId()))
+        UserAccount broker = userAccountRepository.findByAuth0UserId(tx.getBrokerId())
                 .orElse(null);
 
         if (client != null && broker != null) {
@@ -132,6 +147,13 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
             throw new InvalidInputException("Document request does not belong to transaction: " + transactionId);
         }
 
+        Transaction tx = transactionRepository.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
+
+        if (!tx.getBrokerId().equals(uploaderId) && !tx.getClientId().equals(uploaderId)) {
+            throw new NotFoundException("You do not have permission to upload documents for this transaction");
+        }
+
         StorageObject storageObject = storageService.uploadFile(file, transactionId, requestId);
 
         UploadedBy uploadedBy = UploadedBy.builder()
@@ -155,16 +177,15 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         DocumentRequest savedRequest = repository.save(request);
 
         // Notify broker
-        Transaction tx = transactionRepository.findByTransactionId(transactionId)
-                .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
+        // Transaction tx is already fetched above
         
-        UserAccount broker = userAccountRepository.findById(UUID.fromString(tx.getBrokerId()))
+        UserAccount broker = userAccountRepository.findByAuth0UserId(tx.getBrokerId())
                 .orElseThrow(() -> new NotFoundException("Broker not found: " + tx.getBrokerId()));
 
         // Get uploader name (Client)
         String uploaderName = "Unknown Client";
         if (uploaderType == UploadedByRefEnum.CLIENT) {
-             uploaderName = userAccountRepository.findById(UUID.fromString(uploaderId))
+             uploaderName = userAccountRepository.findByAuth0UserId(uploaderId)
                     .map(u -> u.getFirstName() + " " + u.getLastName())
                     .orElse("Unknown Client");
         }
@@ -201,9 +222,16 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
     }
 
     @Override
-    public String getDocumentDownloadUrl(String requestId, String documentId) {
+    public String getDocumentDownloadUrl(String requestId, String documentId, String userId) {
         DocumentRequest request = repository.findByRequestId(requestId)
                 .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+
+        Transaction tx = transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        if (!tx.getBrokerId().equals(userId) && !tx.getClientId().equals(userId)) {
+            throw new NotFoundException("You do not have access to this document");
+        }
 
         SubmittedDocument submittedDocument = request.getSubmittedDocuments().stream()
                 .filter(doc -> doc.getDocumentId().equals(documentId))

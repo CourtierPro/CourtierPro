@@ -14,9 +14,15 @@ auth0:
 gmail:
   username: ${GMAIL_USERNAME}
   # In production, set GMAIL_PASSWORD_ENCRYPTED to an encrypted value and use Jasypt or a secrets manager to decrypt.
-  password: ${GMAIL_PASSWORD_ENCRYPTED}
+  password: ${GMAIL_PASSWORD_ENCRYPTED:${GMAIL_PASSWORD}}
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 30MB
+      enabled: true
+
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/courtierpro
     username: ${DB_USER:courtier}

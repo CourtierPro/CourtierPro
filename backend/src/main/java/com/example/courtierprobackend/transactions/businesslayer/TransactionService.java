@@ -13,8 +13,10 @@ public interface TransactionService {
 
     TimelineEntryDTO createNote(String transactionId, NoteRequestDTO note, String brokerId);
 
-    List<TransactionResponseDTO> getBrokerTransactions(String brokerId);
+    List<TransactionResponseDTO> getBrokerTransactions(String brokerId, String status, String stage, String side);
 
-    TransactionResponseDTO getByTransactionId(String transactionId, String brokerId);
+    List<TransactionResponseDTO> getClientTransactions(String clientId);
+
+    TransactionResponseDTO getByTransactionId(String transactionId, String userId);
 }
 

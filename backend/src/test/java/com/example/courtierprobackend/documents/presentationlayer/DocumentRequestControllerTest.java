@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -78,23 +79,25 @@ class DocumentRequestControllerTest {
 
     @Test
     void getDocuments_returnsList() throws Exception {
-        when(service.getDocumentsForTransaction("TX-123"))
+        when(service.getDocumentsForTransaction(eq("TX-123"), anyString()))
                 .thenReturn(List.of(sampleResponse));
 
-        mockMvc.perform(get("/transactions/TX-123/documents"))
+        mockMvc.perform(get("/transactions/TX-123/documents")
+                .header("x-broker-id", "BROKER-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].requestId").value("REQ-001"))
                 .andExpect(jsonPath("$[0].docType").value("PROOF_OF_FUNDS"));
 
-        verify(service).getDocumentsForTransaction("TX-123");
+        verify(service).getDocumentsForTransaction(eq("TX-123"), anyString());
     }
 
     @Test
     void getDocuments_emptyList() throws Exception {
-        when(service.getDocumentsForTransaction("TX-999"))
+        when(service.getDocumentsForTransaction(eq("TX-999"), anyString()))
                 .thenReturn(List.of());
 
-        mockMvc.perform(get("/transactions/TX-999/documents"))
+        mockMvc.perform(get("/transactions/TX-999/documents")
+                .header("x-broker-id", "BROKER-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
@@ -127,15 +130,16 @@ class DocumentRequestControllerTest {
 
     @Test
     void getDocumentRequest_returnsDocument() throws Exception {
-        when(service.getDocumentRequest("REQ-001"))
+        when(service.getDocumentRequest(eq("REQ-001"), anyString()))
                 .thenReturn(sampleResponse);
 
-        mockMvc.perform(get("/transactions/TX-123/documents/REQ-001"))
+        mockMvc.perform(get("/transactions/TX-123/documents/REQ-001")
+                .header("x-broker-id", "BROKER-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.requestId").value("REQ-001"))
                 .andExpect(jsonPath("$.docType").value("PROOF_OF_FUNDS"));
 
-        verify(service).getDocumentRequest("REQ-001");
+        verify(service).getDocumentRequest(eq("REQ-001"), anyString());
     }
 
     // ==================== PUT /transactions/{transactionId}/documents/{requestId} ====================

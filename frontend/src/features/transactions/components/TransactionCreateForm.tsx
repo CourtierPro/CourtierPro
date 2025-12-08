@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
-import { Textarea } from '@/shared/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
 import {
   Select,
@@ -36,7 +35,13 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientSearch, setClientSearch] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
-  const [propertyAddress, setPropertyAddress] = useState('');
+
+  // Address fields
+  const [street, setStreet] = useState('');
+  const [city, setCity] = useState('');
+  const [province, setProvince] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+
   const [initialStage, setInitialStage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -84,9 +89,10 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
       newErrors.client = t('errorSelectClient');
     }
 
-    if (!propertyAddress.trim()) {
-      newErrors.propertyAddress = t('errorRequired');
-    }
+    if (!street.trim()) newErrors.street = t('errorRequired');
+    if (!city.trim()) newErrors.city = t('errorRequired');
+    if (!province.trim()) newErrors.province = t('errorRequired');
+    if (!postalCode.trim()) newErrors.postalCode = t('errorRequired');
 
     if (!initialStage) {
       newErrors.initialStage = t('errorSelectStage');
@@ -108,7 +114,10 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
     setTouched({
       transactionSide: true,
       client: true,
-      propertyAddress: true,
+      street: true,
+      city: true,
+      province: true,
+      postalCode: true,
       initialStage: true,
     });
 
@@ -119,10 +128,10 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
           side: transactionSide === "buy" ? "BUY_SIDE" : "SELL_SIDE",
           initialStage: initialStage,
           propertyAddress: {
-            street: propertyAddress,
-            city: "Unknown",
-            province: "Unknown",
-            postalCode: "00000",
+            street: street.trim(),
+            city: city.trim(),
+            province: province.trim(),
+            postalCode: postalCode.trim(),
           },
         };
 
@@ -156,7 +165,7 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
         } else if (serverMsg.toLowerCase().includes('side')) {
           newErrors.transactionSide = serverMsg;
         } else if (serverMsg.toLowerCase().includes('propertyaddress.street')) {
-          newErrors.propertyAddress = serverMsg;
+          newErrors.street = serverMsg;
         } else {
           newErrors.form = serverMsg;
         }
@@ -170,7 +179,14 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
     onNavigate('/transactions');
   };
 
-  const isFormValid = transactionSide && selectedClient && propertyAddress.trim() && initialStage;
+  const isFormValid =
+    transactionSide &&
+    selectedClient &&
+    street.trim() &&
+    city.trim() &&
+    province.trim() &&
+    postalCode.trim() &&
+    initialStage;
 
   return (
     <div className="space-y-6">
@@ -377,45 +393,77 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
                 )}
               </div>
 
-              <div>
-                <label
-                  htmlFor="property-address"
-                  className="block mb-2 flex items-center gap-2 text-foreground"
-                >
-                  {t('propertyAddress')}
-                  <span
-                    className="text-destructive text-sm"
-                    aria-label="required"
-                  >
-                    *
-                  </span>
-                </label>
+              {/* Address Fields */}
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="street" className="block mb-2 text-sm font-medium text-foreground">
+                    {t('street')} <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    id="street"
+                    value={street}
+                    onChange={(e) => setStreet(e.target.value)}
+                    onBlur={() => handleBlur('street')}
+                    placeholder={t('streetPlaceholder')}
+                    aria-invalid={touched.street && errors.street ? 'true' : 'false'}
+                  />
+                  {touched.street && errors.street && (
+                    <p className="text-red-500 text-sm mt-1">{errors.street}</p>
+                  )}
+                </div>
 
-                <Textarea
-                  id="property-address"
-                  value={propertyAddress}
-                  onChange={(e) => setPropertyAddress(e.target.value)}
-                  onBlur={() => handleBlur('propertyAddress')}
-                  placeholder={t('propertyAddressPlaceholder')}
-                  rows={3}
-                  className="resize-none"
-                  aria-describedby={touched.propertyAddress && errors.propertyAddress ? 'address-error' : undefined}
-                  aria-invalid={touched.propertyAddress && errors.propertyAddress ? 'true' : 'false'}
-                />
-
-                {touched.propertyAddress && errors.propertyAddress && (
-                  <div
-                    id="address-error"
-                    className="flex items-center gap-2 mt-2"
-                    role="alert"
-                    aria-live="polite"
-                  >
-                    <AlertCircle className="w-4 h-4 text-destructive" />
-                    <p className="text-destructive text-sm">
-                      {errors.propertyAddress}
-                    </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="city" className="block mb-2 text-sm font-medium text-foreground">
+                      {t('city')} <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      id="city"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      onBlur={() => handleBlur('city')}
+                      placeholder={t('cityPlaceholder')}
+                      aria-invalid={touched.city && errors.city ? 'true' : 'false'}
+                    />
+                    {touched.city && errors.city && (
+                      <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+                    )}
                   </div>
-                )}
+
+                  <div>
+                    <label htmlFor="province" className="block mb-2 text-sm font-medium text-foreground">
+                      {t('province')} <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      id="province"
+                      value={province}
+                      onChange={(e) => setProvince(e.target.value)}
+                      onBlur={() => handleBlur('province')}
+                      placeholder={t('provincePlaceholder')}
+                      aria-invalid={touched.province && errors.province ? 'true' : 'false'}
+                    />
+                    {touched.province && errors.province && (
+                      <p className="text-red-500 text-sm mt-1">{errors.province}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="postalCode" className="block mb-2 text-sm font-medium text-foreground">
+                    {t('postalCode')} <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    id="postalCode"
+                    value={postalCode}
+                    onChange={(e) => setPostalCode(e.target.value)}
+                    onBlur={() => handleBlur('postalCode')}
+                    placeholder={t('postalCodePlaceholder')}
+                    aria-invalid={touched.postalCode && errors.postalCode ? 'true' : 'false'}
+                  />
+                  {touched.postalCode && errors.postalCode && (
+                    <p className="text-red-500 text-sm mt-1">{errors.postalCode}</p>
+                  )}
+                </div>
               </div>
             </div>
 

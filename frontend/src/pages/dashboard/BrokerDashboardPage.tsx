@@ -2,10 +2,17 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
 import { KpiCard } from "@/shared/components/branded/KpiCard";
+import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { DollarSign, FileText, Users, Activity } from "lucide-react";
+import { useBrokerDashboardStats } from "@/features/dashboard/hooks/useDashboardStats";
 
 export function BrokerDashboardPage() {
   const { t } = useTranslation("dashboard");
+  const { data: stats, isLoading } = useBrokerDashboardStats();
+
+  if (isLoading) {
+    return <LoadingState message={t("loading")} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -17,19 +24,19 @@ export function BrokerDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title={t("broker.activeTransactions")}
-          value="12"
+          value={stats?.activeTransactions.toString() || "0"}
           icon={<FileText className="w-4 h-4" />}
           trend={{ value: 10, label: t("broker.vsLastMonth"), direction: "up" }}
         />
         <KpiCard
           title={t("broker.totalCommission")}
-          value="$45,231"
+          value={`$${stats?.totalCommission.toLocaleString() || "0"}`}
           icon={<DollarSign className="w-4 h-4" />}
           trend={{ value: 12, label: t("broker.vsLastMonth"), direction: "up" }}
         />
         <KpiCard
           title={t("broker.activeClients")}
-          value="8"
+          value={stats?.activeClients.toString() || "0"}
           icon={<Users className="w-4 h-4" />}
         />
         <KpiCard

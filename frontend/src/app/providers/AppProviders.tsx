@@ -6,6 +6,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { AuthProvider } from "@/app/providers/AuthProvider";
 import { LanguageProvider } from "@/app/providers/LanguageProvider";
 import { queryClient } from "@/shared/api/queryClient";
+import { Toaster } from "sonner";
 
 // Auth0 configuration from environment variables
 const domain = import.meta.env.VITE_AUTH0_DOMAIN || "dev-y7mhv7ttykx4kz4f.us.auth0.com";
@@ -42,6 +43,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
                     <AuthProvider>
                         <LanguageProvider>
                             {children}
+                            <Toaster />
                         </LanguageProvider>
                     </AuthProvider>
                 </Auth0ProviderWithNavigate>

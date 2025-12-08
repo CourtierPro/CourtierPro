@@ -2,10 +2,17 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
 import { KpiCard } from "@/shared/components/branded/KpiCard";
+import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { Home, FileCheck } from "lucide-react";
+import { useClientDashboardStats } from "@/features/dashboard/hooks/useDashboardStats";
 
 export function ClientDashboardPage() {
   const { t } = useTranslation("dashboard");
+  const { data: stats, isLoading } = useClientDashboardStats();
+
+  if (isLoading) {
+    return <LoadingState message={t("loading")} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -17,14 +24,14 @@ export function ClientDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
           title={t("client.activeTransactions")}
-          value="1"
+          value={stats?.activeTransactions.toString() || "0"}
           icon={<Home className="w-4 h-4" />}
         />
         <KpiCard
           title={t("client.documentsNeeded")}
-          value="2"
+          value={stats?.documentsNeeded.toString() || "0"}
           icon={<FileCheck className="w-4 h-4" />}
-          trend={{ value: 1, label: t("client.overdue"), direction: "down" }}
+          trend={stats?.documentsNeeded ? { value: stats.documentsNeeded, label: t("client.overdue"), direction: "down" } : undefined}
         />
       </div>
 

@@ -298,9 +298,9 @@ class TransactionServiceImplTest {
 
     @Test
     void getBrokerTransactions_success_returnsList() {
-        when(repo.findAllByBrokerId("BROKER1")).thenReturn(List.of(sampleTransaction));
+        when(repo.findAllByFilters("BROKER1", null, null, null)).thenReturn(List.of(sampleTransaction));
 
-        List<TransactionResponseDTO> result = service.getBrokerTransactions("BROKER1");
+        List<TransactionResponseDTO> result = service.getBrokerTransactions("BROKER1", null, null, null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getClientId()).isEqualTo("CLIENT1");
@@ -308,9 +308,9 @@ class TransactionServiceImplTest {
 
     @Test
     void getBrokerTransactions_empty_returnsEmptyList() {
-        when(repo.findAllByBrokerId("NEW_BROKER")).thenReturn(List.of());
+        when(repo.findAllByFilters("NEW_BROKER", null, null, null)).thenReturn(List.of());
 
-        List<TransactionResponseDTO> result = service.getBrokerTransactions("NEW_BROKER");
+        List<TransactionResponseDTO> result = service.getBrokerTransactions("NEW_BROKER", null, null, null);
 
         assertThat(result).isEmpty();
     }

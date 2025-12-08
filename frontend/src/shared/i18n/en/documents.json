@@ -70,5 +70,18 @@
     },
     "globalTitle": "My Documents",
     "globalSubtitle": "View and manage all your documents across transactions.",
-    "uploadSuccess": "Document uploaded successfully"
+    "uploadSuccess": "Document uploaded successfully",
+    "modals": {
+        "uploadDocument": "Upload Document"
+    },
+    "uploadingFor": "Uploading for",
+    "clickToSelectFile": "Click to select file",
+    "maxSize": "Max size: {{size}}",
+    "actions": {
+        "cancel": "Cancel",
+        "upload": "Upload"
+    },
+    "success": {
+        "documentUploaded": "Document uploaded successfully"
+    }
 }

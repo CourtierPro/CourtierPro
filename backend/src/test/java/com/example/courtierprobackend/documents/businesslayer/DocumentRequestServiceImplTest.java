@@ -105,10 +105,12 @@ class DocumentRequestServiceImplTest {
 
     @Test
     void getDocumentsForTransaction_success_returnsList() {
+        when(transactionRepository.findByTransactionId("TX-123"))
+                .thenReturn(Optional.of(sampleTransaction));
         when(repository.findByTransactionRef_TransactionId("TX-123"))
                 .thenReturn(List.of(sampleRequest));
 
-        List<DocumentRequestResponseDTO> result = service.getDocumentsForTransaction("TX-123");
+        List<DocumentRequestResponseDTO> result = service.getDocumentsForTransaction("TX-123", sampleTransaction.getClientId());
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getRequestId()).isEqualTo("REQ-001");
@@ -117,10 +119,12 @@ class DocumentRequestServiceImplTest {
 
     @Test
     void getDocumentsForTransaction_emptyList_returnsEmpty() {
+        when(transactionRepository.findByTransactionId("TX-999"))
+                .thenReturn(Optional.of(sampleTransaction));
         when(repository.findByTransactionRef_TransactionId("TX-999"))
                 .thenReturn(List.of());
 
-        List<DocumentRequestResponseDTO> result = service.getDocumentsForTransaction("TX-999");
+        List<DocumentRequestResponseDTO> result = service.getDocumentsForTransaction("TX-999", sampleTransaction.getClientId());
 
         assertThat(result).isEmpty();
     }
@@ -131,8 +135,10 @@ class DocumentRequestServiceImplTest {
     void getDocumentRequest_success_returnsDTO() {
         when(repository.findByRequestId("REQ-001"))
                 .thenReturn(Optional.of(sampleRequest));
+        when(transactionRepository.findByTransactionId("TX-123"))
+                .thenReturn(Optional.of(sampleTransaction));
 
-        DocumentRequestResponseDTO result = service.getDocumentRequest("REQ-001");
+        DocumentRequestResponseDTO result = service.getDocumentRequest("REQ-001", sampleTransaction.getClientId());
 
         assertThat(result.getRequestId()).isEqualTo("REQ-001");
         assertThat(result.getDocType()).isEqualTo(DocumentTypeEnum.PROOF_OF_FUNDS);
@@ -143,7 +149,7 @@ class DocumentRequestServiceImplTest {
         when(repository.findByRequestId("REQ-999"))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.getDocumentRequest("REQ-999"))
+        assertThatThrownBy(() -> service.getDocumentRequest("REQ-999", "USER-1"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Document request not found");
     }
@@ -285,14 +291,22 @@ class DocumentRequestServiceImplTest {
 
     @Test
     void submitDocument_success_uploadsFileAndSendsEmail() throws IOException {
-        sampleTransaction.setBrokerId("00000000-0000-0000-0000-000000000001");
+        // Set up broker ID as Auth0 user ID string
+        String brokerId = "auth0|broker123";
+        sampleTransaction.setBrokerId(brokerId);
+        // Set client ID to match the uploader
+        String clientId = "auth0|client456";
+        sampleTransaction.setClientId(clientId);
+        sampleRequest.getTransactionRef().setClientId(clientId);
         
         when(repository.findByRequestId("REQ-001"))
                 .thenReturn(Optional.of(sampleRequest));
         when(transactionRepository.findByTransactionId("TX-123"))
                 .thenReturn(Optional.of(sampleTransaction));
-        when(userAccountRepository.findById(UUID.fromString("00000000-0000-0000-0000-000000000001")))
+        when(userAccountRepository.findByAuth0UserId(brokerId))
                 .thenReturn(Optional.of(sampleBroker));
+        when(userAccountRepository.findByAuth0UserId(clientId))
+                .thenReturn(Optional.empty()); // Client not found is OK, we just use "Unknown Client"
 
         StorageObject storageObject = StorageObject.builder()
                 .s3Key("transactions/TX-123/documents/REQ-001/file.pdf")
@@ -312,12 +326,12 @@ class DocumentRequestServiceImplTest {
                 .thenAnswer(inv -> inv.getArgument(0));
 
         DocumentRequestResponseDTO result = service.submitDocument(
-                "TX-123", "REQ-001", mockFile, "USER-1", UploadedByRefEnum.CLIENT
+                "TX-123", "REQ-001", mockFile, clientId, UploadedByRefEnum.CLIENT
         );
 
         assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.SUBMITTED);
         assertThat(result.getSubmittedDocuments()).hasSize(1);
-        verify(emailService).sendDocumentSubmittedNotification(any(), eq("broker@example.com"));
+        verify(emailService).sendDocumentSubmittedNotification(any(), eq("broker@example.com"), anyString(), anyString());
     }
 
     @Test
@@ -371,8 +385,10 @@ class DocumentRequestServiceImplTest {
 
         when(repository.findByRequestId("REQ-001"))
                 .thenReturn(Optional.of(sampleRequest));
+        when(transactionRepository.findByTransactionId("TX-123"))
+                .thenReturn(Optional.of(sampleTransaction));
 
-        DocumentRequestResponseDTO result = service.getDocumentRequest("REQ-001");
+        DocumentRequestResponseDTO result = service.getDocumentRequest("REQ-001", sampleTransaction.getClientId());
 
         assertThat(result.getSubmittedDocuments()).hasSize(1);
         assertThat(result.getSubmittedDocuments().get(0).getDocumentId()).isEqualTo("DOC-001");

@@ -21,6 +21,9 @@ import {
 import { Label } from '@/shared/components/ui/label';
 import { DocumentTypeEnum } from '@/features/documents/types';
 
+import { useTransactionStages } from '@/features/transactions/hooks/useTransactionStages';
+import { enumToLabel } from '@/shared/utils/stages';
+
 interface RequestDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -45,10 +48,43 @@ export function RequestDocumentModal({
 
   const customTitleInputRef = useRef<HTMLInputElement>(null);
 
-  const stages = t('stages', { returnObjects: true }) as Record<string, Record<string, string>>;
-  const stageOptions = stages[transactionType] ? Object.entries(stages[transactionType]) : [];
+  // Fetch dynamic stages from backend
+  const side = transactionType === 'buy' ? 'BUY_SIDE' : 'SELL_SIDE';
+  const { stages, isLoading: isLoadingStages } = useTransactionStages(side);
 
-  const docTypeOptions = Object.values(DocumentTypeEnum);
+  // Map stages to options (value = enum, label = formatted string)
+  const stageOptions = stages.map(stage => ({
+    value: stage,
+    label: enumToLabel(stage)
+  }));
+
+  // Define which documents are for which side
+  const buySideDocs = [
+    DocumentTypeEnum.MORTGAGE_PRE_APPROVAL,
+    DocumentTypeEnum.MORTGAGE_APPROVAL,
+    DocumentTypeEnum.PROOF_OF_FUNDS,
+    DocumentTypeEnum.ID_VERIFICATION,
+    DocumentTypeEnum.EMPLOYMENT_LETTER,
+    DocumentTypeEnum.PAY_STUBS,
+    DocumentTypeEnum.CREDIT_REPORT,
+    DocumentTypeEnum.PROMISE_TO_PURCHASE,
+    DocumentTypeEnum.INSPECTION_REPORT,
+    DocumentTypeEnum.INSURANCE_LETTER,
+    DocumentTypeEnum.BANK_STATEMENT,
+    DocumentTypeEnum.OTHER,
+  ];
+
+  const sellSideDocs = [
+    DocumentTypeEnum.CERTIFICATE_OF_LOCATION,
+    DocumentTypeEnum.ID_VERIFICATION,
+    DocumentTypeEnum.PROMISE_TO_PURCHASE,
+    DocumentTypeEnum.INSPECTION_REPORT,
+    DocumentTypeEnum.OTHER,
+  ];
+
+  const availableDocs = transactionType === 'buy' ? buySideDocs : sellSideDocs;
+
+  const docTypeOptions = availableDocs;
 
   useEffect(() => {
     if (isOpen) {
@@ -228,11 +264,17 @@ export function RequestDocumentModal({
                 <SelectValue placeholder={t('selectStage')} />
               </SelectTrigger>
               <SelectContent>
-                {stageOptions.map(([key, value]) => (
-                  <SelectItem key={key} value={value}>
-                    {value}
-                  </SelectItem>
-                ))}
+                {isLoadingStages ? (
+                  <div className="p-2 text-sm text-gray-500 text-center">
+                    {t('loading')}...
+                  </div>
+                ) : (
+                  stageOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
             {errors.stage && (

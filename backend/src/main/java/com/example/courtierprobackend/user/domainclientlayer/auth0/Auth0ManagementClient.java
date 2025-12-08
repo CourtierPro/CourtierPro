@@ -254,4 +254,103 @@ public class Auth0ManagementClient {
     }
 
     private record PasswordChangeTicketResponse(String ticket) {}
+
+    // ==================== USER SYNC METHODS ====================
+
+    /**
+     * DTO for users returned by the Auth0 Management API.
+     */
+    public record Auth0User(
+            @JsonProperty("user_id") String userId,
+            @JsonProperty("email") String email,
+            @JsonProperty("given_name") String givenName,
+            @JsonProperty("family_name") String familyName,
+            @JsonProperty("user_metadata") Map<String, Object> userMetadata
+    ) {
+        public String getPreferredLanguage() {
+            if (userMetadata == null) return "en";
+            Object lang = userMetadata.get("preferred_language");
+            return lang != null ? lang.toString() : "en";
+        }
+    }
+
+    /**
+     * DTO for roles returned by the Auth0 Management API.
+     */
+    public record Auth0Role(
+            @JsonProperty("id") String id,
+            @JsonProperty("name") String name
+    ) {}
+
+    /**
+     * Fetches all users from Auth0 using pagination.
+     * Returns a list of Auth0User objects.
+     */
+    public List<Auth0User> listAllUsers() {
+        String token = getManagementToken();
+        List<Auth0User> allUsers = new java.util.ArrayList<>();
+        int page = 0;
+        int perPage = 100;
+        boolean hasMore = true;
+
+        while (hasMore) {
+            String url = managementBaseUrl + "/users?per_page=" + perPage + "&page=" + page + "&include_totals=false";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(token);
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<Auth0User[]> response = restTemplate.exchange(
+                    url, HttpMethod.GET, entity, Auth0User[].class);
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                Auth0User[] users = response.getBody();
+                allUsers.addAll(java.util.Arrays.asList(users));
+                hasMore = users.length == perPage; // If we got a full page, there might be more
+                page++;
+            } else {
+                hasMore = false;
+            }
+        }
+
+        return allUsers;
+    }
+
+    /**
+     * Fetches the roles assigned to a specific Auth0 user.
+     * Returns a list of Auth0Role objects.
+     */
+    public List<Auth0Role> getUserRoles(String auth0UserId) {
+        String token = getManagementToken();
+        String url = managementBaseUrl + "/users/" + auth0UserId + "/roles";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Auth0Role[]> response = restTemplate.exchange(
+                url, HttpMethod.GET, entity, Auth0Role[].class);
+
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            return java.util.Arrays.asList(response.getBody());
+        }
+
+        return List.of();
+    }
+
+    /**
+     * Maps an Auth0 role name to the local UserRole enum.
+     * Returns CLIENT as default if no matching role is found.
+     */
+    public UserRole mapRoleToUserRole(List<Auth0Role> roles) {
+        for (Auth0Role role : roles) {
+            String name = role.name().toLowerCase();
+            if (name.contains("admin")) return UserRole.ADMIN;
+            if (name.contains("broker")) return UserRole.BROKER;
+            if (name.contains("client")) return UserRole.CLIENT;
+        }
+        return UserRole.CLIENT; // Default to CLIENT if no role found
+    }
 }

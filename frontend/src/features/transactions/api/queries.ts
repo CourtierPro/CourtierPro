@@ -29,11 +29,16 @@ export interface Transaction {
     brokerId?: string;
 }
 
-export function useTransactions() {
+export function useTransactions(filters?: { status?: string; stage?: string; side?: string }) {
     return useQuery({
-        queryKey: transactionKeys.lists(),
+        queryKey: [...transactionKeys.lists(), filters],
         queryFn: async () => {
-            const res = await axiosInstance.get<Transaction[]>('/transactions');
+            const params = new URLSearchParams();
+            if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
+            if (filters?.stage && filters.stage !== 'all') params.append('stage', filters.stage);
+            if (filters?.side && filters.side !== 'all') params.append('side', filters.side);
+
+            const res = await axiosInstance.get<Transaction[]>(`/transactions?${params.toString()}`);
             return res.data;
         },
     });
@@ -54,7 +59,7 @@ export function useClientTransactions(clientId: string) {
     return useQuery({
         queryKey: transactionKeys.client(clientId),
         queryFn: async () => {
-            const res = await axiosInstance.get<Transaction[]>(`/clients/${clientId}/transactions`);
+            const res = await axiosInstance.get<Transaction[]>(`/clients/${encodeURIComponent(clientId)}/transactions`);
             return res.data;
         },
         enabled: !!clientId,

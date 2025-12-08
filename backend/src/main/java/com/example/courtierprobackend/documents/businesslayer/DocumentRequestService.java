@@ -10,9 +10,9 @@ import java.util.List;
 
 public interface DocumentRequestService {
 
-    List<DocumentRequestResponseDTO> getDocumentsForTransaction(String transactionId);
+    List<DocumentRequestResponseDTO> getDocumentsForTransaction(String transactionId, String userId);
 
-    DocumentRequestResponseDTO getDocumentRequest(String requestId);
+    DocumentRequestResponseDTO getDocumentRequest(String requestId, String userId);
 
     DocumentRequestResponseDTO createDocumentRequest(String transactionId, DocumentRequestRequestDTO requestDTO);
 
@@ -24,5 +24,5 @@ public interface DocumentRequestService {
 
     List<DocumentRequestResponseDTO> getAllDocumentsForUser(String userId);
 
-    String getDocumentDownloadUrl(String requestId, String documentId);
+    String getDocumentDownloadUrl(String requestId, String documentId, String userId);
 }

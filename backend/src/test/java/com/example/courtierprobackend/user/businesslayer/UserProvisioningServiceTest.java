@@ -1,4 +1,5 @@
-package com.example.courtierprobackend.user.businesslayer;
+import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
+import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
 
 import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
@@ -36,7 +37,7 @@ import static org.mockito.Mockito.*;
 class UserProvisioningServiceTest {
 
     @Mock
-    private UserAccountRepository userAccountRepository;
+    private OrganizationSettingsService organizationSettingsService;
 
     @Mock
     private Auth0ManagementClient auth0ManagementClient;
@@ -103,6 +104,10 @@ class UserProvisioningServiceTest {
                 .role("BROKER")
                 .preferredLanguage("en")
                 .build();
+                
+        // Mock Organization Settings
+        when(organizationSettingsService.getSettings())
+             .thenReturn(OrganizationSettingsResponseModel.builder().defaultLanguage("en").build());
 
         OrganizationSettingsResponseModel orgSettings = OrganizationSettingsResponseModel.builder()
                 .defaultLanguage("fr")
@@ -190,6 +195,9 @@ class UserProvisioningServiceTest {
                 .role("CLIENT")
                 .preferredLanguage("en")
                 .build();
+                
+        when(organizationSettingsService.getSettings())
+             .thenReturn(OrganizationSettingsResponseModel.builder().defaultLanguage("en").build());
 
         OrganizationSettingsResponseModel orgSettings = OrganizationSettingsResponseModel.builder()
                 .defaultLanguage("en")
@@ -223,6 +231,9 @@ class UserProvisioningServiceTest {
                 .role("CLIENT")
                 .preferredLanguage("en")
                 .build();
+                
+        when(organizationSettingsService.getSettings())
+             .thenReturn(OrganizationSettingsResponseModel.builder().defaultLanguage("en").build());
 
         OrganizationSettingsResponseModel orgSettings = OrganizationSettingsResponseModel.builder()
                 .defaultLanguage("en")
