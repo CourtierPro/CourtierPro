@@ -50,6 +50,7 @@
   "sending": "Sending…",
   "sendInvite": "Send invite",
   "timestamp": "timestamp",
+  "loginUser": "user",
   "ipAddress": "ipAddress",
   "userAgent": "userAgent",
   "eventId": "eventId",
