@@ -31,7 +31,7 @@ class SecurityConfigFilterChainIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
-    // CORS Configuration Tests
+    // ========== CORS Configuration Tests ==========
 
     @Test
     void corsOrigin_allowsLocalhost8081() throws Exception {
@@ -56,9 +56,7 @@ class SecurityConfigFilterChainIntegrationTest {
                 .andExpect(header().string("Access-Control-Allow-Origin", "https://courtierproapp.sraldon.work"));
     }
 
-
-
-    // OPTIONS Preflight Tests
+    // ========== OPTIONS Preflight Tests ==========
 
     @Test
     void optionsPreflight_returnsOkForAllEndpoints() throws Exception {
@@ -89,7 +87,7 @@ class SecurityConfigFilterChainIntegrationTest {
                 .andExpect(header().exists("Access-Control-Allow-Headers"));
     }
 
-    // Actuator Endpoints Tests
+    // ========== Actuator Endpoints Tests ==========
 
     @Test
     void actuatorHealth_isPubliclyAccessible() throws Exception {
@@ -120,7 +118,7 @@ class SecurityConfigFilterChainIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    //  Admin Endpoints Authentication Tests
+    // ========== Admin Endpoints Authentication Tests ==========
 
     @Test
     void adminUsersEndpoint_requiresAuthentication() throws Exception {
@@ -152,7 +150,7 @@ class SecurityConfigFilterChainIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    //  Transaction Endpoints Authentication Tests
+    // ========== Transaction Endpoints Authentication Tests ==========
 
     @Test
     void transactionsEndpoint_requiresAuthentication() throws Exception {
@@ -183,7 +181,7 @@ class SecurityConfigFilterChainIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    //  Organization Settings Endpoints Tests
+    // ========== Organization Settings Endpoints Tests ==========
 
     @Test
     void organizationSettingsEndpoint_requiresAuthentication() throws Exception {
@@ -199,7 +197,7 @@ class SecurityConfigFilterChainIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    //  CSRF Protection Tests
+    // ========== CSRF Protection Tests ==========
 
     @Test
     void csrfProtection_isDisabledForStatelessAPI() throws Exception {
@@ -210,7 +208,7 @@ class SecurityConfigFilterChainIntegrationTest {
                 .andExpect(status().isUnauthorized()); // Not 403 Forbidden
     }
 
-    //  Content Type Tests
+    // ========== Content Type Tests ==========
 
     @Test
     void jsonContentType_isAcceptedForPosts() throws Exception {

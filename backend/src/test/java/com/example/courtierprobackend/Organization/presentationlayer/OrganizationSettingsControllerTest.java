@@ -36,7 +36,7 @@ import org.mockito.Mockito;
  */
 @WebMvcTest(value = OrganizationSettingsController.class)
 @AutoConfigureMockMvc(addFilters = false)
-class OrganizationSettingsControllerIntegrationTest {
+class OrganizationSettingsControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

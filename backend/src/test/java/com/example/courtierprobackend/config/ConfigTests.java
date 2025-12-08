@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit test for config classes (SecurityConfig, JwtConfig, CorsConfig).
  * Tests simple configuration beans and utility methods.
  */
-class ConfigUnitTest {
+class ConfigTests {
 
     @Test
     void jwtAuthenticationConverter_extractsRoles() {
