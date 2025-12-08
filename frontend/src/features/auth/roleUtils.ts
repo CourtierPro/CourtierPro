@@ -24,3 +24,14 @@ export function getPreferredLanguage(
 
     return lang === "fr" ? "fr" : "en";
 }
+
+
+export function getTestRole(): AppRole {
+    const testRole = import.meta.env.VITE_TEST_ROLE as string | undefined;
+    
+    if (testRole === "client") return "client";
+    if (testRole === "admin") return "admin";
+    
+    // Default to "broker" for backward compatibility
+    return "broker";
+}

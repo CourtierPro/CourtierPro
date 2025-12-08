@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
-import { getRoleFromUser, type AppRole } from "@/features/auth/roleUtils";
+import { getRoleFromUser, getTestRole, type AppRole } from "@/features/auth/roleUtils";
 
 interface RequireRoleProps {
     allowed?: AppRole[];
@@ -23,7 +23,7 @@ export function RequireRole({ allowed, children }: RequireRoleProps) {
         );
     }
 
-    const role = authDisabled ? "broker" : getRoleFromUser(user);
+    const role = authDisabled ? getTestRole() : getRoleFromUser(user);
 
     if (!role) {
         return <Navigate to="/unauthorized" replace />;

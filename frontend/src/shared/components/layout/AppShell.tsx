@@ -10,6 +10,7 @@ import { ErrorBoundary } from "@/shared/components/error/ErrorBoundary";
 import {
   getRoleFromUser,
   getPreferredLanguage,
+  getTestRole,
   type AppRole,
 } from "@/features/auth/roleUtils";
 
@@ -45,7 +46,7 @@ export function AppShell({ children }: AppShellProps) {
   });
 
   // role
-  const userRole: AppRole = (authDisabled ? ("broker" as AppRole) : (getRoleFromUser(user) ?? "broker"));
+  const userRole: AppRole = (authDisabled ? getTestRole() : (getRoleFromUser(user) ?? "broker"));
 
   // initial language from user claim
   const initialLang = authDisabled ? "en" : getPreferredLanguage(user);

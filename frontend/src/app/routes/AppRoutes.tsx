@@ -4,7 +4,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { RequireRole } from "@/features/auth/RequireRole";
-import { getRoleFromUser, type AppRole } from "@/features/auth/roleUtils";
+import { getRoleFromUser, getTestRole, type AppRole } from "@/features/auth/roleUtils";
 
 const ShowcasePage = lazy(() => import("@/pages/ShowcasePage"));
 
@@ -50,7 +50,7 @@ const NotFoundPage = lazy(() => import("@/pages/status/NotFoundPage").then(modul
 export function AppRoutes() {
     const authDisabled = import.meta.env.VITE_AUTH_DISABLED === "true";
     const { user } = useAuth0();
-    const role: AppRole | null = authDisabled ? "broker" : getRoleFromUser(user);
+    const role: AppRole | null = authDisabled ? getTestRole() : getRoleFromUser(user);
 
     const defaultRouteForRole: Record<AppRole, string> = {
         broker: "/dashboard/broker",

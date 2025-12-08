@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { AppRoutes } from "@/app/routes/AppRoutes";
-import { getRoleFromUser, type AppRole } from "@/features/auth/roleUtils";
+import { getRoleFromUser, getTestRole, type AppRole } from "@/features/auth/roleUtils";
 
 export default function App() {
   const authDisabled = import.meta.env.VITE_AUTH_DISABLED === "true";
@@ -12,7 +12,7 @@ export default function App() {
   const isLoading = authDisabled ? false : rawIsLoading;
   const isAuthenticated = authDisabled ? true : rawIsAuthenticated;
 
-  const role: AppRole | null = authDisabled ? "broker" : getRoleFromUser(user);
+  const role: AppRole | null = authDisabled ? getTestRole() : getRoleFromUser(user);
 
   useEffect(() => {
     if (authDisabled) return;
