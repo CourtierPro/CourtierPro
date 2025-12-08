@@ -44,6 +44,9 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/actuator/**").denyAll()
 
+                        // Auth logout endpoint - accessible to all authenticated users
+                        .requestMatchers(HttpMethod.POST, "/auth/logout").authenticated()
+
                         // Admin user management
                         .requestMatchers(HttpMethod.POST, "/api/admin/users").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/admin/users/**").hasRole("ADMIN")

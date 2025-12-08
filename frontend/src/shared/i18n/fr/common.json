@@ -24,6 +24,12 @@
     "settings": "Paramètres",
     "logout": "Déconnexion"
   },
+  "auth": {
+    "sessionExpired": "Votre session a expiré en raison d'inactivité.",
+    "sessionExpiredTitle": "Session expirée",
+    "loggedOut": "Vous avez été déconnecté avec succès.",
+    "loggingOut": "Déconnexion en cours..."
+  },
   "general": {
     "language": "Langue",
     "notifications": "Notifications",

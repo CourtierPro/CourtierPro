@@ -39,7 +39,7 @@
   "loginAudit": "Login audit",
   "loginAuditSubtitle": "View authentication activity and connection diagnostics.",
   "timestamp": "timestamp",
-  "user": "user",
+  "loginUser": "user",
   "ipAddress": "ipAddress",
   "userAgent": "userAgent",
   "eventId": "eventId",

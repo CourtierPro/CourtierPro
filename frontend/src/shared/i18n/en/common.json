@@ -24,6 +24,12 @@
     "settings": "Settings",
     "logout": "Logout"
   },
+  "auth": {
+    "sessionExpired": "Your session has expired due to inactivity.",
+    "sessionExpiredTitle": "Session Expired",
+    "loggedOut": "You have been logged out successfully.",
+    "loggingOut": "Logging out..."
+  },
   "general": {
     "language": "Language",
     "notifications": "Notifications",
