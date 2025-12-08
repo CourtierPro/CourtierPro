@@ -44,6 +44,9 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/actuator/**").denyAll()
 
+                        // Auth logout endpoint - accessible to all authenticated users
+                        .requestMatchers(HttpMethod.POST, "/auth/logout").authenticated()
+
                         // Admin user management
                         .requestMatchers(HttpMethod.POST, "/api/admin/users").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/admin/users/**").hasRole("ADMIN")
@@ -52,6 +55,9 @@ public class SecurityConfig {
                         //  Admin organization settings
                         .requestMatchers("/api/admin/settings/**").hasRole("ADMIN")
 
+                        // TODO: Implement webhook signature verification (HMAC/JWT) or IP allowlisting
+                        // Currently exposed without authentication - Auth0 should sign webhook payloads
+                        .requestMatchers("/api/webhooks/**").permitAll()
                         // Broker-only transaction APIs
                         .requestMatchers("/transactions/**").hasRole("BROKER")
 
