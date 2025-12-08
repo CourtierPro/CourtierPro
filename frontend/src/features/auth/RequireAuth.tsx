@@ -9,6 +9,12 @@ interface RequireAuthProps {
 
 export function RequireAuth({ children }: RequireAuthProps) {
   const { t } = useTranslation("common");
+
+  // When running Playwright locally we disable Auth0 entirely and short-circuit.
+  if (import.meta.env.VITE_AUTH_DISABLED === "true") {
+    return <>{children}</>;
+  }
+
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
 
   useEffect(() => {
@@ -26,7 +32,6 @@ export function RequireAuth({ children }: RequireAuthProps) {
       </div>
     );
   }
-
 
   if (!isAuthenticated) {
     return null;

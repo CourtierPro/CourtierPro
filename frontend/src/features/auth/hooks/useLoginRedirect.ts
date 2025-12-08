@@ -4,6 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { getRoleFromUser } from '../roleUtils';
 
 export function useLoginRedirect() {
+    // Short-circuit when auth is disabled for playwright runs
+    if (import.meta.env.VITE_AUTH_DISABLED === "true") {
+        return { isLoading: false };
+    }
+
     const { loginWithRedirect, isAuthenticated, isLoading, user } = useAuth0();
     const navigate = useNavigate();
 

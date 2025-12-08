@@ -4,6 +4,11 @@ import { AppRoutes } from "@/app/routes/AppRoutes";
 import { getRoleFromUser, type AppRole } from "@/features/auth/roleUtils";
 
 export default function App() {
+  // When running Playwright locally disable auth and render routes directly
+  if (import.meta.env.VITE_AUTH_DISABLED === "true") {
+    return <AppRoutes />;
+  }
+
   const { isAuthenticated, isLoading, user, loginWithRedirect } = useAuth0();
 
   const role: AppRole | null = getRoleFromUser(user);

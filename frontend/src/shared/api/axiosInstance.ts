@@ -49,8 +49,10 @@ const createAxiosInstance = (): AxiosInstance => {
                 config.url = API_PREFIX + config.url;
             }
 
-            // Attach the Auth0 token if we have one
-            if (accessTokenProvider) {
+            // If auth is disabled for Playwright tests, never attach an Authorization header.
+            if (import.meta.env.VITE_AUTH_DISABLED === "true") {
+                // Optionally could set a dummy header here, but keep requests unauthenticated.
+            } else if (accessTokenProvider) {
                 try {
                     const token = await accessTokenProvider();
 

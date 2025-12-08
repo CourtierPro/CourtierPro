@@ -21,6 +21,61 @@ type AppShellProps = {
 };
 
 export function AppShell({ children }: AppShellProps) {
+  // When auth is disabled for Playwright, avoid calling useAuth0 and render a minimal shell
+  if (import.meta.env.VITE_AUTH_DISABLED === "true") {
+    // Provide a minimal but interactive shell without calling any Auth0 hooks.
+    const language = "en" as "en" | "fr";
+    const userRole: AppRole = "broker";
+    const sidebarOpen = true;
+
+    const handleNavigate = (route: string) => {
+      // simple client-side navigation without react-router hooks
+      window.history.pushState({}, "", route);
+      // dispatch a popstate event so app can react if needed
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+
+    const handleLogout = () => {
+      // no-op in playwright mode
+    };
+
+    const handleLanguageChange = (_: "en" | "fr") => {
+      // no-op
+    };
+
+    return (
+      <div className="min-h-screen flex bg-background text-foreground pt-16">
+        {/* Sidebar */}
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => {}}
+          language={language}
+          userRole={userRole}
+          currentRoute={window.location.pathname}
+          onNavigate={handleNavigate}
+        />
+
+        {/* Main content */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <TopNav
+            onMenuToggle={() => {}}
+            language={language}
+            onLanguageChange={handleLanguageChange}
+            userRole={userRole}
+            onLogout={handleLogout}
+            onNavigate={handleNavigate}
+          />
+
+          <main className="flex-1 bg-muted/40 p-4 overflow-auto">
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   const navigate = useNavigate();
   const location = useLocation();
   const { i18n } = useTranslation("common");

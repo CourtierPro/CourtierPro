@@ -13,6 +13,9 @@ const clientId = "JJIaYMFFtbZqGwP1XKyOx1XcFTPO9Qlr";
 const audience = "https://api.courtierpro.dev";
 
 function Auth0ProviderWithNavigate({ children }: { children: ReactNode }) {
+    if (import.meta.env.VITE_AUTH_DISABLED === "true") {
+        return <>{children}</>;
+    }
     const navigate = useNavigate();
 
     const onRedirectCallback = (appState?: AppState) => {

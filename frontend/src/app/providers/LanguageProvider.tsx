@@ -5,6 +5,22 @@ import { getPreferredLanguage } from "@/features/auth/roleUtils";
 import { LanguageContext } from "@/app/providers/LanguageContext";
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
+    // When auth is disabled for Playwright, avoid calling Auth0 hooks and provide a simple static provider
+    if (import.meta.env.VITE_AUTH_DISABLED === "true") {
+        const staticValue = {
+            language: "en" as "en" | "fr",
+            setLanguage: (_: "en" | "fr") => {
+                /* no-op in playground mode */
+            },
+        };
+
+        return (
+            <LanguageContext.Provider value={staticValue}>
+                {children}
+            </LanguageContext.Provider>
+        );
+    }
+
     const { i18n } = useTranslation("common");
     const { user, isLoading } = useAuth0();
 
