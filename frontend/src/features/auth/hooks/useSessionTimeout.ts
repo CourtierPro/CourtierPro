@@ -69,7 +69,7 @@ export function useSessionTimeout({
     const events = [
       'mousedown',
       'mousemove',
-      'keypress',
+      'keydown',
       'scroll',
       'touchstart',
       'click',
