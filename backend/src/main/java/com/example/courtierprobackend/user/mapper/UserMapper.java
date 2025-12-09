@@ -26,11 +26,11 @@ public class UserMapper {
 
     public UserResponse toResponse(UserAccount account) {
         return UserResponse.builder()
-                .id(account.getAuth0UserId())
+                .id(account.getId().toString())
                 .email(account.getEmail())
                 .firstName(account.getFirstName())
                 .lastName(account.getLastName())
-                .role(account.getRole().name()) // UserRole.BROKER -> "BROKER"
+                .role(account.getRole().name())
                 .active(account.isActive())
                 .preferredLanguage(account.getPreferredLanguage())
                 .build();

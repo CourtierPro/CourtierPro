@@ -12,8 +12,7 @@ export async function setUserActiveStatus(
 ): Promise<AdminUserResponse> {
     const res = await axiosInstance.patch<AdminUserResponse>(
         `/api/admin/users/${userId}/status`,
-        { active },
-        { handleLocally: true }
+        { active }
     );
     return res.data;
 }
