@@ -386,6 +386,20 @@ public class TransactionServiceImpl implements TransactionService {
         return EntityDtoUtil.toResponse(saved, lookupClientName(saved.getClientId()));
     }
 
+    /**
+     * Retrieves the timeline entries for a transaction that are visible to the specified client.
+     * <p>
+     * The returned list includes only entries of type {@link TimelineEntryType#CREATED},
+     * {@link TimelineEntryType#STAGE_CHANGE}, and {@link TimelineEntryType#NOTE} (if {@code visibleToClient} is {@code true}).
+     * Entries are sorted in reverse chronological order by their occurrence time.
+     * <p>
+     * Security: Only the client associated with the transaction can access its timeline.
+     *
+     * @param transactionId the unique identifier of the transaction
+     * @param clientId the unique identifier of the client requesting the timeline
+     * @return a list of timeline entry DTOs visible to the client, sorted by most recent first
+     * @throws NotFoundException if the transaction does not exist or the client does not have access
+     */
     @Override
     public java.util.List<TimelineEntryDTO> getClientTransactionTimeline(String transactionId, String clientId) {
         Transaction tx = repo.findByTransactionId(transactionId)
