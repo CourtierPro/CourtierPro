@@ -9,10 +9,11 @@ import { ErrorState } from "@/shared/components/branded/ErrorState";
 import { Button } from "@/shared/components/ui/button";
 import { StageUpdateModal } from '@/features/transactions/components/StageUpdateModal';
 import { useTransaction, type Transaction } from '@/features/transactions/api/queries';
-import { useUpdateTransactionStage, useSaveTransactionNotes } from '@/features/transactions/api/mutations';
+import { useSaveTransactionNotes } from '@/features/transactions/api/mutations';
 import { TransactionInfo } from '@/features/transactions/components/TransactionInfo';
 import { TransactionStageTracker } from '@/features/transactions/components/TransactionStageTracker';
 import { TransactionTabs } from '@/features/transactions/components/TransactionTabs';
+import { useUpdateTransactionStage } from '@/features/transactions/api/mutations';
 
 interface TransactionDetailProps {
   transactionId?: string;
@@ -21,22 +22,23 @@ interface TransactionDetailProps {
 function TransactionDetailContent({ transaction }: { transaction: NonNullable<Transaction> }) {
   const navigate = useNavigate();
   const { t } = useTranslation('transactions');
-  const updateStage = useUpdateTransactionStage();
   const saveNotes = useSaveTransactionNotes();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notes, setNotes] = useState<string>(transaction.notes || '');
+  const updateStage = useUpdateTransactionStage();
 
-  const handleStageUpdate = async (newStage: number) => {
+  // stage updates are handled by the StageUpdateModal which calls this onSubmit
+  const handleStageUpdate = async (stage: string, note: string) => {
     try {
-      await updateStage.mutateAsync({ id: transaction.transactionId, stage: newStage });
-      setIsModalOpen(false);
-      toast.success(t('stageUpdated'));
-    } catch {
+      await updateStage.mutateAsync({ transactionId: transaction.transactionId, data: { stage, note } });
+      toast.success(t('stageUpdatedSuccess'));
+      // modal will be closed by the modal component after onSubmit resolves
+    } catch (err) {
       toast.error(t('errorUpdatingStage'));
+      throw err; // rethrow so modal doesn't close if it awaits
     }
   };
-
   const handleSaveNotes = async () => {
     try {
       await saveNotes.mutateAsync({ id: transaction.transactionId, notes });
@@ -81,8 +83,10 @@ function TransactionDetailContent({ transaction }: { transaction: NonNullable<Tr
       <StageUpdateModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmit={(stageIndex) => handleStageUpdate(stageIndex)}
+        isLoading={updateStage.isPending}
+        onSubmit={handleStageUpdate}
         transactionSide={transaction.side === 'BUY_SIDE' ? 'buy' : 'sell'}
+        transactionId={transaction.transactionId}
       />
     </div>
   );

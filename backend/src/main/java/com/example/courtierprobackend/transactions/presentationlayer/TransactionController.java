@@ -5,6 +5,7 @@ import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequ
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -110,5 +111,19 @@ public class TransactionController {
     ) {
         String userId = resolveUserId(jwt, brokerHeader);
         return ResponseEntity.ok(service.getByTransactionId(transactionId, userId));
+    }
+
+    @PatchMapping("/{transactionId}/stage")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<TransactionResponseDTO> updateTransactionStage(
+            @PathVariable String transactionId,
+            @Valid @RequestBody StageUpdateRequestDTO dto,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        String brokerId = resolveUserId(jwt, brokerHeader);
+
+        TransactionResponseDTO updated = service.updateTransactionStage(transactionId, dto, brokerId);
+        return ResponseEntity.ok(updated);
     }
 }
