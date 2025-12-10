@@ -44,3 +44,8 @@ export interface NoteCreateRequest {
   message: string;
   visibleToClient?: boolean;
 }
+
+export interface StageUpdateRequestDTO {
+  stage: string;
+  note?: string;
+}

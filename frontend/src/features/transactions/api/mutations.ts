@@ -1,21 +1,21 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/shared/api/axiosInstance';
 import { transactionKeys } from '@/features/transactions/api/queries';
-import type { TransactionRequestDTO } from '@/shared/api/types';
+import type { TransactionRequestDTO, StageUpdateRequestDTO } from '@/shared/api/types';
 
 export function useUpdateTransactionStage() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id, stage }: { id: string; stage: number }) => {
+        mutationFn: async ({ transactionId, data }: { transactionId: string; data: StageUpdateRequestDTO }) => {
             const res = await axiosInstance.patch(
-                `/transactions/${id}/stage`,
-                { stage }
+                `/transactions/${transactionId}/stage`,
+                data
             );
             return res.data;
         },
         onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.id) });
+            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
             queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
         },
     });
