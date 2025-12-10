@@ -372,7 +372,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .type(TimelineEntryType.STAGE_CHANGE)
                 .title("Stage updated to " + stageName)
                 .note(dto.getNote() != null && !dto.getNote().isBlank() ? dto.getNote() : "Stage moved to " + stageName)
-                .visibleToClient(true)
+                .visibleToClient(dto.getVisibleToClient() != null ? dto.getVisibleToClient() : true)
                 .occurredAt(LocalDateTime.now())
                 .addedByBrokerId(brokerId)
                 .transaction(tx)
