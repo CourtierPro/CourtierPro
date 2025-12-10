@@ -33,7 +33,6 @@ export function StageUpdateModal(props: StageUpdateModalProps) {
 function StageUpdateForm({
   onClose,
   transactionSide,
-  transactionId: _transactionId,
   isLoading = false,
   onSubmit,
 }: StageUpdateModalProps) {
