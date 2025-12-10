@@ -213,7 +213,7 @@ function StageUpdateForm({
                   </p>
                 </div>
                 <p className="text-foreground text-sm">
-                  {stageDescriptions[stageEnums.indexOf(selectedStage) ?? 0] ?? ''}
+                  {stageEnums.indexOf(selectedStage) !== -1 ? stageDescriptions[stageEnums.indexOf(selectedStage)] : ''}
                 </p>
               </div>
             )}
