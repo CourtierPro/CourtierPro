@@ -27,6 +27,7 @@ jobs:
               /^(Bug|Feat|Fix|Story|Task|Test)\(CP-\d+\): .+/;
 
             // Exception: Untracked
+            // Untracked: Description
             const prUntrackedPattern =
               /^Untracked: .+/;
 
@@ -40,6 +41,7 @@ jobs:
               /^(bug|feat|fix|story|task|test)\/CP-\d+_[A-Za-z0-9._-]+$/;
 
             // Exception: untracked
+            // untracked/Description
             const branchUntrackedPattern =
               /^untracked\/[A-Za-z0-9._-]+$/;
 
@@ -53,17 +55,25 @@ jobs:
 
             if (!prIsValid || !branchIsValid) {
               let msg = '❌ Naming convention check failed.\n\n';
-
               msg += `PR title: "${prTitle}"\n`;
               msg += `Branch name: "${branchName}"\n\n`;
 
-              msg += 'Expected formats:\n';
+              msg += 'Problems detected:\n';
+              if (!prIsValid) {
+                msg += '• PR title is invalid.\n';
+              }
+              if (!branchIsValid) {
+                msg += '• Branch name is invalid.\n';
+              }
+
+              msg += '\nExpected formats:\n';
               msg += 'PR (with ticket): Bug|Feat|Fix|Story|Task|Test(CP-44): Description\n';
               msg += 'PR (no ticket):   Untracked: Description\n\n';
               msg += 'Branch (with ticket): bug|feat|fix|story|task|test/CP-44_Description\n';
               msg += 'Branch (no ticket):   untracked/Description\n';
 
-              throw new Error(msg);
+              core.setFailed(msg);
+              return;
             }
 
             console.log('✅ Branch name and PR title follow the convention.');
