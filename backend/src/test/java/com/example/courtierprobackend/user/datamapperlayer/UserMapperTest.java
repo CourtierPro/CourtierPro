@@ -52,7 +52,7 @@ class UserMapperTest {
 
         UserResponse response = mapper.toResponse(account);
 
-        assertThat(response.getId()).isEqualTo(account.getAuth0UserId());
+        assertThat(response.getId()).isEqualTo(account.getId() != null ? account.getId().toString() : null);
         assertThat(response.getEmail()).isEqualTo("broker@test.com");
         assertThat(response.getFirstName()).isEqualTo("Jane");
         assertThat(response.getLastName()).isEqualTo("Smith");
