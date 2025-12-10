@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -687,6 +688,69 @@ class TransactionServiceImplTest {
         assertThat(last.getTitle()).contains(newStage);
         assertThat(last.getNote()).isEqualTo(customNote);
     }
+
+        @Test
+        void getClientTransactionTimeline_shouldReturnFilteredEntries() {
+        // Arrange
+        String transactionId = "TX-TL-1";
+        String clientId = "client-1";
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setClientId(clientId);
+
+        TimelineEntry stageChange = TimelineEntry.builder()
+            .type(TimelineEntryType.STAGE_CHANGE)
+            .title("Stage Changed")
+            .occurredAt(LocalDateTime.now().minusDays(2))
+            .visibleToClient(true)
+            .build();
+
+        TimelineEntry privateNote = TimelineEntry.builder()
+            .type(TimelineEntryType.NOTE)
+            .title("Private Note")
+            .note("secret")
+            .occurredAt(LocalDateTime.now().minusDays(1))
+            .visibleToClient(false)
+            .build();
+
+        TimelineEntry publicNote = TimelineEntry.builder()
+            .type(TimelineEntryType.NOTE)
+            .title("Public Note")
+            .note("visible")
+            .occurredAt(LocalDateTime.now())
+            .visibleToClient(true)
+            .build();
+
+        tx.setTimeline(List.of(stageChange, privateNote, publicNote));
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act
+        List<TimelineEntryDTO> result = transactionService.getClientTransactionTimeline(transactionId, clientId);
+
+        // Assert
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getTitle()).isEqualTo("Public Note");
+        assertThat(result.get(1).getTitle()).isEqualTo("Stage Changed");
+        assertThat(result).noneMatch(dto -> "Private Note".equals(dto.getTitle()));
+        }
+
+        @Test
+        void getClientTransactionTimeline_shouldThrowWhenClientMismatch() {
+        // Arrange
+        String transactionId = "TX-TL-2";
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setClientId("other-client");
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getClientTransactionTimeline(transactionId, "client-1"))
+            .isInstanceOf(NotFoundException.class)
+            .hasMessageContaining("You do not have access");
+        }
 
     // ========== Helper Methods ==========
 

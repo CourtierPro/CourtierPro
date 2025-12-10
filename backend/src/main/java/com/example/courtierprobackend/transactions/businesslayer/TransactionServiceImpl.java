@@ -385,4 +385,26 @@ public class TransactionServiceImpl implements TransactionService {
 
         return EntityDtoUtil.toResponse(saved, lookupClientName(saved.getClientId()));
     }
+
+    @Override
+    public java.util.List<TimelineEntryDTO> getClientTransactionTimeline(String transactionId, String clientId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        if (!Objects.equals(tx.getClientId(), clientId)) {
+            // Hide existence/permission issues as NotFound
+            throw new NotFoundException("You do not have access to this transaction");
+        }
+
+        List<TimelineEntry> entries = tx.getTimeline() == null ? List.of() : tx.getTimeline();
+
+        return entries.stream()
+                .filter(e -> e.getType() == TimelineEntryType.CREATED
+                        || e.getType() == TimelineEntryType.STAGE_CHANGE
+                        || (e.getType() == TimelineEntryType.NOTE && Boolean.TRUE.equals(e.getVisibleToClient()))
+                )
+                .sorted(Comparator.comparing(TimelineEntry::getOccurredAt).reversed())
+                .map(EntityDtoUtil::toTimelineDTO)
+                .toList();
+    }
 }

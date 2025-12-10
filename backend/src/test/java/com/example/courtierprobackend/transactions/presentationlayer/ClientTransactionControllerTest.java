@@ -14,6 +14,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
+import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -154,6 +156,32 @@ class ClientTransactionControllerTest {
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).hasSize(3);
+    }
+
+    @Test
+    void getClientTransactionTimeline_shouldReturn200() {
+        // Arrange
+        String clientId = "auth0|client123";
+        String txId = "TX-100";
+        Jwt jwt = createJwt(clientId);
+
+        TimelineEntryDTO t1 = TimelineEntryDTO.builder()
+                .title("Public Note")
+                .type(com.example.courtierprobackend.transactions.datalayer.enums.TimelineEntryType.NOTE)
+                .occurredAt(LocalDateTime.now())
+                .visibleToClient(true)
+                .build();
+
+        when(transactionService.getClientTransactionTimeline(txId, clientId)).thenReturn(List.of(t1));
+
+        // Act
+        var response = controller.getClientTransactionTimeline(clientId, txId, jwt);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().get(0).getTitle()).isEqualTo("Public Note");
+        verify(transactionService).getClientTransactionTimeline(txId, clientId);
     }
 
     // ========== Helper Methods ==========

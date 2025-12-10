@@ -2,6 +2,11 @@ package com.example.courtierprobackend.transactions.presentationlayer;
 
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.time.LocalDateTime;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,6 +32,7 @@ import java.util.List;
 public class ClientTransactionController {
 
     private final TransactionService service;
+    private static final Logger log = LoggerFactory.getLogger(ClientTransactionController.class);
 
     /**
      * Resolves the client ID from the JWT token.
@@ -70,5 +76,21 @@ public class ClientTransactionController {
     ) {
         String validatedClientId = resolveAndValidateClientId(jwt, clientId);
         return ResponseEntity.ok(service.getClientTransactions(validatedClientId));
+    }
+
+    @GetMapping("/{clientId}/transactions/{transactionId}/timeline")
+    public ResponseEntity<java.util.List<TimelineEntryDTO>> getClientTransactionTimeline(
+            @PathVariable String clientId,
+            @PathVariable String transactionId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        String validatedClientId = resolveAndValidateClientId(jwt, clientId);
+
+        java.util.List<TimelineEntryDTO> timeline = service.getClientTransactionTimeline(transactionId, validatedClientId);
+
+        log.info("Transaction Status Viewed | User: {} | Transaction: {} | Timestamp: {}",
+                validatedClientId, transactionId, LocalDateTime.now());
+
+        return ResponseEntity.ok(timeline);
     }
 }

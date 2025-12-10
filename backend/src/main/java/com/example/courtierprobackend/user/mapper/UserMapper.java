@@ -26,7 +26,7 @@ public class UserMapper {
 
     public UserResponse toResponse(UserAccount account) {
         return UserResponse.builder()
-                .id(account.getId().toString())
+                .id(account.getAuth0UserId())
                 .email(account.getEmail())
                 .firstName(account.getFirstName())
                 .lastName(account.getLastName())
