@@ -1,5 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import axiosInstance from '@/shared/api/axiosInstance';
+import type { TimelineEntryDTO } from '@/shared/api/types';
+
+// Re-export a local type alias expected by components
+export type TimelineEntry = TimelineEntryDTO;
 
 export const transactionKeys = {
     all: ['transactions'] as const,

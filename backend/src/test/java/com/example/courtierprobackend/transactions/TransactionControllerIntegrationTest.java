@@ -22,9 +22,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TransactionController.class)
@@ -156,6 +158,65 @@ class TransactionControllerIntegrationTest {
                         .header("x-broker-id", "BROKER1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(dto))
+        ).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void patchTransactionStage_Success_Returns200() throws Exception {
+        String txId = "TX-PATCH-1";
+        String broker = "BROKER1";
+
+        String payload = "{\"stage\": \"BUYER_OFFER_ACCEPTED\", \"note\": \"Moving fast!\"}";
+
+        when(service.updateTransactionStage(eq(txId), any(), eq(broker)))
+                .thenReturn(com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO.builder()
+                        .transactionId(txId)
+                        .currentStage("BUYER_OFFER_ACCEPTED")
+                        .brokerId(broker)
+                        .build());
+
+        mockMvc.perform(
+                patch("/transactions/{id}/stage", txId)
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", broker)))
+                        .header("x-broker-id", broker)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload)
+        ).andExpect(status().isOk())
+         .andExpect(jsonPath("$.currentStage").value("BUYER_OFFER_ACCEPTED"));
+    }
+
+    @Test
+    void patchTransactionStage_InvalidEnum_Returns400() throws Exception {
+        String txId = "TX-PATCH-2";
+        String broker = "BROKER1";
+
+        String payload = "{\"stage\": \"INVALID_STAGE_NAME\"}";
+
+        when(service.updateTransactionStage(eq(txId), any(), eq(broker)))
+                .thenThrow(new InvalidInputException("invalid stage"));
+
+        mockMvc.perform(
+                patch("/transactions/{id}/stage", txId)
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", broker)))
+                        .header("x-broker-id", broker)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload)
+        ).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void patchTransactionStage_EmptyStage_Returns400() throws Exception {
+        String txId = "TX-PATCH-3";
+        String broker = "BROKER1";
+
+        String payload = "{\"stage\": \"\"}";
+
+        mockMvc.perform(
+                patch("/transactions/{id}/stage", txId)
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", broker)))
+                        .header("x-broker-id", broker)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload)
         ).andExpect(status().isBadRequest());
     }
 }

@@ -12,12 +12,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select';
+// Note: no DTO import required here; parent handles mutation and types
 
 interface StageUpdateModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (stageIndex: number, note: string, visibleToClient: boolean) => void;
   transactionSide: 'buy' | 'sell';
+  transactionId: string;
+  // new: indicates whether an update is in progress
+  isLoading?: boolean;
+  // new: submit passes selected stage string and note
+  onSubmit?: (stage: string, note: string) => Promise<void> | void;
 }
 
 export function StageUpdateModal(props: StageUpdateModalProps) {
@@ -27,13 +32,15 @@ export function StageUpdateModal(props: StageUpdateModalProps) {
 
 function StageUpdateForm({
   onClose,
-  onSubmit,
   transactionSide,
+  isLoading = false,
+  onSubmit,
 }: StageUpdateModalProps) {
   const { t, i18n } = useTranslation('transactions');
-  const [selectedStage, setSelectedStage] = useState<number | ''>('');
+  const [selectedStage, setSelectedStage] = useState<string>('');
   const [progressNote, setProgressNote] = useState('');
   const [visibleToClient, setVisibleToClient] = useState(true);
+  // mutation handled by parent via onSubmit; no local mutation here
 
   const modalRef = useRef<HTMLDivElement>(null);
   const firstFocusableRef = useRef<HTMLSelectElement>(null);
@@ -93,12 +100,21 @@ function StageUpdateForm({
     };
   }, [onClose]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (selectedStage === '') return;
+    if (!selectedStage) return;
 
-    onSubmit(selectedStage as number, progressNote, visibleToClient);
+    try {
+      if (onSubmit) {
+        await onSubmit(selectedStage, progressNote || '');
+      }
+      // If onSubmit succeeded, close the modal
+      onClose();
+    } catch (err) {
+      console.error('Failed to update stage', err);
+      // let caller handle toast/error display
+    }
 
     // Reset form
     setSelectedStage('');
@@ -157,8 +173,9 @@ function StageUpdateForm({
               </label>
 
               <Select
-                value={selectedStage === '' ? undefined : String(selectedStage)}
-                onValueChange={(value) => setSelectedStage(Number(value))}
+                value={selectedStage === '' ? undefined : selectedStage}
+                onValueChange={(value) => setSelectedStage(value)}
+                disabled={isLoading}
               >
                 <SelectTrigger
                   id="stage-select"
@@ -172,7 +189,7 @@ function StageUpdateForm({
                   {stageEnums.map((stageEnum, index) => {
                     const stageNumber = index + 1;
                     return (
-                      <SelectItem key={stageEnum} value={String(stageNumber)}>
+                      <SelectItem key={stageEnum} value={stageEnum}>
                         {i18n.language === 'en' ? 'Stage' : 'Étape'} {stageNumber}: {enumToLabel(stageEnum)}
                       </SelectItem>
                     );
@@ -195,7 +212,9 @@ function StageUpdateForm({
                   </p>
                 </div>
                 <p className="text-foreground text-sm">
-                  {stageDescriptions[(selectedStage as number) - 1] ?? ''}
+                  {selectedStage && stageEnums.indexOf(selectedStage) >= 0
+                    ? stageDescriptions[stageEnums.indexOf(selectedStage)]
+                    : ''}
                 </p>
               </div>
             )}
@@ -215,6 +234,7 @@ function StageUpdateForm({
                 rows={4}
                 placeholder={t('progressNotePlaceholder')}
                 aria-describedby="note-help-text"
+                disabled={isLoading}
               />
 
               <div className="mt-3">
@@ -223,6 +243,7 @@ function StageUpdateForm({
                     id="visible-to-client"
                     checked={visibleToClient}
                     onCheckedChange={(checked) => setVisibleToClient(checked === true)}
+                    disabled={isLoading}
                     aria-describedby="visibility-help-text"
                   />
                   <div className="flex-1">
@@ -258,15 +279,16 @@ function StageUpdateForm({
               variant="outline"
               onClick={onClose}
               className="flex-1"
+              disabled={isLoading}
             >
               {t('cancel')}
             </Button>
             <Button
               type="submit"
-              disabled={!isFormValid}
+              disabled={!isFormValid || isLoading}
               className="flex-1"
             >
-              {t('updateTransactionStage')}
+              {isLoading ? t('updating') ?? 'Updating...' : t('updateTransactionStage')}
             </Button>
           </div>
         </form>

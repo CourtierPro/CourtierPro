@@ -4,6 +4,7 @@ import com.example.courtierprobackend.transactions.datalayer.TimelineEntry;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
@@ -25,6 +26,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import org.mockito.ArgumentCaptor;
 
 /**
  * Unit tests for TransactionServiceImpl.
@@ -513,6 +515,177 @@ class TransactionServiceImplTest {
         assertThatThrownBy(() -> transactionService.getByTransactionId("TX-123", "broker-1"))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("You do not have access");
+    }
+
+    // ========== updateTransactionStage Tests ==========
+
+    @Test
+    void updateTransactionStage_BuySide_Success() {
+        // Arrange
+        String transactionId = "TX-100";
+        String brokerId = "broker-1";
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+        tx.setTimeline(new ArrayList<>());
+
+        Transaction savedTx = new Transaction();
+        savedTx.setTransactionId(transactionId);
+        savedTx.setBrokerId(brokerId);
+        savedTx.setSide(TransactionSide.BUY_SIDE);
+        savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
+        savedTx.setTimeline(new ArrayList<>());
+        // timeline entry will be the last element
+        savedTx.getTimeline().add(TimelineEntry.builder().type(TimelineEntryType.STAGE_CHANGE).title("Stage updated to BUYER_OFFER_ACCEPTED").note("note").visibleToClient(true).build());
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OFFER_ACCEPTED");
+        dto.setNote("note");
+
+        // Act
+        TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(response).isNotNull();
+        assertThat(response.getCurrentStage()).isEqualTo("BUYER_OFFER_ACCEPTED");
+        verify(transactionRepository).save(any(Transaction.class));
+    }
+
+    @Test
+    void updateTransactionStage_SellSide_Success() {
+        // Arrange
+        String transactionId = "TX-200";
+        String brokerId = "broker-1";
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+        tx.setSellerStage(SellerStage.SELLER_INITIAL_CONSULTATION);
+        tx.setTimeline(new ArrayList<>());
+
+        Transaction savedTx = new Transaction();
+        savedTx.setTransactionId(transactionId);
+        savedTx.setBrokerId(brokerId);
+        savedTx.setSide(TransactionSide.SELL_SIDE);
+        savedTx.setSellerStage(SellerStage.SELLER_REVIEW_OFFERS);
+        savedTx.setTimeline(new ArrayList<>());
+        savedTx.getTimeline().add(TimelineEntry.builder().type(TimelineEntryType.STAGE_CHANGE).title("Stage updated to SELLER_REVIEW_OFFERS").note("note").visibleToClient(true).build());
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("SELLER_REVIEW_OFFERS");
+        dto.setNote("note");
+
+        // Act
+        TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(response).isNotNull();
+        assertThat(response.getCurrentStage()).isEqualTo("SELLER_REVIEW_OFFERS");
+        verify(transactionRepository).save(any(Transaction.class));
+    }
+
+    @Test
+    void updateTransactionStage_WrongBroker_throwsNotFoundException() {
+        // Arrange
+        String transactionId = "TX-300";
+        String brokerId = "broker-1";
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId("other-broker");
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OFFER_ACCEPTED");
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("You do not have access");
+    }
+
+    @Test
+    void updateTransactionStage_InvalidStageEnum_throwsInvalidInputException() {
+        // Arrange
+        String transactionId = "TX-400";
+        String brokerId = "broker-1";
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("INVALID_STAGE");
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(InvalidInputException.class)
+                .hasMessageContaining("not a valid");
+    }
+
+    @Test
+    void updateTransactionStage_TimelineEntryVerified() {
+        // Arrange
+        String transactionId = "TX-500";
+        String brokerId = "broker-1";
+        String customNote = "Custom timeline note";
+        String newStage = "BUYER_FINANCING_FINALIZED";
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+        tx.setTimeline(new ArrayList<>());
+
+        Transaction savedTx = new Transaction();
+        savedTx.setTransactionId(transactionId);
+        savedTx.setBrokerId(brokerId);
+        savedTx.setSide(TransactionSide.BUY_SIDE);
+        savedTx.setBuyerStage(BuyerStage.BUYER_FINANCING_FINALIZED);
+        savedTx.setTimeline(new ArrayList<>());
+        // savedTx will be returned by repository.save
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage(newStage);
+        dto.setNote(customNote);
+
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+
+        // Act
+        TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert response
+        assertThat(response).isNotNull();
+        assertThat(response.getCurrentStage()).isEqualTo(newStage);
+
+        // Verify repository.save called and capture the saved transaction
+        verify(transactionRepository).save(captor.capture());
+        Transaction captured = captor.getValue();
+
+        assertThat(captured.getTimeline()).isNotNull();
+        assertThat(captured.getTimeline()).isNotEmpty();
+
+        TimelineEntry last = captured.getTimeline().get(captured.getTimeline().size() - 1);
+        assertThat(last.getType()).isEqualTo(TimelineEntryType.STAGE_CHANGE);
+        assertThat(last.getVisibleToClient()).isTrue();
+        assertThat(last.getTitle()).contains(newStage);
+        assertThat(last.getNote()).isEqualTo(customNote);
     }
 
     // ========== Helper Methods ==========

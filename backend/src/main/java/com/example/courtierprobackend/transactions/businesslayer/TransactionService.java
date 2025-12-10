@@ -16,6 +16,8 @@ public interface TransactionService {
     List<TransactionResponseDTO> getBrokerTransactions(String brokerId, String status, String stage, String side);
 
     List<TransactionResponseDTO> getClientTransactions(String clientId);
+    
+    TransactionResponseDTO updateTransactionStage(String transactionId, StageUpdateRequestDTO dto, String brokerId);
 
     TransactionResponseDTO getByTransactionId(String transactionId, String userId);
 }
