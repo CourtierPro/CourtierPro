@@ -13,7 +13,6 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const core = require('@actions/core');
             const pr = context.payload.pull_request;
             const prTitle = pr.title;
             const branchName = pr.head.ref;
@@ -59,7 +58,6 @@ jobs:
               msg += `PR title: "${prTitle}"\n`;
               msg += `Branch name: "${branchName}"\n\n`;
 
-              // Point out exactly what failed
               msg += 'Problems detected:\n';
               if (!prIsValid) {
                 msg += '• PR title is invalid.\n';
@@ -67,13 +65,14 @@ jobs:
               if (!branchIsValid) {
                 msg += '• Branch name is invalid.\n';
               }
+
               msg += '\nExpected formats:\n';
               msg += 'PR (with ticket): Bug|Feat|Fix|Story|Task|Test(CP-44): Description\n';
               msg += 'PR (no ticket):   Untracked: Description\n\n';
               msg += 'Branch (with ticket): bug|feat|fix|story|task|test/CP-44_Description\n';
               msg += 'Branch (no ticket):   untracked/Description\n';
 
-              core.setFailed(msg);   // ❗ mark job as failed (no extra “Unhandled error”)
+              core.setFailed(msg);
               return;
             }
 
