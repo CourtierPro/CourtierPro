@@ -75,11 +75,15 @@
         "uploadDocument": "Upload Document"
     },
     "uploadingFor": "Uploading for",
+    "dragAndDropOrClick": "Drag and drop or click to select",
+    "dropToUpload": "Drop file to upload",
+    "supportedFormats": "Supported formats",
     "clickToSelectFile": "Click to select file",
     "maxSize": "Max size: {{size}}",
     "actions": {
         "cancel": "Cancel",
-        "upload": "Upload"
+        "upload": "Upload",
+        "uploading": "Uploading..."
     },
     "success": {
         "documentUploaded": "Document uploaded successfully"
