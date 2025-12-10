@@ -327,6 +327,20 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    /**
+     * Updates the stage of a transaction identified by its transaction ID.
+     *
+     * <p>This method allows a broker to update the stage of a transaction. It performs access checks to ensure
+     * that the broker is authorized to update the transaction. The stage to update is provided in the {@code dto} parameter.
+     * If the input is invalid or the broker does not have access, appropriate exceptions are thrown.</p>
+     *
+     * @param transactionId the unique identifier of the transaction to update
+     * @param dto the request DTO containing the new stage information; must not be {@code null} and must contain a non-blank stage
+     * @param brokerId the unique identifier of the broker attempting the update; must match the transaction's broker
+     * @return a {@link TransactionResponseDTO} representing the updated transaction
+     * @throws InvalidInputException if the request body or stage is missing or invalid
+     * @throws NotFoundException if the transaction is not found or the broker does not have access
+     */
     public TransactionResponseDTO updateTransactionStage(String transactionId, StageUpdateRequestDTO dto, String brokerId) {
 
         if (dto == null) {
