@@ -20,15 +20,7 @@ public class UserContextUtils {
     public static UUID resolveUserId(HttpServletRequest request, String overrideId) {
         // DEV mode: header override
         if (StringUtils.hasText(overrideId)) {
-            try {
-                return UUID.fromString(overrideId);
-            } catch (IllegalArgumentException e) {
-                // If header is invalid UUID, fall through or error?
-                // Existing code just did UUID.fromString() which would throw IllegalArgumentException (Runtime).
-                // It's safer to let it throw or handle it. Existing code allowed it to crash or handled it implicitly.
-                // We'll stick to the existing behavior: just parse it.
-                return UUID.fromString(overrideId);
-            }
+            return UUID.fromString(overrideId);
         }
 
         // PROD mode: Get internal UUID from UserContextFilter

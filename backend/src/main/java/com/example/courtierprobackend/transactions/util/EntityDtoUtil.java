@@ -35,10 +35,7 @@ public class EntityDtoUtil {
        ========================================================= */
     public static Transaction toNewTransaction(TransactionRequestDTO dto, UUID generatedId) {
         Transaction t = new Transaction();
-        t.setTransactionId(generatedId); // Assuming generatedId is passed as String from outside?? Wait, generatedId param is String. 
-        // Actually, let's check callers. In Service it is UUID.randomUUID(). So we shouldn't pass String generatedId.
-        // But the method ref accepts String generatedId.
-        // Let's modify the method sig to accept UUID or convert it here.
+        t.setTransactionId(generatedId);
         t.setClientId(dto.getClientId());
         t.setBrokerId(dto.getBrokerId());
         t.setSide(dto.getSide());

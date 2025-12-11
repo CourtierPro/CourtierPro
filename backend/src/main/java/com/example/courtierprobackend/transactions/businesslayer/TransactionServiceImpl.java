@@ -156,7 +156,6 @@ public class TransactionServiceImpl implements TransactionService {
         if (note.getMessage() == null || note.getMessage().isBlank()) {
             throw new BadRequestException("message is required");
         }
-        // ... (other checks)
 
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));

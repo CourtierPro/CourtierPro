@@ -67,11 +67,6 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
 
     @Override
     public List<DocumentRequestResponseDTO> getAllDocumentsForUser(UUID userId) {
-        // This query relies on the DB storing the exact ID. 
-        // If we want to be fully robust, we might need to query by both Auth0 and UUID if possible,
-        // but for now, we assume the repository query handles what's in the DB.
-        // Given the requirement is mostly about Transaction access, this one might stay as is 
-        // OR we resolve the user first.
         return repository.findByUserId(userId).stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
