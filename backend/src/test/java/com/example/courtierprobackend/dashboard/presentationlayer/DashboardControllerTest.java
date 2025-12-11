@@ -1,5 +1,6 @@
 package com.example.courtierprobackend.dashboard.presentationlayer;
 
+import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
@@ -12,17 +13,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.mock.web.MockHttpServletRequest;
 
-import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for DashboardController.
+ * Updated to use HttpServletRequest with internal UUID from UserContextFilter.
  */
 @ExtendWith(MockitoExtension.class)
 class DashboardControllerTest {
@@ -31,8 +32,6 @@ class DashboardControllerTest {
     private TransactionRepository transactionRepository;
     @Mock
     private UserAccountRepository userRepository;
-    @Mock
-    private Jwt jwt;
 
     private DashboardController controller;
 
@@ -46,14 +45,16 @@ class DashboardControllerTest {
     @Test
     void getClientStats_WithActiveTransactions_ReturnsCorrectCount() {
         // Arrange
-        when(jwt.getClaimAsString("sub")).thenReturn("client-1");
-        Transaction tx1 = Transaction.builder().clientId("client-1").status(TransactionStatus.ACTIVE).build();
-        Transaction tx2 = Transaction.builder().clientId("client-1").status(TransactionStatus.ACTIVE).build();
-        Transaction tx3 = Transaction.builder().clientId("client-1").status(TransactionStatus.CLOSED_SUCCESSFULLY).build();
-        when(transactionRepository.findAllByClientId("client-1")).thenReturn(List.of(tx1, tx2, tx3));
+        UUID internalId = UUID.randomUUID();
+        Transaction tx1 = Transaction.builder().clientId(internalId).status(TransactionStatus.ACTIVE).build();
+        Transaction tx2 = Transaction.builder().clientId(internalId).status(TransactionStatus.ACTIVE).build();
+        Transaction tx3 = Transaction.builder().clientId(internalId).status(TransactionStatus.CLOSED_SUCCESSFULLY).build();
+        when(transactionRepository.findAllByClientId(internalId)).thenReturn(List.of(tx1, tx2, tx3));
+
+        MockHttpServletRequest request = createRequestWithInternalId(internalId);
 
         // Act
-        ResponseEntity<DashboardController.ClientDashboardStats> response = controller.getClientStats(null, jwt);
+        ResponseEntity<DashboardController.ClientDashboardStats> response = controller.getClientStats(null, null, request);
 
         // Assert
         assertThat(response.getBody().getActiveTransactions()).isEqualTo(2);
@@ -62,11 +63,14 @@ class DashboardControllerTest {
     @Test
     void getClientStats_WithHeaderId_UsesHeaderId() {
         // Arrange
-        Transaction tx = Transaction.builder().clientId("header-client").status(TransactionStatus.ACTIVE).build();
-        when(transactionRepository.findAllByClientId("header-client")).thenReturn(List.of(tx));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        UUID clientId = UUID.randomUUID();
+        String clientHeader = clientId.toString();
+        Transaction tx = Transaction.builder().clientId(clientId).status(TransactionStatus.ACTIVE).build();
+        when(transactionRepository.findAllByClientId(clientId)).thenReturn(List.of(tx));
 
         // Act
-        ResponseEntity<DashboardController.ClientDashboardStats> response = controller.getClientStats("header-client", null);
+        ResponseEntity<DashboardController.ClientDashboardStats> response = controller.getClientStats(clientHeader, null, request);
 
         // Assert
         assertThat(response.getBody().getActiveTransactions()).isEqualTo(1);
@@ -75,11 +79,13 @@ class DashboardControllerTest {
     @Test
     void getClientStats_WithNoTransactions_ReturnsZero() {
         // Arrange
-        when(jwt.getClaimAsString("sub")).thenReturn("client-1");
-        when(transactionRepository.findAllByClientId("client-1")).thenReturn(List.of());
+        // Arrange
+        UUID internalId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(internalId);
+        when(transactionRepository.findAllByClientId(internalId)).thenReturn(List.of());
 
         // Act
-        ResponseEntity<DashboardController.ClientDashboardStats> response = controller.getClientStats(null, jwt);
+        ResponseEntity<DashboardController.ClientDashboardStats> response = controller.getClientStats(null, null, request);
 
         // Assert
         assertThat(response.getBody().getActiveTransactions()).isZero();
@@ -90,13 +96,15 @@ class DashboardControllerTest {
     @Test
     void getBrokerStats_WithActiveTransactions_ReturnsCorrectStats() {
         // Arrange
-        when(jwt.getClaimAsString("sub")).thenReturn("broker-1");
-        Transaction tx1 = Transaction.builder().brokerId("broker-1").clientId("c1").status(TransactionStatus.ACTIVE).build();
-        Transaction tx2 = Transaction.builder().brokerId("broker-1").clientId("c2").status(TransactionStatus.ACTIVE).build();
-        when(transactionRepository.findAllByBrokerId("broker-1")).thenReturn(List.of(tx1, tx2));
+        UUID internalId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(internalId);
+
+        Transaction tx1 = Transaction.builder().brokerId(internalId).clientId(UUID.randomUUID()).status(TransactionStatus.ACTIVE).build();
+        Transaction tx2 = Transaction.builder().brokerId(internalId).clientId(UUID.randomUUID()).status(TransactionStatus.ACTIVE).build();
+        when(transactionRepository.findAllByBrokerId(internalId)).thenReturn(List.of(tx1, tx2));
 
         // Act
-        ResponseEntity<DashboardController.BrokerDashboardStats> response = controller.getBrokerStats(null, jwt);
+        ResponseEntity<DashboardController.BrokerDashboardStats> response = controller.getBrokerStats(null, null, request);
 
         // Assert
         assertThat(response.getBody().getActiveTransactions()).isEqualTo(2);
@@ -107,13 +115,16 @@ class DashboardControllerTest {
     @Test
     void getBrokerStats_WithSameClientMultipleTransactions_CountsUniqueClients() {
         // Arrange
-        when(jwt.getClaimAsString("sub")).thenReturn("broker-1");
-        Transaction tx1 = Transaction.builder().brokerId("broker-1").clientId("c1").status(TransactionStatus.ACTIVE).build();
-        Transaction tx2 = Transaction.builder().brokerId("broker-1").clientId("c1").status(TransactionStatus.ACTIVE).build();
-        when(transactionRepository.findAllByBrokerId("broker-1")).thenReturn(List.of(tx1, tx2));
+        UUID internalId = UUID.randomUUID();
+        UUID clientUuid = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(internalId);
+        
+        Transaction tx1 = Transaction.builder().brokerId(internalId).clientId(clientUuid).status(TransactionStatus.ACTIVE).build();
+        Transaction tx2 = Transaction.builder().brokerId(internalId).clientId(clientUuid).status(TransactionStatus.ACTIVE).build();
+        when(transactionRepository.findAllByBrokerId(internalId)).thenReturn(List.of(tx1, tx2));
 
         // Act
-        ResponseEntity<DashboardController.BrokerDashboardStats> response = controller.getBrokerStats(null, jwt);
+        ResponseEntity<DashboardController.BrokerDashboardStats> response = controller.getBrokerStats(null, null, request);
 
         // Assert
         assertThat(response.getBody().getActiveClients()).isEqualTo(1);
@@ -122,10 +133,13 @@ class DashboardControllerTest {
     @Test
     void getBrokerStats_WithHeaderId_UsesHeaderId() {
         // Arrange
-        when(transactionRepository.findAllByBrokerId("header-broker")).thenReturn(List.of());
+        UUID brokerUuid = UUID.randomUUID();
+        String brokerHeader = brokerUuid.toString();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        when(transactionRepository.findAllByBrokerId(brokerUuid)).thenReturn(List.of());
 
         // Act
-        ResponseEntity<DashboardController.BrokerDashboardStats> response = controller.getBrokerStats("header-broker", null);
+        ResponseEntity<DashboardController.BrokerDashboardStats> response = controller.getBrokerStats(brokerHeader, null, request);
 
         // Assert
         assertThat(response.getBody().getActiveTransactions()).isZero();
@@ -166,5 +180,13 @@ class DashboardControllerTest {
 
         // Assert
         assertThat(response.getBody().getActiveBrokers()).isZero();
+    }
+
+    // ========== Helper Methods ==========
+
+    private MockHttpServletRequest createRequestWithInternalId(UUID internalId) {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR, internalId);
+        return request;
     }
 }

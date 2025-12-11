@@ -1,6 +1,8 @@
 package com.example.courtierprobackend.user.presentationlayer;
 
+import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.user.businesslayer.UserProvisioningService;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
 import com.example.courtierprobackend.user.presentationlayer.controller.AdminUserController;
 import com.example.courtierprobackend.user.presentationlayer.request.CreateUserRequest;
@@ -12,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -50,6 +53,12 @@ class AdminUserControllerTest {
 
     @Autowired
     private UserProvisioningService userProvisioningService;
+
+    @MockBean
+    private UserContextFilter userContextFilter;
+
+    @MockBean
+    private UserAccountRepository userAccountRepository;
 
     @TestConfiguration
     static class TestConfig {
@@ -185,5 +194,4 @@ class AdminUserControllerTest {
 
         verify(userProvisioningService).triggerPasswordReset(userId);
     }
-
 }

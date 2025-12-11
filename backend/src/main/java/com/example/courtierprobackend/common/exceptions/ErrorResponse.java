@@ -1,11 +1,11 @@
-package com.example.courtierprobackend.transactions.exceptions;
+package com.example.courtierprobackend.common.exceptions;
 
 import lombok.Builder;
 import lombok.Data;
 import java.time.Instant;
 
 /**
- * Structured error response DTO for consistent API error responses.
+ * Structured error response DTO for consistent API error responses across all domains.
  */
 @Data
 @Builder

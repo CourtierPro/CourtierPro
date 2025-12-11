@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -27,8 +28,8 @@ class S3StorageServiceTest {
     @Test
     void uploadFile_WithValidFile_ReturnsStorageObject() throws IOException {
         // Arrange
-        String transactionId = "TX-123";
-        String requestId = "REQ-456";
+        UUID transactionId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
         MockMultipartFile file = new MockMultipartFile(
                 "file",
                 "test-document.pdf",
@@ -44,15 +45,15 @@ class S3StorageServiceTest {
         assertThat(result.getFileName()).isEqualTo("test-document.pdf");
         assertThat(result.getMimeType()).isEqualTo("application/pdf");
         assertThat(result.getSizeBytes()).isEqualTo(11L); // "PDF content".length()
-        assertThat(result.getS3Key()).contains("documents/TX-123/REQ-456/");
+        assertThat(result.getS3Key()).contains(String.format("documents/%s/%s/", transactionId, requestId));
         assertThat(result.getS3Key()).endsWith("_test-document.pdf");
     }
 
     @Test
     void uploadFile_WithNullFilename_UsesDefaultName() throws IOException {
         // Arrange
-        String transactionId = "TX-789";
-        String requestId = "REQ-101";
+        UUID transactionId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
         // Use a file with empty filename - the service treats empty string same as having a name
         // Test the actual behavior: MockMultipartFile returns empty string for null, not null
         MockMultipartFile file = new MockMultipartFile(
@@ -68,14 +69,14 @@ class S3StorageServiceTest {
         // Assert - The service should still create a valid S3 key
         assertThat(result).isNotNull();
         assertThat(result.getFileName()).isNotNull();
-        assertThat(result.getS3Key()).contains("documents/TX-789/REQ-101/");
+        assertThat(result.getS3Key()).contains(String.format("documents/%s/%s/", transactionId, requestId));
     }
 
     @Test
     void uploadFile_GeneratesUniqueS3Key() throws IOException {
         // Arrange
-        String transactionId = "TX-123";
-        String requestId = "REQ-456";
+        UUID transactionId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
         MockMultipartFile file = new MockMultipartFile(
                 "file",
                 "document.pdf",
@@ -94,8 +95,8 @@ class S3StorageServiceTest {
     @Test
     void uploadFile_WithDifferentMimeTypes_PreservesMimeType() throws IOException {
         // Arrange
-        String transactionId = "TX-123";
-        String requestId = "REQ-456";
+        UUID transactionId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
         
         MockMultipartFile pdfFile = new MockMultipartFile("file", "doc.pdf", "application/pdf", "pdf".getBytes());
         MockMultipartFile imageFile = new MockMultipartFile("file", "img.png", "image/png", "png".getBytes());
@@ -124,7 +125,7 @@ class S3StorageServiceTest {
         );
 
         // Act
-        StorageObject result = storageService.uploadFile(file, "TX-1", "REQ-1");
+        StorageObject result = storageService.uploadFile(file, UUID.randomUUID(), UUID.randomUUID());
 
         // Assert
         assertThat(result.getSizeBytes()).isEqualTo(1024L);
