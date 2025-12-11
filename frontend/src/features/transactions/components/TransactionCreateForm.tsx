@@ -21,6 +21,7 @@ import { useClientsForDisplay } from '@/features/clients';
 
 interface TransactionCreateFormProps {
   onNavigate: (route: string) => void;
+  isModal?: boolean;
 }
 
 interface Client {
@@ -29,7 +30,7 @@ interface Client {
   email: string;
 }
 
-export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps) {
+export function TransactionCreateForm({ onNavigate, isModal = false }: TransactionCreateFormProps) {
   const { t, i18n } = useTranslation('transactions');
   const [transactionSide, setTransactionSide] = useState<'buy' | 'sell' | ''>('');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -186,19 +187,23 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
 
   return (
     <div className="space-y-6">
-      <Button
-        variant="ghost"
-        onClick={() => onNavigate('/transactions')}
-        className="gap-2 text-[#FF6B01] hover:text-[#FF6B01]/80 hover:bg-[#FF6B01]/10"
-      >
-        <ChevronLeft className="w-5 h-5" />
-        {t('backToTransactions')}
-      </Button>
+      {!isModal && (
+        <>
+          <Button
+            variant="ghost"
+            onClick={() => onNavigate('/transactions')}
+            className="gap-2 text-[#FF6B01] hover:text-[#FF6B01]/80 hover:bg-[#FF6B01]/10"
+          >
+            <ChevronLeft className="w-5 h-5" />
+            {t('backToTransactions')}
+          </Button>
 
-      <div>
-        <h1 className="text-foreground">{t('createTransactionTitle')}</h1>
-        <p className="text-muted-foreground">{t('createSubtitle')}</p>
-      </div>
+          <div>
+            <h1 className="text-foreground">{t('createTransactionTitle')}</h1>
+            <p className="text-muted-foreground">{t('createSubtitle')}</p>
+          </div>
+        </>
+      )}
 
       <form onSubmit={handleSubmit} noValidate>
         {errors.form && (
@@ -207,7 +212,7 @@ export function TransactionCreateForm({ onNavigate }: TransactionCreateFormProps
           </div>
         )}
         <div
-          className="p-6 rounded-xl shadow-md bg-white"
+          className={`rounded-xl bg-white ${isModal ? '' : 'p-6 shadow-md'}`}
         >
           <div className="space-y-6">
             <fieldset>

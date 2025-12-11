@@ -7,7 +7,6 @@ import { getStagesForSide, resolveStageIndex } from '@/shared/utils/stages';
 import { type Transaction } from '@/features/transactions/api/queries';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
-import { STAGE_DESCRIPTIONS } from '@/shared/utils/stages';
 
 interface TransactionStageTrackerProps {
     transaction: Transaction;
@@ -56,7 +55,11 @@ export function TransactionStageTracker({ transaction, onUpdateStage }: Transact
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent className="border-none max-w-[200px] text-center">
-                                    <p>{STAGE_DESCRIPTIONS[stage] || ""}</p>
+                                    <p>{
+                                        transaction.side === 'BUY_SIDE'
+                                            ? (t('buyStageDescriptions', { returnObjects: true }) as string[])?.[index]
+                                            : (t('sellStageDescriptions', { returnObjects: true }) as string[])?.[index]
+                                    }</p>
                                 </TooltipContent>
                             </Tooltip>
                         );
