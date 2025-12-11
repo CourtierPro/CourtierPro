@@ -154,6 +154,7 @@
   "postalCode": "Postal Code",
   "addNotesPlaceholder": "Add internal notes here...",
   "saving": "Saving...",
+  "idCopied": "Transaction ID copied to clipboard",
   "saveNotes": "Save Notes",
   "documentsPlaceholder": "Documents will be displayed here.",
   "appointmentsPlaceholder": "Appointments will be displayed here.",

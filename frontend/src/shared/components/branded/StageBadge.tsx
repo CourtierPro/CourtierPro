@@ -38,6 +38,6 @@ export function StageBadge({ stageNumber, label, status, className }: StageBadge
             >
                 {label}
             </span>
-        </div>
+        </div >
     );
 }
