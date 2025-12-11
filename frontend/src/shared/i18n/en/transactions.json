@@ -124,7 +124,9 @@
     "Legal documents including purchase agreement are being reviewed by the buyer's lawyer.",
     "Final property walkthrough scheduled to verify condition before closing.",
     "All conditions met. Finalizing documents and preparing for ownership transfer.",
-    "Transaction successfully completed. Keys have been transferred to the new owner."
+    "Transaction successfully completed. Keys have been transferred to the new owner.",
+    "The buyer officially takes possession of the property after the notary confirms registration and funds transfer, and keys are handed over.",
+    "The transaction is formally canceled before closing due to unmet conditions, withdrawal, or mutual agreement, and the file is closed with no sale completed."
   ],
   "sellStageDescriptions": [
     "Property is officially listed on the market and available for showings.",
@@ -134,7 +136,8 @@
     "Seller has accepted an offer. Moving forward with buyer's due diligence period.",
     "Legal documents are being reviewed and prepared by the seller's lawyer.",
     "All conditions met. Finalizing sale documents and preparing for ownership transfer.",
-    "Sale successfully completed. Property ownership has been transferred to the buyer."
+    "Sale successfully completed. Property ownership has been transferred to the buyer.",
+    "The transaction is formally canceled before closing due to unmet conditions, withdrawal, or mutual agreement, and the file is closed with no sale completed."
   ],
   "transactionNotFound": "Transaction Not Found",
   "noTransactionId": "No transaction ID provided.",

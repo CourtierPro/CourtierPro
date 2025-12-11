@@ -124,7 +124,9 @@
     "Les documents juridiques incluant le contrat d'achat sont examinés par l'avocat de l'acheteur.",
     "Visite finale de la propriété prévue pour vérifier l'état avant la clôture.",
     "Toutes les conditions sont remplies. Finalisation des documents et préparation du transfert de propriété.",
-    "Transaction terminée avec succès. Les clés ont été transférées au nouveau propriétaire."
+    "Transaction terminée avec succès. Les clés ont été transférées au nouveau propriétaire.",
+    "L'acheteur prend officiellement possession de la propriété après la confirmation de l'inscription et du transfert de fonds par le notaire, et les clés sont remises.",
+    "La transaction est officiellement annulée avant la clôture en raison de conditions non remplies, d'un retrait ou d'un accord mutuel, et le dossier est clos sans vente réalisée."
   ],
   "sellStageDescriptions": [
     "La propriété est officiellement inscrite sur le marché et disponible pour les visites.",
@@ -134,7 +136,8 @@
     "Le vendeur a accepté une offre. Nous passons à la période de vérification diligente de l'acheteur.",
     "Les documents juridiques sont examinés et préparés par l'avocat du vendeur.",
     "Toutes les conditions sont remplies. Finalisation des documents de vente et préparation du transfert.",
-    "Vente terminée avec succès. La propriété a été transférée à l'acheteur."
+    "Vente terminée avec succès. La propriété a été transférée à l'acheteur.",
+    "La transaction est officiellement annulée avant la clôture en raison de conditions non remplies, d'un retrait ou d'un accord mutuel, et le dossier est clos sans vente réalisée."
   ],
   "transactionNotFound": "Transaction non trouvée",
   "noTransactionId": "Aucun ID de transaction fourni.",
@@ -148,6 +151,8 @@
   "updateStage": "Mettre à jour l'étape",
   "details": "Détails",
   "propertyDetails": "Détails de la propriété",
+  "streetNumber": "Numéro civique",
+  "streetName": "Nom de rue",
   "street": "Rue",
   "city": "Ville",
   "province": "Province",
