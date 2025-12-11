@@ -13,7 +13,7 @@ export function CreateTransactionModal({ isOpen, onClose, onSuccess }: CreateTra
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{t('createTransactionTitle')}</DialogTitle>
                 </DialogHeader>
