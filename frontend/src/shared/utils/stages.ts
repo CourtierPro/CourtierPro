@@ -30,7 +30,6 @@ export const SELLER_STAGES = [
   'SELLER_NOTARY_APPOINTMENT',
   'SELLER_HANDOVER_KEYS',
   'SELLER_TERMINATED',
-  'SELLER_TERMINATED',
 ];
 
 export const STAGE_DESCRIPTIONS: Record<string, string> = {

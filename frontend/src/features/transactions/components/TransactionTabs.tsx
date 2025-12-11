@@ -75,8 +75,6 @@ export function TransactionTabs({
                 <DocumentsPage transactionId={transaction.transactionId} />
             </TabsContent>
 
-
-
             <TabsContent value="appointments" className="py-4">
                 <Section className="p-12 text-center flex flex-col items-center justify-center gap-4">
                     <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
