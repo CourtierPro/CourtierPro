@@ -6,6 +6,7 @@ import { fetchDocuments } from '../api/documentsApi';
 import { DocumentStatusEnum, type DocumentRequest } from '../types';
 import { DocumentList } from './DocumentList';
 import { UploadDocumentModal } from './UploadDocumentModal';
+import { DocumentReviewModal } from './DocumentReviewModal';
 import { DocumentListSkeleton } from './DocumentListSkeleton';
 import { EmptyDocumentsState } from './EmptyDocumentsState';
 import { StatusFilterBar, type FilterStatus } from './StatusFilterBar';
@@ -21,6 +22,8 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [initialFile, setInitialFile] = useState<File | null>(null);
     const [currentFilter, setCurrentFilter] = useState<FilterStatus>('ALL');
+    const [reviewModalOpen, setReviewModalOpen] = useState(false);
+    const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<DocumentRequest | null>(null);
 
     const { data: documents, isLoading, error, refetch } = useQuery({
         queryKey: ['documents', transactionId],
@@ -66,6 +69,17 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
         });
     };
 
+    const handleReviewClick = (document: DocumentRequest) => {
+        setSelectedDocumentForReview(document);
+        setReviewModalOpen(true);
+    };
+
+    const handleReviewSuccess = () => {
+        refetch();
+        setReviewModalOpen(false);
+        setSelectedDocumentForReview(null);
+    };
+
     return (
         <div className="space-y-4">
             <h3 className="text-lg font-semibold">{t('requiredDocuments')}</h3>
@@ -79,7 +93,7 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
             )}
 
             {filteredDocuments && filteredDocuments.length > 0 ? (
-                <DocumentList documents={filteredDocuments} onUpload={handleUploadClick} />
+                <DocumentList documents={filteredDocuments} onUpload={handleUploadClick} onReview={handleReviewClick} />
             ) : (
                 <EmptyDocumentsState />
             )}
@@ -93,6 +107,16 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
                     documentTitle={formatDocumentTitle(selectedRequest, t)}
                     initialFile={initialFile}
                     onSuccess={handleUploadSuccess}
+                />
+            )}
+
+            {selectedDocumentForReview && (
+                <DocumentReviewModal
+                    open={reviewModalOpen}
+                    onClose={() => setReviewModalOpen(false)}
+                    document={selectedDocumentForReview}
+                    transactionId={transactionId}
+                    onSuccess={handleReviewSuccess}
                 />
             )}
         </div>

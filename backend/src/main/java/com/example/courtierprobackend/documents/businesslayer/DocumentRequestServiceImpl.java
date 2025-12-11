@@ -12,6 +12,7 @@ import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
 import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentReviewRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.SubmittedDocumentResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
@@ -247,5 +248,45 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 .orElseThrow(() -> new NotFoundException("Submitted document not found: " + documentId));
 
         return storageService.generatePresignedUrl(submittedDocument.getStorageObject().getS3Key());
+    }
+
+
+    @Transactional
+    @Override
+    public DocumentRequestResponseDTO reviewDocument(UUID transactionId, UUID requestId, DocumentReviewRequestDTO reviewDTO, UUID brokerId) {
+        DocumentRequest request = repository.findByRequestId(requestId)
+                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+
+        if (!request.getTransactionRef().getTransactionId().equals(transactionId)) {
+            throw new BadRequestException("Document does not belong to this transaction");
+        }
+
+        if (request.getStatus() != DocumentStatusEnum.SUBMITTED) {
+            throw new BadRequestException("Only submitted documents can be reviewed");
+        }
+
+        request.setStatus(reviewDTO.getDecision());
+        request.setBrokerNotes(reviewDTO.getComments());
+        request.setLastUpdatedAt(LocalDateTime.now());
+
+        DocumentRequest updated = repository.save(request);
+
+        // Send email notification
+        Transaction tx = transactionRepository.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
+
+        UserAccount client = resolveUserAccount(tx.getClientId()).orElse(null);
+        UserAccount broker = resolveUserAccount(tx.getBrokerId()).orElse(null);
+
+        if (client != null && broker != null) {
+            String documentName = updated.getCustomTitle() != null ? 
+                    updated.getCustomTitle() : updated.getDocType().toString();
+            String clientName = client.getFirstName() + " " + client.getLastName();
+            String brokerName = broker.getFirstName() + " " + broker.getLastName();
+
+            emailService.sendDocumentStatusUpdatedNotification(updated, client.getEmail());
+        }
+
+        return mapToResponseDTO(updated);
     }
 }

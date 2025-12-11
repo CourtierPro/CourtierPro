@@ -1,140 +1,155 @@
-import { useTranslation } from "react-i18next";
-import { Button } from "@/shared/components/ui/button";
-import { Section } from "@/shared/components/branded/Section";
-import { AttributeRow } from "@/shared/components/branded/AttributeRow";
-import { StatusBadge } from "@/shared/components/branded/StatusBadge";
-import { X, Download, CheckCircle, XCircle, FileText } from "lucide-react";
-import type { DocumentRequest, SubmittedDocument } from "@/features/documents/types";
-import { format } from "date-fns";
-import { enUS, fr } from "date-fns/locale";
+import type { DocumentRequest } from "@/features/documents/types";
+import { useState } from "react";
+import { useReviewDocument } from "@/features/documents/api/mutations";
 
 interface DocumentReviewModalProps {
   open: boolean;
   onClose: () => void;
   document?: DocumentRequest;
-  onApprove?: (requestId: string) => void;
-  onReject?: (requestId: string) => void;
+  transactionId: string;
+  onSuccess?: () => void;
 }
 
 export function DocumentReviewModal({
   open,
   onClose,
   document,
-  onApprove,
-  onReject,
+  transactionId,
+  onSuccess,
 }: DocumentReviewModalProps) {
-  const { t, i18n } = useTranslation("documents");
-  const locale = i18n.language === "fr" ? fr : enUS;
+  const [comment, setComment] = useState<string>('');
+  const [action, setAction] = useState<'APPROVED' | 'NEEDS_REVISION' | null>(null);
+  const [showCommentInput, setShowCommentInput] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!open) return null;
+  const reviewMutation = useReviewDocument();
 
-  const title = document?.customTitle || (document?.docType ? t(`types.${document.docType}`) : t("modals.reviewDocument"));
-  const latestSubmission: SubmittedDocument | undefined = document?.submittedDocuments?.[document.submittedDocuments.length - 1];
-  const submittedDate = latestSubmission?.uploadedAt
-    ? format(new Date(latestSubmission.uploadedAt), "PPP", { locale })
-    : null;
-
-  const handleApprove = () => {
-    if (document?.requestId && onApprove) {
-      onApprove(document.requestId);
-    }
-    onClose();
+  const handleApproveClick = () => {
+    setAction('APPROVED');
+    setShowCommentInput(false);
+    setError(null);
   };
 
-  const handleReject = () => {
-    if (document?.requestId && onReject) {
-      onReject(document.requestId);
+  const handleNeedsRevisionClick = () => {
+    setAction('NEEDS_REVISION');
+    setShowCommentInput(true);
+    setError(null);
+  };
+
+  const handleSubmit = async () => {
+    if (action != null && document) {
+      try {
+        await reviewMutation.mutateAsync({
+          transactionId,
+          requestId: document.requestId,
+          decision: action,
+          comments: comment || undefined,
+        });
+        onSuccess?.();
+        onClose();
+      } catch (err) {
+        setError('Error submitting review. Please try again.');
+      }
+    } else {
+      setError('Please select an action before submitting.');
     }
-    onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-lg rounded-lg bg-white shadow-lg">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <FileText className="w-6 h-6 text-primary" />
-            <h2 className="text-xl font-semibold text-foreground">{title}</h2>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
+    <>
+      {open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Review Document</h2>
+              <button
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {document ? (
-            <>
-              {/* Status */}
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground">{t("status.label")}:</span>
-                <StatusBadge status={document.status} />
+            {/* Document Info */}
+            {document && (
+              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-semibold">Type:</span> {document.docType}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  <span className="font-semibold">Current Status:</span> {document.status}
+                </p>
+                {document.customTitle && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    <span className="font-semibold">Title:</span> {document.customTitle}
+                  </p>
+                )}
               </div>
+            )}
 
-              {/* Document Metadata */}
-              <Section className="p-4">
-                <div className="space-y-0">
-                  <AttributeRow label={t("documentType")} value={t(`types.${document.docType}`)} />
-                  <AttributeRow label={t("expectedFrom")} value={t(`parties.${document.expectedFrom}`)} />
-                  {document.brokerNotes && (
-                    <AttributeRow label={t("brokerNotes")} value={document.brokerNotes} />
-                  )}
-                  {submittedDate && (
-                    <AttributeRow label={t("submittedAt")} value={submittedDate} />
-                  )}
-                  {latestSubmission && (
-                    <AttributeRow
-                      label={t("fileName")}
-                      value={latestSubmission.storageObject?.fileName || "-"}
-                    />
-                  )}
-                </div>
-              </Section>
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded text-sm">
+                {error}
+              </div>
+            )}
 
-              {/* Download Link */}
-              {latestSubmission && (
-                <div className="flex justify-center">
-                  <Button variant="outline" className="gap-2">
-                    <Download className="w-4 h-4" />
-                    {t("downloadDocument")}
-                  </Button>
-                </div>
+            {/* Action Buttons (show when no action selected) */}
+            {action === null && (
+              <div className="flex gap-3 mb-6">
+                <button
+                  onClick={handleApproveClick}
+                  className="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded transition"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={handleNeedsRevisionClick}
+                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 rounded transition"
+                >
+                  Needs Revision
+                </button>
+              </div>
+            )}
+
+            {/* Action Selected - show comment input */}
+            {action !== null && showCommentInput && (
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  {action === 'APPROVED' ? 'Approval Notes (Optional)' : 'Revision Notes (Required)'}
+                </label>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Add your comments here..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={4}
+                />
+              </div>
+            )}
+
+            {/* Footer Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="flex-1 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-semibold py-2 rounded transition"
+              >
+                Cancel
+              </button>
+              {action !== null && (
+                <button
+                  onClick={handleSubmit}
+                  disabled={reviewMutation.isPending}
+                  className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-semibold py-2 rounded transition"
+                >
+                  {reviewMutation.isPending ? 'Submitting...' : 'Submit'}
+                </button>
               )}
-
-              {/* Actions */}
-              {document.status === "SUBMITTED" && (onApprove || onReject) && (
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                  {onReject && (
-                    <Button variant="outline" onClick={handleReject} className="gap-2 text-destructive">
-                      <XCircle className="w-4 h-4" />
-                      {t("actions.reject")}
-                    </Button>
-                  )}
-                  {onApprove && (
-                    <Button onClick={handleApprove} className="gap-2">
-                      <CheckCircle className="w-4 h-4" />
-                      {t("actions.approve")}
-                    </Button>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              {t("noDocumentSelected")}
-            </p>
-          )}
+            </div>
+          </div>
         </div>
-
-        {/* Footer */}
-        <div className="flex justify-end p-6 border-t border-gray-200">
-          <Button variant="ghost" onClick={onClose}>
-            {t("actions.close")}
-          </Button>
-        </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }
-
