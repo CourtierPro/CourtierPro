@@ -148,6 +148,8 @@
   "updateStage": "Update Stage",
   "details": "Details",
   "propertyDetails": "Property Details",
+  "streetNumber": "Street Number",
+  "streetName": "Street Name",
   "street": "Street",
   "city": "City",
   "province": "Province",

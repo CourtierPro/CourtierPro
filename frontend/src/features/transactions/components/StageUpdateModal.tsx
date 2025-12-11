@@ -262,11 +262,8 @@ function StageUpdateForm({
             </div>
 
             {!isFormValid && (
-              <div
-                className="p-3 rounded-lg border border-gray-200 bg-muted"
-                role="status"
-              >
-                <p className="text-muted-foreground text-sm">
+              <div className="mt-2" role="status">
+                <p className="text-muted-foreground text-sm italic">
                   {t('selectStageFirst')}
                 </p>
               </div>

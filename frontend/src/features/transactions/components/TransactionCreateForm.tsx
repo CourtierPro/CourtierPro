@@ -38,7 +38,8 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
   const [showClientDropdown, setShowClientDropdown] = useState(false);
 
   // Address fields
-  const [street, setStreet] = useState('');
+  const [streetNumber, setStreetNumber] = useState('');
+  const [streetName, setStreetName] = useState('');
   const [city, setCity] = useState('');
   const [province, setProvince] = useState('');
   const [postalCode, setPostalCode] = useState('');
@@ -86,7 +87,8 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
       newErrors.client = t('errorSelectClient');
     }
 
-    if (!street.trim()) newErrors.street = t('errorRequired');
+    if (!streetNumber.trim()) newErrors.streetNumber = t('errorRequired');
+    if (!streetName.trim()) newErrors.streetName = t('errorRequired');
     if (!city.trim()) newErrors.city = t('errorRequired');
     if (!province.trim()) newErrors.province = t('errorRequired');
     if (!postalCode.trim()) newErrors.postalCode = t('errorRequired');
@@ -111,7 +113,8 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
     setTouched({
       transactionSide: true,
       client: true,
-      street: true,
+      streetNumber: true,
+      streetName: true,
       city: true,
       province: true,
       postalCode: true,
@@ -125,7 +128,7 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
           side: transactionSide === "buy" ? "BUY_SIDE" : "SELL_SIDE",
           initialStage: initialStage,
           propertyAddress: {
-            street: street.trim(),
+            street: `${streetNumber.trim()} ${streetName.trim()}`,
             city: city.trim(),
             province: province.trim(),
             postalCode: postalCode.trim(),
@@ -162,7 +165,7 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
         } else if (serverMsg.toLowerCase().includes('side')) {
           newErrors.transactionSide = serverMsg;
         } else if (serverMsg.toLowerCase().includes('propertyaddress.street')) {
-          newErrors.street = serverMsg;
+          newErrors.streetNumber = serverMsg; // Assign to first field for visibility
         } else {
           newErrors.form = serverMsg;
         }
@@ -179,7 +182,8 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
   const isFormValid =
     transactionSide &&
     selectedClient &&
-    street.trim() &&
+    streetNumber.trim() &&
+    streetName.trim() &&
     city.trim() &&
     province.trim() &&
     postalCode.trim() &&
@@ -404,20 +408,41 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
               {/* Address Fields */}
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="street" className="block mb-2 text-sm font-medium text-foreground">
-                    {t('street')} <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    id="street"
-                    value={street}
-                    onChange={(e) => setStreet(e.target.value)}
-                    onBlur={() => handleBlur('street')}
-                    placeholder={t('streetPlaceholder')}
-                    aria-invalid={touched.street && errors.street ? 'true' : 'false'}
-                  />
-                  {touched.street && errors.street && (
-                    <p className="text-red-500 text-sm mt-1">{errors.street}</p>
-                  )}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="col-span-1">
+                      <label htmlFor="streetNumber" className="block mb-2 text-sm font-medium text-foreground">
+                        {t('streetNumber')} <span className="text-destructive">*</span>
+                      </label>
+                      <Input
+                        id="streetNumber"
+                        value={streetNumber}
+                        onChange={(e) => setStreetNumber(e.target.value)}
+                        onBlur={() => handleBlur('streetNumber')}
+                        placeholder={t('streetNumber')}
+                        aria-invalid={touched.streetNumber && errors.streetNumber ? 'true' : 'false'}
+                      />
+                      {touched.streetNumber && errors.streetNumber && (
+                        <p className="text-red-500 text-sm mt-1">{errors.streetNumber}</p>
+                      )}
+                    </div>
+
+                    <div className="col-span-2">
+                      <label htmlFor="streetName" className="block mb-2 text-sm font-medium text-foreground">
+                        {t('streetName')} <span className="text-destructive">*</span>
+                      </label>
+                      <Input
+                        id="streetName"
+                        value={streetName}
+                        onChange={(e) => setStreetName(e.target.value)}
+                        onBlur={() => handleBlur('streetName')}
+                        placeholder={t('streetName')}
+                        aria-invalid={touched.streetName && errors.streetName ? 'true' : 'false'}
+                      />
+                      {touched.streetName && errors.streetName && (
+                        <p className="text-red-500 text-sm mt-1">{errors.streetName}</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -430,7 +455,7 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       onBlur={() => handleBlur('city')}
-                      placeholder={t('cityPlaceholder')}
+                      placeholder={t('city')}
                       aria-invalid={touched.city && errors.city ? 'true' : 'false'}
                     />
                     {touched.city && errors.city && (
@@ -447,7 +472,7 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                       value={province}
                       onChange={(e) => setProvince(e.target.value)}
                       onBlur={() => handleBlur('province')}
-                      placeholder={t('provincePlaceholder')}
+                      placeholder={t('province')}
                       aria-invalid={touched.province && errors.province ? 'true' : 'false'}
                     />
                     {touched.province && errors.province && (
@@ -465,7 +490,7 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                     value={postalCode}
                     onChange={(e) => setPostalCode(e.target.value)}
                     onBlur={() => handleBlur('postalCode')}
-                    placeholder={t('postalCodePlaceholder')}
+                    placeholder={t('postalCode')}
                     aria-invalid={touched.postalCode && errors.postalCode ? 'true' : 'false'}
                   />
                   {touched.postalCode && errors.postalCode && (
