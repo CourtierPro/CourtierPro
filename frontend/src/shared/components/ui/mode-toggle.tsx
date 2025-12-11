@@ -11,7 +11,6 @@ export function ModeToggle() {
     const toggleTheme = (checked: boolean) => {
         const newTheme = checked ? "dark" : "light"
 
-        // @ts-expect-error View Transition API is not yet in all TS types
         if (!document.startViewTransition) {
             setTheme(newTheme)
             return
@@ -29,7 +28,6 @@ export function ModeToggle() {
         document.documentElement.style.setProperty('--y', y + 'px')
         document.documentElement.style.setProperty('--r', endRadius + 'px')
 
-        // @ts-expect-error View Transition API
         document.startViewTransition(() => {
             setTheme(newTheme)
         })
