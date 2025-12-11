@@ -60,7 +60,13 @@ function TransactionDetailContent({ transaction }: { transaction: NonNullable<Tr
         subtitle={
           <div className="flex items-center gap-2">
             <span>ID: {transaction.transactionId}</span>
-            <Button variant="ghost" size="icon" className="h-4 w-4 text-muted-foreground hover:text-foreground" onClick={handleCopyId}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4 text-muted-foreground hover:text-foreground"
+              onClick={handleCopyId}
+              aria-label={t('copyTransactionId', { defaultValue: 'Copy transaction ID' })}
+            >
               <Copy className="h-3 w-3" />
             </Button>
           </div>
