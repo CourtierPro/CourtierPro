@@ -7,6 +7,7 @@ import { X, Download, CheckCircle, XCircle, FileText } from "lucide-react";
 import type { DocumentRequest, SubmittedDocument } from "@/features/documents/types";
 import { format } from "date-fns";
 import { enUS, fr } from "date-fns/locale";
+import { Dialog, DialogContent, DialogTitle } from "@/shared/components/ui/dialog";
 
 interface DocumentReviewModalProps {
   open: boolean;
@@ -25,8 +26,6 @@ export function DocumentReviewModal({
 }: DocumentReviewModalProps) {
   const { t, i18n } = useTranslation("documents");
   const locale = i18n.language === "fr" ? fr : enUS;
-
-  if (!open) return null;
 
   const title = document?.customTitle || (document?.docType ? t(`types.${document.docType}`) : t("modals.reviewDocument"));
   const latestSubmission: SubmittedDocument | undefined = document?.submittedDocuments?.[document.submittedDocuments.length - 1];
@@ -49,13 +48,13 @@ export function DocumentReviewModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-lg bg-card shadow-lg border border-border">
+    <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
+      <DialogContent className="sm:max-w-lg p-0 gap-0 [&>button]:hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-3">
             <FileText className="w-6 h-6 text-primary" />
-            <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+            <DialogTitle className="text-xl font-semibold text-foreground">{title}</DialogTitle>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-5 h-5" />
@@ -127,14 +126,25 @@ export function DocumentReviewModal({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex justify-end p-6 border-t border-border">
+        {/* Footer - already handled above in Actions, or general footer? 
+            Original had a separate footer for "Close" if not approved/rejected, OR standard footer.
+            Original Code:
+            {document.status === "SUBMITTED" ... Actions ...}
+            <div className="flex justify-end p-6 border-t border-border"> ... Close ... </div>
+            This means TWO footers?
+            Let me check original code.
+            Step 574:
+            It has `Actions` div inside `p-6 space-y-6`.
+            AND a separate Footer div at the bottom.
+            If I preserve this, I should keep both.
+        */}
+        <div className="flex justify-end p-6 border-t border-border transition-colors">
           <Button variant="ghost" onClick={onClose}>
             {t("actions.close")}
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -11,6 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/ui/dialog";
 
 import axiosInstance from "@/shared/api/axiosInstance";
 import { useInviteUser } from "@/features/admin/api/mutations";
@@ -52,8 +59,13 @@ const defaultFormState: InviteFormState = {
 };
 
 export function InviteUserModal(props: InviteUserModalProps) {
-  if (!props.open) return null;
-  return <InviteUserForm {...props} />;
+  return (
+    <Dialog open={props.open} onOpenChange={(val) => !val && props.onClose()}>
+      <DialogContent className="sm:max-w-xl">
+        <InviteUserForm {...props} />
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
@@ -133,160 +145,156 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="w-full max-w-xl rounded-xl bg-card p-6 shadow-lg border border-border animate-in fade-in zoom-in-95 duration-200">
-        <h2 className="mb-2 text-xl font-semibold text-card-foreground">
-          {t("inviteUserTitle")}
-        </h2>
-        <p className="mb-4 text-sm text-muted-foreground">
-          {t("inviteUserDesc")}
-        </p>
+    <>
+      <DialogHeader>
+        <DialogTitle>{t("inviteUserTitle")}</DialogTitle>
+        <DialogDescription>{t("inviteUserDesc")}</DialogDescription>
+      </DialogHeader>
 
-        {error && (
-          <div className="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {error}
-          </div>
-        )}
+      {error && (
+        <div className="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {error}
+        </div>
+      )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Email */}
+        <div className="space-y-2">
+          <label
+            htmlFor="email"
+            className="text-sm font-medium text-foreground"
+          >
+            {t("inviteUser_emailLabel")} *
+          </label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            value={form.email}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        {/* First / last name */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label
-              htmlFor="email"
+              htmlFor="firstName"
               className="text-sm font-medium text-foreground"
             >
-              {t("inviteUser_emailLabel")} *
+              {t("inviteUser_firstNameLabel")} *
             </label>
             <Input
-              id="email"
-              name="email"
-              type="email"
-              value={form.email}
+              id="firstName"
+              name="firstName"
+              value={form.firstName}
               onChange={handleChange}
               required
             />
           </div>
 
-          {/* First / last name */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label
-                htmlFor="firstName"
-                className="text-sm font-medium text-foreground"
-              >
-                {t("inviteUser_firstNameLabel")} *
-              </label>
-              <Input
-                id="firstName"
-                name="firstName"
-                value={form.firstName}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="lastName"
-                className="text-sm font-medium text-foreground"
-              >
-                {t("inviteUser_lastNameLabel")} *
-              </label>
-              <Input
-                id="lastName"
-                name="lastName"
-                value={form.lastName}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
-
-          {/* Role / language */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label
-                htmlFor="role"
-                className="text-sm font-medium text-foreground"
-              >
-                {t("inviteUser_roleLabel")}
-              </label>
-              <Select
-                value={form.role}
-                onValueChange={(value) =>
-                  setForm((prev) => ({ ...prev, role: value as UserRole }))
-                }
-              >
-                <SelectTrigger id="role" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="BROKER">
-                    {t("inviteUser_role_BROKER")}
-                  </SelectItem>
-                  <SelectItem value="CLIENT">
-                    {t("inviteUser_role_CLIENT")}
-                  </SelectItem>
-                  <SelectItem value="ADMIN">
-                    {t("inviteUser_role_ADMIN")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="preferredLanguage"
-                className="text-sm font-medium text-foreground"
-              >
-                {t("inviteUser_languageLabel")}
-              </label>
-              <Select
-                value={form.preferredLanguage}
-                onValueChange={(value) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    preferredLanguage: value as Language,
-                  }))
-                }
-              >
-                <SelectTrigger
-                  id="preferredLanguage"
-                  className="w-full"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">
-                    {t("inviteUser_language_en")}
-                  </SelectItem>
-                  <SelectItem value="fr">
-                    {t("inviteUser_language_fr")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="mt-6 flex justify-between gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              disabled={inviteUser.isPending}
+          <div className="space-y-2">
+            <label
+              htmlFor="lastName"
+              className="text-sm font-medium text-foreground"
             >
-              {t("inviteUser_close")}
-            </Button>
-
-            <Button type="submit" disabled={inviteUser.isPending}>
-              {inviteUser.isPending
-                ? t("inviteUser_sending")
-                : t("inviteUser_sendInvite")}
-            </Button>
+              {t("inviteUser_lastNameLabel")} *
+            </label>
+            <Input
+              id="lastName"
+              name="lastName"
+              value={form.lastName}
+              onChange={handleChange}
+              required
+            />
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        {/* Role / language */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label
+              htmlFor="role"
+              className="text-sm font-medium text-foreground"
+            >
+              {t("inviteUser_roleLabel")}
+            </label>
+            <Select
+              value={form.role}
+              onValueChange={(value) =>
+                setForm((prev) => ({ ...prev, role: value as UserRole }))
+              }
+            >
+              <SelectTrigger id="role" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="BROKER">
+                  {t("inviteUser_role_BROKER")}
+                </SelectItem>
+                <SelectItem value="CLIENT">
+                  {t("inviteUser_role_CLIENT")}
+                </SelectItem>
+                <SelectItem value="ADMIN">
+                  {t("inviteUser_role_ADMIN")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="preferredLanguage"
+              className="text-sm font-medium text-foreground"
+            >
+              {t("inviteUser_languageLabel")}
+            </label>
+            <Select
+              value={form.preferredLanguage}
+              onValueChange={(value) =>
+                setForm((prev) => ({
+                  ...prev,
+                  preferredLanguage: value as Language,
+                }))
+              }
+            >
+              <SelectTrigger
+                id="preferredLanguage"
+                className="w-full"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">
+                  {t("inviteUser_language_en")}
+                </SelectItem>
+                <SelectItem value="fr">
+                  {t("inviteUser_language_fr")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-6 flex justify-between gap-3">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+            disabled={inviteUser.isPending}
+          >
+            {t("inviteUser_close")}
+          </Button>
+
+          <Button type="submit" disabled={inviteUser.isPending}>
+            {inviteUser.isPending
+              ? t("inviteUser_sending")
+              : t("inviteUser_sendInvite")}
+          </Button>
+        </div>
+      </form>
+    </>
   );
 }
