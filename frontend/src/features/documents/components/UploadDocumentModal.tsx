@@ -38,9 +38,8 @@ export function UploadDocumentModal({
 
   // Simulate progress when uploading starts
   useEffect(() => {
-    let interval: any;
+    let interval: ReturnType<typeof setInterval>;
     if (isUploading) {
-      setUploadProgress(0);
       interval = setInterval(() => {
         setUploadProgress((prev) => (prev >= 90 ? 90 : prev + 10));
       }, 500);
@@ -86,6 +85,7 @@ export function UploadDocumentModal({
     if (!file) return;
 
     setError(null);
+    setUploadProgress(0);
 
     try {
       await submitDocument.mutateAsync({ transactionId, requestId, file });
