@@ -158,6 +158,7 @@
   "saveNotes": "Save Notes",
   "documentsPlaceholder": "Documents will be displayed here.",
   "appointmentsPlaceholder": "Appointments will be displayed here.",
+  "scheduleAppointment": "Schedule Appointment",
   "createTransaction": "Create Transaction",
   "errorRequired": "This field is required",
   "errorLoadingTransaction": "Error loading transaction",

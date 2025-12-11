@@ -8,11 +8,15 @@ interface TransactionInfoProps {
 }
 
 function formatAddress(address: Transaction['propertyAddress']) {
-    // If street is just a number (e.g. "1"), treat it as needing a label
-    if (/^\d+$/.test(address.street.trim())) {
-        return `Street Number: ${address.street}`;
+    const street = address.street.trim();
+    if (!street) {
+        return "Address not available";
     }
-    return address.street;
+    // If street is just a number (e.g. "1"), treat it as needing a label
+    if (/^\d+$/.test(street)) {
+        return `Street Number: ${street}`;
+    }
+    return street;
 }
 
 export function TransactionInfo({ transaction }: TransactionInfoProps) {
