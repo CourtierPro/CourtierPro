@@ -1,4 +1,5 @@
 import { Section } from "@/shared/components/branded/Section";
+import { Badge } from "@/shared/components/ui/badge";
 import { type Appointment } from "@/features/appointments/api/queries";
 
 interface AppointmentItemProps {
@@ -14,9 +15,9 @@ export function AppointmentItem({ appointment }: AppointmentItemProps) {
                 <p className="text-sm">{appointment.clientName}</p>
             </div>
             <div className="text-right">
-                <span className="inline-block px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                <Badge variant="secondary">
                     {appointment.status}
-                </span>
+                </Badge>
             </div>
         </Section>
     );

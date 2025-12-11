@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Section } from "@/shared/components/branded/Section";
 import { type Transaction } from '@/features/transactions/api/queries';
 import { formatDate } from '@/shared/utils/date';
+import { Badge } from "@/shared/components/ui/badge";
 
 interface TransactionInfoProps {
     transaction: Transaction;
@@ -34,22 +35,12 @@ export function TransactionInfo({ transaction }: TransactionInfoProps) {
                         {transaction.propertyAddress.postalCode}
                     </p>
                     <div className="flex items-center gap-2 md:gap-4 mt-2 md:mt-4">
-                        <span
-                            className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs md:text-sm font-medium ${transaction.side === 'BUY_SIDE'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-amber-100 text-amber-800'
-                                }`}
-                        >
+                        <Badge variant={transaction.side === 'BUY_SIDE' ? 'info' : 'warning'}>
                             {transaction.side === 'BUY_SIDE' ? t('buySide') : t('sellSide')}
-                        </span>
-                        <span
-                            className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs md:text-sm font-medium ${transaction.status === 'active'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
-                                }`}
-                        >
+                        </Badge>
+                        <Badge variant={transaction.status === 'active' ? 'success' : 'secondary'}>
                             {t(transaction.status)}
-                        </span>
+                        </Badge>
                     </div>
                 </div>
                 <div className="text-left md:text-right mt-1 md:mt-0">

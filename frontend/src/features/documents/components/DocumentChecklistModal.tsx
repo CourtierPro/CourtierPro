@@ -26,9 +26,9 @@ export function DocumentChecklistModal({
   const getStatusIcon = (status: DocumentStatusEnum) => {
     switch (status) {
       case "APPROVED":
-        return <CheckCircle className="w-5 h-5 text-emerald-500" />;
+        return <CheckCircle className="w-5 h-5 text-green-500 dark:text-green-400" />;
       case "SUBMITTED":
-        return <Clock className="w-5 h-5 text-blue-500" />;
+        return <Clock className="w-5 h-5 text-blue-500 dark:text-blue-400" />;
       case "NEEDS_REVISION":
         return <AlertCircle className="w-5 h-5 text-destructive" />;
       default:
@@ -40,10 +40,10 @@ export function DocumentChecklistModal({
   const totalCount = documents.length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-lg rounded-lg bg-white shadow-lg max-h-[80vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-lg bg-card shadow-lg max-h-[80vh] flex flex-col border border-border">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-border">
           <div>
             <h2 className="text-xl font-semibold text-foreground">{t("modals.documentChecklist")}</h2>
             {totalCount > 0 && (
@@ -80,7 +80,7 @@ export function DocumentChecklistModal({
                 return (
                   <li
                     key={doc.requestId}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
                   >
                     {getStatusIcon(doc.status)}
                     <div className="flex-1 min-w-0">
@@ -98,7 +98,7 @@ export function DocumentChecklistModal({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end p-6 border-t border-gray-200">
+        <div className="flex justify-end p-6 border-t border-border">
           <Button variant="ghost" onClick={onClose}>
             {t("actions.close")}
           </Button>

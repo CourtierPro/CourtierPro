@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { AuthProvider } from "@/app/providers/AuthProvider";
 import { LanguageProvider } from "@/app/providers/LanguageProvider";
+import { ThemeProvider } from "@/app/providers/ThemeProvider";
 import { queryClient } from "@/shared/api/queryClient";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
@@ -43,10 +44,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
                 <Auth0ProviderWithNavigate>
                     <AuthProvider>
                         <LanguageProvider>
-                            <TooltipProvider>
-                                {children}
-                                <Toaster />
-                            </TooltipProvider>
+                            <ThemeProvider defaultTheme="light" storageKey="courtier-pro-theme">
+                                <TooltipProvider>
+                                    {children}
+                                    <Toaster />
+                                </TooltipProvider>
+                            </ThemeProvider>
                         </LanguageProvider>
                     </AuthProvider>
                 </Auth0ProviderWithNavigate>

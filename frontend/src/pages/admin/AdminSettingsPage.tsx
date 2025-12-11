@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { Globe, Mail } from "lucide-react";
 
 import { InviteUserModal } from "@/features/admin/components/InviteUserModal";
 import { Button } from "@/shared/components/ui/button";
@@ -22,10 +23,6 @@ import {
 } from "./adminSettingsApi";
 
 import type { UpdateOrganizationSettingsRequest } from "./adminSettingsApi";
-
-import { Globe, Mail } from "lucide-react";
-
-import "./AdminSettingsPage.css";
 
 export function AdminSettingsPage() {
   const { t } = useTranslation("admin");
@@ -116,45 +113,45 @@ export function AdminSettingsPage() {
 
   return (
     <>
-      <div className="admin-settings-page">
-        <div className="admin-settings-inner">
+      <div className="min-h-screen bg-muted/40 p-12">
+        <div className="mx-auto max-w-6xl space-y-8">
           {/* HEADER */}
-          <div className="admin-settings-header">
-            <h1 className="admin-settings-title">{t("settings.title")}</h1>
-            <p className="admin-settings-subtitle">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("settings.title")}</h1>
+            <p className="text-muted-foreground">
               {t("settings.subtitle")}
             </p>
           </div>
 
           {/* ALERTS */}
           {error && (
-            <div className="admin-settings-alert admin-settings-alert--error">
+            <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-destructive text-sm">
               {error}
             </div>
           )}
 
           {saveMessage && (
-            <div className="admin-settings-alert admin-settings-alert--success">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700 text-sm dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-400">
               {saveMessage}
             </div>
           )}
 
           {/* LAYOUT */}
-          <div className="admin-settings-layout">
+          <div className="grid gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* DEFAULT LANGUAGE CARD */}
-            <div className="admin-settings-card">
-              <h2 className="admin-settings-card-title">
-                <Globe />
+            <div className="rounded-xl border border-border bg-card p-8 shadow-sm transition-all hover:border-primary/50 hover:shadow-md">
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-card-foreground mb-1">
+                <Globe className="h-5 w-5 text-primary" />
                 {t("settings.defaultLanguageCard.title")}
               </h2>
 
-              <p className="admin-settings-card-description">
+              <p className="text-sm text-muted-foreground mb-6">
                 {t("settings.defaultLanguageCard.description")}
               </p>
 
               <form>
-                <div className="admin-settings-field-group">
-                  <label className="admin-settings-field-label">
+                <div className="space-y-2 max-w-md">
+                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                     {t("settings.defaultLanguageCard.label")}
                   </label>
 
@@ -165,7 +162,7 @@ export function AdminSettingsPage() {
                     }}
                     disabled={isDisabled}
                   >
-                    <SelectTrigger className="admin-settings-select">
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -178,49 +175,48 @@ export function AdminSettingsPage() {
             </div>
 
             {/* EMAIL TEMPLATE CARD */}
-            <div className="admin-settings-card">
-              <h2 className="admin-settings-card-title">
-                <Mail />
+            <div className="rounded-xl border border-border bg-card p-8 shadow-sm transition-all hover:border-primary/50 hover:shadow-md delay-75 animate-in fade-in slide-in-from-bottom-4 fill-mode-both">
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-card-foreground mb-1">
+                <Mail className="h-5 w-5 text-primary" />
                 {t("settings.templatesCard.title")}
               </h2>
 
-              <p className="admin-settings-card-description">
+              <p className="text-sm text-muted-foreground mb-6">
                 {t("settings.templatesCard.description")}{" "}
-                <span className="admin-settings-pill">
+                <span className="inline-flex items-center rounded-md border border-orange-200 bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-800 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-300">
                   {"{{name}}"}
                 </span>
               </p>
 
               <form onSubmit={handleSubmit}>
                 {/* 2 columns */}
-                <div className="admin-settings-templates-grid">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* English column */}
-                  <div className="admin-settings-template-column">
-                    <h3 className="admin-settings-template-title">
+                  <div className="bg-muted/50 border border-border/50 dashed border rounded-xl p-4 space-y-4">
+                    <h3 className="text-sm font-semibold text-foreground">
                       {t("settings.templatesCard.englishTitle")}
                     </h3>
 
-                    <div className="admin-settings-field-group">
-                      <label className="admin-settings-field-label">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium leading-none">
                         {t("settings.templatesCard.subject")}
                       </label>
                       <Input
                         type="text"
                         name="inviteSubjectEn"
-                        className="admin-settings-input"
                         disabled={isDisabled}
                         value={form?.inviteSubjectEn ?? ""}
                         onChange={handleChange}
                       />
                     </div>
 
-                    <div className="admin-settings-field-group">
-                      <label className="admin-settings-field-label">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium leading-none">
                         {t("settings.templatesCard.body")}
                       </label>
                       <Textarea
                         name="inviteBodyEn"
-                        className="admin-settings-textarea"
+                        className="min-h-[120px] resize-y"
                         disabled={isDisabled}
                         value={form?.inviteBodyEn ?? ""}
                         onChange={handleChange}
@@ -229,32 +225,31 @@ export function AdminSettingsPage() {
                   </div>
 
                   {/* French column */}
-                  <div className="admin-settings-template-column">
-                    <h3 className="admin-settings-template-title">
+                  <div className="bg-muted/50 border border-border/50 dashed border rounded-xl p-4 space-y-4">
+                    <h3 className="text-sm font-semibold text-foreground">
                       {t("settings.templatesCard.frenchTitle")}
                     </h3>
 
-                    <div className="admin-settings-field-group">
-                      <label className="admin-settings-field-label">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium leading-none">
                         {t("settings.templatesCard.subjectFr")}
                       </label>
                       <Input
                         type="text"
                         name="inviteSubjectFr"
-                        className="admin-settings-input"
                         disabled={isDisabled}
                         value={form?.inviteSubjectFr ?? ""}
                         onChange={handleChange}
                       />
                     </div>
 
-                    <div className="admin-settings-field-group">
-                      <label className="admin-settings-field-label">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium leading-none">
                         {t("settings.templatesCard.bodyFr")}
                       </label>
                       <Textarea
                         name="inviteBodyFr"
-                        className="admin-settings-textarea"
+                        className="min-h-[120px] resize-y"
                         disabled={isDisabled}
                         value={form?.inviteBodyFr ?? ""}
                         onChange={handleChange}
@@ -263,11 +258,11 @@ export function AdminSettingsPage() {
                   </div>
                 </div>
 
-                <div className="admin-settings-actions">
+                <div className="flex justify-end mt-6">
                   <Button
                     type="submit"
                     disabled={isDisabled}
-                    className="admin-settings-saveButton"
+                    className="px-8"
                   >
                     {t("settings.saveButton")}
                   </Button>

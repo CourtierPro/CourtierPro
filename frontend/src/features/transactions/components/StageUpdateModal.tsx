@@ -126,13 +126,13 @@ function StageUpdateForm({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
       aria-hidden={true}
     >
       <div
         ref={modalRef}
-        className="rounded-xl shadow-xl w-full max-w-md mx-auto bg-white"
+        className="rounded-xl shadow-xl w-full max-w-md mx-auto bg-card border border-border"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -141,7 +141,7 @@ function StageUpdateForm({
       >
         <form onSubmit={handleSubmit}>
           <div
-            className="flex items-center justify-between p-6 border-b border-gray-200"
+            className="flex items-center justify-between p-6 border-b border-border"
           >
             <h2 id="stage-modal-title" className="text-lg font-semibold text-foreground">
               {t('updateTransactionStage')}
@@ -200,7 +200,7 @@ function StageUpdateForm({
 
             {selectedStage !== '' && (
               <div
-                className="p-4 rounded-lg border-l-4 animate-fade-in bg-orange-50 border-l-primary"
+                className="p-4 rounded-lg border-l-4 animate-fade-in bg-secondary/50 border-l-primary"
                 id="stage-description-text"
                 role="status"
                 aria-live="polite"
@@ -270,7 +270,7 @@ function StageUpdateForm({
             )}
           </div>
 
-          <div className="flex items-center gap-3 p-6 border-t border-gray-200">
+          <div className="flex items-center gap-3 p-6 border-t border-border">
             <Button
               type="button"
               variant="outline"
