@@ -47,7 +47,7 @@ services:
     image: dpage/pgadmin4:latest
     container_name: courtierpro_pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@courtier.local
+      PGADMIN_DEFAULT_EMAIL: admin@courtierpro.com
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
       - "5050:80"
