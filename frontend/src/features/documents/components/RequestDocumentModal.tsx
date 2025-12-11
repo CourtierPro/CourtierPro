@@ -155,10 +155,10 @@ export function RequestDocumentModal({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-orange-50">
-              <FileText className="w-6 h-6 text-orange-500" />
+            <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20">
+              <FileText className="w-6 h-6 text-orange-600 dark:text-orange-400" />
             </div>
-            <DialogTitle className="text-gray-800">{t('title')}</DialogTitle>
+            <DialogTitle className="text-foreground">{t('title')}</DialogTitle>
           </div>
         </DialogHeader>
 
@@ -167,10 +167,10 @@ export function RequestDocumentModal({
           {/* Document Type Select */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="document-type" className="text-gray-700">
+              <Label htmlFor="document-type" className="text-foreground">
                 {t('documentType')}
               </Label>
-              <span className="text-red-500 text-sm">{t('required')}</span>
+              <span className="text-destructive text-sm">{t('required')}</span>
             </div>
             <Select
               value={selectedDocType}
@@ -183,7 +183,7 @@ export function RequestDocumentModal({
             >
               <SelectTrigger
                 id="document-type"
-                className={errors.docType ? 'border-red-500' : ''}
+                className={errors.docType ? 'border-destructive' : ''}
               >
                 <SelectValue placeholder={t('selectDocumentType')} />
               </SelectTrigger>
@@ -196,7 +196,7 @@ export function RequestDocumentModal({
               </SelectContent>
             </Select>
             {errors.docType && (
-              <p className="text-red-500 text-sm">{errors.docType}</p>
+              <p className="text-destructive text-sm">{errors.docType}</p>
             )}
           </div>
 
@@ -204,10 +204,10 @@ export function RequestDocumentModal({
           {selectedDocType === DocumentTypeEnum.OTHER && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="custom-title" className="text-gray-700">
+                <Label htmlFor="custom-title" className="text-foreground">
                   {t('documentTitle')}
                 </Label>
-                <span className="text-red-500 text-sm">{t('required')}</span>
+                <span className="text-destructive text-sm">{t('required')}</span>
               </div>
               <Input
                 ref={customTitleInputRef}
@@ -221,21 +221,21 @@ export function RequestDocumentModal({
                   }
                 }}
                 placeholder={t('documentTitlePlaceholder')}
-                className={errors.customTitle ? 'border-red-500' : ''}
+                className={errors.customTitle ? 'border-destructive' : ''}
                 aria-invalid={!!errors.customTitle}
               />
               {errors.customTitle && (
-                <p className="text-red-500 text-sm">{errors.customTitle}</p>
+                <p className="text-destructive text-sm">{errors.customTitle}</p>
               )}
             </div>
           )}
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="instructions" className="text-gray-700">
+              <Label htmlFor="instructions" className="text-foreground">
                 {t('instructions')}
               </Label>
-              <span className="text-gray-500 text-sm">{t('optional')}</span>
+              <span className="text-muted-foreground text-sm">{t('optional')}</span>
             </div>
             <Textarea
               id="instructions"
@@ -244,17 +244,17 @@ export function RequestDocumentModal({
               placeholder={t('instructionsPlaceholder')}
               rows={4}
             />
-            <p className="text-gray-500 text-sm text-right">
+            <p className="text-muted-foreground text-sm text-right">
               {instructions.length} {i18n.language === 'en' ? 'characters' : 'caractères'}
             </p>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="associated-stage" className="text-gray-700">
+              <Label htmlFor="associated-stage" className="text-foreground">
                 {t('associatedStage')}
               </Label>
-              <span className="text-red-500 text-sm">{t('required')}</span>
+              <span className="text-destructive text-sm">{t('required')}</span>
             </div>
             <Select
               value={selectedStage}
@@ -267,13 +267,13 @@ export function RequestDocumentModal({
             >
               <SelectTrigger
                 id="associated-stage"
-                className={errors.stage ? 'border-red-500' : ''}
+                className={errors.stage ? 'border-destructive' : ''}
               >
                 <SelectValue placeholder={t('selectStage')} />
               </SelectTrigger>
               <SelectContent>
                 {isLoadingStages ? (
-                  <div className="p-2 text-sm text-gray-500 text-center">
+                  <div className="p-2 text-sm text-muted-foreground text-center">
                     {t('loading')}...
                   </div>
                 ) : (
@@ -286,13 +286,13 @@ export function RequestDocumentModal({
               </SelectContent>
             </Select>
             {errors.stage && (
-              <p className="text-red-500 text-sm">{errors.stage}</p>
+              <p className="text-destructive text-sm">{errors.stage}</p>
             )}
           </div>
 
-          <div className="p-4 rounded-lg border-2 border-gray-200 bg-gray-50">
+          <div className="p-4 rounded-lg border-2 border-border bg-muted/50">
             <p
-              className="text-gray-700 text-sm"
+              className="text-muted-foreground text-sm"
               dangerouslySetInnerHTML={{
                 __html: t('infoText', {
                   stage: selectedStage || (i18n.language === 'en' ? 'selected stage' : 'sélectionnée'),
@@ -301,7 +301,7 @@ export function RequestDocumentModal({
             />
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-4 sm:gap-4">
             <Button type="button" variant="outline" onClick={onClose}>
               {t('cancel')}
             </Button>

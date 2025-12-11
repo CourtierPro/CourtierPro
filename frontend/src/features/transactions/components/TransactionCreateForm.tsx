@@ -196,7 +196,7 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
           <Button
             variant="ghost"
             onClick={() => onNavigate('/transactions')}
-            className="gap-2 text-[#FF6B01] hover:text-[#FF6B01]/80 hover:bg-[#FF6B01]/10"
+            className="gap-2 text-primary hover:text-primary/80 hover:bg-primary/10"
           >
             <ChevronLeft className="w-5 h-5" />
             {t('backToTransactions')}
@@ -211,151 +211,104 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
 
       <form onSubmit={handleSubmit} noValidate>
         {errors.form && (
-          <div className="mb-4 p-3 rounded border border-red-200 bg-red-50" role="alert">
-            <p className="text-destructive">{errors.form}</p>
+          <div className="mb-6 p-4 rounded-lg border border-destructive/20 bg-destructive/10" role="alert">
+            <p className="text-destructive font-medium flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" />
+              {errors.form}
+            </p>
           </div>
         )}
-        <div
-          className={`rounded-xl bg-white ${isModal ? '' : 'p-6 shadow-md'}`}
-        >
-          <div className="space-y-6">
-            <fieldset>
-              <legend
-                className="mb-3 flex items-center gap-2 text-foreground"
-              >
-                {t('transactionSide')}
-                <span
-                  className="text-destructive text-sm"
-                  aria-label="required"
-                >
-                  *
-                </span>
-              </legend>
 
-              <RadioGroup
-                value={transactionSide}
-                onValueChange={(val) => {
-                  setTransactionSide(val as 'buy' | 'sell');
-                  setInitialStage(''); // Reset stage when side changes
-                  handleBlur('transactionSide');
-                }}
-                className="grid grid-cols-1 md:grid-cols-2 gap-4"
-              >
-                <label
-                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${transactionSide === 'buy'
-                    ? 'border-[#FF6B01] bg-[#FFF5F0]'
-                    : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <RadioGroupItem value="buy" id="buy" className="mt-1" />
-                    <div className="flex-1 cursor-pointer" onClick={() => {
-                      setTransactionSide('buy');
-                      setInitialStage('');
-                    }}>
-                      <p className="text-foreground mb-1 font-medium">
-                        {t('buySide')}
-                      </p>
-                      <p
-                        id="buy-side-description"
-                        className="text-muted-foreground text-sm"
-                      >
-                        {t('buySideDescription')}
-                      </p>
-                    </div>
-                  </div>
-                </label>
+        <div className="space-y-8">
+          {/* Section 1: Transaction Basics */}
+          <div className={`space-y-6 ${isModal ? '' : 'bg-card p-6 rounded-xl border border-border shadow-sm'}`}>
+            <h2 className="text-lg font-semibold text-foreground border-b border-border pb-2">
+              {t('transactionDetails')}
+            </h2>
 
-                <label
-                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${transactionSide === 'sell'
-                    ? 'border-[#FF6B01] bg-[#FFF5F0]'
-                    : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <RadioGroupItem value="sell" id="sell" className="mt-1" />
-                    <div className="flex-1 cursor-pointer" onClick={() => {
-                      setTransactionSide('sell');
-                      setInitialStage('');
-                    }}>
-                      <p className="text-foreground mb-1 font-medium">
-                        {t('sellSide')}
-                      </p>
-                      <p
-                        id="sell-side-description"
-                        className="text-muted-foreground text-sm"
-                      >
-                        {t('sellSideDescription')}
-                      </p>
-                    </div>
-                  </div>
-                </label>
-              </RadioGroup>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Left Column: Side Selection */}
+              <fieldset className="space-y-4">
+                <legend className="block text-sm font-medium text-foreground mb-4">
+                  {t('transactionSide')} <span className="text-destructive">*</span>
+                </legend>
 
-              {touched.transactionSide && errors.transactionSide && (
-                <div
-                  className="flex items-center gap-2 mt-2"
-                  role="alert"
-                  aria-live="polite"
+                <RadioGroup
+                  value={transactionSide}
+                  onValueChange={(val) => {
+                    setTransactionSide(val as 'buy' | 'sell');
+                    setInitialStage('');
+                    handleBlur('transactionSide');
+                  }}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                 >
-                  <AlertCircle className="w-4 h-4 text-destructive" />
-                  <p className="text-destructive text-sm">
-                    {errors.transactionSide}
-                  </p>
-                </div>
-              )}
-            </fieldset>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div ref={clientSearchRef}>
-                <label
-                  htmlFor="client-search"
-                  className="block mb-2 flex items-center gap-2 text-foreground"
-                >
-                  {t('client')}
-                  <span
-                    className="text-destructive text-sm"
-                    aria-label="required"
+                  <label
+                    className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all hover:bg-muted/50 ${transactionSide === 'buy'
+                        ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                        : 'border-border hover:border-sidebar-primary/50'
+                      }`}
                   >
-                    *
-                  </span>
+                    <RadioGroupItem value="buy" id="buy" className="sr-only" />
+                    <span className="font-semibold text-foreground mb-1">{t('buySide')}</span>
+                    <span className="text-xs text-muted-foreground">{t('buySideDescription')}</span>
+                    {transactionSide === 'buy' && (
+                      <div className="absolute top-3 right-3 text-primary">
+                        <CheckCircle className="w-5 h-5" />
+                      </div>
+                    )}
+                  </label>
+
+                  <label
+                    className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all hover:bg-muted/50 ${transactionSide === 'sell'
+                        ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                        : 'border-border hover:border-sidebar-primary/50'
+                      }`}
+                  >
+                    <RadioGroupItem value="sell" id="sell" className="sr-only" />
+                    <span className="font-semibold text-foreground mb-1">{t('sellSide')}</span>
+                    <span className="text-xs text-muted-foreground">{t('sellSideDescription')}</span>
+                    {transactionSide === 'sell' && (
+                      <div className="absolute top-3 right-3 text-primary">
+                        <CheckCircle className="w-5 h-5" />
+                      </div>
+                    )}
+                  </label>
+                </RadioGroup>
+                {touched.transactionSide && errors.transactionSide && (
+                  <p className="text-destructive text-sm mt-1">{errors.transactionSide}</p>
+                )}
+              </fieldset>
+
+              {/* Right Column: Client Selection */}
+              <div ref={clientSearchRef} className="space-y-2">
+                <label htmlFor="client-search" className="block text-sm font-medium text-foreground">
+                  {t('client')} <span className="text-destructive">*</span>
                 </label>
 
                 <div className="relative">
-                  <div className="relative">
-                    <Input
-                      id="client-search"
-                      type="text"
-                      value={selectedClient ? selectedClient.name : clientSearch}
-                      onChange={(e) => {
-                        setClientSearch(e.target.value);
-                        setSelectedClient(null);
-                        setShowClientDropdown(true);
-                      }}
-                      onFocus={() => setShowClientDropdown(true)}
-                      onBlur={() => handleBlur('client')}
-                      placeholder={t('searchClient')}
-                      className="pr-10"
-                      aria-describedby={touched.client && errors.client ? 'client-error' : undefined}
-                      aria-invalid={touched.client && errors.client ? 'true' : 'false'}
-                    />
-                    <Search
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground/50"
-                    />
-                  </div>
+                  <Input
+                    id="client-search"
+                    /* ... existing input props ... */
+                    value={selectedClient ? selectedClient.name : clientSearch}
+                    onChange={(e) => {
+                      setClientSearch(e.target.value);
+                      setSelectedClient(null);
+                      setShowClientDropdown(true);
+                    }}
+                    onFocus={() => setShowClientDropdown(true)}
+                    onBlur={() => handleBlur('client')}
+                    placeholder={t('searchClient')}
+                    className="pr-10 bg-background"
+                    aria-invalid={touched.client && errors.client ? 'true' : 'false'}
+                  />
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
 
                   {showClientDropdown && (
-                    <div
-                      className="absolute z-10 w-full mt-2 rounded-lg border border-gray-200 shadow-lg max-h-60 overflow-y-auto bg-white"
-                      role="listbox"
-                      aria-label="Client list"
-                    >
+                    <div className="absolute z-20 w-full mt-1 rounded-md border border-border bg-popover text-popover-foreground shadow-lg max-h-60 overflow-y-auto">
                       {filteredClients.length === 0 ? (
-                        <div className="p-4 text-center text-muted-foreground">
-                          {t('noClientsFound')}
-                        </div>
+                        <div className="p-3 text-sm text-center text-muted-foreground">{t('noClientsFound')}</div>
                       ) : (
-                        filteredClients.map((client) => (
+                        filteredClients.map(client => (
                           <button
                             key={client.id}
                             type="button"
@@ -364,14 +317,10 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                               setClientSearch('');
                               setShowClientDropdown(false);
                             }}
-                            className="w-full p-3 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 transition-colors"
-                            role="option"
-                            aria-selected={selectedClient?.id === client.id}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
                           >
-                            <p className="text-foreground">{client.name}</p>
-                            <p className="text-muted-foreground text-sm">
-                              {client.email}
-                            </p>
+                            <div className="font-medium">{client.name}</div>
+                            <div className="text-xs text-muted-foreground">{client.email}</div>
                           </button>
                         ))
                       )}
@@ -380,191 +329,120 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                 </div>
 
                 {selectedClient && (
-                  <div
-                    className="flex items-center gap-2 mt-2 p-2 rounded-lg bg-emerald-50"
-                  >
-                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                    <p className="text-emerald-500 text-sm">
-                      {selectedClient.name} {i18n.language === 'en' ? 'selected' : 'sélectionné'}
-                    </p>
+                  <div className="flex items-center gap-2 mt-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>{selectedClient.name}</span>
                   </div>
                 )}
-
                 {touched.client && errors.client && !selectedClient && (
-                  <div
-                    id="client-error"
-                    className="flex items-center gap-2 mt-2"
-                    role="alert"
-                    aria-live="polite"
-                  >
-                    <AlertCircle className="w-4 h-4 text-destructive" />
-                    <p className="text-destructive text-sm">
-                      {errors.client}
-                    </p>
-                  </div>
+                  <p className="text-destructive text-sm mt-1">{errors.client}</p>
                 )}
               </div>
+            </div>
+          </div>
 
-              {/* Address Fields */}
-              <div className="space-y-4">
-                <div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="col-span-1">
-                      <label htmlFor="streetNumber" className="block mb-2 text-sm font-medium text-foreground">
-                        {t('streetNumber')} <span className="text-destructive">*</span>
-                      </label>
-                      <Input
-                        id="streetNumber"
-                        value={streetNumber}
-                        onChange={(e) => setStreetNumber(e.target.value)}
-                        onBlur={() => handleBlur('streetNumber')}
-                        placeholder={t('streetNumber')}
-                        aria-invalid={touched.streetNumber && errors.streetNumber ? 'true' : 'false'}
-                      />
-                      {touched.streetNumber && errors.streetNumber && (
-                        <p className="text-red-500 text-sm mt-1">{errors.streetNumber}</p>
-                      )}
-                    </div>
+          {/* Section 2: Property Address */}
+          <div className={`space-y-6 ${isModal ? '' : 'bg-card p-6 rounded-xl border border-border shadow-sm'}`}>
+            <h2 className="text-lg font-semibold text-foreground border-b border-border pb-2">
+              {t('propertyAddress')}
+            </h2>
 
-                    <div className="col-span-2">
-                      <label htmlFor="streetName" className="block mb-2 text-sm font-medium text-foreground">
-                        {t('streetName')} <span className="text-destructive">*</span>
-                      </label>
-                      <Input
-                        id="streetName"
-                        value={streetName}
-                        onChange={(e) => setStreetName(e.target.value)}
-                        onBlur={() => handleBlur('streetName')}
-                        placeholder={t('streetName')}
-                        aria-invalid={touched.streetName && errors.streetName ? 'true' : 'false'}
-                      />
-                      {touched.streetName && errors.streetName && (
-                        <p className="text-red-500 text-sm mt-1">{errors.streetName}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="city" className="block mb-2 text-sm font-medium text-foreground">
-                      {t('city')} <span className="text-destructive">*</span>
-                    </label>
-                    <Input
-                      id="city"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      onBlur={() => handleBlur('city')}
-                      placeholder={t('city')}
-                      aria-invalid={touched.city && errors.city ? 'true' : 'false'}
-                    />
-                    {touched.city && errors.city && (
-                      <p className="text-red-500 text-sm mt-1">{errors.city}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label htmlFor="province" className="block mb-2 text-sm font-medium text-foreground">
-                      {t('province')} <span className="text-destructive">*</span>
-                    </label>
-                    <Input
-                      id="province"
-                      value={province}
-                      onChange={(e) => setProvince(e.target.value)}
-                      onBlur={() => handleBlur('province')}
-                      placeholder={t('province')}
-                      aria-invalid={touched.province && errors.province ? 'true' : 'false'}
-                    />
-                    {touched.province && errors.province && (
-                      <p className="text-red-500 text-sm mt-1">{errors.province}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="postalCode" className="block mb-2 text-sm font-medium text-foreground">
-                    {t('postalCode')} <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    id="postalCode"
-                    value={postalCode}
-                    onChange={(e) => setPostalCode(e.target.value)}
-                    onBlur={() => handleBlur('postalCode')}
-                    placeholder={t('postalCode')}
-                    aria-invalid={touched.postalCode && errors.postalCode ? 'true' : 'false'}
-                  />
-                  {touched.postalCode && errors.postalCode && (
-                    <p className="text-red-500 text-sm mt-1">{errors.postalCode}</p>
-                  )}
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-1">
+                <label className="block text-sm font-medium text-foreground mb-1.5">{t('streetNumber')} <span className="text-destructive">*</span></label>
+                <Input
+                  value={streetNumber}
+                  onChange={e => setStreetNumber(e.target.value)}
+                  onBlur={() => handleBlur('streetNumber')}
+                  className="bg-background"
+                  aria-invalid={touched.streetNumber && errors.streetNumber ? 'true' : 'false'}
+                />
+                {touched.streetNumber && errors.streetNumber && <p className="text-destructive text-xs mt-1">{errors.streetNumber}</p>}
+              </div>
+              <div className="md:col-span-3">
+                <label className="block text-sm font-medium text-foreground mb-1.5">{t('streetName')} <span className="text-destructive">*</span></label>
+                <Input
+                  value={streetName}
+                  onChange={e => setStreetName(e.target.value)}
+                  onBlur={() => handleBlur('streetName')}
+                  className="bg-background"
+                  aria-invalid={touched.streetName && errors.streetName ? 'true' : 'false'}
+                />
+                {touched.streetName && errors.streetName && <p className="text-destructive text-xs mt-1">{errors.streetName}</p>}
               </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="initial-stage"
-                className="block mb-2 flex items-center gap-2 text-foreground"
-              >
-                {t('initialStage')}
-                <span
-                  className="text-destructive text-sm"
-                  aria-label="required"
-                >
-                  *
-                </span>
-              </label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">{t('city')} <span className="text-destructive">*</span></label>
+                <Input
+                  value={city}
+                  onChange={e => setCity(e.target.value)}
+                  onBlur={() => handleBlur('city')}
+                  className="bg-background"
+                />
+                {touched.city && errors.city && <p className="text-destructive text-xs mt-1">{errors.city}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">{t('province')} <span className="text-destructive">*</span></label>
+                <Input
+                  value={province}
+                  onChange={e => setProvince(e.target.value)}
+                  onBlur={() => handleBlur('province')}
+                  className="bg-background"
+                />
+                {touched.province && errors.province && <p className="text-destructive text-xs mt-1">{errors.province}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">{t('postalCode')} <span className="text-destructive">*</span></label>
+                <Input
+                  value={postalCode}
+                  onChange={e => setPostalCode(e.target.value)}
+                  onBlur={() => handleBlur('postalCode')}
+                  className="bg-background"
+                />
+                {touched.postalCode && errors.postalCode && <p className="text-destructive text-xs mt-1">{errors.postalCode}</p>}
+              </div>
+            </div>
+          </div>
 
+          {/* Section 3: Initial Stage */}
+          <div className={`space-y-6 ${isModal ? '' : 'bg-card p-6 rounded-xl border border-border shadow-sm'}`}>
+            <h2 className="text-lg font-semibold text-foreground border-b border-border pb-2">
+              {t('initialStage')}
+            </h2>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                {t('selectInitialStage')} <span className="text-destructive">*</span>
+              </label>
               <Select
                 value={initialStage}
-                onValueChange={(value) => {
-                  setInitialStage(value);
+                onValueChange={(val) => {
+                  setInitialStage(val);
                   handleBlur('initialStage');
                 }}
                 disabled={!transactionSide}
               >
-                <SelectTrigger
-                  id="initial-stage"
-                  className="w-full"
-                  aria-describedby={touched.initialStage && errors.initialStage ? 'stage-error' : undefined}
-                  aria-invalid={touched.initialStage && errors.initialStage ? 'true' : 'false'}
-                >
+                <SelectTrigger className="w-full md:w-1/2 bg-background">
                   <SelectValue placeholder={t('selectInitialStage')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {stageEnums.map((stageEnum) => (
-                    <SelectItem key={stageEnum} value={stageEnum}>
-                      {enumToLabel(stageEnum)}
-                    </SelectItem>
+                  {stageEnums.map(stage => (
+                    <SelectItem key={stage} value={stage}>{enumToLabel(stage)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-
               {!transactionSide && (
-                <p className="text-muted-foreground text-sm mt-2">
-                  {i18n.language === 'en'
-                    ? t('errorSelectSide')
-                    : t('errorSelectSide')}
-                </p>
+                <p className="text-muted-foreground text-sm mt-2">{t('errorSelectSide')}</p>
               )}
-
               {touched.initialStage && errors.initialStage && (
-                <div
-                  id="stage-error"
-                  className="flex items-center gap-2 mt-2"
-                  role="alert"
-                  aria-live="polite"
-                >
-                  <AlertCircle className="w-4 h-4 text-destructive" />
-                  <p className="text-destructive text-sm">
-                    {errors.initialStage}
-                  </p>
-                </div>
+                <p className="text-destructive text-sm mt-1">{errors.initialStage}</p>
               )}
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4 mt-6">
+        <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 mt-8 pt-4 border-t border-border">
           <Button
             type="button"
             variant="outline"
@@ -577,7 +455,7 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
           <Button
             type="submit"
             disabled={!isFormValid}
-            className="w-full sm:w-auto bg-[#FF6B01] hover:bg-[#FF6B01]/90"
+            className="w-full sm:w-auto min-w-[150px]"
           >
             {t('createTransaction')}
           </Button>

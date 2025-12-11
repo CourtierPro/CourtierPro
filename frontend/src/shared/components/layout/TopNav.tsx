@@ -3,6 +3,7 @@ import { Globe, Bell, Menu, ChevronDown } from "lucide-react";
 import { formatDateTime } from '@/shared/utils/date';
 import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/components/ui/button";
+import { ModeToggle } from "@/shared/components/ui/mode-toggle";
 
 interface NotificationItem {
   id: string | number;
@@ -112,9 +113,10 @@ export function TopNav({
 
   return (
     <nav
-      className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6"
+      className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b border-border bg-background px-4 md:px-6"
       role="banner"
       aria-label="Main navigation"
+      style={{ viewTransitionName: 'topnav' } as React.CSSProperties}
     >
       {/* Left section */}
       <div className="flex items-center gap-4">
@@ -127,15 +129,15 @@ export function TopNav({
           aria-label={t("menu")}
           aria-expanded="false"
         >
-          <Menu className="w-6 h-6 text-slate-800" />
+          <Menu className="w-6 h-6 text-foreground" />
         </Button>
 
         {/* Logo */}
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500">
-            <span className="text-white font-semibold">CP</span>
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+            <span className="text-primary-foreground font-semibold">CP</span>
           </div>
-          <span className="hidden sm:block text-slate-800 font-medium">
+          <span className="hidden sm:block text-foreground font-medium">
             CourtierPro
           </span>
         </div>
@@ -143,6 +145,7 @@ export function TopNav({
 
       {/* Right section */}
       <div className="flex items-center gap-2 md:gap-4">
+        <ModeToggle />
         {/* Language selector */}
         <div className="relative" ref={languageRef}>
           <Button
@@ -157,19 +160,19 @@ export function TopNav({
                 setIsLanguageMenuOpen(false);
               }
             }}
-            className="flex items-center gap-2 px-3 py-2"
+            className="flex items-center gap-2 px-3 py-2 text-foreground"
             aria-label={t("language")}
             aria-expanded={isLanguageMenuOpen}
             aria-haspopup="true"
           >
-            <Globe className="w-5 h-5 text-slate-800" />
-            <span className="hidden sm:inline text-slate-800">
+            <Globe className="w-5 h-5" />
+            <span className="hidden sm:inline">
               {language.toUpperCase()}
             </span>
           </Button>
           {isLanguageMenuOpen && (
             <div
-              className="absolute right-0 mt-2 w-32 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
+              className="absolute right-0 mt-2 w-32 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg"
               role="menu"
               aria-label={t("language")}
             >
@@ -181,7 +184,7 @@ export function TopNav({
                     selectLanguage("en");
                   }
                 }}
-                className={`w-full px-4 py-2 text-left text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none ${language === "en" ? "bg-slate-50" : ""
+                className={`w-full px-4 py-2 text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none ${language === "en" ? "bg-accent/50" : ""
                   }`}
                 role="menuitem"
               >
@@ -195,7 +198,7 @@ export function TopNav({
                     selectLanguage("fr");
                   }
                 }}
-                className={`w-full px-4 py-2 text-left text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none ${language === "fr" ? "bg-slate-50" : ""
+                className={`w-full px-4 py-2 text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none ${language === "fr" ? "bg-accent/50" : ""
                   }`}
                 role="menuitem"
               >
@@ -210,15 +213,15 @@ export function TopNav({
           <Button
             variant="ghost"
             size="icon"
-            className="relative"
+            className="relative text-foreground"
             aria-label={`${t("notifications")}${notificationCount > 0 ? `, ${notificationCount} unread` : ""
               }`}
             onClick={toggleNotifications}
           >
-            <Bell className="w-5 h-5 text-slate-800" />
+            <Bell className="w-5 h-5" />
             {notificationCount > 0 && (
               <span
-                className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs font-semibold text-white"
+                className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-semibold"
                 aria-hidden="true"
               >
                 {notificationCount}
@@ -227,13 +230,13 @@ export function TopNav({
           </Button>
           {isNotificationsOpen && (
             <div
-              className="absolute right-0 mt-2 w-80 max-h-96 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg md:w-96"
+              className="absolute right-0 mt-2 w-80 max-h-96 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg md:w-96"
               role="menu"
               aria-label={t("notifications")}
             >
               {/* Header */}
-              <div className="border-b border-slate-200 px-4 py-3">
-                <h3 className="text-slate-800 font-medium">
+              <div className="border-b border-border px-4 py-3">
+                <h3 className="font-medium">
                   {t("notifications")}
                 </h3>
               </div>
@@ -241,7 +244,7 @@ export function TopNav({
               {/* Notifications list */}
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
-                  <div className="px-4 py-6 text-sm text-slate-500">
+                  <div className="px-4 py-6 text-sm text-muted-foreground">
                     {t("noNotifications")}
                   </div>
                 ) : (
@@ -250,7 +253,7 @@ export function TopNav({
                     return (
                       <button
                         key={notification.id}
-                        className={`flex w-full items-start gap-3 border-b border-slate-100 p-4 text-left text-sm transition-colors hover:bg-slate-50 focus:bg-slate-50 focus:outline-none ${notification.unread ? "bg-blue-50" : ""
+                        className={`flex w-full items-start gap-3 border-b border-border p-4 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none ${notification.unread ? "bg-accent/30" : ""
                           }`}
                         role="menuitem"
                         onClick={() => {
@@ -259,29 +262,29 @@ export function TopNav({
                         }}
                       >
                         {Icon ? (
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-50">
-                            <Icon className="h-5 w-5 text-orange-500" />
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                            <Icon className="h-5 w-5 text-primary" />
                           </div>
                         ) : null}
 
                         <div className="min-w-0 flex-1">
                           <p
-                            className={`text-slate-800 ${notification.unread ? "font-semibold" : ""
+                            className={`text-foreground ${notification.unread ? "font-semibold" : ""
                               }`}
                           >
                             {notification.title}
                           </p>
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className="mt-1 text-xs text-muted-foreground">
                             {notification.description}
                           </p>
-                          <p className="mt-1 text-xs text-slate-400">
+                          <p className="mt-1 text-xs text-muted-foreground/70">
                             {formatDateTime(notification.timestamp)}
                           </p>
                         </div>
 
                         {notification.unread && (
                           <span
-                            className="mt-2 h-2 w-2 shrink-0 rounded-full bg-orange-500"
+                            className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary"
                             aria-label="Unread"
                           />
                         )}
@@ -292,9 +295,9 @@ export function TopNav({
               </div>
 
               {/* Footer */}
-              <div className="border-t border-slate-200">
+              <div className="border-t border-border">
                 <button
-                  className="w-full px-4 py-3 text-center text-sm font-medium text-orange-600 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                  className="w-full px-4 py-3 text-center text-sm font-medium text-primary hover:bg-accent focus:bg-accent focus:outline-none"
                   role="menuitem"
                   onClick={() => {
                     setIsNotificationsOpen(false);
@@ -322,12 +325,12 @@ export function TopNav({
                 setIsUserMenuOpen(false);
               }
             }}
-            className="flex items-center gap-2 p-1"
+            className="flex items-center gap-2 p-1 text-foreground"
             aria-label={t("userMenu")}
             aria-expanded={isUserMenuOpen}
             aria-haspopup="true"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-white text-sm font-semibold">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold">
               <span>
                 {userRole === "broker"
                   ? "B"
@@ -336,11 +339,11 @@ export function TopNav({
                     : "A"}
               </span>
             </div>
-            <ChevronDown className="hidden h-4 w-4 text-slate-800 sm:block" />
+            <ChevronDown className="hidden h-4 w-4 sm:block" />
           </Button>
           {isUserMenuOpen && (
             <div
-              className="absolute right-0 mt-2 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
+              className="absolute right-0 mt-2 w-48 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg"
               role="menu"
               aria-label={t("userMenu")}
             >
@@ -352,7 +355,7 @@ export function TopNav({
                     handleProfile();
                   }
                 }}
-                className="w-full px-4 py-3 text-left text-sm text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+                className="w-full px-4 py-3 text-left text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none"
                 role="menuitem"
               >
                 {t("profile")}
@@ -365,7 +368,7 @@ export function TopNav({
                     handleLogoutClick();
                   }
                 }}
-                className="w-full px-4 py-3 text-left text-sm text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+                className="w-full px-4 py-3 text-left text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none"
                 role="menuitem"
               >
                 {t("logout")}

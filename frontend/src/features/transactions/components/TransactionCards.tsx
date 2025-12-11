@@ -1,6 +1,7 @@
 import { Users, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from "@/shared/components/branded/StatusBadge";
+import { Badge } from "@/shared/components/ui/badge";
 import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/shared/utils/stages';
 import { type Transaction } from '@/features/transactions/api/queries';
 import { formatDate } from '@/shared/utils/date';
@@ -53,14 +54,9 @@ export function TransactionCards({ transactions, onNavigate }: TransactionCardsP
                         </div>
 
                         <div className="flex items-center justify-between">
-                            <span
-                                className={`px-3 py-1 rounded-full text-sm ${transaction.side === 'BUY_SIDE'
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : 'bg-amber-100 text-amber-800'
-                                    }`}
-                            >
+                            <Badge variant={transaction.side === 'BUY_SIDE' ? 'info' : 'warning'}>
                                 {transaction.side === 'BUY_SIDE' ? t('buy') : t('sell')}
-                            </span>
+                            </Badge>
                             <p className="text-sm text-foreground">
                                 {getStageName(transaction)}
                             </p>

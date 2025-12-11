@@ -22,8 +22,6 @@ import {
   type OrgSettingsLogEntry,
 } from "@/pages/admin/systemLogsApi";
 
-import "./SystemLogsPage.css";
-
 export function SystemLogsPage() {
   const { t } = useTranslation("admin");
 
@@ -95,31 +93,31 @@ export function SystemLogsPage() {
   };
 
   return (
-    <div className="admin-page system-logs-page">
-      <div className="system-logs-header-wrapper">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <PageHeader
           title={t("settings.systemLogs")}
           subtitle={t("settings.systemLogsSubtitle")}
         />
       </div>
 
-      <div className="bg-white shadow rounded-lg overflow-hidden system-logs-card">
+      <div className="bg-card shadow rounded-xl border border-border overflow-hidden">
         {loading && (
-          <p className="system-logs-status system-logs-status--muted">
+          <p className="p-8 text-center text-muted-foreground">
             {t("settings.loading")}
           </p>
         )}
 
         {error && (
-          <p className="system-logs-status system-logs-status--error">
+          <p className="p-8 text-center text-destructive">
             {error}
           </p>
         )}
 
         {!loading && !error && (
-          <Table className="admin-table system-logs-table">
+          <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="w-[50px]" />
                 <TableHead>{t("settings.systemLogs_when")}</TableHead>
                 <TableHead>{t("settings.systemLogs_inviteTemplateEn")}</TableHead>
@@ -133,17 +131,16 @@ export function SystemLogsPage() {
             <TableBody>
               {logs.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                     {t("settings.noSystemLogs")}
                   </TableCell>
                 </TableRow>
               )}
 
-              {logs.map((log, index) => (
+              {logs.map((log) => (
                 <Fragment key={log.id}>
                   <TableRow
-                    className={`system-logs-row cursor-pointer hover:bg-muted/50 system-logs-row-${index + 1
-                      }`}
+                    className="cursor-pointer hover:bg-muted/30 transition-colors"
                     onClick={() => toggleRow(log.id)}
                   >
                     <TableCell>
@@ -160,47 +157,47 @@ export function SystemLogsPage() {
                       </Button>
                     </TableCell>
 
-                    <TableCell className="whitespace-nowrap text-sm">
+                    <TableCell className="whitespace-nowrap text-sm text-foreground">
                       {log.timestamp ? formatDateTime(log.timestamp) : "—"}
                     </TableCell>
 
-                    <TableCell className="text-sm">
+                    <TableCell className="text-sm text-foreground">
                       {log.inviteTemplateEnChanged
-                        ? t("settings.systemLogs_changed")
-                        : t("settings.systemLogs_notChanged")}
+                        ? <span className="text-orange-600 dark:text-orange-400 font-medium">{t("settings.systemLogs_changed")}</span>
+                        : <span className="text-muted-foreground">{t("settings.systemLogs_notChanged")}</span>}
                     </TableCell>
 
-                    <TableCell className="text-sm">
+                    <TableCell className="text-sm text-foreground">
                       {log.inviteTemplateFrChanged
-                        ? t("settings.systemLogs_changed")
-                        : t("settings.systemLogs_notChanged")}
+                        ? <span className="text-orange-600 dark:text-orange-400 font-medium">{t("settings.systemLogs_changed")}</span>
+                        : <span className="text-muted-foreground">{t("settings.systemLogs_notChanged")}</span>}
                     </TableCell>
 
-                    <TableCell className="text-sm">
+                    <TableCell className="text-sm text-foreground">
                       {formatSummary(log)}
                     </TableCell>
                   </TableRow>
 
                   {expandedRows.has(log.id) && (
-                    <TableRow className="bg-muted/50 hover:bg-muted/50">
-                      <TableCell colSpan={5}>
-                        <div className="p-4 space-y-2 text-sm">
-                          <div className="grid grid-cols-[150px_1fr] gap-2">
+                    <TableRow className="bg-muted/30 hover:bg-muted/30 animate-in fade-in duration-200">
+                      <TableCell colSpan={5} className="p-0 border-t border-b border-border">
+                        <div className="p-4 space-y-3 bg-muted/10">
+                          <div className="grid grid-cols-[180px_1fr] gap-4 text-sm">
                             <span className="font-medium text-muted-foreground">
                               {t("settings.systemLogs_defaultLanguageLabel")}:
                             </span>
-                            <span>
+                            <span className="text-foreground">
                               {formatLang(log.previousDefaultLanguage)}{" "}
-                              {" → "}
+                              <span className="text-muted-foreground px-2">→</span>
                               {formatLang(log.newDefaultLanguage)}
                             </span>
                           </div>
 
-                          <div className="grid grid-cols-[150px_1fr] gap-2">
+                          <div className="grid grid-cols-[180px_1fr] gap-4 text-sm">
                             <span className="font-medium text-muted-foreground">
                               {t("eventId")}:
                             </span>
-                            <span className="font-mono text-xs">{log.id}</span>
+                            <span className="font-mono text-xs text-muted-foreground bg-muted p-1 rounded w-fit">{log.id}</span>
                           </div>
                         </div>
                       </TableCell>

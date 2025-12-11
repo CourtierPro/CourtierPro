@@ -5,7 +5,7 @@ export function DocumentListSkeleton() {
     return (
         <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-                <Section key={i} className="p-4 border border-gray-100">
+                <Section key={i} className="p-4 border border-border">
                     <div className="flex items-start justify-between">
                         <div className="flex gap-4 w-full">
                             <Skeleton className="w-10 h-10 rounded-lg" />

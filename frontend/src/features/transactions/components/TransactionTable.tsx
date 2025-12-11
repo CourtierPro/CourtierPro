@@ -2,6 +2,7 @@ import { Users, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Section } from "@/shared/components/branded/Section";
 import { StatusBadge } from "@/shared/components/branded/StatusBadge";
+import { Badge } from "@/shared/components/ui/badge";
 import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/shared/utils/stages';
 import { type Transaction } from '@/features/transactions/api/queries';
 
@@ -76,14 +77,9 @@ export function TransactionTable({ transactions, onNavigate }: TransactionTableP
                                     </div>
                                 </td>
                                 <td className="p-4">
-                                    <span
-                                        className={`px-3 py-1 rounded-full text-sm ${transaction.side === 'BUY_SIDE'
-                                            ? 'bg-blue-100 text-blue-800'
-                                            : 'bg-amber-100 text-amber-800'
-                                            }`}
-                                    >
+                                    <Badge variant={transaction.side === 'BUY_SIDE' ? 'info' : 'warning'}>
                                         {transaction.side === 'BUY_SIDE' ? t('buy') : t('sell')}
-                                    </span>
+                                    </Badge>
                                 </td>
                                 <td className="p-4 text-foreground">
                                     {getStageName(transaction)}

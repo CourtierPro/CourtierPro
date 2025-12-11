@@ -49,10 +49,10 @@ export function DocumentReviewModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-lg rounded-lg bg-white shadow-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-lg bg-card shadow-lg border border-border">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-3">
             <FileText className="w-6 h-6 text-primary" />
             <h2 className="text-xl font-semibold text-foreground">{title}</h2>
@@ -104,7 +104,7 @@ export function DocumentReviewModal({
 
               {/* Actions */}
               {document.status === "SUBMITTED" && (onApprove || onReject) && (
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <div className="flex justify-end gap-3 pt-4 border-t border-border">
                   {onReject && (
                     <Button variant="outline" onClick={handleReject} className="gap-2 text-destructive">
                       <XCircle className="w-4 h-4" />
@@ -128,7 +128,7 @@ export function DocumentReviewModal({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end p-6 border-t border-gray-200">
+        <div className="flex justify-end p-6 border-t border-border">
           <Button variant="ghost" onClick={onClose}>
             {t("actions.close")}
           </Button>

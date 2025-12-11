@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import "./InviteUserModal.css";
 import {
   Select,
   SelectContent,
@@ -134,27 +133,27 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 cp-modal-backdrop">
-      <div className="w-full max-w-xl rounded-lg bg-white p-6 shadow-lg cp-modal-card cp-modal-card--wide">
-        <h2 className="mb-2 text-xl font-semibold cp-modal-title">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+      <div className="w-full max-w-xl rounded-xl bg-card p-6 shadow-lg border border-border animate-in fade-in zoom-in-95 duration-200">
+        <h2 className="mb-2 text-xl font-semibold text-card-foreground">
           {t("inviteUserTitle")}
         </h2>
-        <p className="mb-4 text-sm text-muted-foreground cp-modal-subtitle">
+        <p className="mb-4 text-sm text-muted-foreground">
           {t("inviteUserDesc")}
         </p>
 
         {error && (
-          <div className="mb-3 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700 cp-modal-error">
+          <div className="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3 cp-modal-form">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email */}
-          <div className="space-y-1 cp-field">
+          <div className="space-y-2">
             <label
               htmlFor="email"
-              className="text-sm font-medium cp-field-label"
+              className="text-sm font-medium text-foreground"
             >
               {t("inviteUser_emailLabel")} *
             </label>
@@ -169,11 +168,11 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
           </div>
 
           {/* First / last name */}
-          <div className="grid grid-cols-2 gap-3 cp-field-grid">
-            <div className="space-y-1 cp-field">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <label
                 htmlFor="firstName"
-                className="text-sm font-medium cp-field-label"
+                className="text-sm font-medium text-foreground"
               >
                 {t("inviteUser_firstNameLabel")} *
               </label>
@@ -186,10 +185,10 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
               />
             </div>
 
-            <div className="space-y-1 cp-field">
+            <div className="space-y-2">
               <label
                 htmlFor="lastName"
-                className="text-sm font-medium cp-field-label"
+                className="text-sm font-medium text-foreground"
               >
                 {t("inviteUser_lastNameLabel")} *
               </label>
@@ -204,11 +203,11 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
           </div>
 
           {/* Role / language */}
-          <div className="grid grid-cols-2 gap-3 cp-field-grid">
-            <div className="space-y-1 cp-field">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <label
                 htmlFor="role"
-                className="text-sm font-medium cp-field-label"
+                className="text-sm font-medium text-foreground"
               >
                 {t("inviteUser_roleLabel")}
               </label>
@@ -235,10 +234,10 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
               </Select>
             </div>
 
-            <div className="space-y-1 cp-field">
+            <div className="space-y-2">
               <label
                 htmlFor="preferredLanguage"
-                className="text-sm font-medium cp-field-label"
+                className="text-sm font-medium text-foreground"
               >
                 {t("inviteUser_languageLabel")}
               </label>
@@ -270,7 +269,7 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
           </div>
 
           {/* Actions */}
-          <div className="mt-4 flex justify-between cp-modal-actions">
+          <div className="mt-6 flex justify-between gap-3">
             <Button
               type="button"
               variant="ghost"

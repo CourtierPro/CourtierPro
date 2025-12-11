@@ -28,9 +28,9 @@ export function KpiCard({ title, value, icon, trend, className }: KpiCardProps) 
                         <div
                             className={cn(
                                 "text-xs font-medium flex items-center",
-                                trend.direction === "up" && "text-green-600",
-                                trend.direction === "down" && "text-red-600",
-                                trend.direction === "neutral" && "text-gray-500"
+                                trend.direction === "up" && "text-green-600 dark:text-green-400",
+                                trend.direction === "down" && "text-red-600 dark:text-red-400",
+                                trend.direction === "neutral" && "text-muted-foreground"
                             )}
                         >
                             {trend.direction === "up" && "+"}
