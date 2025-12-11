@@ -126,7 +126,7 @@ function StageUpdateForm({
 
   return (
     <div
-      className="fixed inset-0 bg-gray-900 bg-opacity-20 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       onClick={onClose}
       aria-hidden={true}
     >
@@ -143,7 +143,7 @@ function StageUpdateForm({
           <div
             className="flex items-center justify-between p-6 border-b border-gray-200"
           >
-            <h2 id="stage-modal-title" style={{ color: '#353535' }}>
+            <h2 id="stage-modal-title" className="text-lg font-semibold text-foreground">
               {t('updateTransactionStage')}
             </h2>
             <Button
@@ -262,11 +262,8 @@ function StageUpdateForm({
             </div>
 
             {!isFormValid && (
-              <div
-                className="p-3 rounded-lg border border-gray-200 bg-muted"
-                role="status"
-              >
-                <p className="text-muted-foreground text-sm">
+              <div className="mt-2" role="status">
+                <p className="text-muted-foreground text-sm italic">
                   {t('selectStageFirst')}
                 </p>
               </div>

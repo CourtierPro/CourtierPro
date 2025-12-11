@@ -20,6 +20,7 @@ interface TransactionListProps {
 const ITEMS_PER_PAGE = 10;
 
 import { parseToTimestamp } from '@/shared/utils/date';
+import { CreateTransactionModal } from './CreateTransactionModal';
 
 
 export function TransactionList({ language, onNavigate }: TransactionListProps) {
@@ -28,6 +29,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc' | 'nameAsc' | 'nameDesc'>('dateDesc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const { data: transactions = [], isLoading, error, refetch } = useTransactions({
     status: statusFilter,
@@ -115,7 +117,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
           title={t('transactionsTitle')}
           actions={
             <Button
-              onClick={() => onNavigate('/transactions/new')}
+              onClick={() => setIsCreateModalOpen(true)}
               className="gap-2"
             >
               <Plus className="w-4 h-4" />
@@ -144,7 +146,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
         subtitle={t('subtitle')}
         actions={
           <Button
-            onClick={() => onNavigate('/transactions/new')}
+            onClick={() => setIsCreateModalOpen(true)}
             className="gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -191,6 +193,15 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
         </>
       )}
 
+      <CreateTransactionModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          setIsCreateModalOpen(false);
+          // Optionally refetch transactions if we stayed on list, but form navigates away usually.
+          // If the form behavior changes to stay on list, we would refetch().
+        }}
+      />
     </div>
   );
 }

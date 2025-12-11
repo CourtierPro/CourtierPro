@@ -7,6 +7,7 @@ import { AuthProvider } from "@/app/providers/AuthProvider";
 import { LanguageProvider } from "@/app/providers/LanguageProvider";
 import { queryClient } from "@/shared/api/queryClient";
 import { Toaster } from "sonner";
+import { TooltipProvider } from "@/shared/components/ui/tooltip";
 
 // Auth0 configuration from environment variables
 const domain = import.meta.env.VITE_AUTH0_DOMAIN || "dev-y7mhv7ttykx4kz4f.us.auth0.com";
@@ -42,8 +43,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
                 <Auth0ProviderWithNavigate>
                     <AuthProvider>
                         <LanguageProvider>
-                            {children}
-                            <Toaster />
+                            <TooltipProvider>
+                                {children}
+                                <Toaster />
+                            </TooltipProvider>
                         </LanguageProvider>
                     </AuthProvider>
                 </Auth0ProviderWithNavigate>
