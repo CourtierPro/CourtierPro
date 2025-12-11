@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  X,
   Calendar,
   Clock,
   FileText,
@@ -21,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
 import { useClientsForDisplay, type ClientDisplay } from '@/features/clients';
 import { useTransactions, type Transaction } from '@/features/transactions/api/queries';
 
@@ -250,40 +250,24 @@ export function CreateAppointmentModal({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 bg-gray-900 bg-opacity-20 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-      aria-hidden={!isOpen}
-    >
-      <div
-        ref={modalRef}
-        className="rounded-xl shadow-xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto bg-background"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="create-appointment-modal-title"
-      >
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+    <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto p-0 gap-0">
+        <DialogHeader className="p-6 border-b border-border sticky top-0 bg-card z-10 flex-row items-center justify-between space-y-0">
           <div className="flex items-center gap-3">
-            <div
-              className="p-2 rounded-lg bg-primary/10"
-            >
+            <div className="p-2 rounded-lg bg-primary/10">
               <Calendar className="w-6 h-6 text-primary" />
             </div>
-            <h2 id="create-appointment-modal-title" className="text-foreground">
-              {t('title')}
-            </h2>
+            <DialogTitle>{t('title')}</DialogTitle>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            aria-label="Close modal"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
+          {/* Default X close button is provided by DialogContent, but we need to ensure it's visible. 
+              Actually, DialogContent adds an absolute X button. 
+              The original design had a flex header. 
+              Let's hide the default X by passing a prop or just let it overlay? 
+              The default X is absolute right-4 top-4. 
+              Our header is p-6. Top-4 is inside the header. 
+              So standard Close button should work fine. 
+              I will NOT add a custom button. */}
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Client Selector - Only visible from calendar */}
@@ -567,7 +551,7 @@ export function CreateAppointmentModal({
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

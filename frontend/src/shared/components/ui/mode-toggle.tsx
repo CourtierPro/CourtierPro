@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Moon, Sun } from "lucide-react"
 import { Switch } from "@/shared/components/ui/switch"
-import { useTheme } from "@/app/providers/ThemeProvider"
+import { useTheme } from "@/app/providers/ThemeContext"
 import { useTranslation } from "react-i18next"
 
 export function ModeToggle() {

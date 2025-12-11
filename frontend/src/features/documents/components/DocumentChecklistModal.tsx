@@ -6,6 +6,7 @@ import { StatusBadge } from "@/shared/components/branded/StatusBadge";
 import { useDocuments } from "@/features/documents/api/queries";
 import { X, FileText, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import type { DocumentStatusEnum } from "@/features/documents/types";
+import { Dialog, DialogContent, DialogTitle } from "@/shared/components/ui/dialog";
 
 interface DocumentChecklistModalProps {
   open: boolean;
@@ -20,8 +21,6 @@ export function DocumentChecklistModal({
 }: DocumentChecklistModalProps) {
   const { t } = useTranslation("documents");
   const { data: documents = [], isLoading } = useDocuments(transactionId || "");
-
-  if (!open) return null;
 
   const getStatusIcon = (status: DocumentStatusEnum) => {
     switch (status) {
@@ -40,12 +39,12 @@ export function DocumentChecklistModal({
   const totalCount = documents.length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-lg bg-card shadow-lg max-h-[80vh] flex flex-col border border-border">
+    <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
+      <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col p-0 gap-0 [&>button]:hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div>
-            <h2 className="text-xl font-semibold text-foreground">{t("modals.documentChecklist")}</h2>
+            <DialogTitle className="text-xl font-semibold text-foreground">{t("modals.documentChecklist")}</DialogTitle>
             {totalCount > 0 && (
               <p className="text-sm text-muted-foreground mt-1">
                 {t("checklistProgress", { completed: completedCount, total: totalCount })}
@@ -103,8 +102,8 @@ export function DocumentChecklistModal({
             {t("actions.close")}
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

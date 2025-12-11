@@ -31,7 +31,7 @@ interface Client {
 }
 
 export function TransactionCreateForm({ onNavigate, isModal = false }: TransactionCreateFormProps) {
-  const { t, i18n } = useTranslation('transactions');
+  const { t } = useTranslation('transactions');
   const [transactionSide, setTransactionSide] = useState<'buy' | 'sell' | ''>('');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientSearch, setClientSearch] = useState('');
@@ -244,8 +244,8 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                 >
                   <label
                     className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all hover:bg-muted/50 ${transactionSide === 'buy'
-                        ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                        : 'border-border hover:border-sidebar-primary/50'
+                      ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                      : 'border-border hover:border-sidebar-primary/50'
                       }`}
                   >
                     <RadioGroupItem value="buy" id="buy" className="sr-only" />
@@ -260,8 +260,8 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
 
                   <label
                     className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all hover:bg-muted/50 ${transactionSide === 'sell'
-                        ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                        : 'border-border hover:border-sidebar-primary/50'
+                      ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                      : 'border-border hover:border-sidebar-primary/50'
                       }`}
                   >
                     <RadioGroupItem value="sell" id="sell" className="sr-only" />
