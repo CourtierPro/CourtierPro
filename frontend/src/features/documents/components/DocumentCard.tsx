@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { Link } from "react-router-dom";
+import { useDropzone } from "react-dropzone";
 import { Section } from "@/shared/components/branded/Section";
 import { type DocumentRequest, DocumentStatusEnum, DocumentTypeEnum } from "@/features/documents/types";
 import { format } from "date-fns";
@@ -7,17 +9,18 @@ import { Button } from "@/shared/components/ui/button";
 import { FileText, Upload, CheckCircle, Clock, File, Eye, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getDocumentDownloadUrl } from "@/features/documents/api/documentsApi";
+import { formatDocumentTitle } from "../utils/formatDocumentTitle";
 import { toast } from "sonner";
 
 interface DocumentCardProps {
     document: DocumentRequest;
-    onUpload?: (document: DocumentRequest) => void;
+    onUpload?: (document: DocumentRequest, file?: File) => void;
 }
 
 export function DocumentCard({ document, onUpload }: DocumentCardProps) {
     const { t, i18n } = useTranslation('documents');
     const [isLoadingView, setIsLoadingView] = useState(false);
-    const title = document.customTitle || t(`types.${document.docType}`);
+    const title = formatDocumentTitle(document, t);
 
     const locale = i18n.language === 'fr' ? fr : enUS;
     const date = document.lastUpdatedAt ? format(new Date(document.lastUpdatedAt), 'PPP', { locale }) : '...';
@@ -63,8 +66,35 @@ export function DocumentCard({ document, onUpload }: DocumentCardProps) {
         }
     };
 
+    const onDrop = useCallback((acceptedFiles: File[]) => {
+        if (acceptedFiles.length > 0 && onUpload && (document.status === DocumentStatusEnum.REQUESTED || document.status === DocumentStatusEnum.NEEDS_REVISION)) {
+            onUpload(document, acceptedFiles[0]);
+        }
+    }, [document, onUpload]);
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        onDrop,
+        noClick: true, // We want click to only trigger on buttons
+        noKeyboard: true,
+        accept: {
+            'application/pdf': ['.pdf'],
+            'image/jpeg': ['.jpg', '.jpeg'],
+            'image/png': ['.png']
+        },
+        disabled: !onUpload || (document.status !== DocumentStatusEnum.REQUESTED && document.status !== DocumentStatusEnum.NEEDS_REVISION)
+    });
+
     return (
-        <Section className="p-4 transition-all hover:shadow-md border border-gray-100">
+        <Section {...getRootProps()} className={`p-4 transition-all hover:shadow-md border relative ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-100'}`}>
+            <input {...getInputProps()} />
+            {isDragActive && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-50/80 rounded-lg backdrop-blur-sm">
+                    <p className="text-blue-600 font-semibold flex items-center gap-2">
+                        <Upload className="w-6 h-6" />
+                        {t('dropToUpload', 'Drop file to upload')}
+                    </p>
+                </div>
+            )}
             <div className="flex items-start justify-between">
                 <div className="flex gap-4">
                     <div className="p-2 bg-gray-50 rounded-lg">
@@ -72,9 +102,21 @@ export function DocumentCard({ document, onUpload }: DocumentCardProps) {
                     </div>
                     <div>
                         <h3 className="font-semibold text-gray-900">{title}</h3>
-                        <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
-                            <Clock className="w-3 h-3" />
-                            <span>{t('lastUpdated')}: {date}</span>
+                        <div className="flex flex-col gap-1 mt-1">
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <Clock className="w-3 h-3" />
+                                <span>{t('lastUpdated')}: {date}</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-gray-400">
+                                <span>Ref:</span>
+                                <Link
+                                    to={`/transactions/${document.transactionRef.transactionId}`}
+                                    className="hover:underline hover:text-blue-600"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    #{document.transactionRef.transactionId.substring(0, 8)}
+                                </Link>
+                            </div>
                         </div>
                         {document.brokerNotes && (
                             <p className="mt-2 text-sm text-gray-600 bg-gray-50 p-2 rounded">
@@ -107,10 +149,10 @@ export function DocumentCard({ document, onUpload }: DocumentCardProps) {
                             </Button>
                         )}
 
-                        {document.status === DocumentStatusEnum.REQUESTED && onUpload && (
+                        {(document.status === DocumentStatusEnum.REQUESTED || document.status === DocumentStatusEnum.NEEDS_REVISION) && onUpload && (
                             <Button size="sm" onClick={() => onUpload(document)} className="gap-2">
                                 <Upload className="w-4 h-4" />
-                                {t('upload')}
+                                {document.status === DocumentStatusEnum.NEEDS_REVISION ? t('reupload') : t('upload')}
                             </Button>
                         )}
                     </div>

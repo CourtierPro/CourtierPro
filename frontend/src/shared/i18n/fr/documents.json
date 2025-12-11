@@ -76,11 +76,15 @@
         "uploadDocument": "Téléverser un document"
     },
     "uploadingFor": "Téléversement pour",
+    "dragAndDropOrClick": "Glisser-déposer ou cliquer pour sélectionner",
+    "dropToUpload": "Déposer le fichier pour téléverser",
+    "supportedFormats": "Formats supportés",
     "clickToSelectFile": "Cliquez pour sélectionner un fichier",
     "maxSize": "Taille max : {{size}}",
     "actions": {
         "cancel": "Annuler",
-        "upload": "Téléverser"
+        "upload": "Téléverser",
+        "uploading": "Téléversement..."
     },
     "success": {
         "documentUploaded": "Document téléversé avec succès"
