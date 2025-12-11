@@ -35,7 +35,7 @@ jobs:
           chmod +x gradlew
           ./gradlew test jacocoTestReport
 
-      # Upload HTML reports as build artifacts for manual inspection (optional but nice)
+      # Upload HTML reports as build artifacts for manual inspection
       - name: Upload JaCoCo HTML report
         uses: actions/upload-artifact@v4
         with:
@@ -47,6 +47,34 @@ jobs:
         with:
           name: junit-test-report
           path: backend/build/reports/tests/test/
+
+      # Extra comment with direct links to the artifacts page for this run
+      - name: Comment with report links
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}#artifacts`;
+
+            const body = [
+              '🧪 **Test & Coverage Reports (HTML)**',
+              '',
+              `- [JaCoCo HTML report](${runUrl})`,
+              `- [JUnit test report](${runUrl})`,
+              '',
+              '_In the run page, click the artifacts named:_',
+              '- `jacoco-html-report`',
+              '- `junit-test-report`'
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body
+            });
 
       # Create or update a PR comment with overall + changed-files coverage
       - name: JaCoCo Report to PR
