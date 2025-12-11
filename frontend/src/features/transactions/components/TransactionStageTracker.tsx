@@ -55,7 +55,7 @@ export function TransactionStageTracker({ transaction, onUpdateStage }: Transact
                                         />
                                     </div>
                                 </TooltipTrigger>
-                                <TooltipContent className="bg-muted/90 text-muted-foreground border-none max-w-[200px] text-center">
+                                <TooltipContent className="border-none max-w-[200px] text-center">
                                     <p>{STAGE_DESCRIPTIONS[stage] || ""}</p>
                                 </TooltipContent>
                             </Tooltip>
