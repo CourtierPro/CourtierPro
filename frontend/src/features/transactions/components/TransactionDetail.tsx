@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Copy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { PageHeader } from "@/shared/components/branded/PageHeader";
@@ -48,11 +48,29 @@ function TransactionDetailContent({ transaction }: { transaction: NonNullable<Tr
     }
   };
 
+  const handleCopyId = () => {
+    navigator.clipboard.writeText(transaction.transactionId);
+    toast.success(t('idCopied'));
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <PageHeader
         title={t('detailsTitle')}
-        subtitle={`ID: ${transaction.transactionId}`}
+        subtitle={
+          <div className="flex items-center gap-2">
+            <span>ID: {transaction.transactionId}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={handleCopyId}
+              aria-label={t('copyTransactionId', { defaultValue: 'Copy transaction ID' })}
+            >
+              <Copy className="h-3 w-3" />
+            </Button>
+          </div>
+        }
         actions={
           <Button
             variant="ghost"
