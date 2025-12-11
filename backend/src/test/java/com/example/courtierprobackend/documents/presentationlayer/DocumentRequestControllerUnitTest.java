@@ -93,12 +93,8 @@ class DocumentRequestControllerUnitTest {
 
         // Act & Assert
         assertThatThrownBy(() -> controller.getDocuments(txId, null, null, request))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> {
-                    ResponseStatusException rse = (ResponseStatusException) ex;
-                    assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-                    assertThat(rse.getReason()).contains("Unable to resolve user id");
-                });
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
+                .hasMessageContaining("Unable to resolve user id");
     }
 
     // ========== createDocumentRequest Tests ==========

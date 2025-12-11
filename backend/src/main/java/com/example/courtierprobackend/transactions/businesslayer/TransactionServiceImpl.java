@@ -1,14 +1,13 @@
 package com.example.courtierprobackend.transactions.businesslayer;
 
+import com.example.courtierprobackend.common.exceptions.BadRequestException;
+import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.transactions.datalayer.TimelineEntry;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
-import com.example.courtierprobackend.transactions.exceptions.DuplicateTransactionException;
-import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
-import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
 import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
@@ -63,19 +62,19 @@ public class TransactionServiceImpl implements TransactionService {
 
         // 1) Validate required data
         if (dto.getClientId() == null) {
-            throw new InvalidInputException("clientId is required");
+            throw new BadRequestException("clientId is required");
         }
         if (dto.getBrokerId() == null) {
-            throw new InvalidInputException("brokerId is required");
+            throw new BadRequestException("brokerId is required");
         }
         if (dto.getSide() == null) {
-            throw new InvalidInputException("side is required");
+            throw new BadRequestException("side is required");
         }
         if (dto.getPropertyAddress() == null ||
                 dto.getPropertyAddress().getStreet() == null ||
                 dto.getPropertyAddress().getStreet().isBlank()) {
 
-            throw new InvalidInputException("propertyAddress.street is required");
+            throw new BadRequestException("propertyAddress.street is required");
         }
 
         UUID clientId = dto.getClientId();
@@ -88,7 +87,7 @@ public class TransactionServiceImpl implements TransactionService {
                 street,
                 TransactionStatus.ACTIVE
         ).ifPresent(t -> {
-            throw new InvalidInputException("duplicate: Client already has an active transaction for this property");
+            throw new BadRequestException("duplicate: Client already has an active transaction for this property");
         });
 
         // 3) Create Transaction entity
@@ -99,7 +98,7 @@ public class TransactionServiceImpl implements TransactionService {
         tx.setSide(dto.getSide());
         // Validate and apply initialStage based on side
         if (dto.getInitialStage() == null || dto.getInitialStage().isBlank()) {
-            throw new InvalidInputException("initialStage is required");
+            throw new BadRequestException("initialStage is required");
         }
 
         String initial = dto.getInitialStage().trim();
@@ -109,7 +108,7 @@ public class TransactionServiceImpl implements TransactionService {
                 tx.setBuyerStage(buyerStage);
                 tx.setSellerStage(null);
             } catch (IllegalArgumentException ex) {
-                throw new InvalidInputException("initialStage '" + initial + "' is not a valid buyer stage. Allowed values: " + Arrays.toString(BuyerStage.values()));
+                throw new BadRequestException("initialStage '" + initial + "' is not a valid buyer stage. Allowed values: " + Arrays.toString(BuyerStage.values()));
             }
         } else if (dto.getSide() == TransactionSide.SELL_SIDE) {
             try {
@@ -117,10 +116,10 @@ public class TransactionServiceImpl implements TransactionService {
                 tx.setSellerStage(sellerStage);
                 tx.setBuyerStage(null);
             } catch (IllegalArgumentException ex) {
-                throw new InvalidInputException("initialStage '" + initial + "' is not a valid seller stage. Allowed values: " + Arrays.toString(SellerStage.values()));
+                throw new BadRequestException("initialStage '" + initial + "' is not a valid seller stage. Allowed values: " + Arrays.toString(SellerStage.values()));
             }
         } else {
-            throw new InvalidInputException("side is not supported: " + dto.getSide());
+            throw new BadRequestException("side is not supported: " + dto.getSide());
         }
         tx.setStatus(TransactionStatus.ACTIVE);
         tx.setOpenedAt(LocalDateTime.now());
@@ -136,9 +135,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        if (!tx.getBrokerId().equals(brokerId)) {
-            throw new NotFoundException("You do not have access to this transaction");
-        }
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
 
         List<TimelineEntry> entries = tx.getTimeline() == null ? List.of() : tx.getTimeline();
 
@@ -151,22 +148,20 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public TimelineEntryDTO createNote(UUID transactionId, NoteRequestDTO note, UUID brokerId) {
         if (note.getActorId() == null) {
-            throw new InvalidInputException("actorId is required");
+            throw new BadRequestException("actorId is required");
         }
         if (note.getTitle() == null || note.getTitle().isBlank()) {
-            throw new InvalidInputException("title is required");
+            throw new BadRequestException("title is required");
         }
         if (note.getMessage() == null || note.getMessage().isBlank()) {
-            throw new InvalidInputException("message is required");
+            throw new BadRequestException("message is required");
         }
         // ... (other checks)
 
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        if (!tx.getBrokerId().equals(brokerId)) {
-            throw new NotFoundException("You do not have access to this transaction");
-        }
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
 
         TimelineEntry entry = TimelineEntry.builder()
                 .type(TimelineEntryType.NOTE)
@@ -257,12 +252,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
         // Allow access if the user is the broker OR the client
-        boolean isBroker = tx.getBrokerId().equals(userId);
-        boolean isClient = tx.getClientId().equals(userId);
-
-        if (!isBroker && !isClient) {
-            throw new NotFoundException("You do not have access to this transaction");
-        }
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
 
         return EntityDtoUtil.toResponse(tx, lookupClientName(tx.getClientId()));
     }
@@ -271,19 +261,17 @@ public class TransactionServiceImpl implements TransactionService {
     public TransactionResponseDTO updateTransactionStage(UUID transactionId, StageUpdateRequestDTO dto, UUID brokerId) {
 
         if (dto == null) {
-            throw new InvalidInputException("request body is required");
+            throw new BadRequestException("request body is required");
         }
 
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        if (!tx.getBrokerId().equals(brokerId)) {
-            throw new NotFoundException("You do not have access to this transaction");
-        }
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
 
         String stageStr = dto.getStage();
         if (stageStr == null || stageStr.isBlank()) {
-            throw new InvalidInputException("stage is required");
+            throw new BadRequestException("stage is required");
         }
 
         stageStr = stageStr.trim();
@@ -294,17 +282,17 @@ public class TransactionServiceImpl implements TransactionService {
                 BuyerStage buyerStage = BuyerStage.valueOf(stageStr);
                 EntityDtoUtil.updateBuyerStage(tx, buyerStage);
             } catch (IllegalArgumentException ex) {
-                throw new InvalidInputException("stage '" + stageStr + "' is not a valid buyer stage. Allowed values: " + Arrays.toString(BuyerStage.values()));
+                throw new BadRequestException("stage '" + stageStr + "' is not a valid buyer stage. Allowed values: " + Arrays.toString(BuyerStage.values()));
             }
         } else if (tx.getSide() == TransactionSide.SELL_SIDE) {
             try {
                 SellerStage sellerStage = SellerStage.valueOf(stageStr);
                 EntityDtoUtil.updateSellerStage(tx, sellerStage);
             } catch (IllegalArgumentException ex) {
-                throw new InvalidInputException("stage '" + stageStr + "' is not a valid seller stage. Allowed values: " + Arrays.toString(SellerStage.values()));
+                throw new BadRequestException("stage '" + stageStr + "' is not a valid seller stage. Allowed values: " + Arrays.toString(SellerStage.values()));
             }
         } else {
-            throw new InvalidInputException("Unsupported transaction side: " + tx.getSide());
+            throw new BadRequestException("Unsupported transaction side: " + tx.getSide());
         }
 
         // Create timeline entry for stage change

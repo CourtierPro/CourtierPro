@@ -4,9 +4,9 @@ import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
-import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
-import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
-import com.example.courtierprobackend.transactions.exceptions.TransactionControllerExceptionHandler;
+import com.example.courtierprobackend.common.exceptions.BadRequestException;
+import com.example.courtierprobackend.common.exceptions.NotFoundException;
+import com.example.courtierprobackend.common.exceptions.GlobalExceptionHandler;
 import com.example.courtierprobackend.transactions.presentationlayer.TransactionController;
 import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(TransactionController.class)
 @AutoConfigureMockMvc(addFilters = false) // Disable security filters for unit tests
-@Import(TransactionControllerExceptionHandler.class)
+@Import(GlobalExceptionHandler.class)
 class TransactionControllerUnitTest {
 
     @Autowired
@@ -127,7 +127,7 @@ class TransactionControllerUnitTest {
         req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
         when(service.createTransaction(any()))
-                .thenThrow(new InvalidInputException("Invalid transaction"));
+                .thenThrow(new BadRequestException("Invalid transaction"));
 
         mockMvc.perform(
                 post("/transactions")
@@ -167,7 +167,7 @@ class TransactionControllerUnitTest {
         req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
         when(service.createTransaction(any()))
-                .thenThrow(new InvalidInputException("Duplicate transaction"));
+                .thenThrow(new BadRequestException("Duplicate transaction"));
 
         mockMvc.perform(
                 post("/transactions")

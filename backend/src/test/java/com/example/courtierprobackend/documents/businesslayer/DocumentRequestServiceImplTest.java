@@ -16,8 +16,9 @@ import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
-import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
-import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
+import com.example.courtierprobackend.common.exceptions.BadRequestException;
+import com.example.courtierprobackend.common.exceptions.ForbiddenException;
+import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
@@ -96,7 +97,7 @@ class DocumentRequestServiceImplTest {
     }
 
     @Test
-    void getDocumentsForTransaction_WithNoAccess_ThrowsNotFoundException() {
+    void getDocumentsForTransaction_WithNoAccess_ThrowsForbiddenException() {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
@@ -110,7 +111,7 @@ class DocumentRequestServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> service.getDocumentsForTransaction(transactionId, userId))
-                .isInstanceOf(NotFoundException.class)
+                .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("You do not have access");
     }
 
@@ -205,7 +206,7 @@ class DocumentRequestServiceImplTest {
     }
 
     @Test
-    void submitDocument_WithMismatchedTransaction_ThrowsInvalidInputException() throws IOException {
+    void submitDocument_WithMismatchedTransaction_ThrowsBadRequestException() throws IOException {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID requestId = UUID.randomUUID();
@@ -220,7 +221,7 @@ class DocumentRequestServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> service.submitDocument(transactionId, requestId, file, UUID.randomUUID(), UploadedByRefEnum.CLIENT))
-                .isInstanceOf(InvalidInputException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("does not belong to transaction");
     }
 
@@ -262,7 +263,7 @@ class DocumentRequestServiceImplTest {
     }
 
     @Test
-    void getDocumentDownloadUrl_WithNoAccess_ThrowsNotFoundException() {
+    void getDocumentDownloadUrl_WithNoAccess_ThrowsForbiddenException() {
         // Arrange
         UUID requestId = UUID.randomUUID();
         UUID transactionId = UUID.randomUUID();
@@ -281,7 +282,7 @@ class DocumentRequestServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> service.getDocumentDownloadUrl(requestId, UUID.randomUUID(), UUID.randomUUID()))
-                .isInstanceOf(NotFoundException.class)
+                .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("You do not have access");
     }
 
@@ -409,7 +410,7 @@ class DocumentRequestServiceImplTest {
     }
 
     @Test
-    void getDocumentRequest_WithNoAccess_ThrowsNotFoundException() {
+    void getDocumentRequest_WithNoAccess_ThrowsForbiddenException() {
         // Arrange
         UUID requestId = UUID.randomUUID();
         UUID transactionId = UUID.randomUUID();
@@ -429,7 +430,7 @@ class DocumentRequestServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> service.getDocumentRequest(requestId, UUID.randomUUID()))
-                .isInstanceOf(NotFoundException.class)
+                .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("You do not have access");
     }
 

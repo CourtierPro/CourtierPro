@@ -17,8 +17,8 @@ import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
-import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
-import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
+import com.example.courtierprobackend.common.exceptions.BadRequestException;
+import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.example.courtierprobackend.transactions.businesslayer.TransactionAccessUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -50,32 +51,14 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         return userAccountRepository.findById(id);
     }
 
-    /**
-     * Checks if the given userId (Internal UUID) has access to the transaction.
-     */
-    private boolean hasAccess(Transaction tx, UUID userId) {
-        if (userId == null) return false;
-        
-        try {
-            // Compare with broker and client UUIDs directly
-            boolean isBroker = tx.getBrokerId() != null && tx.getBrokerId().equals(userId);
-            boolean isClient = tx.getClientId() != null && tx.getClientId().equals(userId);
-            
-            return isBroker || isClient;
-        } catch (IllegalArgumentException e) {
-            // Invalid UUID format
-            return false;
-        }
-    }
+
 
     @Override
     public List<DocumentRequestResponseDTO> getDocumentsForTransaction(UUID transactionId, UUID userId) {
         Transaction tx = transactionRepository.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
 
-        if (!hasAccess(tx, userId)) {
-            throw new NotFoundException("You do not have access to this transaction");
-        }
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
 
         return repository.findByTransactionRef_TransactionId(transactionId).stream()
                 .map(this::mapToResponseDTO)
@@ -102,14 +85,13 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         Transaction tx = transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId())
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        if (!hasAccess(tx, userId)) {
-            throw new NotFoundException("You do not have access to this document request");
-        }
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
 
         return mapToResponseDTO(request);
     }
 
     @Transactional
+    @Override
     public DocumentRequestResponseDTO createDocumentRequest(UUID transactionId, DocumentRequestRequestDTO requestDTO) {
         Transaction tx = transactionRepository.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
@@ -150,6 +132,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
     }
 
     @Transactional
+    @Override
     public DocumentRequestResponseDTO updateDocumentRequest(UUID requestId, DocumentRequestRequestDTO requestDTO) {
         DocumentRequest request = repository.findByRequestId(requestId)
                 .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
@@ -166,6 +149,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
     }
 
     @Transactional
+    @Override
     public void deleteDocumentRequest(UUID requestId) {
         DocumentRequest request = repository.findByRequestId(requestId)
                 .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
@@ -173,20 +157,19 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
     }
 
     @Transactional
+    @Override
     public DocumentRequestResponseDTO submitDocument(UUID transactionId, UUID requestId, MultipartFile file, UUID uploaderId, UploadedByRefEnum uploaderType) throws IOException {
         DocumentRequest request = repository.findByRequestId(requestId)
                 .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
 
         if (!request.getTransactionRef().getTransactionId().equals(transactionId)) {
-            throw new InvalidInputException("Document request does not belong to transaction: " + transactionId);
+            throw new BadRequestException("Document request does not belong to transaction: " + transactionId);
         }
 
         Transaction tx = transactionRepository.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
 
-        if (!hasAccess(tx, uploaderId)) {
-            throw new NotFoundException("You do not have permission to upload documents for this transaction");
-        }
+        TransactionAccessUtils.verifyTransactionAccess(tx, uploaderId);
 
         StorageObject storageObject = storageService.uploadFile(file, transactionId, requestId);
 
@@ -261,9 +244,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         Transaction tx = transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId())
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        if (!hasAccess(tx, userId)) {
-            throw new NotFoundException("You do not have access to this document");
-        }
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
 
         SubmittedDocument submittedDocument = request.getSubmittedDocuments().stream()
                 .filter(doc -> doc.getDocumentId().equals(documentId))

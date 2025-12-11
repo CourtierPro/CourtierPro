@@ -4,11 +4,11 @@ import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
-import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
-import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
+import com.example.courtierprobackend.common.exceptions.BadRequestException;
+import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
 
-import com.example.courtierprobackend.transactions.exceptions.TransactionControllerExceptionHandler;
+import com.example.courtierprobackend.common.exceptions.GlobalExceptionHandler;
 import com.example.courtierprobackend.transactions.presentationlayer.TransactionController;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(TransactionController.class)
 @AutoConfigureMockMvc(addFilters = false) // Disable security filters for unit tests
-@Import(TransactionControllerExceptionHandler.class)
+@Import(GlobalExceptionHandler.class)
 class TransactionControllerIntegrationTest {
 
     @Autowired
@@ -124,7 +124,7 @@ class TransactionControllerIntegrationTest {
         dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
         when(service.createTransaction(any()))
-                .thenThrow(new InvalidInputException("Bad input"));
+                .thenThrow(new BadRequestException("Bad input"));
 
         mockMvc.perform(
                 post("/transactions")
@@ -164,7 +164,7 @@ class TransactionControllerIntegrationTest {
         dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
         when(service.createTransaction(any()))
-                .thenThrow(new InvalidInputException("Duplicate transaction"));
+                .thenThrow(new BadRequestException("Duplicate transaction"));
 
         mockMvc.perform(
                 post("/transactions")
@@ -207,7 +207,7 @@ class TransactionControllerIntegrationTest {
         String payload = "{\"stage\": \"INVALID_STAGE_NAME\"}";
 
         when(service.updateTransactionStage(eq(txId), any(), eq(broker)))
-                .thenThrow(new InvalidInputException("invalid stage"));
+                .thenThrow(new BadRequestException("invalid stage"));
 
         mockMvc.perform(
                 patch("/transactions/{id}/stage", txId)
@@ -220,15 +220,15 @@ class TransactionControllerIntegrationTest {
 
     @Test
     void patchTransactionStage_EmptyStage_Returns400() throws Exception {
-        String txId = "TX-PATCH-3";
-        String broker = "BROKER1";
+        UUID txId = UUID.randomUUID();
+        UUID broker = UUID.randomUUID();
 
         String payload = "{\"stage\": \"\"}";
 
         mockMvc.perform(
                 patch("/transactions/{id}/stage", txId)
-                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", broker)))
-                        .header("x-broker-id", broker)
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", broker.toString())))
+                        .header("x-broker-id", broker.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload)
         ).andExpect(status().isBadRequest());

@@ -4,6 +4,7 @@ import com.example.courtierprobackend.documents.businesslayer.DocumentRequestSer
 import com.example.courtierprobackend.documents.datalayer.enums.UploadedByRefEnum;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
+import com.example.courtierprobackend.security.UserContextUtils;
 import com.example.courtierprobackend.security.UserContextFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.List;
@@ -30,27 +30,7 @@ public class DocumentRequestController {
     private final DocumentRequestService service;
 
     // -------- UserId extraction (internal UUID from UserContextFilter) --------
-    private UUID resolveUserId(Jwt jwt, String headerId, HttpServletRequest request) {
-        // DEV mode: header override
-        if (StringUtils.hasText(headerId)) {
-            return UUID.fromString(headerId);
-        }
 
-        // PROD mode: Get internal UUID from UserContextFilter
-        if (request != null) {
-            Object internalId = request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR);
-            if (internalId instanceof UUID) {
-                return (UUID) internalId;
-            } else if (internalId instanceof String) {
-                return UUID.fromString((String) internalId);
-            }
-        }
-
-        throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Unable to resolve user id from security context"
-        );
-    }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
@@ -60,7 +40,7 @@ public class DocumentRequestController {
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) {
-        UUID userId = resolveUserId(jwt, brokerHeader, request);
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
         return ResponseEntity.ok(service.getDocumentsForTransaction(transactionId, userId));
     }
 
@@ -82,7 +62,7 @@ public class DocumentRequestController {
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) {
-        UUID userId = resolveUserId(jwt, brokerHeader, request);
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
         return ResponseEntity.ok(service.getDocumentRequest(requestId, userId));
     }
 
@@ -116,7 +96,7 @@ public class DocumentRequestController {
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) throws IOException {
-        UUID userId = resolveUserId(jwt, brokerHeader, request);
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
         UploadedByRefEnum uploaderType = UploadedByRefEnum.CLIENT;
         
         // Check role from JWT to determine uploader type
@@ -140,7 +120,7 @@ public class DocumentRequestController {
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) {
-        UUID userId = resolveUserId(jwt, brokerHeader, request);
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
         String url = service.getDocumentDownloadUrl(requestId, documentId, userId);
         return ResponseEntity.ok(Map.of("url", url));
     }

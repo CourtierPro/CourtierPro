@@ -7,6 +7,7 @@ import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO;
 
+import com.example.courtierprobackend.security.UserContextUtils;
 import com.example.courtierprobackend.security.UserContextFilter;
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,7 +19,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,20 +31,7 @@ public class TransactionController {
     private final TransactionService service;
 
     // Helper to extract user ID (returns UUID)
-    private UUID resolveUserId(Jwt jwt, String headerId, HttpServletRequest request) {
-        if (StringUtils.hasText(headerId)) {
-            return UUID.fromString(headerId);
-        }
-        if (request != null) {
-            Object internalId = request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR);
-            if (internalId instanceof UUID) {
-                return (UUID) internalId;
-            } else if (internalId instanceof String) {
-                return UUID.fromString((String) internalId);
-            }
-        }
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unable to resolve user id from security context");
-    }
+
 
     @PostMapping
     @PreAuthorize("hasRole('BROKER')")
@@ -54,7 +41,7 @@ public class TransactionController {
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) {
-        UUID brokerId = resolveUserId(jwt, brokerHeader, request);
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
         // Force brokerId from token/header onto DTO to prevent spoofing
         transactionDTO.setBrokerId(brokerId);
 
@@ -71,7 +58,7 @@ public class TransactionController {
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) {
-        UUID brokerId = resolveUserId(jwt, brokerHeader, request);
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
         note.setTransactionId(transactionId);
 
         TimelineEntryDTO created = service.createNote(transactionId, note, brokerId);
@@ -86,7 +73,7 @@ public class TransactionController {
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) {
-        UUID brokerId = resolveUserId(jwt, brokerHeader, request);
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
         return ResponseEntity.ok(service.getNotes(transactionId, brokerId));
     }
 
@@ -100,7 +87,7 @@ public class TransactionController {
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) {
-        UUID brokerId = resolveUserId(jwt, brokerHeader, request);
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
         return ResponseEntity.ok(service.getBrokerTransactions(brokerId, status, stage, side));
     }
 
@@ -112,7 +99,7 @@ public class TransactionController {
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) {
-        UUID userId = resolveUserId(jwt, brokerHeader, request);
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
         return ResponseEntity.ok(service.getByTransactionId(transactionId, userId));
     }
 
@@ -125,7 +112,7 @@ public class TransactionController {
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) {
-        UUID brokerId = resolveUserId(jwt, brokerHeader, request);
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
 
         TransactionResponseDTO updated = service.updateTransactionStage(transactionId, dto, brokerId);
         return ResponseEntity.ok(updated);

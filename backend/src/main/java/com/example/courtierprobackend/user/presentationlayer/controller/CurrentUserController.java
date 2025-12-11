@@ -1,5 +1,7 @@
 package com.example.courtierprobackend.user.presentationlayer.controller;
 
+import com.example.courtierprobackend.common.exceptions.NotFoundException;
+import com.example.courtierprobackend.common.exceptions.UnauthorizedException;
 import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
@@ -7,14 +9,12 @@ import com.example.courtierprobackend.user.mapper.UserMapper;
 import com.example.courtierprobackend.user.presentationlayer.response.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -44,10 +44,7 @@ public class CurrentUserController {
         
         if (internalIdObj instanceof UUID internalId) {
             UserAccount account = userAccountRepository.findById(internalId)
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.NOT_FOUND,
-                            "User not found"
-                    ));
+                    .orElseThrow(() -> new NotFoundException("User not found"));
             return ResponseEntity.ok(userMapper.toResponse(account));
         }
 
@@ -55,16 +52,10 @@ public class CurrentUserController {
         if (jwt != null) {
             String auth0Id = jwt.getClaimAsString("sub");
             UserAccount account = userAccountRepository.findByAuth0UserId(auth0Id)
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.NOT_FOUND,
-                            "User not provisioned. Please contact administrator."
-                    ));
+                    .orElseThrow(() -> new NotFoundException("User not provisioned. Please contact administrator."));
             return ResponseEntity.ok(userMapper.toResponse(account));
         }
 
-        throw new ResponseStatusException(
-                HttpStatus.UNAUTHORIZED,
-                "Authentication required"
-        );
+        throw new UnauthorizedException("Authentication required");
     }
 }

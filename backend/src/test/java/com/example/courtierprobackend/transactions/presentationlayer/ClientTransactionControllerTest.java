@@ -74,12 +74,8 @@ class ClientTransactionControllerTest {
 
         // Act & Assert
         assertThatThrownBy(() -> controller.getClientTransactions(UUID.fromString(otherClientId), request))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> {
-                    ResponseStatusException rse = (ResponseStatusException) ex;
-                    assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-                    assertThat(rse.getReason()).contains("only access your own transactions");
-                });
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
+                .hasMessageContaining("only access your own transactions");
         
         verifyNoInteractions(transactionService);
     }
@@ -91,12 +87,8 @@ class ClientTransactionControllerTest {
 
         // Act & Assert
         assertThatThrownBy(() -> controller.getClientTransactions(UUID.fromString(clientId), null))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> {
-                    ResponseStatusException rse = (ResponseStatusException) ex;
-                    assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-                    assertThat(rse.getReason()).contains("Request context required");
-                });
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
+                .hasMessageContaining("Unable to resolve user id");
         
         verifyNoInteractions(transactionService);
     }
@@ -110,12 +102,8 @@ class ClientTransactionControllerTest {
 
         // Act & Assert
         assertThatThrownBy(() -> controller.getClientTransactions(UUID.fromString(clientId), request))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> {
-                    ResponseStatusException rse = (ResponseStatusException) ex;
-                    assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-                    assertThat(rse.getReason()).contains("Unable to resolve client id");
-                });
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
+                .hasMessageContaining("Unable to resolve user id");
         
         verifyNoInteractions(transactionService);
     }

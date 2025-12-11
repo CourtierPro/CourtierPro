@@ -1,5 +1,6 @@
 package com.example.courtierprobackend.dashboard.presentationlayer;
 
+import com.example.courtierprobackend.security.UserContextUtils;
 import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -32,24 +32,7 @@ public class DashboardController {
     private final UserAccountRepository userRepository;
 
     // -------- Helper to resolve internal user ID from UserContextFilter --------
-    private UUID resolveUserId(Jwt jwt, String headerId, HttpServletRequest request) {
-        // DEV mode: header override
-        if (StringUtils.hasText(headerId)) {
-            return UUID.fromString(headerId);
-        }
 
-        // PROD mode: Get internal UUID from UserContextFilter
-        if (request != null) {
-            Object internalId = request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR);
-            if (internalId instanceof UUID) {
-                return (UUID) internalId;
-            } else if (internalId instanceof String) {
-                return UUID.fromString((String) internalId);
-            }
-        }
-
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unable to resolve user id from security context");
-    }
 
     @GetMapping("/client")
     @PreAuthorize("hasRole('CLIENT')")
@@ -58,7 +41,7 @@ public class DashboardController {
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) {
-        UUID clientId = resolveUserId(jwt, headerId, request);
+        UUID clientId = UserContextUtils.resolveUserId(request, headerId);
         
         // Active transactions
         long activeTransactions = transactionRepository.findAllByClientId(clientId).stream()
@@ -81,7 +64,7 @@ public class DashboardController {
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) {
-        UUID brokerId = resolveUserId(jwt, headerId, request);
+        UUID brokerId = UserContextUtils.resolveUserId(request, headerId);
 
         // Active transactions
         long activeTransactions = transactionRepository.findAllByBrokerId(brokerId).stream()

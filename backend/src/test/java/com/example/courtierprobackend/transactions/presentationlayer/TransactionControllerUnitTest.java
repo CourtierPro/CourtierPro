@@ -102,11 +102,8 @@ class TransactionControllerUnitTest {
 
         // Act & Assert
         assertThatThrownBy(() -> controller.updateTransactionStage(txId, dto, null, null, request))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> {
-                    ResponseStatusException rse = (ResponseStatusException) ex;
-                    assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-                });
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
+                .hasMessageContaining("Unable to resolve user id");
 
         verifyNoInteractions(transactionService);
     }

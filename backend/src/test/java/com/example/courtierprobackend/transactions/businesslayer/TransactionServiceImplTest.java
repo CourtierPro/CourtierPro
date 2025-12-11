@@ -8,9 +8,9 @@ import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequ
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
-import com.example.courtierprobackend.transactions.exceptions.DuplicateTransactionException;
-import com.example.courtierprobackend.transactions.exceptions.InvalidInputException;
-import com.example.courtierprobackend.transactions.exceptions.NotFoundException;
+import com.example.courtierprobackend.common.exceptions.BadRequestException;
+import com.example.courtierprobackend.common.exceptions.ForbiddenException;
+import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -102,91 +102,91 @@ class TransactionServiceImplTest {
     }
 
     @Test
-    void createTransaction_withMissingClientId_throwsInvalidInputException() {
+    void createTransaction_withMissingClientId_throwsBadRequestException() {
         // Arrange
         TransactionRequestDTO dto = createValidBuyerTransactionDTO();
         dto.setClientId(null);
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.createTransaction(dto))
-                .isInstanceOf(InvalidInputException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("clientId is required");
     }
 
     @Test
-    void createTransaction_withMissingBrokerId_throwsInvalidInputException() {
+    void createTransaction_withMissingBrokerId_throwsBadRequestException() {
         // Arrange
         TransactionRequestDTO dto = createValidBuyerTransactionDTO();
         dto.setBrokerId(null);
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.createTransaction(dto))
-                .isInstanceOf(InvalidInputException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("brokerId is required");
     }
 
     @Test
-    void createTransaction_withMissingSide_throwsInvalidInputException() {
+    void createTransaction_withMissingSide_throwsBadRequestException() {
         // Arrange
         TransactionRequestDTO dto = createValidBuyerTransactionDTO();
         dto.setSide(null);
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.createTransaction(dto))
-                .isInstanceOf(InvalidInputException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("side is required");
     }
 
     @Test
-    void createTransaction_withMissingPropertyStreet_throwsInvalidInputException() {
+    void createTransaction_withMissingPropertyStreet_throwsBadRequestException() {
         // Arrange
         TransactionRequestDTO dto = createValidBuyerTransactionDTO();
         dto.getPropertyAddress().setStreet(null);
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.createTransaction(dto))
-                .isInstanceOf(InvalidInputException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("propertyAddress.street is required");
     }
 
     @Test
-    void createTransaction_withMissingInitialStage_throwsInvalidInputException() {
+    void createTransaction_withMissingInitialStage_throwsBadRequestException() {
         // Arrange
         TransactionRequestDTO dto = createValidBuyerTransactionDTO();
         dto.setInitialStage(null);
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.createTransaction(dto))
-                .isInstanceOf(InvalidInputException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("initialStage is required");
     }
 
     @Test
-    void createTransaction_withInvalidBuyerStage_throwsInvalidInputException() {
+    void createTransaction_withInvalidBuyerStage_throwsBadRequestException() {
         // Arrange
         TransactionRequestDTO dto = createValidBuyerTransactionDTO();
         dto.setInitialStage("INVALID_STAGE");
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.createTransaction(dto))
-                .isInstanceOf(InvalidInputException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("not a valid buyer stage");
     }
 
     @Test
-    void createTransaction_withInvalidSellerStage_throwsInvalidInputException() {
+    void createTransaction_withInvalidSellerStage_throwsBadRequestException() {
         // Arrange
         TransactionRequestDTO dto = createValidSellerTransactionDTO();
         dto.setInitialStage("INVALID_STAGE");
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.createTransaction(dto))
-                .isInstanceOf(InvalidInputException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("not a valid seller stage");
     }
 
     @Test
-    void createTransaction_withDuplicateActiveTransaction_throwsInvalidInputException() {
+    void createTransaction_withDuplicateActiveTransaction_throwsBadRequestException() {
         // Arrange
         TransactionRequestDTO dto = createValidBuyerTransactionDTO();
         Transaction existingTx = new Transaction();
@@ -196,7 +196,7 @@ class TransactionServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.createTransaction(dto))
-                .isInstanceOf(InvalidInputException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("duplicate");
     }
 
@@ -249,7 +249,7 @@ class TransactionServiceImplTest {
     }
 
     @Test
-    void getNotes_withWrongBrokerId_throwsNotFoundException() {
+    void getNotes_withWrongBrokerId_throwsForbiddenException() {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID brokerUuid = UUID.randomUUID();
@@ -260,7 +260,7 @@ class TransactionServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.getNotes(transactionId, brokerUuid))
-                .isInstanceOf(NotFoundException.class)
+                .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("You do not have access");
     }
 
@@ -336,7 +336,7 @@ class TransactionServiceImplTest {
     }
 
     @Test
-    void createNote_withMissingActorId_throwsInvalidInputException() {
+    void createNote_withMissingActorId_throwsBadRequestException() {
         // Arrange
         NoteRequestDTO noteDTO = new NoteRequestDTO();
         noteDTO.setActorId(null);
@@ -345,12 +345,12 @@ class TransactionServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.createNote(UUID.randomUUID(), noteDTO, UUID.randomUUID()))
-                .isInstanceOf(InvalidInputException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("actorId is required");
     }
 
     @Test
-    void createNote_withMissingTitle_throwsInvalidInputException() {
+    void createNote_withMissingTitle_throwsBadRequestException() {
         // Arrange
         NoteRequestDTO noteDTO = new NoteRequestDTO();
         noteDTO.setActorId(UUID.randomUUID());
@@ -359,12 +359,12 @@ class TransactionServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.createNote(UUID.randomUUID(), noteDTO, UUID.randomUUID()))
-                .isInstanceOf(InvalidInputException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("title is required");
     }
 
     @Test
-    void createNote_withMissingMessage_throwsInvalidInputException() {
+    void createNote_withMissingMessage_throwsBadRequestException() {
         // Arrange
         NoteRequestDTO noteDTO = new NoteRequestDTO();
         noteDTO.setActorId(UUID.randomUUID());
@@ -373,12 +373,12 @@ class TransactionServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.createNote(UUID.randomUUID(), noteDTO, UUID.randomUUID()))
-                .isInstanceOf(InvalidInputException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("message is required");
     }
 
     @Test
-    void createNote_withWrongBrokerId_throwsNotFoundException() {
+    void createNote_withWrongBrokerId_throwsForbiddenException() {
         // Arrange
         NoteRequestDTO noteDTO = new NoteRequestDTO();
         noteDTO.setActorId(UUID.randomUUID());
@@ -391,7 +391,7 @@ class TransactionServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.createNote(UUID.randomUUID(), noteDTO, UUID.randomUUID()))
-                .isInstanceOf(NotFoundException.class)
+                .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("You do not have access");
     }
 
@@ -505,7 +505,7 @@ class TransactionServiceImplTest {
     }
 
     @Test
-    void getByTransactionId_withWrongBrokerId_throwsNotFoundException() {
+    void getByTransactionId_withWrongBrokerId_throwsForbiddenException() {
         // Arrange
         Transaction tx = new Transaction();
         tx.setBrokerId(UUID.randomUUID());
@@ -514,7 +514,7 @@ class TransactionServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.getByTransactionId(UUID.randomUUID(), UUID.randomUUID()))
-                .isInstanceOf(NotFoundException.class)
+                .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("You do not have access");
     }
 
@@ -598,7 +598,7 @@ class TransactionServiceImplTest {
     }
 
     @Test
-    void updateTransactionStage_WrongBroker_throwsNotFoundException() {
+    void updateTransactionStage_WrongBroker_throwsForbiddenException() {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID brokerUuid = UUID.randomUUID();
@@ -613,12 +613,12 @@ class TransactionServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerUuid))
-                .isInstanceOf(NotFoundException.class)
+                .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("You do not have access");
     }
 
     @Test
-    void updateTransactionStage_InvalidStageEnum_throwsInvalidInputException() {
+    void updateTransactionStage_InvalidStageEnum_throwsBadRequestException() {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID brokerUuid = UUID.randomUUID();
@@ -634,7 +634,7 @@ class TransactionServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerUuid))
-                .isInstanceOf(InvalidInputException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("not a valid");
     }
 

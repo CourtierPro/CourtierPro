@@ -1,5 +1,7 @@
 package com.example.courtierprobackend.transactions.presentationlayer;
 
+import com.example.courtierprobackend.common.exceptions.ForbiddenException;
+import com.example.courtierprobackend.security.UserContextUtils;
 import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
@@ -10,8 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,36 +33,12 @@ public class ClientTransactionController {
      * Validates that the path clientId matches the authenticated user's internal ID.
      */
     private UUID resolveAndValidateClientId(HttpServletRequest request, UUID pathClientId) {
-        if (request == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "Request context required"
-            );
-        }
-
-        // Get internal UUID from UserContextFilter
-        Object internalIdObj = request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR);
-        UUID internalId = null;
-        if (internalIdObj instanceof UUID) {
-            internalId = (UUID) internalIdObj;
-        } else if (internalIdObj instanceof String) {
-            internalId = UUID.fromString((String) internalIdObj);
-        }
-
-        if (internalId == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "Unable to resolve client id from security context"
-            );
-        }
+        UUID internalId = UserContextUtils.resolveUserId(request);
 
         // Security check: ensure the client can only access their own transactions
         // The pathClientId from frontend should now match the internal UUID
         if (!internalId.equals(pathClientId)) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "You can only access your own transactions"
-            );
+            throw new ForbiddenException("You can only access your own transactions");
         }
 
         return internalId;
