@@ -63,7 +63,7 @@ function TransactionDetailContent({ transaction }: { transaction: NonNullable<Tr
             <Button
               variant="ghost"
               size="icon"
-              className="h-4 w-4 text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground"
               onClick={handleCopyId}
               aria-label={t('copyTransactionId', { defaultValue: 'Copy transaction ID' })}
             >
