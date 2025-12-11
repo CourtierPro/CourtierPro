@@ -8,13 +8,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class SubmittedDocumentResponseDTO {
-    private String documentId;
+    private UUID documentId;
     private LocalDateTime uploadedAt;
     private UploadedBy uploadedBy;
     private StorageObject storageObject;

@@ -1,5 +1,8 @@
 package com.example.courtierprobackend.user.businesslayer;
 
+import com.example.courtierprobackend.common.exceptions.BadRequestException;
+import com.example.courtierprobackend.common.exceptions.InternalServerException;
+import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
 import com.example.courtierprobackend.email.EmailService;
@@ -13,9 +16,7 @@ import com.example.courtierprobackend.user.presentationlayer.request.UpdateStatu
 import com.example.courtierprobackend.user.presentationlayer.response.UserResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -115,8 +116,7 @@ public class UserProvisioningService {
 
     public UserResponse updateStatus(UUID userId, UpdateStatusRequest request) {
         UserAccount account = userAccountRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "User with id " + userId + " not found"));
+                .orElseThrow(() -> new NotFoundException("User with id " + userId + " not found"));
 
         boolean active = request.getActive();
         account.setActive(active);
@@ -127,12 +127,13 @@ public class UserProvisioningService {
 
         return userMapper.toResponse(saved);
     }
+
     public void triggerPasswordReset(UUID userId) {
         UserAccount account = userAccountRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (account.getAuth0UserId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User has no Auth0 ID");
+            throw new BadRequestException("User has no Auth0 ID");
         }
 
         try {
@@ -149,7 +150,7 @@ public class UserProvisioningService {
             emailService.sendPasswordSetupEmail(account.getEmail(), ticketUrl, language);
         } catch (Exception e) {
             logger.error("Failed to trigger password reset for user {}", userId, e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to trigger password reset", e);
+            throw new InternalServerException("Failed to trigger password reset", e);
         }
     }
 }

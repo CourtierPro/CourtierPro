@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "timeline_entries")
@@ -28,7 +29,7 @@ public class TimelineEntry {
 
     private LocalDateTime occurredAt;
 
-    private String addedByBrokerId;
+    private UUID addedByBrokerId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transaction_id")

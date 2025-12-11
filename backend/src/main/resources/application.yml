@@ -30,7 +30,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update  # WARNING: Hybrid schema management! Flyway manages 'login_audit_events'; Hibernate manages all other tables. This can lead to schema conflicts—migrate all tables to Flyway for consistency.
+      ddl-auto: validate  # Schema managed by Flyway migrations. Hibernate only validates entities match DB schema.
     properties:
       hibernate:
         format_sql: true

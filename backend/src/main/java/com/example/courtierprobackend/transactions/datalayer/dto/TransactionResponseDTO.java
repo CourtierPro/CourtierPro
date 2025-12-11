@@ -7,13 +7,15 @@ import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSt
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Data
 @Builder
 public class TransactionResponseDTO {
-    private String transactionId;
-    private String clientId;
+    private UUID transactionId;
+    private UUID clientId;
     private String clientName;
-    private String brokerId;
+    private UUID brokerId;
     private TransactionSide side;
     private PropertyAddress propertyAddress;
     private String currentStage;

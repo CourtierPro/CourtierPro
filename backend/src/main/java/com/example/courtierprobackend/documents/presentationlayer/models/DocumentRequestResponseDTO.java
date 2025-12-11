@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -17,7 +18,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DocumentRequestResponseDTO {
-    private String requestId;
+    private UUID requestId;
     private TransactionRef transactionRef;
     private DocumentTypeEnum docType;
     private String customTitle;

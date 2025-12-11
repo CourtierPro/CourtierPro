@@ -9,6 +9,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Embeddable
 @Data
 @Builder
@@ -16,8 +18,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TransactionRef {
 
-    private String transactionId;
-    private String clientId;
+    private UUID transactionId;
+    private UUID clientId;
 
     @Enumerated(EnumType.STRING)
     private TransactionSide side;

@@ -1,16 +1,21 @@
-import { useAuth0 } from '@auth0/auth0-react';
+import { useCurrentUser } from '@/features/auth/api/useCurrentUser';
 import { useClientTransactions } from '../api/queries';
 
 export function useClientTransactionsPageLogic() {
-    const { user } = useAuth0();
-    // Use authenticated user's ID from Auth0 token subject
-    const clientId = user?.sub ?? "";
+    const { data: currentUser, isLoading: isLoadingUser } = useCurrentUser();
 
-    const { data: transactions, isLoading, error } = useClientTransactions(clientId);
+    // Use the internal UUID from /api/me endpoint
+    const clientId = currentUser?.id ?? "";
+
+    const {
+        data: transactions,
+        isLoading: isLoadingTransactions,
+        error
+    } = useClientTransactions(clientId);
 
     return {
         transactions,
-        isLoading,
+        isLoading: isLoadingUser || isLoadingTransactions,
         error,
     };
 }

@@ -12,6 +12,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +31,7 @@ public class DocumentRequest {
     private Long id;
 
     @Column(unique = true)
-    private String requestId; // Public ID
+    private UUID requestId; // Public ID
 
     @Embedded
     private TransactionRef transactionRef;

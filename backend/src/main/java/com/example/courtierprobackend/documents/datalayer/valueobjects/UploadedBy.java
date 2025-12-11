@@ -10,6 +10,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Embeddable
 @Data
 @Builder
@@ -23,6 +25,6 @@ public class UploadedBy {
     @Enumerated(EnumType.STRING)
     private DocumentPartyEnum party; // BUYER, SELLER, etc.
 
-    private String uploaderId; // clientId or brokerId
+    private UUID uploaderId; // clientId or brokerId (internal UUID)
     private String externalName; // if uploaded by external party
 }

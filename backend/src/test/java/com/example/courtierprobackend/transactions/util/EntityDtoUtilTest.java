@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -26,10 +28,13 @@ class EntityDtoUtilTest {
     @Test
     void toResponse_withBuyerSideTransaction_mapsCorrectly() {
         // Arrange
+        UUID txId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
         Transaction tx = new Transaction();
-        tx.setTransactionId("TX-123");
-        tx.setClientId("client-1");
-        tx.setBrokerId("broker-1");
+        tx.setTransactionId(txId);
+        tx.setClientId(clientId);
+        tx.setBrokerId(brokerId);
         tx.setSide(TransactionSide.BUY_SIDE);
         tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
         tx.setStatus(TransactionStatus.ACTIVE);
@@ -43,9 +48,9 @@ class EntityDtoUtilTest {
         TransactionResponseDTO result = EntityDtoUtil.toResponse(tx, "Test Client");
 
         // Assert
-        assertThat(result.getTransactionId()).isEqualTo("TX-123");
-        assertThat(result.getClientId()).isEqualTo("client-1");
-        assertThat(result.getBrokerId()).isEqualTo("broker-1");
+        assertThat(result.getTransactionId()).isEqualTo(txId);
+        assertThat(result.getClientId()).isEqualTo(clientId);
+        assertThat(result.getBrokerId()).isEqualTo(brokerId);
         assertThat(result.getSide()).isEqualTo(TransactionSide.BUY_SIDE);
         assertThat(result.getCurrentStage()).isEqualTo("BUYER_SHOP_FOR_PROPERTY");
         assertThat(result.getStatus()).isEqualTo(TransactionStatus.ACTIVE);
@@ -57,9 +62,9 @@ class EntityDtoUtilTest {
     void toResponse_withSellerSideTransaction_mapsCorrectly() {
         // Arrange
         Transaction tx = new Transaction();
-        tx.setTransactionId("TX-456");
-        tx.setClientId("client-2");
-        tx.setBrokerId("broker-2");
+        tx.setTransactionId(UUID.randomUUID());
+        tx.setClientId(UUID.randomUUID());
+        tx.setBrokerId(UUID.randomUUID());
         tx.setSide(TransactionSide.SELL_SIDE);
         tx.setSellerStage(SellerStage.SELLER_LISTING_PUBLISHED);
         tx.setStatus(TransactionStatus.ACTIVE);
@@ -77,9 +82,9 @@ class EntityDtoUtilTest {
     void toResponse_withNullOpenedAt_returnsNullOpenedDate() {
         // Arrange
         Transaction tx = new Transaction();
-        tx.setTransactionId("TX-789");
-        tx.setClientId("client-3");
-        tx.setBrokerId("broker-3");
+        tx.setTransactionId(UUID.randomUUID());
+        tx.setClientId(UUID.randomUUID());
+        tx.setBrokerId(UUID.randomUUID());
         tx.setSide(TransactionSide.BUY_SIDE);
         tx.setOpenedAt(null);
 
@@ -94,9 +99,9 @@ class EntityDtoUtilTest {
     void toResponse_withNullBuyerStage_returnsUnknownBuyerStage() {
         // Arrange
         Transaction tx = new Transaction();
-        tx.setTransactionId("TX-unknown");
-        tx.setClientId("client-4");
-        tx.setBrokerId("broker-4");
+        tx.setTransactionId(UUID.randomUUID());
+        tx.setClientId(UUID.randomUUID());
+        tx.setBrokerId(UUID.randomUUID());
         tx.setSide(TransactionSide.BUY_SIDE);
         tx.setBuyerStage(null);
 
@@ -111,9 +116,9 @@ class EntityDtoUtilTest {
     void toResponse_withNullSellerStage_returnsUnknownSellerStage() {
         // Arrange
         Transaction tx = new Transaction();
-        tx.setTransactionId("TX-unknown-seller");
-        tx.setClientId("client-5");
-        tx.setBrokerId("broker-5");
+        tx.setTransactionId(UUID.randomUUID());
+        tx.setClientId(UUID.randomUUID());
+        tx.setBrokerId(UUID.randomUUID());
         tx.setSide(TransactionSide.SELL_SIDE);
         tx.setSellerStage(null);
 
@@ -129,9 +134,12 @@ class EntityDtoUtilTest {
     @Test
     void toNewTransaction_mapsRequestDtoToEntity() {
         // Arrange
+        UUID clientId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID txId = UUID.randomUUID();
         TransactionRequestDTO dto = new TransactionRequestDTO();
-        dto.setClientId("client-1");
-        dto.setBrokerId("broker-1");
+        dto.setClientId(clientId);
+        dto.setBrokerId(brokerId);
         dto.setSide(TransactionSide.BUY_SIDE);
         
         PropertyAddress address = new PropertyAddress();
@@ -139,12 +147,12 @@ class EntityDtoUtilTest {
         dto.setPropertyAddress(address);
 
         // Act
-        Transaction result = EntityDtoUtil.toNewTransaction(dto, "TX-generated");
+        Transaction result = EntityDtoUtil.toNewTransaction(dto, txId);
 
         // Assert
-        assertThat(result.getTransactionId()).isEqualTo("TX-generated");
-        assertThat(result.getClientId()).isEqualTo("client-1");
-        assertThat(result.getBrokerId()).isEqualTo("broker-1");
+        assertThat(result.getTransactionId()).isEqualTo(txId);
+        assertThat(result.getClientId()).isEqualTo(clientId);
+        assertThat(result.getBrokerId()).isEqualTo(brokerId);
         assertThat(result.getSide()).isEqualTo(TransactionSide.BUY_SIDE);
         assertThat(result.getPropertyAddress().getStreet()).isEqualTo("456 Oak Ave");
     }
@@ -154,13 +162,14 @@ class EntityDtoUtilTest {
     @Test
     void toTimelineDTO_mapsTimelineEntryToDTO() {
         // Arrange
+        UUID brokerUuid = UUID.randomUUID();
         TimelineEntry entry = TimelineEntry.builder()
                 .type(TimelineEntryType.NOTE)
                 .title("Important Note")
                 .note("This is the note content")
                 .visibleToClient(true)
                 .occurredAt(LocalDateTime.of(2025, 3, 10, 9, 30))
-                .addedByBrokerId("broker-1")
+                .addedByBrokerId(brokerUuid)
                 .build();
 
         // Act
@@ -172,7 +181,7 @@ class EntityDtoUtilTest {
         assertThat(result.getNote()).isEqualTo("This is the note content");
         assertThat(result.getVisibleToClient()).isTrue();
         assertThat(result.getOccurredAt()).isEqualTo(LocalDateTime.of(2025, 3, 10, 9, 30));
-        assertThat(result.getAddedByBrokerId()).isEqualTo("broker-1");
+        assertThat(result.getAddedByBrokerId()).isEqualTo(brokerUuid);
     }
 
     @Test
@@ -309,17 +318,21 @@ class EntityDtoUtilTest {
 
     @Test
     void toResponseStub_createsStubWithDefaultValues() {
+        UUID txId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
         // Act
         TransactionResponseDTO result = EntityDtoUtil.toResponseStub(
-                "TX-stub",
-                "client-stub",
-                "broker-stub"
+                txId,
+                clientId,
+                brokerId
         );
 
         // Assert
-        assertThat(result.getTransactionId()).isEqualTo("TX-stub");
-        assertThat(result.getClientId()).isEqualTo("client-stub");
-        assertThat(result.getBrokerId()).isEqualTo("broker-stub");
+        assertThat(result.getTransactionId()).isEqualTo(txId);
+        assertThat(result.getClientId()).isEqualTo(clientId);
+        assertThat(result.getBrokerId()).isEqualTo(brokerId);
         assertThat(result.getSide()).isEqualTo(TransactionSide.BUY_SIDE);
         assertThat(result.getStatus()).isEqualTo(TransactionStatus.ACTIVE);
         assertThat(result.getCurrentStage()).isEqualTo("BUYER_PREQUALIFY_FINANCIALLY");

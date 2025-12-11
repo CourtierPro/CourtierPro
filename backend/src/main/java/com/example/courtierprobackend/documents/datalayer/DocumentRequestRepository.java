@@ -7,14 +7,15 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface DocumentRequestRepository extends JpaRepository<DocumentRequest, Long> {
 
-    Optional<DocumentRequest> findByRequestId(String requestId);
+    Optional<DocumentRequest> findByRequestId(UUID requestId);
 
-    List<DocumentRequest> findByTransactionRef_TransactionId(String transactionId);
+    List<DocumentRequest> findByTransactionRef_TransactionId(UUID transactionId);
 
     @Query("SELECT d FROM DocumentRequest d WHERE d.transactionRef.clientId = :userId OR d.transactionRef.transactionId IN (SELECT t.transactionId FROM Transaction t WHERE t.brokerId = :userId)")
-    List<DocumentRequest> findByUserId(@Param("userId") String userId);
+    List<DocumentRequest> findByUserId(@Param("userId") UUID userId);
 }

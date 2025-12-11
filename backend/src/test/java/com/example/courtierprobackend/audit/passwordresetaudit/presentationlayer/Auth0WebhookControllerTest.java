@@ -1,6 +1,8 @@
 package com.example.courtierprobackend.audit.passwordresetaudit.presentationlayer;
 
 import com.example.courtierprobackend.audit.passwordresetaudit.businesslayer.PasswordResetAuditService;
+import com.example.courtierprobackend.security.UserContextFilter;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,9 +30,14 @@ class Auth0WebhookControllerTest {
     @MockBean
     private PasswordResetAuditService passwordResetAuditService;
 
+    @MockBean
+    private UserContextFilter userContextFilter;
+
+    @MockBean
+    private UserAccountRepository userAccountRepository;
+
     @Test
     void handleAuth0Event_withForgotPasswordEvent_shouldRecordRequest() throws Exception {
-        // Arrange
         String eventJson = """
                 {
                     "log_id": "12345",
@@ -43,7 +50,6 @@ class Auth0WebhookControllerTest {
                 }
                 """;
 
-        // Act & Assert
         mockMvc.perform(post("/api/webhooks/auth0-events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(eventJson))
@@ -60,7 +66,6 @@ class Auth0WebhookControllerTest {
 
     @Test
     void handleAuth0Event_withSuccessfulChangePasswordEvent_shouldRecordCompletion() throws Exception {
-        // Arrange
         String eventJson = """
                 {
                     "log_id": "12345",
@@ -73,7 +78,6 @@ class Auth0WebhookControllerTest {
                 }
                 """;
 
-        // Act & Assert
         mockMvc.perform(post("/api/webhooks/auth0-events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(eventJson))
@@ -90,7 +94,6 @@ class Auth0WebhookControllerTest {
 
     @Test
     void handleAuth0Event_withFailedChangePasswordEvent_shouldNotRecordAnything() throws Exception {
-        // Arrange
         String eventJson = """
                 {
                     "log_id": "12345",
@@ -101,7 +104,6 @@ class Auth0WebhookControllerTest {
                 }
                 """;
 
-        // Act & Assert
         mockMvc.perform(post("/api/webhooks/auth0-events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(eventJson))
@@ -113,7 +115,6 @@ class Auth0WebhookControllerTest {
 
     @Test
     void handleAuth0Event_withMissingUserId_shouldNotRecordEvent() throws Exception {
-        // Arrange
         String eventJson = """
                 {
                     "log_id": "12345",
@@ -123,7 +124,6 @@ class Auth0WebhookControllerTest {
                 }
                 """;
 
-        // Act & Assert
         mockMvc.perform(post("/api/webhooks/auth0-events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(eventJson))
@@ -134,7 +134,6 @@ class Auth0WebhookControllerTest {
 
     @Test
     void handleAuth0Event_withMissingEmail_shouldNotRecordEvent() throws Exception {
-        // Arrange
         String eventJson = """
                 {
                     "log_id": "12345",
@@ -144,7 +143,6 @@ class Auth0WebhookControllerTest {
                 }
                 """;
 
-        // Act & Assert
         mockMvc.perform(post("/api/webhooks/auth0-events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(eventJson))
@@ -155,7 +153,6 @@ class Auth0WebhookControllerTest {
 
     @Test
     void handleAuth0Event_withUnknownEventType_shouldReturnOk() throws Exception {
-        // Arrange
         String eventJson = """
                 {
                     "log_id": "12345",
@@ -166,7 +163,6 @@ class Auth0WebhookControllerTest {
                 }
                 """;
 
-        // Act & Assert
         mockMvc.perform(post("/api/webhooks/auth0-events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(eventJson))
@@ -178,7 +174,6 @@ class Auth0WebhookControllerTest {
 
     @Test
     void handleAuth0Event_withEmailInUserName_shouldUseUserNameAsEmail() throws Exception {
-        // Arrange
         String eventJson = """
                 {
                     "log_id": "12345",
@@ -191,7 +186,6 @@ class Auth0WebhookControllerTest {
                 }
                 """;
 
-        // Act & Assert
         mockMvc.perform(post("/api/webhooks/auth0-events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(eventJson))
@@ -208,7 +202,6 @@ class Auth0WebhookControllerTest {
 
     @Test
     void handleAuth0Event_whenServiceThrowsException_shouldReturnOkAndNotPropagate() throws Exception {
-        // Arrange
         String eventJson = """
                 {
                     "log_id": "12345",
@@ -230,7 +223,6 @@ class Auth0WebhookControllerTest {
                         eq("Mozilla/5.0")
                 );
 
-        // Act & Assert
         mockMvc.perform(post("/api/webhooks/auth0-events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(eventJson))
@@ -247,7 +239,6 @@ class Auth0WebhookControllerTest {
 
     @Test
     void handleAuth0Event_withCommaSeparatedIpAddresses_shouldUseFirstIp() throws Exception {
-        // Arrange - no IP in Auth0 event, should fall back to X-Forwarded-For
         String eventJson = """
                 {
                     "log_id": "12345",
@@ -258,7 +249,6 @@ class Auth0WebhookControllerTest {
                 }
                 """;
 
-        // Act & Assert - Should use first IP from X-Forwarded-For header
         mockMvc.perform(post("/api/webhooks/auth0-events")
                         .header("X-Forwarded-For", "203.0.113.1, 198.51.100.1, 192.0.2.1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -276,7 +266,6 @@ class Auth0WebhookControllerTest {
 
     @Test
     void handleAuth0Event_withOnlyUserName_shouldExtractEmailFromUserName() throws Exception {
-        // Arrange - email field is missing, but user_name contains email
         String eventJson = """
                 {
                     "log_id": "12345",
@@ -288,7 +277,6 @@ class Auth0WebhookControllerTest {
                 }
                 """;
 
-        // Act & Assert
         mockMvc.perform(post("/api/webhooks/auth0-events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(eventJson))
@@ -305,7 +293,6 @@ class Auth0WebhookControllerTest {
 
     @Test
     void handleAuth0Event_withEmptyEmail_shouldUseUserNameIfAvailable() throws Exception {
-        // Arrange - empty email string, user_name has valid email
         String eventJson = """
                 {
                     "log_id": "12345",
@@ -318,7 +305,6 @@ class Auth0WebhookControllerTest {
                 }
                 """;
 
-        // Act & Assert
         mockMvc.perform(post("/api/webhooks/auth0-events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(eventJson))
@@ -335,7 +321,6 @@ class Auth0WebhookControllerTest {
 
     @Test
     void handleAuth0Event_withNonEmailUserName_shouldNotRecordEvent() throws Exception {
-        // Arrange - no email and user_name doesn't contain @
         String eventJson = """
                 {
                     "log_id": "12345",
@@ -346,7 +331,6 @@ class Auth0WebhookControllerTest {
                 }
                 """;
 
-        // Act & Assert
         mockMvc.perform(post("/api/webhooks/auth0-events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(eventJson))

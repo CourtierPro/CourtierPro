@@ -322,7 +322,7 @@ class UserProvisioningServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> service.updateStatus(userId, request))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.NotFoundException.class)
                 .hasMessageContaining("not found");
 
         verify(userAccountRepository).findById(userId);
@@ -356,7 +356,7 @@ class UserProvisioningServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> service.triggerPasswordReset(userId))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.NotFoundException.class)
                 .hasMessageContaining("User not found");
         
         verify(emailService, never()).sendPasswordSetupEmail(anyString(), anyString(), anyString());
@@ -372,7 +372,7 @@ class UserProvisioningServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> service.triggerPasswordReset(userId))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.BadRequestException.class)
                 .hasMessageContaining("User has no Auth0 ID");
                 
         verify(emailService, never()).sendPasswordSetupEmail(anyString(), anyString(), anyString());

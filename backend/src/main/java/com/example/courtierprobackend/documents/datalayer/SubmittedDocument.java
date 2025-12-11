@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "submitted_documents")
@@ -23,7 +24,7 @@ public class SubmittedDocument {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String documentId; // Public ID for this specific submission
+    private UUID documentId; // Public ID for this specific submission
 
     private LocalDateTime uploadedAt;
 

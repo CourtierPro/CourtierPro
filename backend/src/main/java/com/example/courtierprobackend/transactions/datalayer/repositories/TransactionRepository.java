@@ -8,27 +8,28 @@ import java.util.*;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
-    Optional<Transaction> findByTransactionId(String transactionId);
+    Optional<Transaction> findByTransactionId(UUID transactionId);
 
     // Automatic derived query for duplicate check
     Optional<Transaction> findByClientIdAndPropertyAddress_StreetAndStatus(
-            String clientId,
+            UUID clientId,
             String street,
             TransactionStatus status
     );
 
-    List<Transaction> findAllByBrokerId(String brokerId);
+    List<Transaction> findAllByBrokerId(UUID brokerId);
 
-    List<Transaction> findAllByClientId(String clientId);
+    List<Transaction> findAllByClientId(UUID clientId);
 
     @org.springframework.data.jpa.repository.Query("SELECT t FROM Transaction t WHERE t.brokerId = :brokerId " +
             "AND (:status IS NULL OR t.status = :status) " +
             "AND (:side IS NULL OR t.side = :side) " +
             "AND (:stage IS NULL OR t.buyerStage = :stage OR t.sellerStage = :stage)")
     List<Transaction> findAllByFilters(
-            @org.springframework.data.repository.query.Param("brokerId") String brokerId,
+            @org.springframework.data.repository.query.Param("brokerId") UUID brokerId,
             @org.springframework.data.repository.query.Param("status") TransactionStatus status,
             @org.springframework.data.repository.query.Param("side") com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide side,
             @org.springframework.data.repository.query.Param("stage") Enum<?> stage
     );
 }
+
