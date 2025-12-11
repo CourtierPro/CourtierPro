@@ -2,16 +2,17 @@ package com.example.courtierprobackend.documents.presentationlayer;
 
 import com.example.courtierprobackend.documents.businesslayer.DocumentRequestService;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
+import com.example.courtierprobackend.security.UserContextFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.mock.web.MockHttpServletRequest;
 
-import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -24,8 +25,6 @@ class GlobalDocumentControllerTest {
 
     @Mock
     private DocumentRequestService service;
-    @Mock
-    private Jwt jwt;
 
     private GlobalDocumentController controller;
 
@@ -37,15 +36,18 @@ class GlobalDocumentControllerTest {
     @Test
     void getAllDocumentsForUser_ReturnsDocuments() {
         // Arrange
-        when(jwt.getSubject()).thenReturn("user-1");
+        UUID userId = UUID.randomUUID();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR, userId);
+        
         List<DocumentRequestResponseDTO> docs = List.of(
-                DocumentRequestResponseDTO.builder().requestId("r1").build(),
-                DocumentRequestResponseDTO.builder().requestId("r2").build()
+                DocumentRequestResponseDTO.builder().requestId(UUID.randomUUID()).build(),
+                DocumentRequestResponseDTO.builder().requestId(UUID.randomUUID()).build()
         );
-        when(service.getAllDocumentsForUser("user-1")).thenReturn(docs);
+        when(service.getAllDocumentsForUser(userId)).thenReturn(docs);
 
         // Act
-        ResponseEntity<List<DocumentRequestResponseDTO>> response = controller.getAllDocumentsForUser(jwt);
+        ResponseEntity<List<DocumentRequestResponseDTO>> response = controller.getAllDocumentsForUser(request);
 
         // Assert
         assertThat(response.getBody()).hasSize(2);
@@ -54,11 +56,14 @@ class GlobalDocumentControllerTest {
     @Test
     void getAllDocumentsForUser_WithNoDocuments_ReturnsEmptyList() {
         // Arrange
-        when(jwt.getSubject()).thenReturn("user-1");
-        when(service.getAllDocumentsForUser("user-1")).thenReturn(List.of());
+        UUID userId = UUID.randomUUID();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR, userId);
+        
+        when(service.getAllDocumentsForUser(userId)).thenReturn(List.of());
 
         // Act
-        ResponseEntity<List<DocumentRequestResponseDTO>> response = controller.getAllDocumentsForUser(jwt);
+        ResponseEntity<List<DocumentRequestResponseDTO>> response = controller.getAllDocumentsForUser(request);
 
         // Assert
         assertThat(response.getBody()).isEmpty();
@@ -67,13 +72,16 @@ class GlobalDocumentControllerTest {
     @Test
     void getAllDocumentsForUser_DelegatesCorrectlyToService() {
         // Arrange
-        when(jwt.getSubject()).thenReturn("user-123");
-        when(service.getAllDocumentsForUser("user-123")).thenReturn(List.of());
+        UUID userId = UUID.randomUUID();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR, userId);
+        
+        when(service.getAllDocumentsForUser(userId)).thenReturn(List.of());
 
         // Act
-        controller.getAllDocumentsForUser(jwt);
+        controller.getAllDocumentsForUser(request);
 
         // Assert
-        verify(service).getAllDocumentsForUser("user-123");
+        verify(service).getAllDocumentsForUser(userId);
     }
 }

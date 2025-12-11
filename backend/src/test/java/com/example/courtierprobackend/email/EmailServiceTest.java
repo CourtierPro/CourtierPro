@@ -12,6 +12,8 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
+import java.util.UUID;
+
 import jakarta.mail.Transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -110,7 +112,7 @@ class EmailServiceTest {
     void sendDocumentSubmittedNotification_SendsEmail() {
         // Arrange
         DocumentRequest request = new DocumentRequest();
-        TransactionRef txRef = new TransactionRef("TX-123", "client-1", TransactionSide.BUY_SIDE);
+        TransactionRef txRef = new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE);
         request.setTransactionRef(txRef);
         request.setCustomTitle("Tax Return");
 

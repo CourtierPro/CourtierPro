@@ -4,6 +4,7 @@ import com.example.courtierprobackend.transactions.datalayer.enums.TimelineEntry
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -16,5 +17,5 @@ public class TimelineEntryDTO {
     private String title;
     private Boolean visibleToClient;
     private LocalDateTime occurredAt;
-    private String addedByBrokerId;
+    private UUID addedByBrokerId;
 }

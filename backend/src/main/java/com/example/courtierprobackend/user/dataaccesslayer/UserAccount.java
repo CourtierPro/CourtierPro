@@ -16,7 +16,7 @@ public class UserAccount {
     @Id
     private UUID id;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "auth0user_id", nullable = false, unique = true)
     private String auth0UserId; // ex: "auth0|abc123"
 
     @Column(nullable = false, unique = true)

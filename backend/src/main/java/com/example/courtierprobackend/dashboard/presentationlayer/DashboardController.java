@@ -1,9 +1,12 @@
 package com.example.courtierprobackend.dashboard.presentationlayer;
 
+import com.example.courtierprobackend.security.UserContextUtils;
+import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -17,9 +20,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/dashboard")
@@ -29,28 +31,24 @@ public class DashboardController {
     private final TransactionRepository transactionRepository;
     private final UserAccountRepository userRepository;
 
-    // -------- Helper to resolve user ID --------
-    private String resolveUserId(Jwt jwt, String headerId) {
-        if (StringUtils.hasText(headerId)) return headerId;
-        if (jwt != null && StringUtils.hasText(jwt.getClaimAsString("sub"))) return jwt.getClaimAsString("sub");
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unable to resolve user id");
-    }
+    // -------- Helper to resolve internal user ID from UserContextFilter --------
+
 
     @GetMapping("/client")
     @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<ClientDashboardStats> getClientStats(
             @RequestHeader(value = "x-user-id", required = false) String headerId,
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request
     ) {
-        String clientId = resolveUserId(jwt, headerId);
+        UUID clientId = UserContextUtils.resolveUserId(request, headerId);
         
         // Active transactions
         long activeTransactions = transactionRepository.findAllByClientId(clientId).stream()
                 .filter(t -> t.getStatus() == TransactionStatus.ACTIVE)
                 .count();
 
-        // Documents needed (mock logic for now, or count pending requests if available)
-        // For now returning 0 or a placeholder if we don't have easy access to document requests count here
+        // Documents needed (placeholder)
         int documentsNeeded = 0; 
 
         return ResponseEntity.ok(ClientDashboardStats.builder()
@@ -63,9 +61,10 @@ public class DashboardController {
     @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<BrokerDashboardStats> getBrokerStats(
             @RequestHeader(value = "x-broker-id", required = false) String headerId,
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request
     ) {
-        String brokerId = resolveUserId(jwt, headerId);
+        UUID brokerId = UserContextUtils.resolveUserId(request, headerId);
 
         // Active transactions
         long activeTransactions = transactionRepository.findAllByBrokerId(brokerId).stream()
@@ -79,7 +78,7 @@ public class DashboardController {
                 .distinct()
                 .count();
 
-        // Total commission (Mock for now as we don't have commission field)
+        // Total commission (Mock)
         double totalCommission = activeTransactions * 5000.0; 
 
         return ResponseEntity.ok(BrokerDashboardStats.builder()
@@ -101,7 +100,7 @@ public class DashboardController {
         return ResponseEntity.ok(AdminDashboardStats.builder()
                 .totalUsers(totalUsers)
                 .activeBrokers(activeBrokers)
-                .systemHealth("99.9%") // Hardcoded for now
+                .systemHealth("99.9%")
                 .build());
     }
 

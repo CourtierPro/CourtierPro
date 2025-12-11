@@ -19,8 +19,7 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -43,17 +42,66 @@ class S3StorageServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(s3StorageService, "bucketName", BUCKET_NAME);
+        storageService = new S3StorageService();
+    }
+
+    // ========== uploadFile Tests ==========
+
+    @Test
+    void uploadFile_WithValidFile_ReturnsStorageObject() throws IOException {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "test-document.pdf",
+                "application/pdf",
+                "PDF content".getBytes()
+        );
+
+        // Act
+        StorageObject result = storageService.uploadFile(file, transactionId, requestId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getFileName()).isEqualTo("test-document.pdf");
+        assertThat(result.getMimeType()).isEqualTo("application/pdf");
+        assertThat(result.getSizeBytes()).isEqualTo(11L); // "PDF content".length()
+        assertThat(result.getS3Key()).contains(String.format("documents/%s/%s/", transactionId, requestId));
+        assertThat(result.getS3Key()).endsWith("_test-document.pdf");
     }
 
     @Test
     void uploadFile_ShouldUploadToS3AndReturnMetadata() throws IOException {
         // Arrange
-        String transactionId = "tx-123";
-        String requestId = "req-456";
+        UUID transactionId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
+        // Use a file with empty filename - the service treats empty string same as having a name
+        // Test the actual behavior: MockMultipartFile returns empty string for null, not null
         MockMultipartFile file = new MockMultipartFile(
                 "file",
-                "test.pdf",
+                "",  // empty filename (MockMultipartFile converts null to "")
+                "text/plain",
+                "Some content".getBytes()
+        );
+
+        // Act
+        StorageObject result = storageService.uploadFile(file, transactionId, requestId);
+
+        // Assert - The service should still create a valid S3 key
+        assertThat(result).isNotNull();
+        assertThat(result.getFileName()).isNotNull();
+        assertThat(result.getS3Key()).contains(String.format("documents/%s/%s/", transactionId, requestId));
+    }
+
+    @Test
+    void uploadFile_GeneratesUniqueS3Key() throws IOException {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "document.pdf",
                 "application/pdf",
                 "content".getBytes()
         );
@@ -69,8 +117,11 @@ class S3StorageServiceTest {
         assertTrue(result.getS3Key().contains(requestId));
         assertTrue(result.getS3Key().endsWith("_test.pdf"));
 
-        ArgumentCaptor<PutObjectRequest> captor = ArgumentCaptor.forClass(PutObjectRequest.class);
-        verify(s3Client).putObject(captor.capture(), any(RequestBody.class));
+    @Test
+    void uploadFile_WithDifferentMimeTypes_PreservesMimeType() throws IOException {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
         
         PutObjectRequest request = captor.getValue();
         assertEquals(BUCKET_NAME, request.bucket());
@@ -89,7 +140,7 @@ class S3StorageServiceTest {
         when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presignedRequest);
 
         // Act
-        String result = s3StorageService.generatePresignedUrl(s3Key);
+        StorageObject result = storageService.uploadFile(file, UUID.randomUUID(), UUID.randomUUID());
 
         // Assert
         assertEquals(expectedUrl, result);

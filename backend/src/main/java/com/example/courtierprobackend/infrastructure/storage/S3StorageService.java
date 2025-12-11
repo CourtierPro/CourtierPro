@@ -43,7 +43,7 @@ public class S3StorageService {
      * @param requestId     The document request ID
      * @return StorageObject containing the S3 key and file metadata
      */
-    public StorageObject uploadFile(MultipartFile file, String transactionId, String requestId) throws IOException {
+    public StorageObject uploadFile(MultipartFile file, UUID transactionId, UUID requestId) throws IOException {
         String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed";
         String uniqueId = UUID.randomUUID().toString();
         // Use a clean key structure: documents/{transactionId}/{requestId}/{uniqueId}_{filename}

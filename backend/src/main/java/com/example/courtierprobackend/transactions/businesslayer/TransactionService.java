@@ -4,21 +4,22 @@ package com.example.courtierprobackend.transactions.businesslayer;
 import com.example.courtierprobackend.transactions.datalayer.dto.*;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface TransactionService {
 
     TransactionResponseDTO createTransaction(TransactionRequestDTO dto);
 
-    java.util.List<TimelineEntryDTO> getNotes(String transactionId, String brokerId);
+    java.util.List<TimelineEntryDTO> getNotes(UUID transactionId, UUID brokerId);
 
-    TimelineEntryDTO createNote(String transactionId, NoteRequestDTO note, String brokerId);
+    TimelineEntryDTO createNote(UUID transactionId, NoteRequestDTO note, UUID brokerId);
 
-    List<TransactionResponseDTO> getBrokerTransactions(String brokerId, String status, String stage, String side);
+    List<TransactionResponseDTO> getBrokerTransactions(UUID brokerId, String status, String stage, String side);
 
-    List<TransactionResponseDTO> getClientTransactions(String clientId);
+    List<TransactionResponseDTO> getClientTransactions(UUID clientId);
     
-    TransactionResponseDTO updateTransactionStage(String transactionId, StageUpdateRequestDTO dto, String brokerId);
+    TransactionResponseDTO updateTransactionStage(UUID transactionId, StageUpdateRequestDTO dto, UUID brokerId);
 
-    TransactionResponseDTO getByTransactionId(String transactionId, String userId);
+    TransactionResponseDTO getByTransactionId(UUID transactionId, UUID userId);
 }
 

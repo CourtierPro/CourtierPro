@@ -26,7 +26,7 @@ public class UserMapper {
 
     public UserResponse toResponse(UserAccount account) {
         return UserResponse.builder()
-                .id(account.getId().toString())
+                .id(account.getId().toString())  // Internal UUID - used for all database operations
                 .email(account.getEmail())
                 .firstName(account.getFirstName())
                 .lastName(account.getLastName())

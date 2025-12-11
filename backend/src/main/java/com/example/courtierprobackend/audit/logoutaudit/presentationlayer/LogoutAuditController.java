@@ -2,17 +2,16 @@ package com.example.courtierprobackend.audit.logoutaudit.presentationlayer;
 
 import com.example.courtierprobackend.audit.logoutaudit.businesslayer.LogoutAuditService;
 import com.example.courtierprobackend.audit.logoutaudit.dataaccesslayer.LogoutAuditEvent;
+import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -60,8 +59,7 @@ public class LogoutAuditController {
                     ? Instant.parse(request.timestamp())
                     : Instant.now();
         } catch (DateTimeParseException e) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+            throw new BadRequestException(
                     "Invalid timestamp format. Expected ISO-8601 format (e.g., 2025-12-07T12:00:00.000Z)"
             );
         }
@@ -91,8 +89,7 @@ public class LogoutAuditController {
             LogoutAuditEvent.LogoutReason logoutReason = LogoutAuditEvent.LogoutReason.valueOf(reason.toUpperCase());
             return ResponseEntity.ok(logoutAuditService.getLogoutEventsByReason(logoutReason));
         } catch (IllegalArgumentException e) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                org.springframework.http.HttpStatus.BAD_REQUEST,
+            throw new BadRequestException(
                 "Invalid logout reason: " + reason + ". Valid values are: MANUAL, SESSION_TIMEOUT, FORCED"
             );
         }
