@@ -53,3 +53,8 @@ spring:
 logging:
   level:
     org.springframework: INFO
+
+aws:
+  s3:
+    bucket-name: courtierpro-dev-files
+  region: us-east-1
