@@ -1,6 +1,7 @@
 "use client";
 
-import type React from "react";
+"use client";
+
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 const Toaster = ({ theme = "light", ...props }: ToasterProps) => {
