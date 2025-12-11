@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -61,11 +62,11 @@ class TransactionServiceImplTest {
         // Arrange
         TransactionRequestDTO dto = createValidBuyerTransactionDTO();
         when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
-                anyString(), anyString(), any()
+                any(UUID.class), anyString(), any()
         )).thenReturn(Optional.empty());
 
         Transaction expectedTx = new Transaction();
-        expectedTx.setTransactionId("TX-12345678");
+        expectedTx.setTransactionId(UUID.randomUUID());
         expectedTx.setClientId(dto.getClientId());
         expectedTx.setBrokerId(dto.getBrokerId());
         when(transactionRepository.save(any(Transaction.class))).thenReturn(expectedTx);
@@ -85,11 +86,11 @@ class TransactionServiceImplTest {
         // Arrange
         TransactionRequestDTO dto = createValidSellerTransactionDTO();
         when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
-                anyString(), anyString(), any()
+                any(UUID.class), anyString(), any()
         )).thenReturn(Optional.empty());
 
         Transaction expectedTx = new Transaction();
-        expectedTx.setTransactionId("TX-seller123");
+        expectedTx.setTransactionId(UUID.randomUUID());
         when(transactionRepository.save(any(Transaction.class))).thenReturn(expectedTx);
 
         // Act
@@ -204,18 +205,18 @@ class TransactionServiceImplTest {
         // Arrange
         TransactionRequestDTO dto = createValidBuyerTransactionDTO();
         when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
-                anyString(), anyString(), any()
+                any(UUID.class), anyString(), any()
         )).thenReturn(Optional.empty());
 
         Transaction savedTx = new Transaction();
-        savedTx.setTransactionId("TX-abcd1234");
+        savedTx.setTransactionId(UUID.randomUUID());
         when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
 
         // Act
         TransactionResponseDTO result = transactionService.createTransaction(dto);
 
         // Assert
-        assertThat(result.getTransactionId()).startsWith("TX-");
+        assertThat(result.getTransactionId()).isNotNull();
     }
 
     // ========== getNotes Tests ==========
@@ -223,12 +224,12 @@ class TransactionServiceImplTest {
     @Test
     void getNotes_withValidTransactionAndBrokerId_returnsNotes() {
         // Arrange
-        String transactionId = "TX-123";
-        String brokerId = "broker-1";
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
         
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
-        tx.setBrokerId(brokerId);
+        tx.setBrokerId(brokerUuid);
         
         TimelineEntry note = TimelineEntry.builder()
                 .type(TimelineEntryType.NOTE)
@@ -240,7 +241,7 @@ class TransactionServiceImplTest {
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
 
         // Act
-        var result = transactionService.getNotes(transactionId, brokerId);
+        var result = transactionService.getNotes(transactionId, brokerUuid);
 
         // Assert
         assertThat(result).hasSize(1);
@@ -250,15 +251,15 @@ class TransactionServiceImplTest {
     @Test
     void getNotes_withWrongBrokerId_throwsNotFoundException() {
         // Arrange
-        String transactionId = "TX-123";
-        String brokerId = "wrong-broker";
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
         
         Transaction tx = new Transaction();
-        tx.setBrokerId("correct-broker");
+        tx.setBrokerId(UUID.randomUUID());
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionService.getNotes(transactionId, brokerId))
+        assertThatThrownBy(() -> transactionService.getNotes(transactionId, brokerUuid))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("You do not have access");
     }
@@ -266,10 +267,10 @@ class TransactionServiceImplTest {
     @Test
     void getNotes_withNonExistentTransaction_throwsNotFoundException() {
         // Arrange
-        when(transactionRepository.findByTransactionId(anyString())).thenReturn(Optional.empty());
+        when(transactionRepository.findByTransactionId(any(UUID.class))).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionService.getNotes("TX-999", "broker-1"))
+        assertThatThrownBy(() -> transactionService.getNotes(UUID.randomUUID(), UUID.randomUUID()))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Transaction not found");
     }
@@ -277,18 +278,18 @@ class TransactionServiceImplTest {
     @Test
     void getNotes_withNullTimeline_returnsEmptyList() {
         // Arrange
-        String transactionId = "TX-123";
-        String brokerId = "broker-1";
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
         
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
-        tx.setBrokerId(brokerId);
+        tx.setBrokerId(brokerUuid);
         tx.setTimeline(null);
 
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
 
         // Act
-        var result = transactionService.getNotes(transactionId, brokerId);
+        var result = transactionService.getNotes(transactionId, brokerUuid);
 
         // Assert
         assertThat(result).isEmpty();
@@ -299,18 +300,18 @@ class TransactionServiceImplTest {
     @Test
     void createNote_withValidData_createsNote() {
         // Arrange
-        String transactionId = "TX-123";
-        String brokerId = "broker-1";
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
         
         NoteRequestDTO noteDTO = new NoteRequestDTO();
-        noteDTO.setActorId("actor-1");
+        noteDTO.setActorId(UUID.randomUUID());
         noteDTO.setTitle("New Note");
         noteDTO.setMessage("Note content");
         noteDTO.setVisibleToClient(true);
 
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
-        tx.setBrokerId(brokerId);
+        tx.setBrokerId(brokerUuid);
         tx.setTimeline(new ArrayList<>());
 
         Transaction savedTx = new Transaction();
@@ -326,7 +327,7 @@ class TransactionServiceImplTest {
         when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
 
         // Act
-        var result = transactionService.createNote(transactionId, noteDTO, brokerId);
+        var result = transactionService.createNote(transactionId, noteDTO, brokerUuid);
 
         // Assert
         assertThat(result).isNotNull();
@@ -343,7 +344,7 @@ class TransactionServiceImplTest {
         noteDTO.setMessage("Message");
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionService.createNote("TX-123", noteDTO, "broker-1"))
+        assertThatThrownBy(() -> transactionService.createNote(UUID.randomUUID(), noteDTO, UUID.randomUUID()))
                 .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("actorId is required");
     }
@@ -352,12 +353,12 @@ class TransactionServiceImplTest {
     void createNote_withMissingTitle_throwsInvalidInputException() {
         // Arrange
         NoteRequestDTO noteDTO = new NoteRequestDTO();
-        noteDTO.setActorId("actor-1");
+        noteDTO.setActorId(UUID.randomUUID());
         noteDTO.setTitle(null);
         noteDTO.setMessage("Message");
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionService.createNote("TX-123", noteDTO, "broker-1"))
+        assertThatThrownBy(() -> transactionService.createNote(UUID.randomUUID(), noteDTO, UUID.randomUUID()))
                 .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("title is required");
     }
@@ -366,12 +367,12 @@ class TransactionServiceImplTest {
     void createNote_withMissingMessage_throwsInvalidInputException() {
         // Arrange
         NoteRequestDTO noteDTO = new NoteRequestDTO();
-        noteDTO.setActorId("actor-1");
+        noteDTO.setActorId(UUID.randomUUID());
         noteDTO.setTitle("Title");
         noteDTO.setMessage(null);
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionService.createNote("TX-123", noteDTO, "broker-1"))
+        assertThatThrownBy(() -> transactionService.createNote(UUID.randomUUID(), noteDTO, UUID.randomUUID()))
                 .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("message is required");
     }
@@ -380,16 +381,16 @@ class TransactionServiceImplTest {
     void createNote_withWrongBrokerId_throwsNotFoundException() {
         // Arrange
         NoteRequestDTO noteDTO = new NoteRequestDTO();
-        noteDTO.setActorId("actor-1");
+        noteDTO.setActorId(UUID.randomUUID());
         noteDTO.setTitle("Title");
         noteDTO.setMessage("Message");
 
         Transaction tx = new Transaction();
-        tx.setBrokerId("different-broker");
-        when(transactionRepository.findByTransactionId(anyString())).thenReturn(Optional.of(tx));
+        tx.setBrokerId(UUID.randomUUID());
+        when(transactionRepository.findByTransactionId(any(UUID.class))).thenReturn(Optional.of(tx));
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionService.createNote("TX-123", noteDTO, "broker-1"))
+        assertThatThrownBy(() -> transactionService.createNote(UUID.randomUUID(), noteDTO, UUID.randomUUID()))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("You do not have access");
     }
@@ -399,25 +400,25 @@ class TransactionServiceImplTest {
     @Test
     void getBrokerTransactions_withValidBrokerId_returnsList() {
         // Arrange
-        String brokerId = "broker-1";
+        UUID brokerUuid = UUID.randomUUID();
         List<Transaction> transactions = List.of(new Transaction(), new Transaction());
-        when(transactionRepository.findAllByFilters(eq(brokerId), any(), any(), any())).thenReturn(transactions);
+        when(transactionRepository.findAllByFilters(eq(brokerUuid), any(), any(), any())).thenReturn(transactions);
 
         // Act
-        List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(brokerId, null, null, null);
+        List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(brokerUuid, null, null, null);
 
         // Assert
         assertThat(result).hasSize(2);
-        verify(transactionRepository).findAllByFilters(eq(brokerId), any(), any(), any());
+        verify(transactionRepository).findAllByFilters(eq(brokerUuid), any(), any(), any());
     }
 
     @Test
     void getBrokerTransactions_withNoBrokerTransactions_returnsEmptyList() {
         // Arrange
-        when(transactionRepository.findAllByFilters(anyString(), any(), any(), any())).thenReturn(List.of());
+        when(transactionRepository.findAllByFilters(any(UUID.class), any(), any(), any())).thenReturn(List.of());
 
         // Act
-        List<TransactionResponseDTO> result = transactionService.getBrokerTransactions("broker-1", null, null, null);
+        List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(UUID.randomUUID(), null, null, null);
 
         // Assert
         assertThat(result).isEmpty();
@@ -426,49 +427,49 @@ class TransactionServiceImplTest {
     @Test
     void getBrokerTransactions_withFilters_passesCorrectFilters() {
         // Arrange
-        String brokerId = "broker-1";
+        UUID brokerUuid = UUID.randomUUID();
         
         // Act
-        transactionService.getBrokerTransactions(brokerId, "ACTIVE", "BUY", "BUYER_PREQUALIFY_FINANCIALLY");
+        transactionService.getBrokerTransactions(brokerUuid, "ACTIVE", "BUY", "BUYER_PREQUALIFY_FINANCIALLY");
 
         // Assert
-        verify(transactionRepository).findAllByFilters(eq(brokerId), eq(TransactionStatus.ACTIVE), any(), any());
+        verify(transactionRepository).findAllByFilters(eq(brokerUuid), eq(TransactionStatus.ACTIVE), any(), any());
     }
 
     @Test
     void getBrokerTransactions_withInvalidStatus_passesNull() {
         // Arrange
-        String brokerId = "broker-1";
+        UUID brokerUuid = UUID.randomUUID();
 
         // Act
-        transactionService.getBrokerTransactions(brokerId, "INVALID_STATUS", null, null);
+        transactionService.getBrokerTransactions(brokerUuid, "INVALID_STATUS", null, null);
 
         // Assert
-        verify(transactionRepository).findAllByFilters(eq(brokerId), isNull(), isNull(), isNull());
+        verify(transactionRepository).findAllByFilters(eq(brokerUuid), isNull(), isNull(), isNull());
     }
     
     @Test
     void getBrokerTransactions_withSellSideFilter_passesCorrectFilters() {
         // Arrange
-        String brokerId = "broker-1";
+        UUID brokerUuid = UUID.randomUUID();
 
         // Act
-        transactionService.getBrokerTransactions(brokerId, null, "sell", "SELLER_INITIAL_CONSULTATION");
+        transactionService.getBrokerTransactions(brokerUuid, null, "sell", "SELLER_INITIAL_CONSULTATION");
 
         // Assert
-        verify(transactionRepository).findAllByFilters(eq(brokerId), isNull(), any(), any());
+        verify(transactionRepository).findAllByFilters(eq(brokerUuid), isNull(), any(), any());
     }
     
     @Test
     void getBrokerTransactions_withInvalidFilters_passesNulls() {
         // Arrange
-        String brokerId = "broker-1";
+        UUID brokerUuid = UUID.randomUUID();
 
         // Act
-        transactionService.getBrokerTransactions(brokerId, "invalid", "invalid", "invalid");
+        transactionService.getBrokerTransactions(brokerUuid, "invalid", "invalid", "invalid");
 
         // Assert
-        verify(transactionRepository).findAllByFilters(eq(brokerId), isNull(), isNull(), isNull());
+        verify(transactionRepository).findAllByFilters(eq(brokerUuid), isNull(), isNull(), isNull());
     }
 
     // ========== getByTransactionId Tests ==========
@@ -476,17 +477,17 @@ class TransactionServiceImplTest {
     @Test
     void getByTransactionId_withValidTransactionAndBrokerId_returnsTransaction() {
         // Arrange
-        String transactionId = "TX-123";
-        String brokerId = "broker-1";
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
         
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
-        tx.setBrokerId(brokerId);
-        tx.setClientId("client-1");
+        tx.setBrokerId(brokerUuid);
+        tx.setClientId(UUID.randomUUID());
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
 
         // Act
-        TransactionResponseDTO result = transactionService.getByTransactionId(transactionId, brokerId);
+        TransactionResponseDTO result = transactionService.getByTransactionId(transactionId, brokerUuid);
 
         // Assert
         assertThat(result).isNotNull();
@@ -495,10 +496,10 @@ class TransactionServiceImplTest {
     @Test
     void getByTransactionId_withNonExistentTransaction_throwsNotFoundException() {
         // Arrange
-        when(transactionRepository.findByTransactionId(anyString())).thenReturn(Optional.empty());
+        when(transactionRepository.findByTransactionId(any(UUID.class))).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionService.getByTransactionId("TX-999", "broker-1"))
+        assertThatThrownBy(() -> transactionService.getByTransactionId(UUID.randomUUID(), UUID.randomUUID()))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Transaction not found");
     }
@@ -507,12 +508,12 @@ class TransactionServiceImplTest {
     void getByTransactionId_withWrongBrokerId_throwsNotFoundException() {
         // Arrange
         Transaction tx = new Transaction();
-        tx.setBrokerId("different-broker");
-        tx.setClientId("client-1");
-        when(transactionRepository.findByTransactionId(anyString())).thenReturn(Optional.of(tx));
+        tx.setBrokerId(UUID.randomUUID());
+        tx.setClientId(UUID.randomUUID());
+        when(transactionRepository.findByTransactionId(any(UUID.class))).thenReturn(Optional.of(tx));
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionService.getByTransactionId("TX-123", "broker-1"))
+        assertThatThrownBy(() -> transactionService.getByTransactionId(UUID.randomUUID(), UUID.randomUUID()))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("You do not have access");
     }
@@ -522,19 +523,19 @@ class TransactionServiceImplTest {
     @Test
     void updateTransactionStage_BuySide_Success() {
         // Arrange
-        String transactionId = "TX-100";
-        String brokerId = "broker-1";
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
 
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
-        tx.setBrokerId(brokerId);
+        tx.setBrokerId(brokerUuid);
         tx.setSide(TransactionSide.BUY_SIDE);
         tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
         tx.setTimeline(new ArrayList<>());
 
         Transaction savedTx = new Transaction();
         savedTx.setTransactionId(transactionId);
-        savedTx.setBrokerId(brokerId);
+        savedTx.setBrokerId(brokerUuid);
         savedTx.setSide(TransactionSide.BUY_SIDE);
         savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
         savedTx.setTimeline(new ArrayList<>());
@@ -549,7 +550,8 @@ class TransactionServiceImplTest {
         dto.setNote("note");
 
         // Act
-        TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto, brokerId);
+        // Act
+        TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto, brokerUuid);
 
         // Assert
         assertThat(response).isNotNull();
@@ -560,19 +562,20 @@ class TransactionServiceImplTest {
     @Test
     void updateTransactionStage_SellSide_Success() {
         // Arrange
-        String transactionId = "TX-200";
-        String brokerId = "broker-1";
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
+
 
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
-        tx.setBrokerId(brokerId);
+        tx.setBrokerId(brokerUuid);
         tx.setSide(TransactionSide.SELL_SIDE);
         tx.setSellerStage(SellerStage.SELLER_INITIAL_CONSULTATION);
         tx.setTimeline(new ArrayList<>());
 
         Transaction savedTx = new Transaction();
         savedTx.setTransactionId(transactionId);
-        savedTx.setBrokerId(brokerId);
+        savedTx.setBrokerId(brokerUuid);
         savedTx.setSide(TransactionSide.SELL_SIDE);
         savedTx.setSellerStage(SellerStage.SELLER_REVIEW_OFFERS);
         savedTx.setTimeline(new ArrayList<>());
@@ -586,7 +589,7 @@ class TransactionServiceImplTest {
         dto.setNote("note");
 
         // Act
-        TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto, brokerId);
+        TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto, brokerUuid);
 
         // Assert
         assertThat(response).isNotNull();
@@ -597,19 +600,19 @@ class TransactionServiceImplTest {
     @Test
     void updateTransactionStage_WrongBroker_throwsNotFoundException() {
         // Arrange
-        String transactionId = "TX-300";
-        String brokerId = "broker-1";
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
 
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
-        tx.setBrokerId("other-broker");
+        tx.setBrokerId(UUID.randomUUID()); // Different broker
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
 
         StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
         dto.setStage("BUYER_OFFER_ACCEPTED");
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerUuid))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("You do not have access");
     }
@@ -617,12 +620,12 @@ class TransactionServiceImplTest {
     @Test
     void updateTransactionStage_InvalidStageEnum_throwsInvalidInputException() {
         // Arrange
-        String transactionId = "TX-400";
-        String brokerId = "broker-1";
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
 
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
-        tx.setBrokerId(brokerId);
+        tx.setBrokerId(brokerUuid);
         tx.setSide(TransactionSide.BUY_SIDE);
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
 
@@ -630,7 +633,7 @@ class TransactionServiceImplTest {
         dto.setStage("INVALID_STAGE");
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerUuid))
                 .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("not a valid");
     }
@@ -638,21 +641,20 @@ class TransactionServiceImplTest {
     @Test
     void updateTransactionStage_TimelineEntryVerified() {
         // Arrange
-        String transactionId = "TX-500";
-        String brokerId = "broker-1";
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
         String customNote = "Custom timeline note";
-        String newStage = "BUYER_FINANCING_FINALIZED";
 
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
-        tx.setBrokerId(brokerId);
+        tx.setBrokerId(brokerUuid);
         tx.setSide(TransactionSide.BUY_SIDE);
         tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
         tx.setTimeline(new ArrayList<>());
 
         Transaction savedTx = new Transaction();
         savedTx.setTransactionId(transactionId);
-        savedTx.setBrokerId(brokerId);
+        savedTx.setBrokerId(brokerUuid);
         savedTx.setSide(TransactionSide.BUY_SIDE);
         savedTx.setBuyerStage(BuyerStage.BUYER_FINANCING_FINALIZED);
         savedTx.setTimeline(new ArrayList<>());
@@ -662,17 +664,17 @@ class TransactionServiceImplTest {
         when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
 
         StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-        dto.setStage(newStage);
+        dto.setStage("BUYER_FINANCING_FINALIZED");
         dto.setNote(customNote);
 
         ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
-
+        
         // Act
-        TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto, brokerId);
+        TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto, brokerUuid);
 
         // Assert response
         assertThat(response).isNotNull();
-        assertThat(response.getCurrentStage()).isEqualTo(newStage);
+        assertThat(response.getCurrentStage()).isEqualTo("BUYER_FINANCING_FINALIZED");
 
         // Verify repository.save called and capture the saved transaction
         verify(transactionRepository).save(captor.capture());
@@ -684,7 +686,7 @@ class TransactionServiceImplTest {
         TimelineEntry last = captured.getTimeline().get(captured.getTimeline().size() - 1);
         assertThat(last.getType()).isEqualTo(TimelineEntryType.STAGE_CHANGE);
         assertThat(last.getVisibleToClient()).isTrue();
-        assertThat(last.getTitle()).contains(newStage);
+        assertThat(last.getTitle()).contains("BUYER_FINANCING_FINALIZED");
         assertThat(last.getNote()).isEqualTo(customNote);
     }
 
@@ -692,8 +694,8 @@ class TransactionServiceImplTest {
 
     private TransactionRequestDTO createValidBuyerTransactionDTO() {
         TransactionRequestDTO dto = new TransactionRequestDTO();
-        dto.setClientId("client-1");
-        dto.setBrokerId("broker-1");
+        dto.setClientId(UUID.randomUUID());
+        dto.setBrokerId(UUID.randomUUID());
         dto.setSide(TransactionSide.BUY_SIDE);
         dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
         
@@ -706,8 +708,8 @@ class TransactionServiceImplTest {
 
     private TransactionRequestDTO createValidSellerTransactionDTO() {
         TransactionRequestDTO dto = new TransactionRequestDTO();
-        dto.setClientId("client-2");
-        dto.setBrokerId("broker-1");
+        dto.setClientId(UUID.randomUUID());
+        dto.setBrokerId(UUID.randomUUID());
         dto.setSide(TransactionSide.SELL_SIDE);
         dto.setInitialStage("SELLER_INITIAL_CONSULTATION");
         

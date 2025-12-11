@@ -27,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -40,11 +41,39 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
     private final TransactionRepository transactionRepository;
     private final UserAccountRepository userAccountRepository;
 
-    public List<DocumentRequestResponseDTO> getDocumentsForTransaction(String transactionId, String userId) {
+    /**
+     * Helper to find a UserAccount by internal UUID.
+     * Now uses UUID directly since database enforces UUID type.
+     */
+    private Optional<UserAccount> resolveUserAccount(UUID id) {
+        if (id == null) return Optional.empty();
+        return userAccountRepository.findById(id);
+    }
+
+    /**
+     * Checks if the given userId (Internal UUID) has access to the transaction.
+     */
+    private boolean hasAccess(Transaction tx, UUID userId) {
+        if (userId == null) return false;
+        
+        try {
+            // Compare with broker and client UUIDs directly
+            boolean isBroker = tx.getBrokerId() != null && tx.getBrokerId().equals(userId);
+            boolean isClient = tx.getClientId() != null && tx.getClientId().equals(userId);
+            
+            return isBroker || isClient;
+        } catch (IllegalArgumentException e) {
+            // Invalid UUID format
+            return false;
+        }
+    }
+
+    @Override
+    public List<DocumentRequestResponseDTO> getDocumentsForTransaction(UUID transactionId, UUID userId) {
         Transaction tx = transactionRepository.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
 
-        if (!tx.getBrokerId().equals(userId) && !tx.getClientId().equals(userId)) {
+        if (!hasAccess(tx, userId)) {
             throw new NotFoundException("You do not have access to this transaction");
         }
 
@@ -54,20 +83,26 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
     }
 
     @Override
-    public List<DocumentRequestResponseDTO> getAllDocumentsForUser(String userId) {
+    public List<DocumentRequestResponseDTO> getAllDocumentsForUser(UUID userId) {
+        // This query relies on the DB storing the exact ID. 
+        // If we want to be fully robust, we might need to query by both Auth0 and UUID if possible,
+        // but for now, we assume the repository query handles what's in the DB.
+        // Given the requirement is mostly about Transaction access, this one might stay as is 
+        // OR we resolve the user first.
         return repository.findByUserId(userId).stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }
 
-    public DocumentRequestResponseDTO getDocumentRequest(String requestId, String userId) {
+    @Override
+    public DocumentRequestResponseDTO getDocumentRequest(UUID requestId, UUID userId) {
         DocumentRequest request = repository.findByRequestId(requestId)
                 .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
 
         Transaction tx = transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId())
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        if (!tx.getBrokerId().equals(userId) && !tx.getClientId().equals(userId)) {
+        if (!hasAccess(tx, userId)) {
             throw new NotFoundException("You do not have access to this document request");
         }
 
@@ -75,12 +110,12 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
     }
 
     @Transactional
-    public DocumentRequestResponseDTO createDocumentRequest(String transactionId, DocumentRequestRequestDTO requestDTO) {
+    public DocumentRequestResponseDTO createDocumentRequest(UUID transactionId, DocumentRequestRequestDTO requestDTO) {
         Transaction tx = transactionRepository.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
 
         DocumentRequest request = new DocumentRequest();
-        request.setRequestId(UUID.randomUUID().toString());
+        request.setRequestId(UUID.randomUUID());
         request.setTransactionRef(new TransactionRef(transactionId, tx.getClientId(), tx.getSide()));
         request.setDocType(requestDTO.getDocType());
         request.setCustomTitle(requestDTO.getCustomTitle());
@@ -93,10 +128,9 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         DocumentRequest savedRequest = repository.save(request);
 
         // Notify client via email
-        UserAccount client = userAccountRepository.findByAuth0UserId(tx.getClientId())
-                .orElse(null);
-        UserAccount broker = userAccountRepository.findByAuth0UserId(tx.getBrokerId())
-                .orElse(null);
+        // Resolve Client and Broker robustly
+        UserAccount client = resolveUserAccount(tx.getClientId()).orElse(null);
+        UserAccount broker = resolveUserAccount(tx.getBrokerId()).orElse(null);
 
         if (client != null && broker != null) {
             String documentName = requestDTO.getCustomTitle() != null ? 
@@ -116,7 +150,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
     }
 
     @Transactional
-    public DocumentRequestResponseDTO updateDocumentRequest(String requestId, DocumentRequestRequestDTO requestDTO) {
+    public DocumentRequestResponseDTO updateDocumentRequest(UUID requestId, DocumentRequestRequestDTO requestDTO) {
         DocumentRequest request = repository.findByRequestId(requestId)
                 .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
 
@@ -132,14 +166,14 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
     }
 
     @Transactional
-    public void deleteDocumentRequest(String requestId) {
+    public void deleteDocumentRequest(UUID requestId) {
         DocumentRequest request = repository.findByRequestId(requestId)
                 .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
         repository.delete(request);
     }
 
     @Transactional
-    public DocumentRequestResponseDTO submitDocument(String transactionId, String requestId, MultipartFile file, String uploaderId, UploadedByRefEnum uploaderType) throws IOException {
+    public DocumentRequestResponseDTO submitDocument(UUID transactionId, UUID requestId, MultipartFile file, UUID uploaderId, UploadedByRefEnum uploaderType) throws IOException {
         DocumentRequest request = repository.findByRequestId(requestId)
                 .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
 
@@ -150,7 +184,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         Transaction tx = transactionRepository.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
 
-        if (!tx.getBrokerId().equals(uploaderId) && !tx.getClientId().equals(uploaderId)) {
+        if (!hasAccess(tx, uploaderId)) {
             throw new NotFoundException("You do not have permission to upload documents for this transaction");
         }
 
@@ -159,11 +193,11 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         UploadedBy uploadedBy = UploadedBy.builder()
                 .uploaderType(uploaderType)
                 .uploaderId(uploaderId)
-                .party(request.getExpectedFrom()) // Assuming uploader matches expected party for now
+                .party(request.getExpectedFrom()) 
                 .build();
 
         SubmittedDocument submission = SubmittedDocument.builder()
-                .documentId(UUID.randomUUID().toString())
+                .documentId(UUID.randomUUID())
                 .uploadedAt(LocalDateTime.now())
                 .uploadedBy(uploadedBy)
                 .storageObject(storageObject)
@@ -177,15 +211,13 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         DocumentRequest savedRequest = repository.save(request);
 
         // Notify broker
-        // Transaction tx is already fetched above
-        
-        UserAccount broker = userAccountRepository.findByAuth0UserId(tx.getBrokerId())
+        UserAccount broker = resolveUserAccount(tx.getBrokerId())
                 .orElseThrow(() -> new NotFoundException("Broker not found: " + tx.getBrokerId()));
 
-        // Get uploader name (Client)
+        // Get uploader name
         String uploaderName = "Unknown Client";
         if (uploaderType == UploadedByRefEnum.CLIENT) {
-             uploaderName = userAccountRepository.findByAuth0UserId(uploaderId)
+             uploaderName = resolveUserAccount(uploaderId)
                     .map(u -> u.getFirstName() + " " + u.getLastName())
                     .orElse("Unknown Client");
         }
@@ -222,14 +254,14 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
     }
 
     @Override
-    public String getDocumentDownloadUrl(String requestId, String documentId, String userId) {
+    public String getDocumentDownloadUrl(UUID requestId, UUID documentId, UUID userId) {
         DocumentRequest request = repository.findByRequestId(requestId)
                 .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
 
         Transaction tx = transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId())
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        if (!tx.getBrokerId().equals(userId) && !tx.getClientId().equals(userId)) {
+        if (!hasAccess(tx, userId)) {
             throw new NotFoundException("You do not have access to this document");
         }
 

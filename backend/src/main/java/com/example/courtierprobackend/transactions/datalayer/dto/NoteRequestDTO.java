@@ -2,15 +2,18 @@ package com.example.courtierprobackend.transactions.datalayer.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import jakarta.validation.constraints.NotNull;
+
+import java.util.UUID;
 
 @Data
 public class NoteRequestDTO {
 
-    @NotBlank(message = "transactionId is required")
-    private String transactionId;
+    @NotNull(message = "transactionId is required")
+    private UUID transactionId;
 
-    @NotBlank(message = "actorId is required")
-    private String actorId;
+    @NotNull(message = "actorId is required")
+    private UUID actorId;
 
     @NotBlank(message = "title is required")
     private String title;

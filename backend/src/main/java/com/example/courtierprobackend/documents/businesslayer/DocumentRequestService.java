@@ -7,22 +7,23 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 public interface DocumentRequestService {
 
-    List<DocumentRequestResponseDTO> getDocumentsForTransaction(String transactionId, String userId);
+    List<DocumentRequestResponseDTO> getDocumentsForTransaction(UUID transactionId, UUID userId);
 
-    DocumentRequestResponseDTO getDocumentRequest(String requestId, String userId);
+    DocumentRequestResponseDTO getDocumentRequest(UUID requestId, UUID userId);
 
-    DocumentRequestResponseDTO createDocumentRequest(String transactionId, DocumentRequestRequestDTO requestDTO);
+    DocumentRequestResponseDTO createDocumentRequest(UUID transactionId, DocumentRequestRequestDTO requestDTO);
 
-    DocumentRequestResponseDTO updateDocumentRequest(String requestId, DocumentRequestRequestDTO requestDTO);
+    DocumentRequestResponseDTO updateDocumentRequest(UUID requestId, DocumentRequestRequestDTO requestDTO);
 
-    void deleteDocumentRequest(String requestId);
+    void deleteDocumentRequest(UUID requestId);
 
-    DocumentRequestResponseDTO submitDocument(String transactionId, String requestId, MultipartFile file, String uploaderId, UploadedByRefEnum uploaderType) throws IOException;
+    DocumentRequestResponseDTO submitDocument(UUID transactionId, UUID requestId, MultipartFile file, UUID uploaderId, UploadedByRefEnum uploaderType) throws IOException;
 
-    List<DocumentRequestResponseDTO> getAllDocumentsForUser(String userId);
+    List<DocumentRequestResponseDTO> getAllDocumentsForUser(UUID userId);
 
-    String getDocumentDownloadUrl(String requestId, String documentId, String userId);
+    String getDocumentDownloadUrl(UUID requestId, UUID documentId, UUID userId);
 }

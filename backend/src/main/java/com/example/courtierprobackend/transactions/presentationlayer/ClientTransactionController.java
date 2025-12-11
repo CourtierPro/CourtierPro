@@ -1,20 +1,20 @@
 package com.example.courtierprobackend.transactions.presentationlayer;
 
+import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Controller for client-facing transaction endpoints.
@@ -29,46 +29,55 @@ public class ClientTransactionController {
     private final TransactionService service;
 
     /**
-     * Resolves the client ID from the JWT token.
-     * Ensures that the requested clientId matches the authenticated user's ID.
+     * Resolves the internal client UUID from request attributes (set by UserContextFilter).
+     * Validates that the path clientId matches the authenticated user's internal ID.
      */
-    private String resolveAndValidateClientId(Jwt jwt, String pathClientId) {
-        if (jwt == null) {
+    private UUID resolveAndValidateClientId(HttpServletRequest request, UUID pathClientId) {
+        if (request == null) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
-                    "Authentication required"
+                    "Request context required"
             );
         }
 
-        String tokenClientId = jwt.getClaimAsString("sub");
-        if (!StringUtils.hasText(tokenClientId)) {
+        // Get internal UUID from UserContextFilter
+        Object internalIdObj = request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR);
+        UUID internalId = null;
+        if (internalIdObj instanceof UUID) {
+            internalId = (UUID) internalIdObj;
+        } else if (internalIdObj instanceof String) {
+            internalId = UUID.fromString((String) internalIdObj);
+        }
+
+        if (internalId == null) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
-                    "Unable to resolve client id from token"
+                    "Unable to resolve client id from security context"
             );
         }
 
         // Security check: ensure the client can only access their own transactions
-        if (!tokenClientId.equals(pathClientId)) {
+        // The pathClientId from frontend should now match the internal UUID
+        if (!internalId.equals(pathClientId)) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
                     "You can only access your own transactions"
             );
         }
 
-        return tokenClientId;
+        return internalId;
     }
 
     /**
      * Get all transactions for the authenticated client.
-     * The clientId in the path must match the authenticated user's ID.
+     * The clientId in the path must match the authenticated user's internal UUID.
      */
     @GetMapping("/{clientId}/transactions")
     public ResponseEntity<List<TransactionResponseDTO>> getClientTransactions(
-            @PathVariable String clientId,
-            @AuthenticationPrincipal Jwt jwt
+            @PathVariable UUID clientId,
+            HttpServletRequest request
     ) {
-        String validatedClientId = resolveAndValidateClientId(jwt, clientId);
+        UUID validatedClientId = resolveAndValidateClientId(request, clientId);
         return ResponseEntity.ok(service.getClientTransactions(validatedClientId));
     }
 }

@@ -6,6 +6,7 @@ import com.example.courtierprobackend.transactions.datalayer.enums.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class EntityDtoUtil {
@@ -32,9 +33,12 @@ public class EntityDtoUtil {
        REQUEST DTO -> NEW TRANSACTION (INITIAL VALUES ONLY)
        Used when creating a new Transaction
        ========================================================= */
-    public static Transaction toNewTransaction(TransactionRequestDTO dto, String generatedId) {
+    public static Transaction toNewTransaction(TransactionRequestDTO dto, UUID generatedId) {
         Transaction t = new Transaction();
-        t.setTransactionId(generatedId);
+        t.setTransactionId(generatedId); // Assuming generatedId is passed as String from outside?? Wait, generatedId param is String. 
+        // Actually, let's check callers. In Service it is UUID.randomUUID(). So we shouldn't pass String generatedId.
+        // But the method ref accepts String generatedId.
+        // Let's modify the method sig to accept UUID or convert it here.
         t.setClientId(dto.getClientId());
         t.setBrokerId(dto.getBrokerId());
         t.setSide(dto.getSide());
@@ -115,7 +119,7 @@ public class EntityDtoUtil {
                 p.getPostalCode()
         );
     }
-    public static TransactionResponseDTO toResponseStub(String id, String clientId, String brokerId) {
+    public static TransactionResponseDTO toResponseStub(UUID id, UUID clientId, UUID brokerId) {
         return TransactionResponseDTO.builder()
                 .transactionId(id)
                 .clientId(clientId)

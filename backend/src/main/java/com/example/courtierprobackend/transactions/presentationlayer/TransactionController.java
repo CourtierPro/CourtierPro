@@ -7,7 +7,9 @@ import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO;
 
+import com.example.courtierprobackend.security.UserContextFilter;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.*;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/transactions")
@@ -27,51 +30,48 @@ public class TransactionController {
 
     private final TransactionService service;
 
-    // -------- UserId extraction (PROD = Auth0, DEV = x-broker-id / x-user-id) --------
-    private String resolveUserId(Jwt jwt, String headerId) {
-
-        // DEV mode: header
+    // Helper to extract user ID (returns UUID)
+    private UUID resolveUserId(Jwt jwt, String headerId, HttpServletRequest request) {
         if (StringUtils.hasText(headerId)) {
-            return headerId;
+            return UUID.fromString(headerId);
         }
-
-        // PROD mode: Auth0 token
-        if (jwt != null) {
-            String fromToken = jwt.getClaimAsString("sub");
-            if (StringUtils.hasText(fromToken)) {
-                return fromToken;
+        if (request != null) {
+            Object internalId = request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR);
+            if (internalId instanceof UUID) {
+                return (UUID) internalId;
+            } else if (internalId instanceof String) {
+                return UUID.fromString((String) internalId);
             }
         }
-
-        throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Unable to resolve broker id from token or header"
-        );
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unable to resolve user id from security context");
     }
 
     @PostMapping
     @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<TransactionResponseDTO> createTransaction(
-            @Valid @RequestBody TransactionRequestDTO dto,
+            @Valid @RequestBody TransactionRequestDTO transactionDTO,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request
     ) {
-        String brokerId = resolveUserId(jwt, brokerHeader);
-        dto.setBrokerId(brokerId);
+        UUID brokerId = resolveUserId(jwt, brokerHeader, request);
+        // Force brokerId from token/header onto DTO to prevent spoofing
+        transactionDTO.setBrokerId(brokerId);
 
-        TransactionResponseDTO response = service.createTransaction(dto);
+        TransactionResponseDTO response = service.createTransaction(transactionDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/{transactionId}/notes")
     @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<TimelineEntryDTO> createNote(
-            @PathVariable String transactionId,
+            @PathVariable UUID transactionId,
             @Valid @RequestBody NoteRequestDTO note,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request
     ) {
-        String brokerId = resolveUserId(jwt, brokerHeader);
+        UUID brokerId = resolveUserId(jwt, brokerHeader, request);
         note.setTransactionId(transactionId);
 
         TimelineEntryDTO created = service.createNote(transactionId, note, brokerId);
@@ -81,11 +81,12 @@ public class TransactionController {
     @GetMapping("/{transactionId}/notes")
     @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<List<TimelineEntryDTO>> getNotes(
-            @PathVariable String transactionId,
+            @PathVariable UUID transactionId,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request
     ) {
-        String brokerId = resolveUserId(jwt, brokerHeader);
+        UUID brokerId = resolveUserId(jwt, brokerHeader, request);
         return ResponseEntity.ok(service.getNotes(transactionId, brokerId));
     }
 
@@ -96,32 +97,35 @@ public class TransactionController {
             @RequestParam(required = false) String stage,
             @RequestParam(required = false) String side,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request
     ) {
-        String brokerId = resolveUserId(jwt, brokerHeader);
+        UUID brokerId = resolveUserId(jwt, brokerHeader, request);
         return ResponseEntity.ok(service.getBrokerTransactions(brokerId, status, stage, side));
     }
 
     @GetMapping("/{transactionId}")
     @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
     public ResponseEntity<TransactionResponseDTO> getTransactionById(
-            @PathVariable String transactionId,
+            @PathVariable UUID transactionId,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request
     ) {
-        String userId = resolveUserId(jwt, brokerHeader);
+        UUID userId = resolveUserId(jwt, brokerHeader, request);
         return ResponseEntity.ok(service.getByTransactionId(transactionId, userId));
     }
 
     @PatchMapping("/{transactionId}/stage")
     @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<TransactionResponseDTO> updateTransactionStage(
-            @PathVariable String transactionId,
+            @PathVariable UUID transactionId,
             @Valid @RequestBody StageUpdateRequestDTO dto,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
-            @AuthenticationPrincipal Jwt jwt
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request
     ) {
-        String brokerId = resolveUserId(jwt, brokerHeader);
+        UUID brokerId = resolveUserId(jwt, brokerHeader, request);
 
         TransactionResponseDTO updated = service.updateTransactionStage(transactionId, dto, brokerId);
         return ResponseEntity.ok(updated);

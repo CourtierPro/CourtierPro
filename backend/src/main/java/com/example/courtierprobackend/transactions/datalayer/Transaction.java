@@ -6,6 +6,7 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "transactions")
@@ -19,10 +20,10 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String transactionId;
+    private UUID transactionId;
 
-    private String clientId;
-    private String brokerId;
+    private UUID clientId;
+    private UUID brokerId;
 
     @Embedded
     private PropertyAddress propertyAddress;

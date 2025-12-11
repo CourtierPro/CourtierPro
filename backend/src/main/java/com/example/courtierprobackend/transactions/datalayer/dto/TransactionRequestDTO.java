@@ -6,14 +6,16 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Data
 public class TransactionRequestDTO {
 
-    @NotBlank(message = "clientId is required")
-    private String clientId;
+    @NotNull(message = "clientId is required")
+    private UUID clientId;
 
     // NOTE: brokerId is NOT part of request body in your controller — set by header
-    private String brokerId;
+    private UUID brokerId;
 
     @NotNull(message = "side is required")
     private TransactionSide side;

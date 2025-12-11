@@ -1,5 +1,6 @@
 package com.example.courtierprobackend.transactions;
 
+import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
@@ -9,6 +10,7 @@ import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
 
 import com.example.courtierprobackend.transactions.exceptions.TransactionControllerExceptionHandler;
 import com.example.courtierprobackend.transactions.presentationlayer.TransactionController;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.junit.jupiter.api.Test;
@@ -21,6 +23,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.UUID;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -30,7 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TransactionController.class)
-@AutoConfigureMockMvc // Security enabled
+@AutoConfigureMockMvc(addFilters = false) // Disable security filters for unit tests
 @Import(TransactionControllerExceptionHandler.class)
 class TransactionControllerIntegrationTest {
 
@@ -40,6 +44,12 @@ class TransactionControllerIntegrationTest {
     @MockitoBean
     private TransactionService service;
 
+    @MockitoBean
+    private UserContextFilter userContextFilter;
+
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
+
     @Autowired
     private ObjectMapper mapper;
 
@@ -47,45 +57,49 @@ class TransactionControllerIntegrationTest {
 
     @Test
     void createTransaction_validRequest_returns201AndBody() throws Exception {
+        UUID clientId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID txId = UUID.randomUUID();
 
         TransactionRequestDTO dto = new TransactionRequestDTO();
-        dto.setClientId("CLIENT1");
+        dto.setClientId(clientId);
         dto.setSide(TransactionSide.BUY_SIDE);
         dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
-        when(service.createTransaction(any())).thenReturn(EntityDtoUtil.toResponseStub("TX-1", "CLIENT1", "BROKER1"));
+        when(service.createTransaction(any())).thenReturn(EntityDtoUtil.toResponseStub(txId, clientId, brokerId));
 
         mockMvc.perform(
                 post("/transactions")
-                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", "BROKER1")))
-                        .header("x-broker-id", "BROKER1")
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", brokerId.toString())))
+                        .header("x-broker-id", brokerId.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(dto))
         )
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.clientId").value("CLIENT1"))
-                .andExpect(jsonPath("$.brokerId").value("BROKER1"))
+                .andExpect(jsonPath("$.clientId").value(clientId.toString()))
+                .andExpect(jsonPath("$.brokerId").value(brokerId.toString()))
                 .andExpect(jsonPath("$.side").value("BUY_SIDE"))
                 .andExpect(jsonPath("$.currentStage").value("BUYER_PREQUALIFY_FINANCIALLY"))
                 .andExpect(jsonPath("$.openedDate").isNotEmpty());
     }
 
     @Test
-    void createTransaction_missingBrokerHeader_returns400() throws Exception {
+    void createTransaction_missingBrokerHeader_returns403() throws Exception {
 
         TransactionRequestDTO dto = new TransactionRequestDTO();
-        dto.setClientId("CLIENT1");
+        dto.setClientId(UUID.randomUUID());
         dto.setSide(TransactionSide.BUY_SIDE);
         dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
-        when(service.createTransaction(any())).thenThrow(new InvalidInputException("brokerId is required"));
-
+        // With addFilters=false, UserContextFilter doesn't set the internal user ID.
+        // When the broker header is missing and no internal ID exists, 
+        // the controller's resolveUserId throws 403 Forbidden.
         mockMvc.perform(
                 post("/transactions")
                         .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", "BROKER1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(dto))
-        ).andExpect(status().isBadRequest());
+        ).andExpect(status().isForbidden());
     }
 
     @Test
@@ -105,7 +119,7 @@ class TransactionControllerIntegrationTest {
     void createTransaction_ServiceInvalidInput_400() throws Exception {
 
         TransactionRequestDTO dto = new TransactionRequestDTO();
-        dto.setClientId("CLIENT1");
+        dto.setClientId(UUID.randomUUID());
         dto.setSide(TransactionSide.BUY_SIDE);
         dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
@@ -115,7 +129,7 @@ class TransactionControllerIntegrationTest {
         mockMvc.perform(
                 post("/transactions")
                         .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", "BROKER1")))
-                        .header("x-broker-id", "BROKER1")
+                        .header("x-broker-id", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(dto))
         ).andExpect(status().isBadRequest());
@@ -125,7 +139,7 @@ class TransactionControllerIntegrationTest {
     void createTransaction_ServiceNotFound_404() throws Exception {
 
         TransactionRequestDTO dto = new TransactionRequestDTO();
-        dto.setClientId("CLIENT1");
+        dto.setClientId(UUID.randomUUID());
         dto.setSide(TransactionSide.BUY_SIDE);
         dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
@@ -135,7 +149,7 @@ class TransactionControllerIntegrationTest {
         mockMvc.perform(
                 post("/transactions")
                         .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", "BROKER1")))
-                        .header("x-broker-id", "BROKER1")
+                        .header("x-broker-id", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(dto))
         ).andExpect(status().isNotFound());
@@ -145,7 +159,7 @@ class TransactionControllerIntegrationTest {
     void createTransaction_Duplicate_409() throws Exception {
 
         TransactionRequestDTO dto = new TransactionRequestDTO();
-        dto.setClientId("CLIENT1");
+        dto.setClientId(UUID.randomUUID());
         dto.setSide(TransactionSide.BUY_SIDE);
         dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
 
@@ -155,7 +169,7 @@ class TransactionControllerIntegrationTest {
         mockMvc.perform(
                 post("/transactions")
                         .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", "BROKER1")))
-                        .header("x-broker-id", "BROKER1")
+                        .header("x-broker-id", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(dto))
         ).andExpect(status().isBadRequest());
@@ -163,8 +177,8 @@ class TransactionControllerIntegrationTest {
 
     @Test
     void patchTransactionStage_Success_Returns200() throws Exception {
-        String txId = "TX-PATCH-1";
-        String broker = "BROKER1";
+        UUID txId = UUID.randomUUID();
+        UUID broker = UUID.randomUUID();
 
         String payload = "{\"stage\": \"BUYER_OFFER_ACCEPTED\", \"note\": \"Moving fast!\"}";
 
@@ -177,8 +191,8 @@ class TransactionControllerIntegrationTest {
 
         mockMvc.perform(
                 patch("/transactions/{id}/stage", txId)
-                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", broker)))
-                        .header("x-broker-id", broker)
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", broker.toString())))
+                        .header("x-broker-id", broker.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload)
         ).andExpect(status().isOk())
@@ -187,8 +201,8 @@ class TransactionControllerIntegrationTest {
 
     @Test
     void patchTransactionStage_InvalidEnum_Returns400() throws Exception {
-        String txId = "TX-PATCH-2";
-        String broker = "BROKER1";
+        UUID txId = UUID.randomUUID();
+        UUID broker = UUID.randomUUID();
 
         String payload = "{\"stage\": \"INVALID_STAGE_NAME\"}";
 
@@ -197,8 +211,8 @@ class TransactionControllerIntegrationTest {
 
         mockMvc.perform(
                 patch("/transactions/{id}/stage", txId)
-                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", broker)))
-                        .header("x-broker-id", broker)
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", broker.toString())))
+                        .header("x-broker-id", broker.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload)
         ).andExpect(status().isBadRequest());

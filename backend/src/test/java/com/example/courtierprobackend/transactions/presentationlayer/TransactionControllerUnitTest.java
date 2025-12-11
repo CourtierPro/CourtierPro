@@ -1,5 +1,6 @@
 package com.example.courtierprobackend.transactions.presentationlayer;
 
+import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
@@ -10,14 +11,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.Instant;
-
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,8 +37,10 @@ class TransactionControllerUnitTest {
     @Test
     void patchTransactionStage_Success() {
         // Arrange
-        String txId = "TX-1";
-        String brokerHeader = "broker-1";
+        UUID txId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
+        String brokerHeader = brokerUuid.toString();
+        MockHttpServletRequest request = new MockHttpServletRequest();
 
         StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
         dto.setStage("BUYER_OFFER_ACCEPTED");
@@ -48,28 +51,57 @@ class TransactionControllerUnitTest {
                 .currentStage("BUYER_OFFER_ACCEPTED")
                 .build();
 
-        when(transactionService.updateTransactionStage(eq(txId), any(StageUpdateRequestDTO.class), eq(brokerHeader))).thenReturn(resp);
+        when(transactionService.updateTransactionStage(eq(txId), any(StageUpdateRequestDTO.class), eq(brokerUuid))).thenReturn(resp);
 
         // Act
-        ResponseEntity<TransactionResponseDTO> response = controller.updateTransactionStage(txId, dto, brokerHeader, null);
+        ResponseEntity<TransactionResponseDTO> response = controller.updateTransactionStage(txId, dto, brokerHeader, null, request);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getCurrentStage()).isEqualTo("BUYER_OFFER_ACCEPTED");
-        verify(transactionService).updateTransactionStage(eq(txId), any(StageUpdateRequestDTO.class), eq(brokerHeader));
+        verify(transactionService).updateTransactionStage(eq(txId), any(StageUpdateRequestDTO.class), eq(brokerUuid));
+    }
+
+    @Test
+    void patchTransactionStage_WithInternalId_Success() {
+        // Arrange
+        UUID txId = UUID.randomUUID();
+        UUID internalId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(internalId);
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OFFER_ACCEPTED");
+        dto.setNote("Note");
+
+        TransactionResponseDTO resp = TransactionResponseDTO.builder()
+                .transactionId(txId)
+                .currentStage("BUYER_OFFER_ACCEPTED")
+                .build();
+
+        when(transactionService.updateTransactionStage(eq(txId), any(StageUpdateRequestDTO.class), eq(internalId))).thenReturn(resp);
+
+        // Act
+        ResponseEntity<TransactionResponseDTO> response = controller.updateTransactionStage(txId, dto, null, null, request);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        verify(transactionService).updateTransactionStage(eq(txId), any(StageUpdateRequestDTO.class), eq(internalId));
     }
 
     @Test
     void patchTransactionStage_Unauthorized_whenNoBrokerHeaderOrJwt_throwsForbidden() {
         // Arrange
-        String txId = "TX-1";
+        UUID txId = UUID.randomUUID();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        // No internal ID set
 
         StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
         dto.setStage("BUYER_OFFER_ACCEPTED");
 
         // Act & Assert
-        assertThatThrownBy(() -> controller.updateTransactionStage(txId, dto, null, null))
+        assertThatThrownBy(() -> controller.updateTransactionStage(txId, dto, null, null, request))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> {
                     ResponseStatusException rse = (ResponseStatusException) ex;
@@ -79,13 +111,11 @@ class TransactionControllerUnitTest {
         verifyNoInteractions(transactionService);
     }
 
-    // helper to create Jwt if needed in future tests
-    private Jwt createJwt(String subject) {
-        return Jwt.withTokenValue("token")
-                .header("alg", "RS256")
-                .subject(subject)
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(3600))
-                .build();
+    // ========== Helper Methods ==========
+
+    private MockHttpServletRequest createRequestWithInternalId(UUID internalId) {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR, internalId);
+        return request;
     }
 }

@@ -2,6 +2,8 @@ package com.example.courtierprobackend.audit.passwordresetaudit.presentationlaye
 
 import com.example.courtierprobackend.audit.passwordresetaudit.businesslayer.PasswordResetAuditService;
 import com.example.courtierprobackend.audit.passwordresetaudit.dataaccesslayer.PasswordResetEvent;
+import com.example.courtierprobackend.security.UserContextFilter;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -27,6 +29,12 @@ class AdminPasswordResetAuditControllerTest {
 
     @MockBean
     private PasswordResetAuditService passwordResetAuditService;
+
+    @MockBean
+    private UserContextFilter userContextFilter;
+
+    @MockBean
+    private UserAccountRepository userAccountRepository;
 
     @Test
     @WithMockUser(roles = "ADMIN")
@@ -149,8 +157,4 @@ class AdminPasswordResetAuditControllerTest {
                 .andExpect(jsonPath("$[2].userId").value("auth0|user3"))
                 .andExpect(jsonPath("$[2].userAgent").value("Safari"));
     }
-
-    // Note: Role-based access control tests are skipped with @WebMvcTest
-    // as it doesn't load the full SecurityConfig. These are covered by
-    // integration tests or manual testing with real security configuration.
 }
