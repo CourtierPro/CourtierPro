@@ -15,11 +15,11 @@ interface TransactionFiltersProps {
     sideFilter: 'all' | 'buy' | 'sell';
     statusFilter: 'all' | 'active' | 'closed' | 'terminated';
     stageFilter: string;
-    sortBy: 'dateAsc' | 'dateDesc' | 'nameAsc' | 'nameDesc';
+    sortBy: 'dateAsc' | 'dateDesc';
     onSideFilterChange: (value: 'all' | 'buy' | 'sell') => void;
     onStatusFilterChange: (value: 'all' | 'active' | 'closed' | 'terminated') => void;
     onStageFilterChange: (value: string) => void;
-    onSortByChange: (value: 'dateAsc' | 'dateDesc' | 'nameAsc' | 'nameDesc') => void;
+    onSortByChange: (value: 'dateAsc' | 'dateDesc') => void;
     onResetFilters: () => void;
     hasActiveFilters: boolean;
 }
@@ -138,12 +138,7 @@ export function TransactionFilters({
                         <SelectContent>
                             <SelectItem value="dateDesc">{t('dateOpenedDesc')}</SelectItem>
                             <SelectItem value="dateAsc">{t('dateOpenedAsc')}</SelectItem>
-                            <SelectItem value="nameAsc" disabled>
-                                {t('clientNameAsc')} (Not available)
-                            </SelectItem>
-                            <SelectItem value="nameDesc" disabled>
-                                {t('clientNameDesc')} (Not available)
-                            </SelectItem>
+                                {/* Name sorting not supported for client view */}
                         </SelectContent>
                     </Select>
                 </div>

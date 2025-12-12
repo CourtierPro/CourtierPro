@@ -25,7 +25,7 @@ export function ClientTransactionList({ onNavigate }: ClientTransactionListProps
   const [sideFilter, setSideFilter] = useState<'all' | 'buy' | 'sell'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed' | 'terminated'>('all');
   const [stageFilter, setStageFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc' | 'nameAsc' | 'nameDesc'>('dateDesc');
+  const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc'>('dateDesc');
   const [currentPage, setCurrentPage] = useState(1);
 
   const { t, i18n } = useTranslation('transactions');

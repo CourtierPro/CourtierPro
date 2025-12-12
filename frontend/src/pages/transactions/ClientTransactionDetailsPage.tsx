@@ -20,9 +20,8 @@ export function ClientTransactionDetailsPage() {
   const { t } = useTranslation('transactions');
   const { user } = useAuth0();
   const role = getRoleFromUser(user);
-  const isClient = role === "client";
   const isBroker = role === "broker";
-  const isReadOnly = isClient;
+  const isReadOnly = role === "client";
   const canReview = isBroker;
   const canUpload = false; // Clients can only view in this experience
 
