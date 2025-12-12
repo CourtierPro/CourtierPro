@@ -1,4 +1,10 @@
 {
     "title": "Notifications",
-    "subtitle": "Ceci est la page pour voir toutes les notifications dans CourtierPro."
+    "subtitle": "Gérez vos alertes et mises à jour",
+    "empty": "Vous n'avez aucune notification.",
+    "new": "Nouveau",
+    "markAsRead": "Marquer comme lu",
+    "viewAll": "Voir toutes les notifications",
+    "close": "Fermer",
+    "noNotifications": "Aucune notification"
 }
