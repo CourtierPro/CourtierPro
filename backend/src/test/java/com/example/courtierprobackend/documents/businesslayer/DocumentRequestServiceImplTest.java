@@ -153,7 +153,7 @@ class DocumentRequestServiceImplTest {
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getDocType()).isEqualTo(DocumentTypeEnum.BANK_STATEMENT);
-        verify(emailService).sendDocumentRequestedNotification(anyString(), anyString(), anyString(), anyString());
+        verify(emailService).sendDocumentRequestedNotification(anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
     }
 
     // ========== submitDocument Tests ==========
@@ -203,7 +203,7 @@ class DocumentRequestServiceImplTest {
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.SUBMITTED);
-        verify(emailService).sendDocumentSubmittedNotification(any(), eq("broker@test.com"), eq("John Doe"), anyString());
+        verify(emailService).sendDocumentSubmittedNotification(any(), eq("broker@test.com"), eq("John Doe"), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -267,7 +267,7 @@ class DocumentRequestServiceImplTest {
 
         assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.APPROVED);
         assertThat(result.getBrokerNotes()).isNull();
-        verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class), eq("client@test.com"), eq("Jane Broker"), eq("Bank Statement"));
+        verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class), eq("client@test.com"), eq("Jane Broker"), eq("Bank Statement"), anyString(), anyString());
     }
 
     @Test
@@ -308,7 +308,7 @@ class DocumentRequestServiceImplTest {
 
         assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.NEEDS_REVISION);
         assertThat(result.getBrokerNotes()).isEqualTo("Please update dates");
-        verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class), eq("client@test.com"), eq("Jane Broker"), eq("PAY_STUBS"));
+        verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class), eq("client@test.com"), eq("Jane Broker"), eq("PAY_STUBS"), anyString(), anyString());
     }
 
     // ========== getDocumentDownloadUrl Tests ==========

@@ -121,7 +121,7 @@ class EmailServiceTest {
 
         try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
             // Act
-            emailService.sendDocumentSubmittedNotification(request, "broker@example.com", "John Doe", "Tax Return");
+            emailService.sendDocumentSubmittedNotification(request, "broker@example.com", "John Doe", "Tax Return", "PAY_STUBS", "en");
 
             // Assert
             transportMock.verify(() -> Transport.send(any()), times(1));
@@ -132,7 +132,7 @@ class EmailServiceTest {
     void sendDocumentRequestedNotification_SendsEmail() {
         try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
             // Act
-            emailService.sendDocumentRequestedNotification("client@example.com", "Client Name", "Broker Name", "ID Document");
+            emailService.sendDocumentRequestedNotification("client@example.com", "Client Name", "Broker Name", "ID Document", "ID_VERIFICATION", "en");
 
             // Assert
             transportMock.verify(() -> Transport.send(any()), times(1));
@@ -152,7 +152,9 @@ class EmailServiceTest {
                     request,
                     "client@example.com",
                     "Broker Name",
-                    "Proof of Income"
+                        "Proof of Income",
+                        "PAY_STUBS",
+                        "en"
             );
 
             ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
@@ -180,7 +182,9 @@ class EmailServiceTest {
                     request,
                     "client@example.com",
                     "Jane Broker",
-                    "Bank Statement"
+                        "Bank Statement",
+                        "BANK_STATEMENT",
+                        "en"
             );
 
             ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
