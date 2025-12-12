@@ -27,7 +27,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
   const [sideFilter, setSideFilter] = useState<'all' | 'buy' | 'sell'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed' | 'terminated'>('all');
   const [stageFilter, setStageFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc' | 'nameAsc' | 'nameDesc'>('dateDesc');
+  const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc'>('dateDesc');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
@@ -63,7 +63,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     setCurrentPage(1);
   };
 
-  const handleSortByChange = (value: 'dateAsc' | 'dateDesc' | 'nameAsc' | 'nameDesc') => {
+  const handleSortByChange = (value: 'dateAsc' | 'dateDesc') => {
     setSortBy(value);
     setCurrentPage(1);
   };

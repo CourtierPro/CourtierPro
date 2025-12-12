@@ -130,7 +130,7 @@ export function TransactionFilters({
                     </label>
                     <Select
                         value={sortBy}
-                        onValueChange={(value) => onSortByChange(value as 'dateAsc' | 'dateDesc' | 'nameAsc' | 'nameDesc')}
+                        onValueChange={(value) => onSortByChange(value as 'dateAsc' | 'dateDesc')}
                     >
                         <SelectTrigger id="sort-by" className="w-full">
                             <SelectValue />
