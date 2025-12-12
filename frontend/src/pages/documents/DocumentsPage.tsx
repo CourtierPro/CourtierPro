@@ -20,9 +20,10 @@ import { getRoleFromUser } from "@/features/auth/roleUtils";
 
 interface DocumentsPageProps {
   transactionId: string;
+  focusDocumentId?: string | null;
 }
 
-export function DocumentsPage({ transactionId }: DocumentsPageProps) {
+export function DocumentsPage({ transactionId, focusDocumentId }: DocumentsPageProps) {
   const { t } = useTranslation('documents');
   const { user } = useAuth0();
   const role = getRoleFromUser(user);
@@ -95,7 +96,12 @@ export function DocumentsPage({ transactionId }: DocumentsPageProps) {
           />
         </Section>
       ) : (
-        <DocumentList documents={documents} onUpload={canUpload ? handleUploadClick : undefined} onReview={canReview ? handleReviewClick : undefined} />
+        <DocumentList
+          documents={documents}
+          onUpload={canUpload ? handleUploadClick : undefined}
+          onReview={canReview ? handleReviewClick : undefined}
+          focusDocumentId={focusDocumentId}
+        />
       )}
 
       <RequestDocumentModal

@@ -22,7 +22,22 @@
     "home": "Accueil",
     "dashboard": "Tableau de bord",
     "settings": "Paramètres",
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "profile": "Profil",
+    "transactions": "Transactions",
+    "documents": "Documents",
+    "contacts": "Contacts",
+    "manageAccount": "Gérer votre compte",
+    "appPreferences": "Préférences de l'application",
+    "viewAllDocuments": "Voir tous les documents",
+    "directory": "Répertoire",
+    "list": "Liste"
+  },
+  "search": {
+    "placeholder": "Tapez pour rechercher...",
+    "searching": "Recherche en cours...",
+    "noResults": "Aucun résultat trouvé.",
+    "suggestions": "Suggestions"
   },
   "auth": {
     "sessionExpired": "Votre session a expiré en raison d'inactivité.",
