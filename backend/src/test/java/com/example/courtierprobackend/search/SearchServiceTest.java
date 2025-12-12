@@ -165,6 +165,7 @@ class SearchServiceTest {
         assertThat(results).hasSize(1);
         assertThat(results.get(0).getType()).isEqualTo(SearchResultDTO.SearchResultType.DOCUMENT);
         assertThat(results.get(0).getTitle()).isEqualTo("Promise to Purchase");
+        assertThat(results.get(0).getSubtitle()).isEqualTo("123 Main St");
     }
 
     // ========== Linked User Search Tests ==========

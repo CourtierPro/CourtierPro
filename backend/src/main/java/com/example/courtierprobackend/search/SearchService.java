@@ -75,7 +75,6 @@ public class SearchService {
         documentRequestRepository.findByRequestId(documentId).ifPresent(d -> {
             boolean isClient = d.getTransactionRef().getClientId().equals(userId);
             
-            // Single transaction fetch optimization
             Transaction t = transactionRepository
                     .findByTransactionId(d.getTransactionRef().getTransactionId())
                     .orElse(null);
@@ -176,14 +175,14 @@ public class SearchService {
     }
 
     private Map<UUID, Transaction> fetchTransactionMap(List<DocumentRequest> documents) {
+        if (documents.isEmpty()) {
+            return Map.of();
+        }
+
         List<UUID> transactionIds = documents.stream()
                 .map(d -> d.getTransactionRef().getTransactionId())
                 .distinct()
                 .collect(Collectors.toList());
-
-        if (transactionIds.isEmpty()) {
-            return Map.of();
-        }
 
         return transactionRepository.findByTransactionIdIn(transactionIds).stream()
                 .collect(Collectors.toMap(Transaction::getTransactionId, t -> t));

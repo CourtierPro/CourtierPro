@@ -1,6 +1,6 @@
-import * as React from "react"
-import { Search, Loader2, File, User, Building, LayoutDashboard } from "lucide-react"
-import { useTranslation } from "react-i18next"
+import * as React from "react";
+import { Search, Loader2, File, User, Building, LayoutDashboard } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import {
     CommandDialog,
@@ -10,7 +10,7 @@ import {
     CommandItem,
     CommandList,
 } from "@/shared/components/ui/command"
-import { useGlobalSearch, type SearchResultType } from "@/features/search/hooks/useGlobalSearch"
+import { useGlobalSearch, type SearchResultType } from "@/features/search/hooks/useGlobalSearch";
 
 export function GlobalSearch() {
     const { t } = useTranslation("common")
@@ -82,7 +82,7 @@ export function GlobalSearch() {
                                 key={`${result.type}-${result.id}`}
                                 value={result.title + " " + result.subtitle}
                                 onSelect={() => handleSelect(result)}
-                                aria-label={`${result.type}: ${result.title}, ${result.subtitle}`}
+                                aria-label={`${result.title}: ${result.subtitle}, ${result.type}`}
                             >
                                 {getIcon(result.type)}
                                 <div className="flex flex-col">
