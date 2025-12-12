@@ -42,5 +42,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByClientIdIn(java.util.List<UUID> clientIds);
 
     List<Transaction> findByTransactionIdIn(java.util.List<UUID> transactionIds);
+
+    @org.springframework.data.jpa.repository.Query("SELECT t FROM Transaction t WHERE " +
+            "(t.clientId IN :userIds OR t.brokerId IN :userIds) AND " +
+            "(t.brokerId = :requesterId OR t.clientId = :requesterId)")
+    List<Transaction> findLinkedToUsers(@org.springframework.data.repository.query.Param("userIds") java.util.List<UUID> userIds,
+                                        @org.springframework.data.repository.query.Param("requesterId") UUID requesterId);
 }
 

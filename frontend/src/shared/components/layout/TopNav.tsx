@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Globe, Bell, Menu, ChevronDown } from "lucide-react";
+import { Globe, Bell, Menu, ChevronDown, Search } from "lucide-react";
+import { useSearchContext } from "@/features/search/context/SearchContext";
 import { formatDateTime } from '@/shared/utils/date';
 import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/components/ui/button";
@@ -36,6 +37,7 @@ export function TopNav({
   unreadCount: unreadCountProp,
 }: TopNavProps) {
   const { t } = useTranslation("topnav");
+  const { setIsOpen } = useSearchContext();
 
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -145,6 +147,19 @@ export function TopNav({
 
       {/* Right section */}
       <div className="flex items-center gap-2 md:gap-4">
+        {/* Search Trigger */}
+        <Button
+          variant="outline"
+          className="relative h-9 w-9 p-0 md:h-9 md:w-60 md:justify-start md:px-3 md:text-muted-foreground"
+          onClick={() => setIsOpen(true)}
+        >
+          <Search className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline-flex">{t("searchPlaceholder", "Search...")}</span>
+          <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-6 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 md:flex">
+            <span className="text-xs">⌘</span>K
+          </kbd>
+        </Button>
+
         <ModeToggle />
         {/* Language selector */}
         <div className="relative" ref={languageRef}>

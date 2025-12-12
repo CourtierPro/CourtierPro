@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/app/providers/ThemeProvider";
 import { queryClient } from "@/shared/api/queryClient";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
+import { SearchProvider } from "@/features/search/context/SearchContext";
 
 // Auth0 configuration from environment variables
 const domain = import.meta.env.VITE_AUTH0_DOMAIN || "dev-y7mhv7ttykx4kz4f.us.auth0.com";
@@ -46,7 +47,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
                         <LanguageProvider>
                             <ThemeProvider defaultTheme="light" storageKey="courtier-pro-theme">
                                 <TooltipProvider>
-                                    {children}
+                                    <SearchProvider>
+                                        {children}
+                                    </SearchProvider>
                                     <Toaster />
                                 </TooltipProvider>
                             </ThemeProvider>

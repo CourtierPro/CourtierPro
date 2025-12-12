@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import { Section } from "@/shared/components/branded/Section";
@@ -17,13 +17,14 @@ interface DocumentCardProps {
     document: DocumentRequest;
     onUpload?: (document: DocumentRequest, file?: File) => void;
     onReview?: (document: DocumentRequest) => void;
+    isFocused?: boolean;
 }
 
-export function DocumentCard({ document, onUpload, onReview }: DocumentCardProps) {
+export function DocumentCard({ document, onUpload, onReview, isFocused }: DocumentCardProps) {
     const { t, i18n } = useTranslation('documents');
     const [isLoadingView, setIsLoadingView] = useState(false);
     const title = formatDocumentTitle(document, t);
-    
+
 
     const locale = i18n.language === 'fr' ? fr : enUS;
     const date = document.lastUpdatedAt ? format(new Date(document.lastUpdatedAt), 'PPP', { locale }) : '...';
@@ -87,88 +88,115 @@ export function DocumentCard({ document, onUpload, onReview }: DocumentCardProps
         disabled: !onUpload || (document.status !== DocumentStatusEnum.REQUESTED && document.status !== DocumentStatusEnum.NEEDS_REVISION)
     });
 
+    const { ref: dropzoneRef, ...rootProps } = getRootProps();
+
+    const sectionRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (isFocused && sectionRef.current) {
+            sectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [isFocused]);
+
+    const setRefs = useCallback((node: HTMLDivElement | null) => {
+        sectionRef.current = node;
+        if (dropzoneRef) {
+            if (typeof dropzoneRef === 'function') {
+                dropzoneRef(node);
+            } else {
+                (dropzoneRef as any).current = node;
+            }
+        }
+    }, [dropzoneRef]);
+
     return (
-        <Section {...getRootProps()} className={`p-4 transition-all hover:shadow-md border relative ${isDragActive ? 'border-primary bg-primary/5' : 'border-border'}`}>
+        <div
+            ref={setRefs}
+            className={`rounded-lg transition-all duration-300 ${isFocused ? 'ring-2 ring-primary ring-offset-2 animate-pulse-once' : ''}`}
+            {...rootProps}
+        >
             <input {...getInputProps()} />
-            {isDragActive && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 rounded-lg backdrop-blur-sm border-2 border-primary border-dashed">
-                    <p className="text-primary font-semibold flex items-center gap-2">
-                        <Upload className="w-6 h-6" />
-                        {t('dropToUpload', 'Drop file to upload')}
-                    </p>
-                </div>
-            )}
-            <div className="flex items-start justify-between">
-                <div className="flex gap-4">
-                    <div className="p-2 bg-muted rounded-lg">
-                        {getIcon(document.docType)}
+            <Section className={`p-4 transition-all hover:shadow-md border relative ${isDragActive ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                {isDragActive && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 rounded-lg backdrop-blur-sm border-2 border-primary border-dashed">
+                        <p className="text-primary font-semibold flex items-center gap-2">
+                            <Upload className="w-6 h-6" />
+                            {t('dropToUpload', 'Drop file to upload')}
+                        </p>
                     </div>
-                    <div>
-                        <h3 className="font-semibold text-foreground">{title}</h3>
-                        <div className="flex flex-col gap-1 mt-1">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Clock className="w-3 h-3" />
-                                <span>{t('lastUpdated')}: {date}</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground/80">
-                                <span>Ref:</span>
-                                <Link
-                                    to={`/transactions/${document.transactionRef.transactionId}`}
-                                    className="hover:underline hover:text-primary transition-colors"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    #{document.transactionRef.transactionId.substring(0, 8)}
-                                </Link>
-                            </div>
+                )}
+                <div className="flex items-start justify-between">
+                    <div className="flex gap-4">
+                        <div className="p-2 bg-muted rounded-lg">
+                            {getIcon(document.docType)}
                         </div>
-                        {document.brokerNotes && (
-                            <p className="mt-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded">
-                                {document.brokerNotes}
-                            </p>
-                        )}
+                        <div>
+                            <h3 className="font-semibold text-foreground">{title}</h3>
+                            <div className="flex flex-col gap-1 mt-1">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Clock className="w-3 h-3" />
+                                    <span>{t('lastUpdated')}: {date}</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground/80">
+                                    <span>Ref:</span>
+                                    <Link
+                                        to={`/transactions/${document.transactionRef.transactionId}`}
+                                        className="hover:underline hover:text-primary transition-colors"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        #{document.transactionRef.transactionId.substring(0, 8)}
+                                    </Link>
+                                </div>
+                            </div>
+                            {document.brokerNotes && (
+                                <p className="mt-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                                    {document.brokerNotes}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-3">
+                        <Badge variant={getStatusVariant(document.status)}>
+                            {t(`status.${document.status}`, document.status)}
+                        </Badge>
+
+                        <div className="flex gap-2">
+                            {document.submittedDocuments.length > 0 && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleViewClick}
+                                    disabled={isLoadingView}
+                                    className="gap-2"
+                                >
+                                    {isLoadingView ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Eye className="w-4 h-4" />
+                                    )}
+                                    {t('view', 'View')}
+                                </Button>
+                            )}
+
+                            {document.status === DocumentStatusEnum.SUBMITTED && onReview && (
+                                <Button size="sm" onClick={() => onReview(document)} className="gap-2 bg-orange-500 hover:bg-orange-600">
+                                    <CheckCircle className="w-4 h-4" />
+                                    {t('review', 'Review')}
+                                </Button>
+                            )}
+
+                            {(document.status === DocumentStatusEnum.REQUESTED || document.status === DocumentStatusEnum.NEEDS_REVISION) && onUpload && (
+                                <Button size="sm" onClick={() => onUpload(document)} className="gap-2">
+                                    <Upload className="w-4 h-4" />
+                                    {document.status === DocumentStatusEnum.NEEDS_REVISION ? t('reupload') : t('upload')}
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </div>
-
-                <div className="flex flex-col items-end gap-3">
-                    <Badge variant={getStatusVariant(document.status)}>
-                        {t(`status.${document.status}`, document.status)}
-                    </Badge>
-
-                    <div className="flex gap-2">
-                        {document.submittedDocuments.length > 0 && (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handleViewClick}
-                                disabled={isLoadingView}
-                                className="gap-2"
-                            >
-                                {isLoadingView ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <Eye className="w-4 h-4" />
-                                )}
-                                {t('view', 'View')}
-                            </Button>
-                        )}
-
-                        {document.status === DocumentStatusEnum.SUBMITTED && onReview && (
-                            <Button size="sm" onClick={() => onReview(document)} className="gap-2 bg-orange-500 hover:bg-orange-600">
-                                <CheckCircle className="w-4 h-4" />
-                                {t('review', 'Review')}
-                            </Button>
-                        )}
-
-                        {(document.status === DocumentStatusEnum.REQUESTED || document.status === DocumentStatusEnum.NEEDS_REVISION) && onUpload && (
-                            <Button size="sm" onClick={() => onUpload(document)} className="gap-2">
-                                <Upload className="w-4 h-4" />
-                                {document.status === DocumentStatusEnum.NEEDS_REVISION ? t('reupload') : t('upload')}
-                            </Button>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </Section>
+            </Section>
+        </div>
     );
 }
 

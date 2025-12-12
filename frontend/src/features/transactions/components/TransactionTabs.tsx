@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { Section } from "@/shared/components/branded/Section";
 import { SectionHeader } from "@/shared/components/branded/SectionHeader";
 import { Button } from "@/shared/components/ui/button";
@@ -24,9 +25,27 @@ export function TransactionTabs({
     isSavingNotes,
 }: TransactionTabsProps) {
     const { t } = useTranslation('transactions');
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    // Get tab from URL or default to 'details'
+    const currentTab = searchParams.get('tab') || 'details';
+    const focusDocumentId = searchParams.get('focus');
+
+    const handleTabChange = (value: string) => {
+        setSearchParams(prev => {
+            const newParams = new URLSearchParams(prev);
+            newParams.set('tab', value);
+            // Clear focus when switching tabs manually, or keep it? 
+            // Better to clear it so it doesn't jump again if we switch back and forth
+            if (value !== 'documents') {
+                newParams.delete('focus');
+            }
+            return newParams;
+        });
+    };
 
     return (
-        <Tabs defaultValue="details" className="w-full">
+        <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="border-b border-border w-full justify-start rounded-none bg-transparent h-auto p-0 overflow-x-auto">
                 <TabsTrigger
                     value="details"
@@ -72,7 +91,7 @@ export function TransactionTabs({
             </TabsContent>
 
             <TabsContent value="documents" className="py-4">
-                <DocumentsPage transactionId={transaction.transactionId} />
+                <DocumentsPage transactionId={transaction.transactionId} focusDocumentId={focusDocumentId} />
             </TabsContent>
 
             <TabsContent value="appointments" className="py-4">
