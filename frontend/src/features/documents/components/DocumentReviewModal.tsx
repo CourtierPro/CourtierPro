@@ -1,20 +1,7 @@
-<<<<<<< HEAD
 import type { DocumentRequest } from "@/features/documents/types";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useReviewDocument } from "@/features/documents/api/mutations";
-=======
-import { useTranslation } from "react-i18next";
-import { Button } from "@/shared/components/ui/button";
-import { Section } from "@/shared/components/branded/Section";
-import { AttributeRow } from "@/shared/components/branded/AttributeRow";
-import { StatusBadge } from "@/shared/components/branded/StatusBadge";
-import { X, Download, CheckCircle, XCircle, FileText } from "lucide-react";
-import type { DocumentRequest, SubmittedDocument } from "@/features/documents/types";
-import { format } from "date-fns";
-import { enUS, fr } from "date-fns/locale";
-import { Dialog, DialogContent, DialogTitle } from "@/shared/components/ui/dialog";
->>>>>>> origin/main
 
 interface DocumentReviewModalProps {
   open: boolean;
@@ -38,26 +25,12 @@ export function DocumentReviewModal({
 
   const reviewMutation = useReviewDocument();
 
-<<<<<<< HEAD
   if (!open) return null;
 
   const handleApproveClick = () => {
     setAction('APPROVED');
     setShowCommentInput(true); // allow optional comment on approval
     setError(null);
-=======
-  const title = document?.customTitle || (document?.docType ? t(`types.${document.docType}`) : t("modals.reviewDocument"));
-  const latestSubmission: SubmittedDocument | undefined = document?.submittedDocuments?.[document.submittedDocuments.length - 1];
-  const submittedDate = latestSubmission?.uploadedAt
-    ? format(new Date(latestSubmission.uploadedAt), "PPP", { locale })
-    : null;
-
-  const handleApprove = () => {
-    if (document?.requestId && onApprove) {
-      onApprove(document.requestId);
-    }
-    onClose();
->>>>>>> origin/main
   };
 
   const handleNeedsRevisionClick = () => {
@@ -92,7 +65,6 @@ export function DocumentReviewModal({
   };
 
   return (
-<<<<<<< HEAD
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" 
@@ -120,19 +92,6 @@ export function DocumentReviewModal({
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
-=======
-    <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-      <DialogContent className="sm:max-w-lg p-0 gap-0 [&>button]:hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <FileText className="w-6 h-6 text-primary" />
-            <DialogTitle className="text-xl font-semibold text-foreground">{title}</DialogTitle>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="w-5 h-5" />
-          </Button>
->>>>>>> origin/main
         </div>
 
         {/* Body */}
@@ -153,7 +112,6 @@ export function DocumentReviewModal({
             </div>
           )}
 
-<<<<<<< HEAD
           {/* Error Alert */}
           {error && (
             <div className="flex items-start gap-3 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
@@ -238,51 +196,8 @@ export function DocumentReviewModal({
               {reviewMutation.isPending ? 'Submitting...' : 'Submit Review'}
             </button>
           )}
-=======
-              {/* Actions */}
-              {document.status === "SUBMITTED" && (onApprove || onReject) && (
-                <div className="flex justify-end gap-3 pt-4 border-t border-border">
-                  {onReject && (
-                    <Button variant="outline" onClick={handleReject} className="gap-2 text-destructive">
-                      <XCircle className="w-4 h-4" />
-                      {t("actions.reject")}
-                    </Button>
-                  )}
-                  {onApprove && (
-                    <Button onClick={handleApprove} className="gap-2">
-                      <CheckCircle className="w-4 h-4" />
-                      {t("actions.approve")}
-                    </Button>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              {t("noDocumentSelected")}
-            </p>
-          )}
         </div>
-
-        {/* Footer - already handled above in Actions, or general footer? 
-            Original had a separate footer for "Close" if not approved/rejected, OR standard footer.
-            Original Code:
-            {document.status === "SUBMITTED" ... Actions ...}
-            <div className="flex justify-end p-6 border-t border-border"> ... Close ... </div>
-            This means TWO footers?
-            Let me check original code.
-            Step 574:
-            It has `Actions` div inside `p-6 space-y-6`.
-            AND a separate Footer div at the bottom.
-            If I preserve this, I should keep both.
-        */}
-        <div className="flex justify-end p-6 border-t border-border transition-colors">
-          <Button variant="ghost" onClick={onClose}>
-            {t("actions.close")}
-          </Button>
->>>>>>> origin/main
-        </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
