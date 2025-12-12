@@ -31,5 +31,16 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @org.springframework.data.repository.query.Param("side") com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide side,
             @org.springframework.data.repository.query.Param("stage") Enum<?> stage
     );
+
+    @org.springframework.data.jpa.repository.Query("SELECT t FROM Transaction t WHERE " +
+            "(t.brokerId = :userId OR t.clientId = :userId) AND " +
+            "(LOWER(t.propertyAddress.street) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(t.propertyAddress.city) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(t.propertyAddress.postalCode) LIKE LOWER(CONCAT('%', :query, '%')))")
+    List<Transaction> searchTransactions(@org.springframework.data.repository.query.Param("userId") UUID userId,
+                                         @org.springframework.data.repository.query.Param("query") String query);
+    List<Transaction> findByClientIdIn(java.util.List<UUID> clientIds);
+
+    List<Transaction> findByTransactionIdIn(java.util.List<UUID> transactionIds);
 }
 
