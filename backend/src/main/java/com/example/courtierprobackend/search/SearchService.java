@@ -74,16 +74,18 @@ public class SearchService {
     private void searchDocumentById(UUID documentId, UUID userId, Set<SearchResultDTO> results) {
         documentRequestRepository.findByRequestId(documentId).ifPresent(d -> {
             boolean isClient = d.getTransactionRef().getClientId().equals(userId);
-            boolean isBroker = transactionRepository
+            
+            // Single transaction fetch optimization
+            Transaction t = transactionRepository
                     .findByTransactionId(d.getTransactionRef().getTransactionId())
-                    .map(t -> t.getBrokerId().equals(userId))
-                    .orElse(false);
+                    .orElse(null);
+
+            boolean isBroker = (t != null && t.getBrokerId().equals(userId));
 
             if (isClient || isBroker) {
-                String address = transactionRepository
-                        .findByTransactionId(d.getTransactionRef().getTransactionId())
-                        .map(t -> t.getPropertyAddress() != null ? t.getPropertyAddress().getStreet() : "Unknown Address")
-                        .orElse("Unknown Address");
+                String address = (t != null && t.getPropertyAddress() != null) 
+                        ? t.getPropertyAddress().getStreet() 
+                        : "Unknown Address";
                 results.add(mapDocument(d, address));
             }
         });
@@ -120,29 +122,44 @@ public class SearchService {
     }
 
     /**
-     * Searches transactions by text and linked users.
+     * Searches transactions using efficient set-based deduplication before mapping.
      */
     private void searchTransactions(UUID userId, String query, List<UUID> matchedUserIds, Set<SearchResultDTO> results) {
-        List<Transaction> transactions = new ArrayList<>(transactionRepository.searchTransactions(userId, query));
+        // Use a map to deduplicate by ID efficiently before mapping
+        Map<UUID, Transaction> uniqueTransactions = new HashMap<>();
 
+        // 1. Text search
+        transactionRepository.searchTransactions(userId, query)
+                .forEach(t -> uniqueTransactions.put(t.getTransactionId(), t));
+
+        // 2. Linked user search
         if (!matchedUserIds.isEmpty()) {
-            transactions.addAll(transactionRepository.findLinkedToUsers(matchedUserIds, userId));
+            transactionRepository.findLinkedToUsers(matchedUserIds, userId)
+                    .forEach(t -> uniqueTransactions.putIfAbsent(t.getTransactionId(), t));
         }
 
-        results.addAll(transactions.stream()
+        results.addAll(uniqueTransactions.values().stream()
                 .map(this::mapTransaction)
                 .collect(Collectors.toList()));
     }
 
     /**
-     * Searches documents by text and linked users.
+     * Searches documents using efficient set-based deduplication before mapping.
      */
     private void searchDocuments(UUID userId, String query, List<UUID> matchedUserIds, Set<SearchResultDTO> results) {
-        List<DocumentRequest> documents = new ArrayList<>(documentRequestRepository.searchDocuments(userId, query));
+        Map<UUID, DocumentRequest> uniqueDocuments = new HashMap<>();
 
+        // 1. Text search
+        documentRequestRepository.searchDocuments(userId, query)
+                .forEach(d -> uniqueDocuments.put(d.getRequestId(), d));
+
+        // 2. Linked user search
         if (!matchedUserIds.isEmpty()) {
-            documents.addAll(documentRequestRepository.findLinkedToUsers(matchedUserIds, userId));
+            documentRequestRepository.findLinkedToUsers(matchedUserIds, userId)
+                    .forEach(d -> uniqueDocuments.putIfAbsent(d.getRequestId(), d));
         }
+        
+        List<DocumentRequest> documents = new ArrayList<>(uniqueDocuments.values());
 
         // Batch-fetch transactions for subtitles
         Map<UUID, Transaction> transactionMap = fetchTransactionMap(documents);
@@ -175,11 +192,21 @@ public class SearchService {
     // ========== Mappers ==========
 
     private SearchResultDTO mapTransaction(Transaction t) {
+        String street = "Unknown Address";
+        String city = "";
+        String province = "";
+        
+        if (t.getPropertyAddress() != null) {
+            street = t.getPropertyAddress().getStreet() != null ? t.getPropertyAddress().getStreet() : "Unknown Address";
+            city = t.getPropertyAddress().getCity() != null ? t.getPropertyAddress().getCity() : "";
+            province = t.getPropertyAddress().getProvince() != null ? t.getPropertyAddress().getProvince() : "";
+        }
+
         return SearchResultDTO.builder()
                 .id(t.getTransactionId().toString())
                 .type(SearchResultDTO.SearchResultType.TRANSACTION)
-                .title(t.getPropertyAddress().getStreet())
-                .subtitle(t.getPropertyAddress().getCity() + ", " + t.getPropertyAddress().getProvince())
+                .title(street)
+                .subtitle(city + (province.isEmpty() ? "" : ", " + province))
                 .url("/transactions/" + t.getTransactionId())
                 .build();
     }

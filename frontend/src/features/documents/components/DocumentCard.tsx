@@ -112,7 +112,7 @@ export function DocumentCard({ document, onUpload, onReview, isFocused }: Docume
     return (
         <div
             ref={setRefs}
-            className={`rounded-lg transition-all duration-300 ${isFocused ? 'ring-2 ring-primary ring-offset-2 animate-pulse-once' : ''}`}
+            className={`rounded-lg transition-all duration-300 ${isFocused ? 'ring-2 ring-primary ring-offset-2 animate-pulse' : ''}`}
             {...rootProps}
         >
             <input {...getInputProps()} />

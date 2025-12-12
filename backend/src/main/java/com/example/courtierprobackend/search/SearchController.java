@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.constraints.Size;
 import java.util.List;
 
 @RestController
@@ -17,7 +18,7 @@ public class SearchController {
     private final SearchService searchService;
 
     @GetMapping
-    public List<SearchResultDTO> search(@RequestParam String q) {
+    public List<SearchResultDTO> search(@RequestParam @Size(max=200) String q) {
         return searchService.search(q);
     }
 }

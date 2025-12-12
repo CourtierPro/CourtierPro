@@ -21,9 +21,11 @@ public interface DocumentRequestRepository extends JpaRepository<DocumentRequest
 
     @Query("SELECT d FROM DocumentRequest d WHERE " +
             "(d.transactionRef.clientId = :userId OR d.transactionRef.transactionId IN (SELECT t.transactionId FROM Transaction t WHERE t.brokerId = :userId)) AND " +
-            "(LOWER(d.customTitle) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(CAST(d.docType AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(d.brokerNotes) LIKE LOWER(CONCAT('%', :query, '%')))")
+            "(LOWER(COALESCE(d.customTitle, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(CAST(d.docType AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(COALESCE(d.brokerNotes, '')) LIKE LOWER(CONCAT('%', :query, '%')))")
     List<DocumentRequest> searchDocuments(@Param("userId") UUID userId, @Param("query") String query);
-    List<DocumentRequest> findByTransactionRef_ClientIdIn(java.util.List<UUID> clientIds);
+    List<DocumentRequest> findByTransactionRefClientIdIn(java.util.List<UUID> clientIds);
 
     @Query("SELECT d FROM DocumentRequest d WHERE " +
             "(d.transactionRef.clientId IN :userIds OR d.transactionRef.transactionId IN (SELECT t.transactionId FROM Transaction t WHERE t.brokerId IN :userIds)) AND " +
