@@ -31,6 +31,9 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
                 notification.read && "opacity-80"
             )}
             onClick={handleClick}
+            role="button"
+            tabIndex={0}
+            aria-pressed={notification.read}
         >
             {!notification.read && (
                 <div className="absolute top-0 right-0 w-2 h-full bg-primary" />
