@@ -24,6 +24,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -36,6 +38,7 @@ import com.example.courtierprobackend.transactions.businesslayer.TransactionAcce
 @Service
 @RequiredArgsConstructor
 public class DocumentRequestServiceImpl implements DocumentRequestService {
+    private static final Logger logger = LoggerFactory.getLogger(DocumentRequestServiceImpl.class);
 
     private final DocumentRequestRepository repository;
     private final S3StorageService storageService;
@@ -115,12 +118,16 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                     requestDTO.getCustomTitle() : requestDTO.getDocType().toString();
             String clientName = client.getFirstName() + " " + client.getLastName();
             String brokerName = broker.getFirstName() + " " + broker.getLastName();
+            String docType = requestDTO.getDocType().toString();
+            String clientLanguage = client.getPreferredLanguage();
             
             emailService.sendDocumentRequestedNotification(
                     client.getEmail(), 
                     clientName, 
                     brokerName, 
-                    documentName
+                    documentName,
+                    docType,
+                    clientLanguage
             );
         }
 
@@ -201,7 +208,11 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                     .orElse("Unknown Client");
         }
 
-        emailService.sendDocumentSubmittedNotification(savedRequest, broker.getEmail(), uploaderName, savedRequest.getCustomTitle() != null ? savedRequest.getCustomTitle() : savedRequest.getDocType().toString()); 
+        String documentName = savedRequest.getCustomTitle() != null ? savedRequest.getCustomTitle() : savedRequest.getDocType().toString();
+        String docType = savedRequest.getDocType().toString();
+        String brokerLanguage = broker.getPreferredLanguage() != null ? broker.getPreferredLanguage() : "en";
+
+        emailService.sendDocumentSubmittedNotification(savedRequest, broker.getEmail(), uploaderName, documentName, docType, brokerLanguage); 
 
         return mapToResponseDTO(savedRequest);
     }
@@ -281,15 +292,20 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         if (client != null && broker != null) {
             String documentName = updated.getCustomTitle() != null ? 
                     updated.getCustomTitle() : updated.getDocType().toString();
-            String clientName = client.getFirstName() + " " + client.getLastName();
             String brokerName = broker.getFirstName() + " " + broker.getLastName();
+            String docType = updated.getDocType().toString();
+            String clientLanguage = client.getPreferredLanguage() != null ? client.getPreferredLanguage() : "en";
 
             emailService.sendDocumentStatusUpdatedNotification(
                     updated,
                     client.getEmail(),
                     brokerName,
-                    documentName
+                    documentName,
+                    docType,
+                    clientLanguage
             );
+        } else {
+            logger.warn("Cannot send document review notification: client or broker account could not be resolved for transaction {}", updated.getTransactionRef().getTransactionId());
         }
 
         return mapToResponseDTO(updated);

@@ -14,7 +14,7 @@ import {
 } from '@/shared/components/ui/select';
 import { useCreateTransaction } from '../api/mutations';
 import type { TransactionRequestDTO } from '@/shared/api/types';
-import { getStagesForSide, enumToLabel } from '@/shared/utils/stages';
+import { getStagesForSide, getStageLabel } from '@/shared/utils/stages';
 import { logError, getErrorMessage } from '@/shared/utils/error-utils';
 import { useClientsForDisplay } from '@/features/clients';
 
@@ -32,6 +32,7 @@ interface Client {
 
 export function TransactionCreateForm({ onNavigate, isModal = false }: TransactionCreateFormProps) {
   const { t } = useTranslation('transactions');
+  const { t: tTx } = useTranslation('transactions');
   const [transactionSide, setTransactionSide] = useState<'buy' | 'sell' | ''>('');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientSearch, setClientSearch] = useState('');
@@ -428,7 +429,7 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                 </SelectTrigger>
                 <SelectContent>
                   {stageEnums.map(stage => (
-                    <SelectItem key={stage} value={stage}>{enumToLabel(stage)}</SelectItem>
+                    <SelectItem key={stage} value={stage}>{getStageLabel(stage, tTx, transactionSide === 'buy' ? 'BUY_SIDE' : 'SELL_SIDE')}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

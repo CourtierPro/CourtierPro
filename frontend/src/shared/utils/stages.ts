@@ -85,6 +85,24 @@ export function enumToLabel(value?: string): string {
 }
 
 // -----------------------------
+// Get translated stage label using i18n
+// Returns translated stage name from transactions.json
+// -----------------------------
+export function getStageLabel(value?: string, t?: any, side?: 'BUY_SIDE' | 'SELL_SIDE'): string {
+  if (!value || typeof value !== 'string' || !t) {
+    return enumToLabel(value);
+  }
+
+  const lowerValue = value.toLowerCase();
+  const sideKey = side === 'SELL_SIDE' || lowerValue.includes('seller') ? 'sell' : 'buy';
+  const translationKey = `stages.${sideKey}.${lowerValue}`;
+  
+  // Try to get translation, fallback to enumToLabel if not found
+  const translation = t(translationKey, { defaultValue: '' });
+  return translation || enumToLabel(value);
+}
+
+// -----------------------------
 // Resolve stage index (0-based)
 // Supports:
 //  - backend numeric stages (1-based)

@@ -1,6 +1,7 @@
 import type { DocumentRequest } from "@/features/documents/types";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useReviewDocument } from "@/features/documents/api/mutations";
 
 interface DocumentReviewModalProps {
@@ -18,6 +19,7 @@ export function DocumentReviewModal({
   transactionId,
   onSuccess,
 }: DocumentReviewModalProps) {
+  const { t } = useTranslation('documents');
   const [comment, setComment] = useState<string>('');
   const [action, setAction] = useState<'APPROVED' | 'NEEDS_REVISION' | null>(null);
   const [showCommentInput, setShowCommentInput] = useState<boolean>(false);
@@ -39,7 +41,20 @@ export function DocumentReviewModal({
     setError(null);
   };
 
+  const handleBack = () => {
+    setAction(null);
+    setShowCommentInput(false);
+    setComment('');
+    setError(null);
+  };
+
   const handleSubmit = async () => {
+    // Validate that revision has comments
+    if (action === 'NEEDS_REVISION' && !comment.trim()) {
+      setError(t('modals.revisionNotesRequired'));
+      return;
+    }
+
     if (action != null && document) {
       try {
         await reviewMutation.mutateAsync({
@@ -50,17 +65,18 @@ export function DocumentReviewModal({
         });
         const successMessage =
           action === "APPROVED"
-            ? "Document approved"
-            : "Revision requested";
+            ? t('success.documentApproved')
+            : t('success.revisionRequested');
         toast.success(successMessage);
         onSuccess?.();
         onClose();
       } catch {
-        setError('Error submitting review. Please try again.');
-        toast.error('Error submitting review. Please try again.');
+        const errorMsg = t('errors.reviewFailed');
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     } else {
-      setError('Please select an action before submitting.');
+      setError(t('errors.selectAction', 'Please select an action before submitting.'));
     }
   };
 
@@ -80,7 +96,7 @@ export function DocumentReviewModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 id="review-modal-title" className="text-lg font-semibold text-foreground">
-            Review Document
+            {t('modals.reviewDocument', 'Review Document')}
           </h2>
           <button 
             onClick={onClose} 
@@ -100,12 +116,12 @@ export function DocumentReviewModal({
           {document && (
             <div className="rounded-md bg-muted/50 p-4 space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground font-medium">Document Type</span>
-                <span className="font-semibold text-foreground">{document.docType}</span>
+                <span className="text-muted-foreground font-medium">{t('modals.documentType')}</span>
+                <span className="font-semibold text-foreground">{t(`types.${document.docType}`)}</span>
               </div>
               {document.customTitle && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground font-medium">Title</span>
+                  <span className="text-muted-foreground font-medium">{t('documentTitle')}</span>
                   <span className="font-medium text-foreground">{document.customTitle}</span>
                 </div>
               )}
@@ -127,7 +143,7 @@ export function DocumentReviewModal({
           {/* Action Buttons */}
           {action === null && (
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground mb-3">Choose an action:</p>
+              <p className="text-sm text-muted-foreground mb-3">{t('modals.chooseAnAction')}</p>
               <div className="grid gap-3">
                 <button 
                   onClick={handleApproveClick} 
@@ -136,7 +152,7 @@ export function DocumentReviewModal({
                   <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="20 6 9 17 4 12"></polyline>
                   </svg>
-                  Approve
+                  {t('modals.approve')}
                 </button>
                 <button 
                   onClick={handleNeedsRevisionClick} 
@@ -147,7 +163,7 @@ export function DocumentReviewModal({
                     <path d="M18 14h-8"></path>
                     <path d="M15 18H6.5a2.5 2.5 0 0 1 0-5H15"></path>
                   </svg>
-                  Needs Revision
+                  {t('modals.needsRevision')}
                 </button>
               </div>
             </div>
@@ -157,14 +173,14 @@ export function DocumentReviewModal({
           {action !== null && showCommentInput && (
             <div className="space-y-2">
               <label htmlFor="review-notes" className="block text-sm font-medium text-foreground">
-                {action === 'APPROVED' ? 'Approval Notes (Optional)' : 'Revision Notes'}
+                {action === 'APPROVED' ? t('modals.approvalComments') : t('modals.revisionNotes')}
                 {action === 'NEEDS_REVISION' && <span className="text-destructive ml-1">*</span>}
               </label>
               <textarea
                 id="review-notes"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder={action === 'APPROVED' ? 'Add any additional comments...' : 'Explain what needs to be revised...'}
+                placeholder={action === 'APPROVED' ? t('modals.approvalCommentsPlaceholder') : t('modals.revisionNotesPlaceholder')}
                 className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 rows={4}
                 required={action === 'NEEDS_REVISION'}
@@ -176,10 +192,10 @@ export function DocumentReviewModal({
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-muted/30">
           <button 
-            onClick={onClose} 
+            onClick={action === null ? onClose : handleBack} 
             className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium text-foreground bg-secondary hover:bg-secondary/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            Cancel
+            {t('modals.cancel')}
           </button>
           {action !== null && (
             <button 
@@ -193,7 +209,7 @@ export function DocumentReviewModal({
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               )}
-              {reviewMutation.isPending ? 'Submitting...' : 'Submit Review'}
+              {reviewMutation.isPending ? t('actions.submitting', 'Submitting...') : t('modals.submit')}
             </button>
           )}
         </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getStagesForSide, enumToLabel } from '@/shared/utils/stages';
+import { getStagesForSide, enumToLabel, getStageLabel } from '@/shared/utils/stages';
 import { X, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/components/ui/button';
@@ -134,7 +134,7 @@ function StageUpdateForm({
                 const stageNumber = index + 1;
                 return (
                   <SelectItem key={stageEnum} value={stageEnum}>
-                    {i18n.language === 'en' ? 'Stage' : 'Étape'} {stageNumber}: {enumToLabel(stageEnum)}
+                    {i18n.language === 'en' ? 'Stage' : 'Étape'} {stageNumber}: {getStageLabel(stageEnum, t)}
                   </SelectItem>
                 );
               })}

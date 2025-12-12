@@ -2,6 +2,7 @@ import { useState } from 'react';
 import confetti from 'canvas-confetti';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useAuth0 } from "@auth0/auth0-react";
 import { fetchDocuments } from '../api/documentsApi';
 import { DocumentStatusEnum, type DocumentRequest } from '../types';
 import { DocumentList } from './DocumentList';
@@ -11,6 +12,7 @@ import { DocumentListSkeleton } from './DocumentListSkeleton';
 import { EmptyDocumentsState } from './EmptyDocumentsState';
 import { StatusFilterBar, type FilterStatus } from './StatusFilterBar';
 import { formatDocumentTitle } from '../utils/formatDocumentTitle';
+import { getRoleFromUser } from "@/features/auth/roleUtils";
 
 interface RequiredDocumentsListProps {
     transactionId: string;
@@ -18,6 +20,9 @@ interface RequiredDocumentsListProps {
 
 export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListProps) {
     const { t } = useTranslation('documents');
+    const { user } = useAuth0();
+    const role = getRoleFromUser(user);
+    const canReview = role === "broker";
     const [selectedRequest, setSelectedRequest] = useState<DocumentRequest | null>(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [initialFile, setInitialFile] = useState<File | null>(null);
@@ -95,7 +100,7 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
             {filteredDocuments && filteredDocuments.length > 0 ? (
                 <>
                     
-                    <DocumentList documents={filteredDocuments} onUpload={handleUploadClick} onReview={handleReviewClick} />
+                    <DocumentList documents={filteredDocuments} onUpload={handleUploadClick} onReview={canReview ? handleReviewClick : undefined} />
                 </>
             ) : (
                 <EmptyDocumentsState />
@@ -108,6 +113,7 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
                     requestId={selectedRequest.requestId}
                     transactionId={transactionId}
                     documentTitle={formatDocumentTitle(selectedRequest, t)}
+                    docType={selectedRequest.docType}
                     initialFile={initialFile}
                     onSuccess={handleUploadSuccess}
                 />

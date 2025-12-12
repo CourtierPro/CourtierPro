@@ -22,7 +22,7 @@ import { Label } from '@/shared/components/ui/label';
 import { DocumentTypeEnum } from '@/features/documents/types';
 
 import { useTransactionStages } from '@/features/transactions/hooks/useTransactionStages';
-import { enumToLabel } from '@/shared/utils/stages';
+import { getStageLabel } from '@/shared/utils/stages';
 
 interface RequestDocumentModalProps {
   isOpen: boolean;
@@ -40,6 +40,7 @@ export function RequestDocumentModal({
   currentStage,
 }: RequestDocumentModalProps) {
   const { t, i18n } = useTranslation('documents');
+  const { t: tTx } = useTranslation('transactions');
   const [selectedDocType, setSelectedDocType] = useState<DocumentTypeEnum | ''>('');
   const [customTitle, setCustomTitle] = useState('');
   const [instructions, setInstructions] = useState('');
@@ -55,7 +56,7 @@ export function RequestDocumentModal({
   // Map stages to options (value = enum, label = formatted string)
   const stageOptions = stages.map(stage => ({
     value: stage,
-    label: enumToLabel(stage)
+    label: getStageLabel(stage, tTx, side)
   }));
 
   // Define which documents are for which side
@@ -295,7 +296,7 @@ export function RequestDocumentModal({
               className="text-muted-foreground text-sm"
               dangerouslySetInnerHTML={{
                 __html: t('infoText', {
-                  stage: selectedStage || (i18n.language === 'en' ? 'selected stage' : 'sélectionnée'),
+                  stage: selectedStage ? getStageLabel(selectedStage, tTx) : (i18n.language === 'en' ? 'selected stage' : 'sélectionnée'),
                 }),
               }}
             />
