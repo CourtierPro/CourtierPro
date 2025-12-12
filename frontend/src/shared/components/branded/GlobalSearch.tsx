@@ -59,7 +59,7 @@ export function GlobalSearch() {
     return (
         <CommandDialog open={isOpen} onOpenChange={setIsOpen}>
             <CommandInput
-                placeholder={t("searchPlaceholder", "Type to search...")}
+                placeholder={t("search.placeholder")}
                 value={query}
                 onValueChange={setQuery}
             />
@@ -68,20 +68,21 @@ export function GlobalSearch() {
                     {isLoading ? (
                         <div className="flex items-center justify-center p-4">
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            <span className="ml-2">{t("searching", "Searching...")}</span>
+                            <span className="ml-2">{t("search.searching")}</span>
                         </div>
                     ) : (
-                        t("noResults", "No results found.")
+                        t("search.noResults")
                     )}
                 </CommandEmpty>
 
                 {results.length > 0 && (
-                    <CommandGroup heading={t("suggestions", "Suggestions")}>
+                    <CommandGroup heading={t("search.suggestions")}>
                         {results.map((result) => (
                             <CommandItem
                                 key={`${result.type}-${result.id}`}
-                                value={result.title + " " + result.subtitle} // Helps with local filtering if command does it, but we handle it manually
+                                value={result.title + " " + result.subtitle}
                                 onSelect={() => handleSelect(result)}
+                                aria-label={`${result.type}: ${result.title}, ${result.subtitle}`}
                             >
                                 {getIcon(result.type)}
                                 <div className="flex flex-col">

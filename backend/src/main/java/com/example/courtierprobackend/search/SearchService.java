@@ -223,7 +223,7 @@ public class SearchService {
                 .id(d.getRequestId().toString())
                 .type(SearchResultDTO.SearchResultType.DOCUMENT)
                 .title(d.getCustomTitle() != null ? d.getCustomTitle() : d.getDocType().name())
-                .subtitle(address) // Removed hardcoded prefix
+                .subtitle(address)
                 .url("/transactions/" + d.getTransactionRef().getTransactionId() + "?tab=documents&focus=" + d.getRequestId())
                 .build();
     }

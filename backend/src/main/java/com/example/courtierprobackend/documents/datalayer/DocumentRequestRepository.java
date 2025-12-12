@@ -22,7 +22,7 @@ public interface DocumentRequestRepository extends JpaRepository<DocumentRequest
     @Query("SELECT d FROM DocumentRequest d WHERE " +
             "(d.transactionRef.clientId = :userId OR d.transactionRef.transactionId IN (SELECT t.transactionId FROM Transaction t WHERE t.brokerId = :userId)) AND " +
             "(LOWER(COALESCE(d.customTitle, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(CAST(d.docType AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(CONCAT('', d.docType)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(COALESCE(d.brokerNotes, '')) LIKE LOWER(CONCAT('%', :query, '%')))")
     List<DocumentRequest> searchDocuments(@Param("userId") UUID userId, @Param("query") String query);
     // Derived query method used for optimizations where explicit JOINs are difficult
