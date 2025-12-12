@@ -20,8 +20,11 @@ export function ClientTransactionDetailsPage() {
   const { t } = useTranslation('transactions');
   const { user } = useAuth0();
   const role = getRoleFromUser(user);
-  const canReview = role === "broker";
-  const canUpload = role === "client";
+  const isClient = role === "client";
+  const isBroker = role === "broker";
+  const isReadOnly = isClient;
+  const canReview = isBroker;
+  const canUpload = false; // Clients can only view in this experience
 
   const { data: documents, isLoading: isLoadingDocs } = useDocuments(transactionId ?? '');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -69,6 +72,7 @@ export function ClientTransactionDetailsPage() {
       <ErrorBoundary key={transactionId}>
         <TransactionSummary
           transactionId={transactionId}
+          isReadOnly={isReadOnly}
         />
 
         <div className="space-y-4">
@@ -76,7 +80,12 @@ export function ClientTransactionDetailsPage() {
           {isLoadingDocs ? (
             <LoadingState />
           ) : documents && documents.length > 0 ? (
-            <DocumentList documents={documents} onUpload={canUpload ? handleUploadClick : undefined} onReview={canReview ? handleReviewClick : undefined} />
+            <DocumentList
+              documents={documents}
+              onUpload={canUpload ? handleUploadClick : undefined}
+              onReview={canReview ? handleReviewClick : undefined}
+              showBrokerNotes={isBroker}
+            />
           ) : (
             <div className="p-8 text-center bg-gray-50 rounded-lg border border-gray-100">
               <p className="text-gray-500">{t('noDocuments', { ns: 'documents' })}</p>
@@ -84,7 +93,7 @@ export function ClientTransactionDetailsPage() {
           )}
         </div>
 
-        {selectedDocument && (
+        {selectedDocument && !isReadOnly && (
           <UploadDocumentModal
             open={isUploadModalOpen}
             onClose={() => setIsUploadModalOpen(false)}
