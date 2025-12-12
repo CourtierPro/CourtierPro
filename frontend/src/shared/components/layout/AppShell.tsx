@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Sidebar } from "@/shared/components/layout/Sidebar";
 import { TopNav } from "@/shared/components/layout/TopNav";
 import { ErrorBoundary } from "@/shared/components/error/ErrorBoundary";
+import { GlobalSearch } from "@/shared/components/branded/GlobalSearch";
 
 import {
   getRoleFromUser,
@@ -110,6 +111,7 @@ export function AppShell({ children }: AppShellProps) {
           </ErrorBoundary>
         </main>
       </div>
+      <GlobalSearch />
     </div>
   );
 }
