@@ -284,7 +284,12 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
             String clientName = client.getFirstName() + " " + client.getLastName();
             String brokerName = broker.getFirstName() + " " + broker.getLastName();
 
-            emailService.sendDocumentStatusUpdatedNotification(updated, client.getEmail());
+            emailService.sendDocumentStatusUpdatedNotification(
+                    updated,
+                    client.getEmail(),
+                    brokerName,
+                    documentName
+            );
         }
 
         return mapToResponseDTO(updated);

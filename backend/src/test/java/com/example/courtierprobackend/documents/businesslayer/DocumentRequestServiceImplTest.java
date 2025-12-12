@@ -10,6 +10,7 @@ import com.example.courtierprobackend.documents.datalayer.enums.UploadedByRefEnu
 import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestRequestDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentReviewRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
 import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
@@ -223,6 +224,91 @@ class DocumentRequestServiceImplTest {
         assertThatThrownBy(() -> service.submitDocument(transactionId, requestId, file, UUID.randomUUID(), UploadedByRefEnum.CLIENT))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("does not belong to transaction");
+    }
+
+    // ========== reviewDocument Tests ==========
+
+    @Test
+    void reviewDocument_Approve_AllowsOptionalCommentAndSendsEmail() {
+        UUID transactionId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+
+        DocumentRequest request = new DocumentRequest();
+        request.setRequestId(requestId);
+        request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+        request.setDocType(DocumentTypeEnum.BANK_STATEMENT);
+        request.setCustomTitle("Bank Statement");
+        request.setStatus(DocumentStatusEnum.SUBMITTED);
+
+        UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Jane", "Broker", UserRole.BROKER, "en");
+        broker.setId(brokerId);
+        UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "John", "Client", UserRole.CLIENT, "en");
+        client.setId(clientId);
+
+        DocumentReviewRequestDTO reviewDTO = new DocumentReviewRequestDTO();
+        reviewDTO.setDecision(DocumentStatusEnum.APPROVED);
+        reviewDTO.setComments(null); // optional on approval
+
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+        when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        DocumentRequestResponseDTO result = service.reviewDocument(transactionId, requestId, reviewDTO, brokerId);
+
+        assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.APPROVED);
+        assertThat(result.getBrokerNotes()).isNull();
+        verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class), eq("client@test.com"), eq("Jane Broker"), eq("Bank Statement"));
+    }
+
+    @Test
+    void reviewDocument_Revision_SetsNotesAndSendsEmail() {
+        UUID transactionId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+
+        DocumentRequest request = new DocumentRequest();
+        request.setRequestId(requestId);
+        request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+        request.setDocType(DocumentTypeEnum.PAY_STUBS);
+        request.setStatus(DocumentStatusEnum.SUBMITTED);
+
+        UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Jane", "Broker", UserRole.BROKER, "en");
+        broker.setId(brokerId);
+        UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "John", "Client", UserRole.CLIENT, "en");
+        client.setId(clientId);
+
+        DocumentReviewRequestDTO reviewDTO = new DocumentReviewRequestDTO();
+        reviewDTO.setDecision(DocumentStatusEnum.NEEDS_REVISION);
+        reviewDTO.setComments("Please update dates");
+
+        when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+        when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        DocumentRequestResponseDTO result = service.reviewDocument(transactionId, requestId, reviewDTO, brokerId);
+
+        assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.NEEDS_REVISION);
+        assertThat(result.getBrokerNotes()).isEqualTo("Please update dates");
+        verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class), eq("client@test.com"), eq("Jane Broker"), eq("PAY_STUBS"));
     }
 
     // ========== getDocumentDownloadUrl Tests ==========

@@ -93,7 +93,10 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
             )}
 
             {filteredDocuments && filteredDocuments.length > 0 ? (
-                <DocumentList documents={filteredDocuments} onUpload={handleUploadClick} onReview={handleReviewClick} />
+                <>
+                    
+                    <DocumentList documents={filteredDocuments} onUpload={handleUploadClick} onReview={handleReviewClick} />
+                </>
             ) : (
                 <EmptyDocumentsState />
             )}

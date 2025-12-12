@@ -8,13 +8,16 @@ import com.example.courtierprobackend.documents.datalayer.valueobjects.Transacti
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
 import java.util.UUID;
 
+import jakarta.mail.Message;
 import jakarta.mail.Transport;
+import jakarta.mail.internet.MimeMessage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -142,13 +145,53 @@ class EmailServiceTest {
         DocumentRequest request = new DocumentRequest();
         request.setCustomTitle("Proof of Income");
         request.setStatus(DocumentStatusEnum.APPROVED);
+        request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
         try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
-            // Act
-            emailService.sendDocumentStatusUpdatedNotification(request, "client@example.com");
+            emailService.sendDocumentStatusUpdatedNotification(
+                    request,
+                    "client@example.com",
+                    "Broker Name",
+                    "Proof of Income"
+            );
 
-            // Assert
-            transportMock.verify(() -> Transport.send(any()), times(1));
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(captor.capture()), times(1));
+            Message message = captor.getValue();
+            assertThat(message.getSubject()).contains("Document");
+            String body = (String) ((MimeMessage) message).getContent();
+            assertThat(body).contains("approved the following document:");
+            assertThat(body).contains("Proof of Income");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    void sendDocumentStatusUpdatedNotification_Revision_UsesRevisionStatusLine() {
+        DocumentRequest request = new DocumentRequest();
+        request.setCustomTitle("Bank Statement");
+        request.setStatus(DocumentStatusEnum.NEEDS_REVISION);
+        request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+        request.setBrokerNotes("Please resend the last 3 months.");
+
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendDocumentStatusUpdatedNotification(
+                    request,
+                    "client@example.com",
+                    "Jane Broker",
+                    "Bank Statement"
+            );
+
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(captor.capture()), times(1));
+            Message message = captor.getValue();
+            String body = (String) ((MimeMessage) message).getContent();
+            assertThat(body).contains("requested a revision for the following document:");
+            assertThat(body).contains("Bank Statement");
+            assertThat(body).contains("Please resend the last 3 months.");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 }

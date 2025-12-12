@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useAuth0 } from "@auth0/auth0-react";
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
 import { EmptyState } from "@/shared/components/branded/EmptyState";
@@ -11,9 +12,11 @@ import { Button } from "@/shared/components/ui/button";
 import { useDocumentsPageLogic } from "@/features/documents/hooks/useDocumentsPageLogic";
 import { RequestDocumentModal } from "@/features/documents/components/RequestDocumentModal";
 import { UploadDocumentModal } from "@/features/documents/components/UploadDocumentModal";
+import { DocumentReviewModal } from "@/features/documents/components/DocumentReviewModal";
 import { DocumentList } from "@/features/documents/components/DocumentList";
 import { useTranslation } from "react-i18next";
 import { type DocumentRequest } from "@/features/documents/types";
+import { getRoleFromUser } from "@/features/auth/roleUtils";
 
 interface DocumentsPageProps {
   transactionId: string;
@@ -21,6 +24,9 @@ interface DocumentsPageProps {
 
 export function DocumentsPage({ transactionId }: DocumentsPageProps) {
   const { t } = useTranslation('documents');
+  const { user } = useAuth0();
+  const role = getRoleFromUser(user);
+  const canReview = role === "broker";
   const {
     documents,
     isLoading,
@@ -33,6 +39,8 @@ export function DocumentsPage({ transactionId }: DocumentsPageProps) {
 
   const [selectedDocument, setSelectedDocument] = useState<DocumentRequest | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<DocumentRequest | null>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
   const handleUploadClick = (document: DocumentRequest) => {
     setSelectedDocument(document);
@@ -43,6 +51,17 @@ export function DocumentsPage({ transactionId }: DocumentsPageProps) {
     refetch();
     setIsUploadModalOpen(false);
     setSelectedDocument(null);
+  };
+
+  const handleReviewClick = (document: DocumentRequest) => {
+    setSelectedDocumentForReview(document);
+    setIsReviewModalOpen(true);
+  };
+
+  const handleReviewSuccess = () => {
+    refetch();
+    setIsReviewModalOpen(false);
+    setSelectedDocumentForReview(null);
   };
 
   if (isLoading) return <LoadingState />;
@@ -75,7 +94,7 @@ export function DocumentsPage({ transactionId }: DocumentsPageProps) {
           />
         </Section>
       ) : (
-        <DocumentList documents={documents} onUpload={handleUploadClick} />
+        <DocumentList documents={documents} onUpload={handleUploadClick} onReview={canReview ? handleReviewClick : undefined} />
       )}
 
       <RequestDocumentModal
@@ -94,6 +113,16 @@ export function DocumentsPage({ transactionId }: DocumentsPageProps) {
           transactionId={transactionId}
           documentTitle={selectedDocument.customTitle || t(`types.${selectedDocument.docType}`)}
           onSuccess={handleUploadSuccess}
+        />
+      )}
+
+      {selectedDocumentForReview && (
+        <DocumentReviewModal
+          open={isReviewModalOpen}
+          onClose={() => setIsReviewModalOpen(false)}
+          document={selectedDocumentForReview}
+          transactionId={transactionId}
+          onSuccess={handleReviewSuccess}
         />
       )}
     </div>

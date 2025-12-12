@@ -195,13 +195,51 @@ public class EmailService {
         }
     }
 
-    public void sendDocumentStatusUpdatedNotification(DocumentRequest request, String clientEmail) {
-        String subject = "Document Status Updated: " + request.getCustomTitle();
-        String body = "Your document status is now: " + request.getStatus();
-
+        public void sendDocumentStatusUpdatedNotification(
+            DocumentRequest request,
+            String clientEmail,
+            String brokerName,
+            String documentName
+        ) {
         try {
-            sendEmail(clientEmail, subject, body);
-        } catch (MessagingException | UnsupportedEncodingException e) {
+            OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
+            String defaultLang = settings != null ? settings.getDefaultLanguage() : null;
+            boolean isFrench = defaultLang != null && defaultLang.equalsIgnoreCase("fr");
+
+            String subject = isFrench ? ("Document vérifié : " + documentName) : ("Document Reviewed: " + documentName);
+
+            String templatePath = isFrench
+                    ? "email-templates/document_review_fr.html"
+                    : "email-templates/document_review_en.html";
+
+            String htmlTemplate = loadTemplateFromClasspath(templatePath);
+
+            String statusLine = isFrench
+                    ? (request.getStatus().toString().equalsIgnoreCase("NEEDS_REVISION")
+                        ? "Votre courtier <strong>" + escapeHtml(brokerName) + "</strong> a demandé une révision pour le document suivant :"
+                        : "Votre courtier <strong>" + escapeHtml(brokerName) + "</strong> a approuvé le document suivant :")
+                    : (request.getStatus().toString().equalsIgnoreCase("NEEDS_REVISION")
+                        ? "Your broker <strong>" + escapeHtml(brokerName) + "</strong> requested a revision for the following document:"
+                        : "Your broker <strong>" + escapeHtml(brokerName) + "</strong> approved the following document:");
+
+            String notesBlock = "";
+            if (request.getBrokerNotes() != null && !request.getBrokerNotes().isBlank()) {
+                notesBlock = isFrench
+                        ? "<div class=\"divider\"></div><div class=\"card\"><p class=\"label\">Notes :</p><blockquote class=\"blockquote\">" + escapeHtml(request.getBrokerNotes()) + "</blockquote></div>"
+                        : "<div class=\"divider\"></div><div class=\"card\"><p class=\"label\">Notes:</p><blockquote class=\"blockquote\">" + escapeHtml(request.getBrokerNotes()) + "</blockquote></div>";
+            }
+
+                String emailBody = htmlTemplate
+                    .replace("{{subject}}", escapeHtml(subject))
+                    .replace("{{statusLine}}", statusLine)
+                    .replace("{{documentName}}", escapeHtml(documentName))
+                    .replace("{{transactionId}}", escapeHtml(request.getTransactionRef().getTransactionId().toString()))
+                    .replace("{{notesBlock}}", notesBlock);
+
+            sendEmail(clientEmail, subject, emailBody);
+        } catch (IOException e) {
+            logger.error("Failed to load document review email template", e);
+        } catch (MessagingException e) {
             logger.error("Failed to send document status notification to {}", clientEmail, e);
         }
     }

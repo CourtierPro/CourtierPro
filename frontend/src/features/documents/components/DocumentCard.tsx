@@ -22,6 +22,7 @@ export function DocumentCard({ document, onUpload, onReview }: DocumentCardProps
     const { t, i18n } = useTranslation('documents');
     const [isLoadingView, setIsLoadingView] = useState(false);
     const title = formatDocumentTitle(document, t);
+    
 
     const locale = i18n.language === 'fr' ? fr : enUS;
     const date = document.lastUpdatedAt ? format(new Date(document.lastUpdatedAt), 'PPP', { locale }) : '...';

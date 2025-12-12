@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth0 } from "@auth0/auth0-react";
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
 import { EmptyState } from "@/shared/components/branded/EmptyState";
@@ -10,14 +11,21 @@ import { useTranslation } from "react-i18next";
 import { fetchAllDocuments } from "@/features/documents/api/documentsApi";
 import { DocumentList } from "@/features/documents/components/DocumentList";
 import { UploadDocumentModal } from "@/features/documents/components/UploadDocumentModal";
+import { DocumentReviewModal } from "@/features/documents/components/DocumentReviewModal";
 import { type DocumentRequest } from "@/features/documents/types";
 import { toast } from "sonner";
+import { getRoleFromUser } from "@/features/auth/roleUtils";
 
 export function GlobalDocumentsPage() {
     const { t } = useTranslation('documents');
+    const { user } = useAuth0();
+    const role = getRoleFromUser(user);
+    const canReview = role === "broker";
     const queryClient = useQueryClient();
     const [selectedDocument, setSelectedDocument] = useState<DocumentRequest | null>(null);
+    const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<DocumentRequest | null>(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
     const { data: documents = [], isLoading, error, refetch } = useQuery({
         queryKey: ['documents', 'all'],
@@ -34,6 +42,11 @@ export function GlobalDocumentsPage() {
     const handleUploadClick = (document: DocumentRequest) => {
         setSelectedDocument(document);
         setIsUploadModalOpen(true);
+    };
+
+    const handleReviewClick = (document: DocumentRequest) => {
+        setSelectedDocumentForReview(document);
+        setIsReviewModalOpen(true);
     };
 
     if (isLoading) return <LoadingState />;
@@ -55,7 +68,7 @@ export function GlobalDocumentsPage() {
                     />
                 </Section>
             ) : (
-                <DocumentList documents={documents} onUpload={handleUploadClick} />
+                <DocumentList documents={documents} onUpload={handleUploadClick} onReview={canReview ? handleReviewClick : undefined} />
             )}
 
             {selectedDocument && (
@@ -66,6 +79,20 @@ export function GlobalDocumentsPage() {
                     transactionId={selectedDocument.transactionRef.transactionId}
                     documentTitle={selectedDocument.customTitle || selectedDocument.docType}
                     onSuccess={handleUploadSuccess}
+                />
+            )}
+
+            {selectedDocumentForReview && (
+                <DocumentReviewModal
+                    open={isReviewModalOpen}
+                    onClose={() => setIsReviewModalOpen(false)}
+                    document={selectedDocumentForReview}
+                    transactionId={selectedDocumentForReview.transactionRef.transactionId}
+                    onSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ['documents'] });
+                        setIsReviewModalOpen(false);
+                        setSelectedDocumentForReview(null);
+                    }}
                 />
             )}
         </div>
