@@ -26,6 +26,9 @@ import java.util.Set;
 public class Auth0UserSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(Auth0UserSyncService.class);
+    
+    // Delay between Auth0 API calls to avoid rate limiting (150ms = ~6 requests/sec, well under Auth0's limit)
+    private static final long RATE_LIMIT_DELAY_MS = 150;
 
     private final Auth0ManagementClient auth0Client;
     private final UserAccountRepository userRepository;
@@ -53,6 +56,9 @@ public class Auth0UserSyncService {
             for (Auth0User auth0User : auth0Users) {
                 try {
                     auth0UserIds.add(auth0User.userId());
+                    
+                    // Rate limit: wait before fetching roles to avoid 429 errors
+                    Thread.sleep(RATE_LIMIT_DELAY_MS);
                     
                     // Fetch roles for this user
                     List<Auth0Role> roles = auth0Client.getUserRoles(auth0User.userId());

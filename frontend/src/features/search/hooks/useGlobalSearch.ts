@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import api from '@/shared/api/axiosInstance';
-
+import { useSearchContext } from '@/features/search/context/useSearchContext';
 
 export type SearchResultType = 'TRANSACTION' | 'DOCUMENT' | 'USER' | 'PAGE';
 
@@ -25,8 +25,7 @@ const STATIC_ROUTES: SearchResult[] = [
 ];
 
 export function useGlobalSearch() {
-    const [query, setQuery] = useState('');
-    const [isOpen, setIsOpen] = useState(false);
+    const { query, setQuery, isOpen, setIsOpen } = useSearchContext();
     const navigate = useNavigate();
 
     // Backend Search
