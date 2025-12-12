@@ -2,14 +2,17 @@ import { useState } from 'react';
 import confetti from 'canvas-confetti';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useAuth0 } from "@auth0/auth0-react";
 import { fetchDocuments } from '../api/documentsApi';
 import { DocumentStatusEnum, type DocumentRequest } from '../types';
 import { DocumentList } from './DocumentList';
 import { UploadDocumentModal } from './UploadDocumentModal';
+import { DocumentReviewModal } from './DocumentReviewModal';
 import { DocumentListSkeleton } from './DocumentListSkeleton';
 import { EmptyDocumentsState } from './EmptyDocumentsState';
 import { StatusFilterBar, type FilterStatus } from './StatusFilterBar';
 import { formatDocumentTitle } from '../utils/formatDocumentTitle';
+import { getRoleFromUser } from "@/features/auth/roleUtils";
 
 interface RequiredDocumentsListProps {
     transactionId: string;
@@ -17,10 +20,15 @@ interface RequiredDocumentsListProps {
 
 export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListProps) {
     const { t } = useTranslation('documents');
+    const { user } = useAuth0();
+    const role = getRoleFromUser(user);
+    const canReview = role === "broker";
     const [selectedRequest, setSelectedRequest] = useState<DocumentRequest | null>(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [initialFile, setInitialFile] = useState<File | null>(null);
     const [currentFilter, setCurrentFilter] = useState<FilterStatus>('ALL');
+    const [reviewModalOpen, setReviewModalOpen] = useState(false);
+    const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<DocumentRequest | null>(null);
 
     const { data: documents, isLoading, error, refetch } = useQuery({
         queryKey: ['documents', transactionId],
@@ -66,6 +74,17 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
         });
     };
 
+    const handleReviewClick = (document: DocumentRequest) => {
+        setSelectedDocumentForReview(document);
+        setReviewModalOpen(true);
+    };
+
+    const handleReviewSuccess = () => {
+        refetch();
+        setReviewModalOpen(false);
+        setSelectedDocumentForReview(null);
+    };
+
     return (
         <div className="space-y-4">
             <h3 className="text-lg font-semibold">{t('requiredDocuments')}</h3>
@@ -79,7 +98,10 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
             )}
 
             {filteredDocuments && filteredDocuments.length > 0 ? (
-                <DocumentList documents={filteredDocuments} onUpload={handleUploadClick} />
+                <>
+                    
+                    <DocumentList documents={filteredDocuments} onUpload={handleUploadClick} onReview={canReview ? handleReviewClick : undefined} />
+                </>
             ) : (
                 <EmptyDocumentsState />
             )}
@@ -91,8 +113,19 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
                     requestId={selectedRequest.requestId}
                     transactionId={transactionId}
                     documentTitle={formatDocumentTitle(selectedRequest, t)}
+                    docType={selectedRequest.docType}
                     initialFile={initialFile}
                     onSuccess={handleUploadSuccess}
+                />
+            )}
+
+            {selectedDocumentForReview && (
+                <DocumentReviewModal
+                    open={reviewModalOpen}
+                    onClose={() => setReviewModalOpen(false)}
+                    document={selectedDocumentForReview}
+                    transactionId={transactionId}
+                    onSuccess={handleReviewSuccess}
                 />
             )}
         </div>

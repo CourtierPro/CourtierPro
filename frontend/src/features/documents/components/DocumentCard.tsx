@@ -16,12 +16,14 @@ import { toast } from "sonner";
 interface DocumentCardProps {
     document: DocumentRequest;
     onUpload?: (document: DocumentRequest, file?: File) => void;
+    onReview?: (document: DocumentRequest) => void;
 }
 
-export function DocumentCard({ document, onUpload }: DocumentCardProps) {
+export function DocumentCard({ document, onUpload, onReview }: DocumentCardProps) {
     const { t, i18n } = useTranslation('documents');
     const [isLoadingView, setIsLoadingView] = useState(false);
     const title = formatDocumentTitle(document, t);
+    
 
     const locale = i18n.language === 'fr' ? fr : enUS;
     const date = document.lastUpdatedAt ? format(new Date(document.lastUpdatedAt), 'PPP', { locale }) : '...';
@@ -147,6 +149,13 @@ export function DocumentCard({ document, onUpload }: DocumentCardProps) {
                                     <Eye className="w-4 h-4" />
                                 )}
                                 {t('view', 'View')}
+                            </Button>
+                        )}
+
+                        {document.status === DocumentStatusEnum.SUBMITTED && onReview && (
+                            <Button size="sm" onClick={() => onReview(document)} className="gap-2 bg-orange-500 hover:bg-orange-600">
+                                <CheckCircle className="w-4 h-4" />
+                                {t('review', 'Review')}
                             </Button>
                         )}
 

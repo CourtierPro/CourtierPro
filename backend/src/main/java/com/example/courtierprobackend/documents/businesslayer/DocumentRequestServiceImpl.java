@@ -12,6 +12,7 @@ import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
 import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentReviewRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.SubmittedDocumentResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
@@ -23,6 +24,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -35,6 +38,7 @@ import com.example.courtierprobackend.transactions.businesslayer.TransactionAcce
 @Service
 @RequiredArgsConstructor
 public class DocumentRequestServiceImpl implements DocumentRequestService {
+    private static final Logger logger = LoggerFactory.getLogger(DocumentRequestServiceImpl.class);
 
     private final DocumentRequestRepository repository;
     private final S3StorageService storageService;
@@ -114,12 +118,16 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                     requestDTO.getCustomTitle() : requestDTO.getDocType().toString();
             String clientName = client.getFirstName() + " " + client.getLastName();
             String brokerName = broker.getFirstName() + " " + broker.getLastName();
+            String docType = requestDTO.getDocType().toString();
+            String clientLanguage = client.getPreferredLanguage();
             
             emailService.sendDocumentRequestedNotification(
                     client.getEmail(), 
                     clientName, 
                     brokerName, 
-                    documentName
+                    documentName,
+                    docType,
+                    clientLanguage
             );
         }
 
@@ -200,7 +208,11 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                     .orElse("Unknown Client");
         }
 
-        emailService.sendDocumentSubmittedNotification(savedRequest, broker.getEmail(), uploaderName, savedRequest.getCustomTitle() != null ? savedRequest.getCustomTitle() : savedRequest.getDocType().toString()); 
+        String documentName = savedRequest.getCustomTitle() != null ? savedRequest.getCustomTitle() : savedRequest.getDocType().toString();
+        String docType = savedRequest.getDocType().toString();
+        String brokerLanguage = broker.getPreferredLanguage() != null ? broker.getPreferredLanguage() : "en";
+
+        emailService.sendDocumentSubmittedNotification(savedRequest, broker.getEmail(), uploaderName, documentName, docType, brokerLanguage); 
 
         return mapToResponseDTO(savedRequest);
     }
@@ -247,5 +259,55 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 .orElseThrow(() -> new NotFoundException("Submitted document not found: " + documentId));
 
         return storageService.generatePresignedUrl(submittedDocument.getStorageObject().getS3Key());
+    }
+
+
+    @Transactional
+    @Override
+    public DocumentRequestResponseDTO reviewDocument(UUID transactionId, UUID requestId, DocumentReviewRequestDTO reviewDTO, UUID brokerId) {
+        DocumentRequest request = repository.findByRequestId(requestId)
+                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+
+        if (!request.getTransactionRef().getTransactionId().equals(transactionId)) {
+            throw new BadRequestException("Document does not belong to this transaction");
+        }
+
+        if (request.getStatus() != DocumentStatusEnum.SUBMITTED) {
+            throw new BadRequestException("Only submitted documents can be reviewed");
+        }
+
+        request.setStatus(reviewDTO.getDecision());
+        request.setBrokerNotes(reviewDTO.getComments());
+        request.setLastUpdatedAt(LocalDateTime.now());
+
+        DocumentRequest updated = repository.save(request);
+
+        // Send email notification
+        Transaction tx = transactionRepository.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
+
+        UserAccount client = resolveUserAccount(tx.getClientId()).orElse(null);
+        UserAccount broker = resolveUserAccount(tx.getBrokerId()).orElse(null);
+
+        if (client != null && broker != null) {
+            String documentName = updated.getCustomTitle() != null ? 
+                    updated.getCustomTitle() : updated.getDocType().toString();
+            String brokerName = broker.getFirstName() + " " + broker.getLastName();
+            String docType = updated.getDocType().toString();
+            String clientLanguage = client.getPreferredLanguage() != null ? client.getPreferredLanguage() : "en";
+
+            emailService.sendDocumentStatusUpdatedNotification(
+                    updated,
+                    client.getEmail(),
+                    brokerName,
+                    documentName,
+                    docType,
+                    clientLanguage
+            );
+        } else {
+            logger.warn("Cannot send document review notification: client or broker account could not be resolved for transaction {}", updated.getTransactionRef().getTransactionId());
+        }
+
+        return mapToResponseDTO(updated);
     }
 }

@@ -4,9 +4,11 @@ import com.example.courtierprobackend.documents.businesslayer.DocumentRequestSer
 import com.example.courtierprobackend.documents.datalayer.enums.UploadedByRefEnum;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentReviewRequestDTO;
 import com.example.courtierprobackend.security.UserContextUtils;
 import com.example.courtierprobackend.security.UserContextFilter;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -123,5 +125,17 @@ public class DocumentRequestController {
         UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
         String url = service.getDocumentDownloadUrl(requestId, documentId, userId);
         return ResponseEntity.ok(Map.of("url", url));
+    }
+
+    @PatchMapping("/{requestId}/review")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<DocumentRequestResponseDTO> reviewDocument(
+            @PathVariable UUID transactionId,
+            @PathVariable UUID requestId,
+            @RequestBody @Valid DocumentReviewRequestDTO reviewDTO,
+            HttpServletRequest request
+    ) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, null);
+        return ResponseEntity.ok(service.reviewDocument(transactionId, requestId, reviewDTO, brokerId));
     }
 }

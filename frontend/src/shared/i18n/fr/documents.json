@@ -56,6 +56,7 @@
     "selectDocumentType": "Sélectionner un type de document",
     "documentTypeRequired": "Veuillez sélectionner un type de document",
     "view": "Voir",
+    "review": "Réviser",
     "upload": "Téléverser",
     "lastUpdated": "Dernière mise à jour",
     "status": {
@@ -67,13 +68,27 @@
     "errors": {
         "viewFailed": "Échec du chargement du document",
         "uploadFailed": "Échec du téléversement",
-        "fileTooLarge": "Le fichier est trop volumineux (max 25 Mo)"
+        "fileTooLarge": "Le fichier est trop volumineux (max 25 Mo)",
+        "reviewFailed": "Erreur lors de la soumission de l'avis. Veuillez réessayer."
     },
     "globalTitle": "Mes documents",
     "globalSubtitle": "Consultez et gérez tous vos documents pour toutes vos transactions.",
     "uploadSuccess": "Document téléversé avec succès",
     "modals": {
-        "uploadDocument": "Téléverser un document"
+        "uploadDocument": "Téléverser un document",
+        "reviewDocument": "Réviser le document",
+        "documentType": "Type de document",
+        "title": "Titre",
+        "chooseAnAction": "Choisir une action :",
+        "approve": "Approuver",
+        "needsRevision": "Révision requise",
+        "approvalComments": "Commentaires d'approbation (optionnel)",
+        "approvalCommentsPlaceholder": "Ajouter des commentaires sur l'approbation...",
+        "revisionNotes": "Notes de révision",
+        "revisionNotesPlaceholder": "Expliquez ce qui doit être révisé...",
+        "revisionNotesRequired": "Les notes de révision sont obligatoires lors de la demande de modifications",
+        "cancel": "Annuler",
+        "submit": "Soumettre"
     },
     "uploadingFor": "Téléversement pour",
     "dragAndDropOrClick": "Glisser-déposer ou cliquer pour sélectionner",
@@ -87,6 +102,9 @@
         "uploading": "Téléversement..."
     },
     "success": {
-        "documentUploaded": "Document téléversé avec succès"
+        "documentUploaded": "Document téléversé avec succès",
+        "documentApproved": "Document approuvé avec succès",
+        "revisionRequested": "Révision demandée avec succès",
+        "documentRequested": "Document demandé avec succès"
     }
 }

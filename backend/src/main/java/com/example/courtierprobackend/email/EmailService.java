@@ -132,78 +132,140 @@ public class EmailService {
         }
     }
 
-    public void sendDocumentSubmittedNotification(DocumentRequest request, String brokerEmail, String uploaderName, String documentName) {
-        String subject = "Document Submitted: " + documentName;
-        String htmlBody = String.format("""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                </head>
-                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                        <h2 style="color: #2c3e50;">Document Submitted</h2>
-                        <p>Hello,</p>
-                        <p>A document has been submitted by <strong>%s</strong>:</p>
-                        <p style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; font-size: 16px;">
-                            <strong>%s</strong>
-                        </p>
-                        <p>Transaction ID: %s</p>
-                        <p>Please log in to CourtierPro to review this document.</p>
-                        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-                        <p style="color: #999; font-size: 12px;">Thanks,<br>CourtierPro Team</p>
-                    </div>
-                </body>
-                </html>
-                """, uploaderName, documentName, request.getTransactionRef().getTransactionId());
-        
+    public void sendDocumentSubmittedNotification(DocumentRequest request, String brokerEmail, String uploaderName, String documentName, String docType, String brokerLanguage) {
         try {
-            sendEmail(brokerEmail, subject, htmlBody);
-        } catch (MessagingException | UnsupportedEncodingException e) {
+            boolean isFrench = brokerLanguage != null && brokerLanguage.equalsIgnoreCase("fr");
+            
+            // Translate document type based on broker's language
+            String translatedDocType = translateDocumentType(docType, isFrench);
+            String displayName = documentName.equals(docType) ? translatedDocType : documentName;
+            
+            String subject = isFrench ? ("Document soumis : " + displayName) : ("Document Submitted: " + displayName);
+            
+            String templatePath = isFrench
+                    ? "email-templates/document_submitted_fr.html"
+                    : "email-templates/document_submitted_en.html";
+            
+            String htmlTemplate = loadTemplateFromClasspath(templatePath);
+            
+            String emailBody = htmlTemplate
+                    .replace("{{subject}}", escapeHtml(subject))
+                    .replace("{{uploaderName}}", escapeHtml(uploaderName))
+                    .replace("{{documentName}}", escapeHtml(displayName))
+                    .replace("{{transactionId}}", escapeHtml(request.getTransactionRef().getTransactionId().toString()));
+            
+            sendEmail(brokerEmail, subject, emailBody);
+        } catch (IOException e) {
+            logger.error("Failed to load document submitted email template", e);
+        } catch (MessagingException e) {
             logger.error("Failed to send document submitted notification to {}", brokerEmail, e);
         }
     }
 
-    public void sendDocumentRequestedNotification(String clientEmail, String clientName, String brokerName, String documentName) {
-        String subject = "Document Requested: " + documentName;
-        String htmlBody = String.format("""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                </head>
-                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                        <h2 style="color: #2c3e50;">Document Request</h2>
-                        <p>Hello %s,</p>
-                        <p>Your broker <strong>%s</strong> has requested the following document:</p>
-                        <p style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; font-size: 16px;">
-                            <strong>%s</strong>
-                        </p>
-                        <p>Please log in to CourtierPro to upload this document.</p>
-                        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-                        <p style="color: #999; font-size: 12px;">Thanks,<br>CourtierPro Team</p>
-                    </div>
-                </body>
-                </html>
-                """, clientName, brokerName, documentName);
-        
+    public void sendDocumentRequestedNotification(String clientEmail, String clientName, String brokerName, String documentName, String docType, String clientLanguage) {
         try {
-            sendEmail(clientEmail, subject, htmlBody);
-        } catch (MessagingException | UnsupportedEncodingException e) {
+            boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
+            
+            // Translate document type based on client's language
+            String translatedDocType = translateDocumentType(docType, isFrench);
+            String displayName = documentName.equals(docType) ? translatedDocType : documentName;
+            
+            String subject = isFrench 
+                ? ("Document demandé : " + displayName)
+                : ("Document Requested: " + displayName);
+            
+            String templatePath = isFrench
+                    ? "email-templates/document_requested_fr.html"
+                    : "email-templates/document_requested_en.html";
+            
+            String htmlTemplate = loadTemplateFromClasspath(templatePath);
+            
+            String emailBody = htmlTemplate
+                    .replace("{{subject}}", escapeHtml(subject))
+                    .replace("{{clientName}}", escapeHtml(clientName))
+                    .replace("{{brokerName}}", escapeHtml(brokerName))
+                    .replace("{{documentName}}", escapeHtml(displayName));
+            
+            sendEmail(clientEmail, subject, emailBody);
+        } catch (IOException e) {
+            logger.error("Failed to load document requested email template", e);
+        } catch (MessagingException e) {
             logger.error("Failed to send document requested notification to {}", clientEmail, e);
         }
     }
 
-    public void sendDocumentStatusUpdatedNotification(DocumentRequest request, String clientEmail) {
-        String subject = "Document Status Updated: " + request.getCustomTitle();
-        String body = "Your document status is now: " + request.getStatus();
-
+    public void sendDocumentStatusUpdatedNotification(
+        DocumentRequest request,
+        String clientEmail,
+        String brokerName,
+        String documentName,
+        String docType,
+        String clientLanguage
+    ) {
         try {
-            sendEmail(clientEmail, subject, body);
-        } catch (MessagingException | UnsupportedEncodingException e) {
+            // Use client's preferred language, fallback to "en"
+            boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
+
+            // Translate document type based on language
+            String translatedDocType = translateDocumentType(docType, isFrench);
+            
+            String displayName = documentName.equals(docType) ? translatedDocType : documentName;
+
+            String subject = isFrench ? ("Document vérifié : " + displayName) : ("Document Reviewed: " + displayName);
+
+            String templatePath = isFrench
+                    ? "email-templates/document_review_fr.html"
+                    : "email-templates/document_review_en.html";
+
+            String htmlTemplate = loadTemplateFromClasspath(templatePath);
+
+            String statusLine = isFrench
+                    ? (request.getStatus().toString().equalsIgnoreCase("NEEDS_REVISION")
+                        ? "Votre courtier <strong>" + escapeHtml(brokerName) + "</strong> a demandé une révision pour le document suivant :"
+                        : "Votre courtier <strong>" + escapeHtml(brokerName) + "</strong> a approuvé le document suivant :")
+                    : (request.getStatus().toString().equalsIgnoreCase("NEEDS_REVISION")
+                        ? "Your broker <strong>" + escapeHtml(brokerName) + "</strong> requested a revision for the following document:"
+                        : "Your broker <strong>" + escapeHtml(brokerName) + "</strong> approved the following document:");
+
+            String notesBlock = "";
+            if (request.getBrokerNotes() != null && !request.getBrokerNotes().isBlank()) {
+                notesBlock = isFrench
+                        ? "<div class=\"divider\"></div><div class=\"card\"><p class=\"label\">Notes :</p><blockquote class=\"blockquote\">" + escapeHtml(request.getBrokerNotes()) + "</blockquote></div>"
+                        : "<div class=\"divider\"></div><div class=\"card\"><p class=\"label\">Notes:</p><blockquote class=\"blockquote\">" + escapeHtml(request.getBrokerNotes()) + "</blockquote></div>";
+            }
+
+            String emailBody = htmlTemplate
+                    .replace("{{subject}}", escapeHtml(subject))
+                    .replace("{{statusLine}}", statusLine)
+                    .replace("{{documentName}}", escapeHtml(displayName))
+                    .replace("{{transactionId}}", escapeHtml(request.getTransactionRef().getTransactionId().toString()))
+                    .replace("{{notesBlock}}", notesBlock);
+
+            sendEmail(clientEmail, subject, emailBody);
+        } catch (IOException e) {
+            logger.error("Failed to load document review email template", e);
+        } catch (MessagingException e) {
             logger.error("Failed to send document status notification to {}", clientEmail, e);
         }
+    }
+
+    private String translateDocumentType(String docType, boolean isFrench) {
+        return switch (docType) {
+            case "MORTGAGE_PRE_APPROVAL" -> isFrench ? "Pré-approbation hypothécaire" : "Mortgage Pre-Approval";
+            case "MORTGAGE_APPROVAL" -> isFrench ? "Approbation hypothécaire" : "Mortgage Approval";
+            case "PROOF_OF_FUNDS" -> isFrench ? "Preuve de fonds" : "Proof of Funds";
+            case "ID_VERIFICATION" -> isFrench ? "Vérification d'identité" : "ID Verification";
+            case "EMPLOYMENT_LETTER" -> isFrench ? "Lettre d'emploi" : "Employment Letter";
+            case "PAY_STUBS" -> isFrench ? "Talons de paie" : "Pay Stubs";
+            case "CREDIT_REPORT" -> isFrench ? "Rapport de crédit" : "Credit Report";
+            case "CERTIFICATE_OF_LOCATION" -> isFrench ? "Certificat de localisation" : "Certificate of Location";
+            case "PROMISE_TO_PURCHASE" -> isFrench ? "Promesse d'achat" : "Promise to Purchase";
+            case "INSPECTION_REPORT" -> isFrench ? "Rapport d'inspection" : "Inspection Report";
+            case "INSURANCE_LETTER" -> isFrench ? "Lettre d'assurance" : "Insurance Letter";
+            case "BANK_STATEMENT" -> isFrench ? "Relevé bancaire" : "Bank Statement";
+            case "OTHER" -> isFrench ? "Autre" : "Other";
+            default -> docType;
+        };
     }
 
     private boolean sendEmail(String to, String subject, String body) throws MessagingException, UnsupportedEncodingException {
