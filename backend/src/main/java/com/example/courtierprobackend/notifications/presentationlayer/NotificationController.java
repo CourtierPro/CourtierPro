@@ -27,7 +27,13 @@ public class NotificationController {
     }
 
     @PutMapping("/{publicId}/read")
-    public ResponseEntity<NotificationResponseDTO> markAsRead(@PathVariable("publicId") java.util.UUID publicId) {
-        return ResponseEntity.ok(notificationService.markAsRead(publicId.toString()));
+    public ResponseEntity<?> markAsRead(@PathVariable("publicId") String publicId) {
+        java.util.UUID uuid;
+        try {
+            uuid = java.util.UUID.fromString(publicId);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body("Invalid UUID format for publicId: " + publicId);
+        }
+        return ResponseEntity.ok(notificationService.markAsRead(uuid.toString()));
     }
 }
