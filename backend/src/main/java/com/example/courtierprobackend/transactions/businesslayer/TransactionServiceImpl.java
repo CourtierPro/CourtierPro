@@ -2,7 +2,6 @@ package com.example.courtierprobackend.transactions.businesslayer;
 
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
-import com.example.courtierprobackend.shared.utils.StageTranslationUtil;
 import com.example.courtierprobackend.transactions.datalayer.TimelineEntry;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
@@ -12,9 +11,6 @@ import com.example.courtierprobackend.transactions.datalayer.repositories.Transa
 import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
-
-import com.example.courtierprobackend.email.EmailService;
-import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -36,8 +32,6 @@ public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepository repo;
     private final UserAccountRepository userAccountRepository;
-    private final EmailService emailService;
-    private final NotificationService notificationService;
 
     private String lookupClientName(UUID clientId) {
         log.debug("lookupClientName: called with clientId={}", clientId);
@@ -52,11 +46,9 @@ public class TransactionServiceImpl implements TransactionService {
             UserAccount u = byId.get();
             String f = u.getFirstName();
             String l = u.getLastName();
-            log.debug("lookupClientName: found UserAccount for clientId={} firstName='{}' lastName='{}'", clientId, f,
-                    l);
+            log.debug("lookupClientName: found UserAccount for clientId={} firstName='{}' lastName='{}'", clientId, f, l);
             String name = ((f == null ? "" : f) + " " + (l == null ? "" : l)).trim();
-            if (name.isEmpty())
-                name = "Unknown Client";
+            if (name.isEmpty()) name = "Unknown Client";
             log.debug("lookupClientName: returning '{}' for clientId={}", name, clientId);
             return name;
         }
@@ -93,10 +85,10 @@ public class TransactionServiceImpl implements TransactionService {
         repo.findByClientIdAndPropertyAddress_StreetAndStatus(
                 clientId,
                 street,
-                TransactionStatus.ACTIVE).ifPresent(t -> {
-                    throw new BadRequestException(
-                            "duplicate: Client already has an active transaction for this property");
-                });
+                TransactionStatus.ACTIVE
+        ).ifPresent(t -> {
+            throw new BadRequestException("duplicate: Client already has an active transaction for this property");
+        });
 
         // 3) Create Transaction entity
         Transaction tx = new Transaction();
@@ -116,8 +108,7 @@ public class TransactionServiceImpl implements TransactionService {
                 tx.setBuyerStage(buyerStage);
                 tx.setSellerStage(null);
             } catch (IllegalArgumentException ex) {
-                throw new BadRequestException("initialStage '" + initial
-                        + "' is not a valid buyer stage. Allowed values: " + Arrays.toString(BuyerStage.values()));
+                throw new BadRequestException("initialStage '" + initial + "' is not a valid buyer stage. Allowed values: " + Arrays.toString(BuyerStage.values()));
             }
         } else if (dto.getSide() == TransactionSide.SELL_SIDE) {
             try {
@@ -125,8 +116,7 @@ public class TransactionServiceImpl implements TransactionService {
                 tx.setSellerStage(sellerStage);
                 tx.setBuyerStage(null);
             } catch (IllegalArgumentException ex) {
-                throw new BadRequestException("initialStage '" + initial
-                        + "' is not a valid seller stage. Allowed values: " + Arrays.toString(SellerStage.values()));
+                throw new BadRequestException("initialStage '" + initial + "' is not a valid seller stage. Allowed values: " + Arrays.toString(SellerStage.values()));
             }
         } else {
             throw new BadRequestException("side is not supported: " + dto.getSide());
@@ -182,8 +172,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .transaction(tx)
                 .build();
 
-        if (tx.getTimeline() == null)
-            tx.setTimeline(new ArrayList<>());
+        if (tx.getTimeline() == null) tx.setTimeline(new ArrayList<>());
         tx.getTimeline().add(entry);
 
         Transaction saved = repo.save(tx);
@@ -194,9 +183,9 @@ public class TransactionServiceImpl implements TransactionService {
         return EntityDtoUtil.toTimelineDTO(savedEntry);
     }
 
+
     @Override
-    public List<TransactionResponseDTO> getBrokerTransactions(UUID brokerId, String statusStr, String stageStr,
-            String sideStr) {
+    public List<TransactionResponseDTO> getBrokerTransactions(UUID brokerId, String statusStr, String stageStr, String sideStr) {
 
         TransactionStatus status = null;
         if (statusStr != null && !statusStr.isBlank() && !statusStr.equalsIgnoreCase("all")) {
@@ -210,19 +199,16 @@ public class TransactionServiceImpl implements TransactionService {
         TransactionSide side = null;
         if (sideStr != null && !sideStr.isBlank() && !sideStr.equalsIgnoreCase("all")) {
             try {
-                side = TransactionSide.valueOf(sideStr.toUpperCase() + "_SIDE"); // Frontend sends "buy"/"sell", enum is
-                                                                                 // BUY_SIDE/SELL_SIDE
-                if (sideStr.equalsIgnoreCase("buy"))
-                    side = TransactionSide.BUY_SIDE;
-                if (sideStr.equalsIgnoreCase("sell"))
-                    side = TransactionSide.SELL_SIDE;
+                side = TransactionSide.valueOf(sideStr.toUpperCase() + "_SIDE"); // Frontend sends "buy"/"sell", enum is BUY_SIDE/SELL_SIDE
+                if (sideStr.equalsIgnoreCase("buy")) side = TransactionSide.BUY_SIDE;
+                if (sideStr.equalsIgnoreCase("sell")) side = TransactionSide.SELL_SIDE;
             } catch (IllegalArgumentException e) {
-                // try direct match
-                try {
-                    side = TransactionSide.valueOf(sideStr.toUpperCase());
-                } catch (IllegalArgumentException ex) {
-                    // ignore
-                }
+                 // try direct match
+                 try {
+                     side = TransactionSide.valueOf(sideStr.toUpperCase());
+                 } catch (IllegalArgumentException ex) {
+                     // ignore
+                 }
             }
         }
 
@@ -295,16 +281,14 @@ public class TransactionServiceImpl implements TransactionService {
                 BuyerStage buyerStage = BuyerStage.valueOf(stageStr);
                 EntityDtoUtil.updateBuyerStage(tx, buyerStage);
             } catch (IllegalArgumentException ex) {
-                throw new BadRequestException("stage '" + stageStr + "' is not a valid buyer stage. Allowed values: "
-                        + Arrays.toString(BuyerStage.values()));
+                throw new BadRequestException("stage '" + stageStr + "' is not a valid buyer stage. Allowed values: " + Arrays.toString(BuyerStage.values()));
             }
         } else if (tx.getSide() == TransactionSide.SELL_SIDE) {
             try {
                 SellerStage sellerStage = SellerStage.valueOf(stageStr);
                 EntityDtoUtil.updateSellerStage(tx, sellerStage);
             } catch (IllegalArgumentException ex) {
-                throw new BadRequestException("stage '" + stageStr + "' is not a valid seller stage. Allowed values: "
-                        + Arrays.toString(SellerStage.values()));
+                throw new BadRequestException("stage '" + stageStr + "' is not a valid seller stage. Allowed values: " + Arrays.toString(SellerStage.values()));
             }
         } else {
             throw new BadRequestException("Unsupported transaction side: " + tx.getSide());
@@ -322,62 +306,10 @@ public class TransactionServiceImpl implements TransactionService {
                 .transaction(tx)
                 .build();
 
-        if (tx.getTimeline() == null)
-            tx.setTimeline(new ArrayList<>());
+        if (tx.getTimeline() == null) tx.setTimeline(new ArrayList<>());
         tx.getTimeline().add(entry);
 
         Transaction saved = repo.save(tx);
-
-        // CP-48: Send Notifications and Emails
-        try {
-            // Fetch Client details
-            Optional<UserAccount> clientOpt = userAccountRepository.findById(saved.getClientId());
-            Optional<UserAccount> brokerOpt = userAccountRepository.findById(brokerId);
-
-            if (clientOpt.isPresent() && brokerOpt.isPresent()) {
-                UserAccount client = clientOpt.get();
-                UserAccount broker = brokerOpt.get();
-
-                String clientName = (client.getFirstName() + " " + client.getLastName()).trim();
-                String brokerName = (broker.getFirstName() + " " + broker.getLastName()).trim();
-
-                String address = "Unknown Address";
-                if (saved.getPropertyAddress() != null && saved.getPropertyAddress().getStreet() != null) {
-                    address = saved.getPropertyAddress().getStreet();
-                }
-
-                // 1. Email
-                emailService.sendStageUpdateEmail(
-                        client.getEmail(),
-                        clientName,
-                        brokerName,
-                        address,
-                        stageName,
-                        client.getPreferredLanguage());
-
-                // 2. In-App Notification
-                String notifTitle = "Stage Update";
-                String notifMessage = StageTranslationUtil.constructNotificationMessage(
-                        stageName,
-                        brokerName,
-                        address,
-                        client.getPreferredLanguage());
-
-                notificationService.createNotification(
-                        client.getId().toString(), // Internal UUID
-                        notifTitle,
-                        notifMessage,
-                        saved.getTransactionId().toString());
-
-            } else {
-                log.warn("Could not send notifications for transaction {}: Client or Broker not found",
-                        saved.getTransactionId());
-            }
-
-        } catch (Exception e) {
-            log.error("Failed to send notifications/emails for transaction {}", saved.getTransactionId(), e);
-            // Do not rethrow, transaction is already saved
-        }
 
         return EntityDtoUtil.toResponse(saved, lookupClientName(saved.getClientId()));
     }

@@ -1,6 +1,5 @@
 package com.example.courtierprobackend.email;
 
-import com.example.courtierprobackend.shared.utils.StageTranslationUtil;
 import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
 import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
@@ -31,7 +30,8 @@ public class EmailService {
     public EmailService(
             @Value("${gmail.username}") String gmailUsername,
             @Value("${gmail.password}") String gmailPassword,
-            OrganizationSettingsService organizationSettingsService) {
+            OrganizationSettingsService organizationSettingsService
+    ) {
         this.gmailUsername = gmailUsername;
         this.gmailPassword = gmailPassword;
         this.organizationSettingsService = organizationSettingsService;
@@ -49,8 +49,8 @@ public class EmailService {
      * @param languageCode     "en" / "fr" or null -> will fall back to org default
      */
     public boolean sendPasswordSetupEmail(String toEmail,
-            String passwordSetupUrl,
-            String languageCode) {
+                                          String passwordSetupUrl,
+                                          String languageCode) {
         try {
             OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
 
@@ -132,30 +132,28 @@ public class EmailService {
         }
     }
 
-    public void sendDocumentSubmittedNotification(DocumentRequest request, String brokerEmail, String uploaderName,
-            String documentName, String docType, String brokerLanguage) {
+    public void sendDocumentSubmittedNotification(DocumentRequest request, String brokerEmail, String uploaderName, String documentName, String docType, String brokerLanguage) {
         try {
             boolean isFrench = brokerLanguage != null && brokerLanguage.equalsIgnoreCase("fr");
-
+            
             // Translate document type based on broker's language
             String translatedDocType = translateDocumentType(docType, isFrench);
             String displayName = documentName.equals(docType) ? translatedDocType : documentName;
-
+            
             String subject = isFrench ? ("Document soumis : " + displayName) : ("Document Submitted: " + displayName);
-
+            
             String templatePath = isFrench
                     ? "email-templates/document_submitted_fr.html"
                     : "email-templates/document_submitted_en.html";
-
+            
             String htmlTemplate = loadTemplateFromClasspath(templatePath);
-
+            
             String emailBody = htmlTemplate
                     .replace("{{subject}}", escapeHtml(subject))
                     .replace("{{uploaderName}}", escapeHtml(uploaderName))
                     .replace("{{documentName}}", escapeHtml(displayName))
-                    .replace("{{transactionId}}",
-                            escapeHtml(request.getTransactionRef().getTransactionId().toString()));
-
+                    .replace("{{transactionId}}", escapeHtml(request.getTransactionRef().getTransactionId().toString()));
+            
             sendEmail(brokerEmail, subject, emailBody);
         } catch (IOException e) {
             logger.error("Failed to load document submitted email template", e);
@@ -164,31 +162,30 @@ public class EmailService {
         }
     }
 
-    public void sendDocumentRequestedNotification(String clientEmail, String clientName, String brokerName,
-            String documentName, String docType, String clientLanguage) {
+    public void sendDocumentRequestedNotification(String clientEmail, String clientName, String brokerName, String documentName, String docType, String clientLanguage) {
         try {
             boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
-
+            
             // Translate document type based on client's language
             String translatedDocType = translateDocumentType(docType, isFrench);
             String displayName = documentName.equals(docType) ? translatedDocType : documentName;
-
-            String subject = isFrench
-                    ? ("Document demandé : " + displayName)
-                    : ("Document Requested: " + displayName);
-
+            
+            String subject = isFrench 
+                ? ("Document demandé : " + displayName)
+                : ("Document Requested: " + displayName);
+            
             String templatePath = isFrench
                     ? "email-templates/document_requested_fr.html"
                     : "email-templates/document_requested_en.html";
-
+            
             String htmlTemplate = loadTemplateFromClasspath(templatePath);
-
+            
             String emailBody = htmlTemplate
                     .replace("{{subject}}", escapeHtml(subject))
                     .replace("{{clientName}}", escapeHtml(clientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{documentName}}", escapeHtml(displayName));
-
+            
             sendEmail(clientEmail, subject, emailBody);
         } catch (IOException e) {
             logger.error("Failed to load document requested email template", e);
@@ -198,19 +195,20 @@ public class EmailService {
     }
 
     public void sendDocumentStatusUpdatedNotification(
-            DocumentRequest request,
-            String clientEmail,
-            String brokerName,
-            String documentName,
-            String docType,
-            String clientLanguage) {
+        DocumentRequest request,
+        String clientEmail,
+        String brokerName,
+        String documentName,
+        String docType,
+        String clientLanguage
+    ) {
         try {
             // Use client's preferred language, fallback to "en"
             boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
 
             // Translate document type based on language
             String translatedDocType = translateDocumentType(docType, isFrench);
-
+            
             String displayName = documentName.equals(docType) ? translatedDocType : documentName;
 
             String subject = isFrench ? ("Document vérifié : " + displayName) : ("Document Reviewed: " + displayName);
@@ -223,23 +221,17 @@ public class EmailService {
 
             String statusLine = isFrench
                     ? (request.getStatus().toString().equalsIgnoreCase("NEEDS_REVISION")
-                            ? "Votre courtier <strong>" + escapeHtml(brokerName)
-                                    + "</strong> a demandé une révision pour le document suivant :"
-                            : "Votre courtier <strong>" + escapeHtml(brokerName)
-                                    + "</strong> a approuvé le document suivant :")
+                        ? "Votre courtier <strong>" + escapeHtml(brokerName) + "</strong> a demandé une révision pour le document suivant :"
+                        : "Votre courtier <strong>" + escapeHtml(brokerName) + "</strong> a approuvé le document suivant :")
                     : (request.getStatus().toString().equalsIgnoreCase("NEEDS_REVISION")
-                            ? "Your broker <strong>" + escapeHtml(brokerName)
-                                    + "</strong> requested a revision for the following document:"
-                            : "Your broker <strong>" + escapeHtml(brokerName)
-                                    + "</strong> approved the following document:");
+                        ? "Your broker <strong>" + escapeHtml(brokerName) + "</strong> requested a revision for the following document:"
+                        : "Your broker <strong>" + escapeHtml(brokerName) + "</strong> approved the following document:");
 
             String notesBlock = "";
             if (request.getBrokerNotes() != null && !request.getBrokerNotes().isBlank()) {
                 notesBlock = isFrench
-                        ? "<div class=\"divider\"></div><div class=\"card\"><p class=\"label\">Notes :</p><blockquote class=\"blockquote\">"
-                                + escapeHtml(request.getBrokerNotes()) + "</blockquote></div>"
-                        : "<div class=\"divider\"></div><div class=\"card\"><p class=\"label\">Notes:</p><blockquote class=\"blockquote\">"
-                                + escapeHtml(request.getBrokerNotes()) + "</blockquote></div>";
+                        ? "<div class=\"divider\"></div><div class=\"card\"><p class=\"label\">Notes :</p><blockquote class=\"blockquote\">" + escapeHtml(request.getBrokerNotes()) + "</blockquote></div>"
+                        : "<div class=\"divider\"></div><div class=\"card\"><p class=\"label\">Notes:</p><blockquote class=\"blockquote\">" + escapeHtml(request.getBrokerNotes()) + "</blockquote></div>";
             }
 
             String emailBody = htmlTemplate
@@ -276,8 +268,7 @@ public class EmailService {
         };
     }
 
-    private boolean sendEmail(String to, String subject, String body)
-            throws MessagingException, UnsupportedEncodingException {
+    private boolean sendEmail(String to, String subject, String body) throws MessagingException, UnsupportedEncodingException {
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
@@ -309,37 +300,6 @@ public class EmailService {
         try (InputStream is = resource.getInputStream()) {
             byte[] bytes = is.readAllBytes();
             return new String(bytes, StandardCharsets.UTF_8);
-        }
-    }
-
-    public void sendStageUpdateEmail(String toEmail, String clientName, String brokerName, String transactionAddress,
-            String newStage, String language) {
-        try {
-            boolean isFrench = language != null && language.equalsIgnoreCase("fr");
-
-            String subject = isFrench
-                    ? ("Mise à jour de transaction : " + transactionAddress)
-                    : ("Transaction Update: " + transactionAddress);
-
-            String templatePath = isFrench
-                    ? "email-templates/stage_update_fr.html"
-                    : "email-templates/stage_update_en.html";
-
-            String htmlTemplate = loadTemplateFromClasspath(templatePath);
-
-            String formattedStage = StageTranslationUtil.getTranslatedStage(newStage, language);
-
-            String emailBody = htmlTemplate
-                    .replace("{{clientName}}", escapeHtml(clientName))
-                    .replace("{{brokerName}}", escapeHtml(brokerName))
-                    .replace("{{transactionAddress}}", escapeHtml(transactionAddress))
-                    .replace("{{newStage}}", escapeHtml(formattedStage));
-
-            sendEmail(toEmail, subject, emailBody);
-        } catch (IOException e) {
-            logger.error("Failed to load stage update email template", e);
-        } catch (MessagingException e) {
-            logger.error("Failed to send stage update email to {}", toEmail, e);
         }
     }
 
