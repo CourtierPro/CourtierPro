@@ -30,7 +30,7 @@ export const Section = forwardRef<HTMLDivElement, SectionProps>(({
                     {action && <div>{action}</div>}
                 </CardHeader>
             )}
-            <CardContent>
+            <CardContent className={cn(!hasHeader && "pt-6")}>
                 {children}
             </CardContent>
         </Card>
