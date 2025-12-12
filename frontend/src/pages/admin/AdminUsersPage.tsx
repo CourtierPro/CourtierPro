@@ -15,8 +15,6 @@ import { useAdminUsers } from "@/features/admin/api/queries";
 import { useSetUserActiveStatus } from "@/features/admin/api/mutations";
 import { logError, getErrorMessage } from "@/shared/utils/error-utils";
 
-import "./AdminUsersPage.css";
-
 export function AdminUsersPage() {
   const { t } = useTranslation("admin");
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -59,15 +57,15 @@ export function AdminUsersPage() {
   }
 
   return (
-    <div className="admin-users-page">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
-      <div className="admin-users-header">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <PageHeader
           title={t("userManagement")}
           subtitle={t("manageSystemAccess")}
         />
         <Button
-          className="admin-users-invite-btn"
+          className="rounded-md px-6"
           onClick={() => setShowInviteModal(true)}
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -76,14 +74,14 @@ export function AdminUsersPage() {
       </div>
 
       {/* Search bar */}
-      <div className="admin-users-search-card">
-        <div className="admin-users-search-wrapper">
-          <div className="admin-users-search-icon">
-            <Search className="h-5 w-5 text-gray-400" />
+      <div className="bg-card rounded-xl border border-border p-4 shadow-sm">
+        <div className="relative flex items-center">
+          <div className="absolute left-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-muted-foreground" />
           </div>
           <Input
             type="text"
-            className="admin-users-search-input"
+            className="pl-10"
             placeholder={t("searchUsers")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -92,89 +90,91 @@ export function AdminUsersPage() {
       </div>
 
       {/* Users table */}
-      <div className="admin-users-table-card">
-        <table className="admin-users-table">
-          <thead>
-          <tr>
-            <th>{t("user")}</th>
-            <th>{t("role")}</th>
-            <th>{t("status")}</th>
-            <th>{t("language")}</th>
-            <th className="admin-users-actions-col">
-              <span className="sr-only">Actions</span>
-            </th>
-          </tr>
-          </thead>
-          <tbody>
-          {filteredUsers.length > 0 ? (
-            filteredUsers.map((user) => (
-              <tr key={user.id} className="admin-users-row">
-                <td>
-                  <div className="admin-users-user-cell">
-                    <div className="admin-users-avatar">
-                      <User className="h-5 w-5 text-gray-500" />
-                    </div>
-                    <div className="admin-users-user-text">
-                      <div className="admin-users-user-name">
-                        {user.firstName} {user.lastName}
-                      </div>
-                      <div className="admin-users-user-email">
-                        {user.email}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <div className="admin-users-role-cell">
-                    <Shield className="h-4 w-4 text-gray-400 mr-2" />
-                    <span>{user.role}</span>
-                  </div>
-                </td>
-                <td>
-                  <Badge
-                    variant={user.active ? "success" : "destructive"}
-                    className="rounded-full"
-                  >
-                    {user.active ? t("active") : t("inactive")}
-                  </Badge>
-                </td>
-                <td className="admin-users-lang-cell">
-                  {user.preferredLanguage === "en" ? "EN" : "FR"}
-                </td>
-                <td className="admin-users-actions-col">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      handleToggleStatus(user.id, user.active)
-                    }
-                    className={
-                      user.active
-                        ? "text-red-600 hover:text-red-900 hover:bg-red-50"
-                        : "text-green-600 hover:text-green-900 hover:bg-green-50"
-                    }
-                  >
-                    {user.active ? t("deactivate") : t("activate")}
-                  </Button>
-                </td>
+      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider">
+              <tr>
+                <th className="px-6 py-4 font-medium">{t("user")}</th>
+                <th className="px-6 py-4 font-medium">{t("role")}</th>
+                <th className="px-6 py-4 font-medium">{t("status")}</th>
+                <th className="px-6 py-4 font-medium">{t("language")}</th>
+                <th className="px-6 py-4 font-medium text-right">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={5} className="admin-users-empty">
-                {t("noUsersFound")}
-              </td>
-            </tr>
-          )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <tr key={user.id} className="group transition-colors hover:bg-muted/30">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+                          <User className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col">
+                          <div className="font-semibold text-foreground">
+                            {user.firstName} {user.lastName}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {user.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center text-foreground">
+                        <Shield className="h-4 w-4 text-muted-foreground mr-2" />
+                        <span>{user.role}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge
+                        variant={user.active ? "success" : "destructive"}
+                        className="rounded-md"
+                      >
+                        {user.active ? t("active") : t("inactive")}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-xs uppercase text-muted-foreground">
+                      {user.preferredLanguage === "en" ? "EN" : "FR"}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          handleToggleStatus(user.id, user.active)
+                        }
+                        className={
+                          user.active
+                            ? "text-destructive hover:text-destructive hover:bg-destructive/10"
+                            : "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+                        }
+                      >
+                        {user.active ? t("deactivate") : t("activate")}
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
+                    {t("noUsersFound")}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Invite modal */}
       <InviteUserModal
         open={showInviteModal}
         onClose={() => setShowInviteModal(false)}
-        onUserCreated={() => {}}
+        onUserCreated={() => { }}
       />
     </div>
   );

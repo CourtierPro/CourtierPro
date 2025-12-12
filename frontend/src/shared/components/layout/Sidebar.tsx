@@ -176,21 +176,23 @@ export function Sidebar({
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-40 h-full w-64 bg-white border-r border-slate-200 transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed top-0 left-0 z-40 h-full w-64 bg-sidebar border-r border-sidebar-border transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"
           } md:translate-x-0 md:sticky md:top-16 md:h-[calc(100vh-4rem)]`}
         role="navigation"
         aria-label="Sidebar navigation"
+        style={{ viewTransitionName: 'sidebar' } as React.CSSProperties}
       >
         <div className="flex h-full flex-col pt-16 md:pt-0">
           <div className="flex items-center justify-between p-4 md:hidden">
-            <span className="text-slate-800">{t("menuLabel")}</span>
+            <span className="text-sidebar-foreground font-semibold">{t("menuLabel")}</span>
             <Button
               variant="ghost"
               size="icon"
               onClick={onClose}
               aria-label={t("closeSidebar")}
+              className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
-              <ChevronLeft className="w-5 h-5 text-slate-800" />
+              <ChevronLeft className="w-5 h-5" />
             </Button>
           </div>
 
@@ -204,9 +206,9 @@ export function Sidebar({
                   <li key={item.route}>
                     <button
                       onClick={() => handleNavigation(item.route)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${isActive
-                        ? "bg-orange-500 text-white hover:bg-orange-600"
-                        : "text-slate-700 hover:bg-slate-100"
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isActive
+                        ? "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         }`}
                       aria-current={isActive ? "page" : undefined}
                     >

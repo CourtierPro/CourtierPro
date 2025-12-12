@@ -13,31 +13,31 @@ export function StatusBadge({ status, type, className }: StatusBadgeProps) {
     // Map status string to a visual variant if type is not provided
     const variant = type || (status.toLowerCase() as StatusType);
 
-    const getVariantStyles = (v: string) => {
+    const getVariant = (v: string): "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info" => {
         switch (v) {
             case "active":
             case "approved":
             case "completed":
-                return "bg-green-100 text-green-700 hover:bg-green-100/80 border-green-200";
+                return "success";
             case "closed":
-                return "bg-gray-100 text-gray-700 hover:bg-gray-100/80 border-gray-200";
+                return "secondary";
             case "terminated":
             case "needs_revision":
-                return "bg-red-100 text-red-700 hover:bg-red-100/80 border-red-200";
+                return "destructive";
             case "pending":
             case "upcoming":
-                return "bg-yellow-100 text-yellow-700 hover:bg-yellow-100/80 border-yellow-200";
+                return "warning";
             case "confirmed":
-                return "bg-blue-100 text-blue-700 hover:bg-blue-100/80 border-blue-200";
+                return "info";
             default:
-                return "bg-gray-100 text-gray-700 hover:bg-gray-100/80 border-gray-200";
+                return "secondary";
         }
     };
 
     return (
         <Badge
-            variant="outline"
-            className={cn("font-normal capitalize", getVariantStyles(variant), className)}
+            variant={getVariant(variant)}
+            className={cn("font-normal capitalize", className)}
         >
             {status.replace(/_/g, " ")}
         </Badge>

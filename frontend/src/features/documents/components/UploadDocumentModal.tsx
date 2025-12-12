@@ -7,6 +7,7 @@ import { useSubmitDocument } from "@/features/documents/api/mutations";
 import { Loader2, Upload, X, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useErrorHandler } from "@/shared/hooks/useErrorHandler";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
 
 interface UploadDocumentModalProps {
   open: boolean;
@@ -79,8 +80,6 @@ export function UploadDocumentModal({
     multiple: false
   });
 
-  if (!open) return null;
-
   const handleSubmit = async () => {
     if (!file) return;
 
@@ -111,18 +110,26 @@ export function UploadDocumentModal({
     setError(null);
   };
 
+  const handleCloseAttempt = () => {
+    if (!isUploading) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">{t("modals.uploadDocument")}</h2>
-          <Button variant="ghost" size="icon" onClick={onClose} disabled={isUploading}>
+    <Dialog open={open} onOpenChange={(val) => !val && handleCloseAttempt()}>
+      <DialogContent className="sm:max-w-md [&>button]:hidden">
+        <DialogHeader className="flex-row items-center justify-between space-y-0 text-left mb-4">
+          <DialogTitle className="text-xl font-semibold text-foreground">
+            {t("modals.uploadDocument")}
+          </DialogTitle>
+          <Button variant="ghost" size="icon" onClick={handleCloseAttempt} disabled={isUploading}>
             <X className="w-5 h-5" />
           </Button>
-        </div>
+        </DialogHeader>
 
-        <p className="text-sm text-gray-600 mb-4">
-          {t("uploadingFor")}: <span className="font-medium">{documentTitle}</span>
+        <p className="text-sm text-muted-foreground mb-4">
+          {t("uploadingFor")}: <span className="font-medium text-foreground">{documentTitle}</span>
         </p>
 
         <div className="space-y-4">
@@ -130,49 +137,49 @@ export function UploadDocumentModal({
             <div
               {...getRootProps()}
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer flex flex-col items-center gap-3
-                ${isDragReject ? 'border-red-500 bg-red-50' : isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:bg-gray-50'}`}
+                ${isDragReject ? 'border-destructive bg-destructive/10' : isDragActive ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/50'}`}
             >
               <input {...getInputProps()} />
-              <div className={`p-3 rounded-full ${isDragReject ? 'bg-red-100' : 'bg-gray-100'}`}>
+              <div className={`p-3 rounded-full ${isDragReject ? 'bg-destructive/10' : 'bg-muted'}`}>
                 {isDragReject ? (
-                  <X className="w-6 h-6 text-red-500" />
+                  <X className="w-6 h-6 text-destructive" />
                 ) : (
-                  <Upload className="w-6 h-6 text-gray-500" />
+                  <Upload className="w-6 h-6 text-muted-foreground" />
                 )}
               </div>
               <div>
-                <span className={`text-sm font-medium block ${isDragReject ? 'text-red-700' : 'text-gray-700'}`}>
+                <span className={`text-sm font-medium block ${isDragReject ? 'text-destructive' : 'text-foreground'}`}>
                   {isDragReject ? t("errors.invalidFileType", "Invalid file type") : (isDragActive ? t("dropHere") : t("dragAndDropOrClick"))}
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted-foreground">
                   {t("supportedFormats")} (PDF, JPG, PNG) • {t("maxSize", { size: "25MB" })}
                 </span>
               </div>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg p-4 relative">
+            <div className="border border-border rounded-lg p-4 relative">
               {!isUploading && (
                 <button
                   onClick={removeFile}
-                  className="absolute top-2 right-2 p-1 hover:bg-gray-100 rounded-full text-gray-500"
+                  className="absolute top-2 right-2 p-1 hover:bg-muted rounded-full text-muted-foreground"
                 >
                   <X className="w-4 h-4" />
                 </button>
               )}
 
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  <FileText className="w-8 h-8 text-blue-500" />
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <FileText className="w-8 h-8 text-primary" />
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
-                  <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                 </div>
               </div>
 
               {isUploading && (
                 <div className="mt-4 space-y-1">
-                  <div className="flex justify-between text-xs text-gray-500">
+                  <div className="flex justify-between text-xs text-muted-foreground">
                     <span>{t("uploading")}...</span>
                     <span>{uploadProgress}%</span>
                   </div>
@@ -183,14 +190,14 @@ export function UploadDocumentModal({
           )}
 
           {error && (
-            <div className="text-sm text-red-500 bg-red-50 p-2 rounded flex items-center gap-2">
-              <span className="block w-1.5 h-1.5 rounded-full bg-red-500" />
+            <div className="text-sm text-destructive bg-destructive/10 p-2 rounded flex items-center gap-2">
+              <span className="block w-1.5 h-1.5 rounded-full bg-destructive" />
               {error}
             </div>
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={onClose} disabled={isUploading}>
+            <Button variant="outline" onClick={handleCloseAttempt} disabled={isUploading}>
               {t("actions.cancel")}
             </Button>
             <Button onClick={handleSubmit} disabled={!file || isUploading}>
@@ -205,7 +212,7 @@ export function UploadDocumentModal({
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

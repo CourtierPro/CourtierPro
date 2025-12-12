@@ -51,7 +51,7 @@ export function LoginAuditPage() {
         title={t("loginAudit")}
         subtitle={t("loginAuditSubtitle")}
       />
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="bg-card shadow rounded-lg border border-border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
