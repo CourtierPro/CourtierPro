@@ -55,6 +55,7 @@
     "selectDocumentType": "Select a document type",
     "documentTypeRequired": "Please select a document type",
     "view": "View",
+    "review": "Review",
     "upload": "Upload",
     "lastUpdated": "Last updated",
     "status": {
@@ -66,13 +67,27 @@
     "errors": {
         "viewFailed": "Failed to load document",
         "uploadFailed": "Upload failed",
-        "fileTooLarge": "File is too large (max 25MB)"
+        "fileTooLarge": "File is too large (max 25MB)",
+        "reviewFailed": "Error submitting review. Please try again."
     },
     "globalTitle": "My Documents",
     "globalSubtitle": "View and manage all your documents across transactions.",
     "uploadSuccess": "Document uploaded successfully",
     "modals": {
-        "uploadDocument": "Upload Document"
+        "uploadDocument": "Upload Document",
+        "reviewDocument": "Review Document",
+        "documentType": "Document Type",
+        "title": "Title",
+        "chooseAnAction": "Choose an action:",
+        "approve": "Approve",
+        "needsRevision": "Needs Revision",
+        "approvalComments": "Approval Comments (optional)",
+        "approvalCommentsPlaceholder": "Add any comments about the approval...",
+        "revisionNotes": "Revision Notes",
+        "revisionNotesPlaceholder": "Explain what needs to be revised...",
+        "revisionNotesRequired": "Revision notes are required when requesting changes",
+        "cancel": "Cancel",
+        "submit": "Submit"
     },
     "uploadingFor": "Uploading for",
     "dragAndDropOrClick": "Drag and drop or click to select",
@@ -86,6 +101,9 @@
         "uploading": "Uploading..."
     },
     "success": {
-        "documentUploaded": "Document uploaded successfully"
+        "documentUploaded": "Document uploaded successfully",
+        "documentApproved": "Document approved successfully",
+        "revisionRequested": "Revision requested successfully",
+        "documentRequested": "Document requested successfully"
     }
 }

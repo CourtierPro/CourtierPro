@@ -15,6 +15,7 @@ interface UploadDocumentModalProps {
   requestId: string;
   transactionId: string;
   documentTitle: string;
+  docType?: string;
   initialFile?: File | null;
   onSuccess: () => void;
 }
@@ -25,6 +26,7 @@ export function UploadDocumentModal({
   requestId,
   transactionId,
   documentTitle,
+  docType,
   initialFile,
   onSuccess,
 }: UploadDocumentModalProps) {
@@ -36,6 +38,9 @@ export function UploadDocumentModal({
   const submitDocument = useSubmitDocument();
   const isUploading = submitDocument.isPending;
   const { handleError } = useErrorHandler();
+
+  // Get translated document type or use the title
+  const displayTitle = docType ? t(`types.${docType}`) : documentTitle;
 
   // Simulate progress when uploading starts
   useEffect(() => {
@@ -129,7 +134,7 @@ export function UploadDocumentModal({
         </DialogHeader>
 
         <p className="text-sm text-muted-foreground mb-4">
-          {t("uploadingFor")}: <span className="font-medium text-foreground">{documentTitle}</span>
+          {t("uploadingFor")}: <span className="font-medium text-foreground">{displayTitle}</span>
         </p>
 
         <div className="space-y-4">

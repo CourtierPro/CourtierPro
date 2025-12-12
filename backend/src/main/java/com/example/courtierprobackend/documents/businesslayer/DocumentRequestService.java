@@ -3,6 +3,7 @@ package com.example.courtierprobackend.documents.businesslayer;
 import com.example.courtierprobackend.documents.datalayer.enums.UploadedByRefEnum;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentReviewRequestDTO;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -26,4 +27,6 @@ public interface DocumentRequestService {
     List<DocumentRequestResponseDTO> getAllDocumentsForUser(UUID userId);
 
     String getDocumentDownloadUrl(UUID requestId, UUID documentId, UUID userId);
+
+    DocumentRequestResponseDTO reviewDocument(UUID transactionId, UUID requestId, DocumentReviewRequestDTO reviewDTO, UUID brokerId);
 }

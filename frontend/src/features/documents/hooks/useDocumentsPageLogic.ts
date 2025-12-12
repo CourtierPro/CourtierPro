@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { useDocuments } from '../api/queries';
 import { useRequestDocument } from '../api/mutations';
 import { DocumentPartyEnum, DocumentTypeEnum } from '../types';
 import { useErrorHandler } from '@/shared/hooks/useErrorHandler';
 
 export function useDocumentsPageLogic(transactionId: string) {
+    const { t } = useTranslation('documents');
     const { data: documents = [], isLoading, error: queryError, refetch } = useDocuments(transactionId);
     const requestDocument = useRequestDocument();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,10 +26,10 @@ export function useDocumentsPageLogic(transactionId: string) {
                 }
             });
             setIsModalOpen(false);
-            toast.success("Document requested successfully");
+            toast.success(t('success.documentRequested'));
         } catch (error) {
             handleError(error);
-            toast.error("Failed to request document");
+            toast.error(t('errors.requestDocumentFailed', 'Failed to request document'));
         }
     };
 

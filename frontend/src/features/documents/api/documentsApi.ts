@@ -107,3 +107,18 @@ export const getDocumentDownloadUrl = async (
     );
     return response.data.url;
 };
+
+
+export const reviewDocument = async (
+    transactionId: string,
+    requestId: string,
+    decision: 'APPROVED' | 'NEEDS_REVISION',
+    comments?: string
+): Promise<DocumentRequest> => {
+    const response = await axiosInstance.patch<DocumentRequest>(
+        `/transactions/${transactionId}/documents/${requestId}/review`,
+        { decision, comments },
+        { handleLocally: true }
+    );
+    return response.data;
+};
