@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Globe, Bell, Menu, ChevronDown } from "lucide-react";
-import { formatDateTime } from '@/shared/utils/date';
+import { Globe, Menu, ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { NotificationPopover } from '@/features/notifications/components/NotificationPopover';
 import { Button } from "@/shared/components/ui/button";
 import { ModeToggle } from "@/shared/components/ui/mode-toggle";
 
@@ -32,32 +32,18 @@ export function TopNav({
   userRole,
   onLogout,
   onNavigate,
-  notifications: notificationsProp,
-  unreadCount: unreadCountProp,
 }: TopNavProps) {
   const { t } = useTranslation("topnav");
 
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
-  const notifications = notificationsProp ?? [];
-  const notificationCount =
-    unreadCountProp ?? notifications.filter((n) => n.unread).length;
-
-  const notificationsRef = useRef<HTMLDivElement>(null);
   const languageRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        notificationsRef.current &&
-        !notificationsRef.current.contains(event.target as Node)
-      ) {
-        setIsNotificationsOpen(false);
-      }
       if (
         languageRef.current &&
         !languageRef.current.contains(event.target as Node)
@@ -81,19 +67,11 @@ export function TopNav({
   const toggleLanguageMenu = () => {
     setIsLanguageMenuOpen((prev) => !prev);
     setIsUserMenuOpen(false);
-    setIsNotificationsOpen(false);
   };
 
   const toggleUserMenu = () => {
     setIsUserMenuOpen((prev) => !prev);
     setIsLanguageMenuOpen(false);
-    setIsNotificationsOpen(false);
-  };
-
-  const toggleNotifications = () => {
-    setIsNotificationsOpen((prev) => !prev);
-    setIsLanguageMenuOpen(false);
-    setIsUserMenuOpen(false);
   };
 
   const selectLanguage = (lang: "en" | "fr") => {
@@ -209,107 +187,7 @@ export function TopNav({
         </div>
 
         {/* Notifications */}
-        <div className="relative" ref={notificationsRef}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative text-foreground"
-            aria-label={`${t("notifications")}${notificationCount > 0 ? `, ${notificationCount} unread` : ""
-              }`}
-            onClick={toggleNotifications}
-          >
-            <Bell className="w-5 h-5" />
-            {notificationCount > 0 && (
-              <span
-                className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-semibold"
-                aria-hidden="true"
-              >
-                {notificationCount}
-              </span>
-            )}
-          </Button>
-          {isNotificationsOpen && (
-            <div
-              className="absolute right-0 mt-2 w-80 max-h-96 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg md:w-96"
-              role="menu"
-              aria-label={t("notifications")}
-            >
-              {/* Header */}
-              <div className="border-b border-border px-4 py-3">
-                <h3 className="font-medium">
-                  {t("notifications")}
-                </h3>
-              </div>
-
-              {/* Notifications list */}
-              <div className="max-h-80 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <div className="px-4 py-6 text-sm text-muted-foreground">
-                    {t("noNotifications")}
-                  </div>
-                ) : (
-                  notifications.map((notification) => {
-                    const Icon = notification.icon;
-                    return (
-                      <button
-                        key={notification.id}
-                        className={`flex w-full items-start gap-3 border-b border-border p-4 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none ${notification.unread ? "bg-accent/30" : ""
-                          }`}
-                        role="menuitem"
-                        onClick={() => {
-                          setIsNotificationsOpen(false);
-                          onNavigate(`/notifications?id=${notification.id}`);
-                        }}
-                      >
-                        {Icon ? (
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                            <Icon className="h-5 w-5 text-primary" />
-                          </div>
-                        ) : null}
-
-                        <div className="min-w-0 flex-1">
-                          <p
-                            className={`text-foreground ${notification.unread ? "font-semibold" : ""
-                              }`}
-                          >
-                            {notification.title}
-                          </p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {notification.description}
-                          </p>
-                          <p className="mt-1 text-xs text-muted-foreground/70">
-                            {formatDateTime(notification.timestamp)}
-                          </p>
-                        </div>
-
-                        {notification.unread && (
-                          <span
-                            className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary"
-                            aria-label="Unread"
-                          />
-                        )}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="border-t border-border">
-                <button
-                  className="w-full px-4 py-3 text-center text-sm font-medium text-primary hover:bg-accent focus:bg-accent focus:outline-none"
-                  role="menuitem"
-                  onClick={() => {
-                    setIsNotificationsOpen(false);
-                    onNavigate("/notifications");
-                  }}
-                >
-                  {t("viewAll")}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        <NotificationPopover />
 
         {/* User avatar + menu */}
         <div className="relative" ref={userMenuRef}>

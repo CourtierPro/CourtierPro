@@ -28,8 +28,8 @@ class CorsConfigTest {
         assertThat(config.getAllowedOrigins()).containsExactlyInAnyOrder(
                 "http://localhost:8081",
                 "http://localhost:5173",
-                "https://courtierproapp.sraldon.work"
-        );
+                "http://localhost:3000",
+                "https://courtierproapp.sraldon.work");
     }
 
     @Test
@@ -45,8 +45,7 @@ class CorsConfigTest {
 
         // Assert
         assertThat(config.getAllowedMethods()).containsExactlyInAnyOrder(
-                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
-        );
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS");
     }
 
     @Test
@@ -67,8 +66,7 @@ class CorsConfigTest {
                 "Accept",
                 "Origin",
                 "X-Requested-With",
-                "x-broker-id"
-        );
+                "x-broker-id");
     }
 
     @Test
