@@ -57,6 +57,7 @@ export function useGlobalSearch() {
 
     const handleSelect = (result: SearchResult) => {
         setIsOpen(false);
+        setQuery('');
         navigate(result.url);
     };
 

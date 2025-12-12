@@ -35,7 +35,6 @@ export function TransactionTabs({
         setSearchParams(prev => {
             const newParams = new URLSearchParams(prev);
             newParams.set('tab', value);
-            // Clear focus when switching tabs manually, or keep it? 
             // Better to clear it so it doesn't jump again if we switch back and forth
             if (value !== 'documents') {
                 newParams.delete('focus');
