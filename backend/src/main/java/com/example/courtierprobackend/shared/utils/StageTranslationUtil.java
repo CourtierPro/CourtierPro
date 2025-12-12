@@ -4,6 +4,9 @@ import java.util.Map;
 
 public class StageTranslationUtil {
 
+    private StageTranslationUtil() {
+        throw new UnsupportedOperationException("Utility class");
+    }
     private static final Map<String, String> FRENCH_MAPPINGS = Map.ofEntries(
             // Buyer Stages
             Map.entry("BUYER_PREQUALIFY_FINANCIALLY", "Pré-qualification Financière"),
