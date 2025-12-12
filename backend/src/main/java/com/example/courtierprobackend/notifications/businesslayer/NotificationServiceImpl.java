@@ -16,11 +16,12 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
+    private final com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
 
     @Override
     public void createNotification(String recipientId, String title, String message, String relatedTransactionId) {
         Notification notification = Notification.builder()
-                .recipientId(recipientId)
+                .recipientId(recipientId) // Expecting internal UUID here
                 .title(title)
                 .message(message)
                 .isRead(false)
@@ -31,8 +32,16 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public List<NotificationResponseDTO> getUserNotifications(String userId) {
-        List<Notification> notifications = notificationRepository.findAllByRecipientIdOrderByCreatedAtDesc(userId);
+    public List<NotificationResponseDTO> getUserNotifications(String auth0UserId) {
+        // ID Mapping: Auth0 ID -> Internal UUID
+        // The controller gives us auth0UserId (subject). We must resolve to internal
+        // UUID to query data.
+        var user = userAccountRepository.findByAuth0UserId(auth0UserId)
+                .orElseThrow(() -> new NotFoundException("User not found for Auth0 ID: " + auth0UserId));
+
+        // Use internal UUID to query notifications
+        List<Notification> notifications = notificationRepository
+                .findAllByRecipientIdOrderByCreatedAtDesc(user.getId().toString());
         return notificationMapper.toResponseList(notifications);
     }
 

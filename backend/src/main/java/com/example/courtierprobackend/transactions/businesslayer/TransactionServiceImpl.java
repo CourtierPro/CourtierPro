@@ -2,6 +2,7 @@ package com.example.courtierprobackend.transactions.businesslayer;
 
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
+import com.example.courtierprobackend.shared.utils.StageTranslationUtil;
 import com.example.courtierprobackend.transactions.datalayer.TimelineEntry;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
@@ -354,10 +355,12 @@ public class TransactionServiceImpl implements TransactionService {
                 // AC: Notification includes transaction name, new stage, date/time, and broker
                 // name
                 String notifTitle = "Stage Update";
-                String notifMessage = "Stage updated to " + stageName + " by " + brokerName + " for " + address;
+                String translatedStage = StageTranslationUtil.getTranslatedStage(stageName,
+                        client.getPreferredLanguage());
+                String notifMessage = "Stage updated to " + translatedStage + " by " + brokerName + " for " + address;
 
                 notificationService.createNotification(
-                        client.getAuth0UserId(),
+                        client.getId().toString(),
                         notifTitle,
                         notifMessage,
                         saved.getTransactionId().toString());

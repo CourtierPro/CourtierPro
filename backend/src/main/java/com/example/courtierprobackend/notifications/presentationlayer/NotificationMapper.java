@@ -8,6 +8,7 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface NotificationMapper {
 
+    @org.mapstruct.Mapping(target = "isRead", source = "read")
     NotificationResponseDTO toResponseDTO(Notification notification);
 
     List<NotificationResponseDTO> toResponseList(List<Notification> notifications);

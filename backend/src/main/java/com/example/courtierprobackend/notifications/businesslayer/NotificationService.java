@@ -8,7 +8,7 @@ public interface NotificationService {
 
     void createNotification(String recipientId, String title, String message, String relatedTransactionId);
 
-    List<NotificationResponseDTO> getUserNotifications(String userId);
+    List<NotificationResponseDTO> getUserNotifications(String auth0UserId);
 
     NotificationResponseDTO markAsRead(String publicId);
 }

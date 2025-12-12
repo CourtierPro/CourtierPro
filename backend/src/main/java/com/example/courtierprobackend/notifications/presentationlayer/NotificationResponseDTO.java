@@ -21,5 +21,6 @@ public class NotificationResponseDTO {
     private boolean isRead;
 
     private String relatedTransactionId;
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
 }

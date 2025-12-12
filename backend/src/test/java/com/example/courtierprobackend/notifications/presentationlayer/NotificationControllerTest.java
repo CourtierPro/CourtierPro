@@ -66,6 +66,7 @@ class NotificationControllerTest {
         NotificationResponseDTO dto = new NotificationResponseDTO();
         dto.setPublicId(UUID.randomUUID().toString());
         dto.setTitle("Test Notification");
+        dto.setCreatedAt(java.time.LocalDateTime.of(2023, 1, 1, 12, 0, 0));
 
         when(notificationService.getUserNotifications(userId)).thenReturn(List.of(dto));
 
@@ -73,7 +74,8 @@ class NotificationControllerTest {
         mockMvc.perform(get("/api/v1/notifications")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].title").value("Test Notification"));
+                .andExpect(jsonPath("$[0].title").value("Test Notification"))
+                .andExpect(jsonPath("$[0].createdAt").value("2023-01-01T12:00:00"));
 
         verify(notificationService).getUserNotifications(userId);
     }

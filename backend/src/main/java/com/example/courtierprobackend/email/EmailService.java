@@ -1,5 +1,6 @@
 package com.example.courtierprobackend.email;
 
+import com.example.courtierprobackend.shared.utils.StageTranslationUtil;
 import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
 import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
@@ -326,11 +327,13 @@ public class EmailService {
 
             String htmlTemplate = loadTemplateFromClasspath(templatePath);
 
+            String formattedStage = StageTranslationUtil.getTranslatedStage(newStage, language);
+
             String emailBody = htmlTemplate
                     .replace("{{clientName}}", escapeHtml(clientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{transactionAddress}}", escapeHtml(transactionAddress))
-                    .replace("{{newStage}}", escapeHtml(newStage));
+                    .replace("{{newStage}}", escapeHtml(formattedStage));
 
             sendEmail(toEmail, subject, emailBody);
         } catch (IOException e) {

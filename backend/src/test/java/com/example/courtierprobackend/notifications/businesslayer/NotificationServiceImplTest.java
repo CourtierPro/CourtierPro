@@ -29,17 +29,21 @@ class NotificationServiceImplTest {
     @Mock
     private NotificationMapper notificationMapper;
 
+    @Mock
+    private com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
+
     private NotificationService notificationService;
 
     @BeforeEach
     void setup() {
-        notificationService = new NotificationServiceImpl(notificationRepository, notificationMapper);
+        notificationService = new NotificationServiceImpl(notificationRepository, notificationMapper,
+                userAccountRepository);
     }
 
     @Test
     void createNotification_shouldSaveNotification() {
         // Arrange
-        String recipientId = "auth0|123";
+        String recipientId = UUID.randomUUID().toString(); // Internal UUID
         String title = "Test Title";
         String message = "Test Message";
         String relatedTransactionId = UUID.randomUUID().toString();
@@ -54,22 +58,30 @@ class NotificationServiceImplTest {
     @Test
     void getUserNotifications_shouldReturnMappedDTOs() {
         // Arrange
-        String userId = "auth0|123";
+        String auth0UserId = "auth0|123";
+        UUID internalId = UUID.randomUUID();
+
+        com.example.courtierprobackend.user.dataaccesslayer.UserAccount userAccount = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        userAccount.setId(internalId);
+
         Notification notification = new Notification();
-        notification.setRecipientId(userId);
+        notification.setRecipientId(internalId.toString());
 
         List<Notification> notifications = List.of(notification);
         List<NotificationResponseDTO> dtos = List.of(new NotificationResponseDTO());
 
-        when(notificationRepository.findAllByRecipientIdOrderByCreatedAtDesc(userId)).thenReturn(notifications);
+        when(userAccountRepository.findByAuth0UserId(auth0UserId)).thenReturn(java.util.Optional.of(userAccount));
+        when(notificationRepository.findAllByRecipientIdOrderByCreatedAtDesc(internalId.toString()))
+                .thenReturn(notifications);
         when(notificationMapper.toResponseList(notifications)).thenReturn(dtos);
 
         // Act
-        List<NotificationResponseDTO> result = notificationService.getUserNotifications(userId);
+        List<NotificationResponseDTO> result = notificationService.getUserNotifications(auth0UserId);
 
         // Assert
         assertThat(result).isSameAs(dtos);
-        verify(notificationRepository).findAllByRecipientIdOrderByCreatedAtDesc(userId);
+        verify(userAccountRepository).findByAuth0UserId(auth0UserId);
+        verify(notificationRepository).findAllByRecipientIdOrderByCreatedAtDesc(internalId.toString());
         verify(notificationMapper).toResponseList(notifications);
     }
 }
