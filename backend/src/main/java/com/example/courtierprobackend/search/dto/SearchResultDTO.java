@@ -12,10 +12,20 @@ public class SearchResultDTO {
     private String subtitle;
     private String url;
 
+    /**
+     * Defines the category of search result.
+     * 
+     * <p>TRANSACTION, DOCUMENT, USER are returned by the backend.
+     * PAGE is included for frontend-backend type compatibility, allowing
+     * the frontend to use the same type definition for client-side
+     * static route results (e.g., Dashboard, Settings). The backend
+     * does not return PAGE type results.</p>
+     */
     public enum SearchResultType {
         TRANSACTION,
         DOCUMENT,
         USER,
-        PAGE // For frontend static pages, though mostly backend won't return this
+        /** Used by frontend only for static page navigation results. */
+        PAGE
     }
 }

@@ -14,8 +14,9 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
     
     List<UserAccount> findByRole(UserRole role);
 
-    @org.springframework.data.jpa.repository.Query("SELECT u FROM UserAccount u WHERE " +
-            "u.id IN (SELECT t.clientId FROM Transaction t WHERE t.brokerId = :brokerId) AND " +
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT u FROM UserAccount u " +
+            "JOIN Transaction t ON t.clientId = u.id " +
+            "WHERE t.brokerId = :brokerId AND " +
             "(LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')))")
