@@ -31,7 +31,8 @@ import org.mockito.ArgumentCaptor;
 
 /**
  * Unit tests for TransactionServiceImpl.
- * Tests business logic for creating transactions, managing notes, and accessing transaction data.
+ * Tests business logic for creating transactions, managing notes, and accessing
+ * transaction data.
  * Uses mocked TransactionRepository to isolate business layer logic.
  */
 @ExtendWith(MockitoExtension.class)
@@ -43,15 +44,23 @@ class TransactionServiceImplTest {
     @Mock
     private UserAccountRepository userAccountRepository;
 
+    @Mock
+    private com.example.courtierprobackend.email.EmailService emailService;
+
+    @Mock
+    private com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
+
     private TransactionServiceImpl transactionService;
 
     @BeforeEach
     void setup() {
-        // Explicitly close mocks if open, though usually not needed with Extension, 
+        // Explicitly close mocks if open, though usually not needed with Extension,
         // but explicit open helps if Extension context is weird.
-        // Actually, just relying on constructor injection should be enough if fields are mocked.
+        // Actually, just relying on constructor injection should be enough if fields
+        // are mocked.
         // But let's try just fixing the logic first.
-        transactionService = new TransactionServiceImpl(transactionRepository, userAccountRepository);
+        transactionService = new TransactionServiceImpl(transactionRepository, userAccountRepository, emailService,
+                notificationService);
         lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
     }
 
@@ -62,8 +71,7 @@ class TransactionServiceImplTest {
         // Arrange
         TransactionRequestDTO dto = createValidBuyerTransactionDTO();
         when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
-                any(UUID.class), anyString(), any()
-        )).thenReturn(Optional.empty());
+                any(UUID.class), anyString(), any())).thenReturn(Optional.empty());
 
         Transaction expectedTx = new Transaction();
         expectedTx.setTransactionId(UUID.randomUUID());
@@ -86,8 +94,7 @@ class TransactionServiceImplTest {
         // Arrange
         TransactionRequestDTO dto = createValidSellerTransactionDTO();
         when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
-                any(UUID.class), anyString(), any()
-        )).thenReturn(Optional.empty());
+                any(UUID.class), anyString(), any())).thenReturn(Optional.empty());
 
         Transaction expectedTx = new Transaction();
         expectedTx.setTransactionId(UUID.randomUUID());
@@ -191,8 +198,8 @@ class TransactionServiceImplTest {
         TransactionRequestDTO dto = createValidBuyerTransactionDTO();
         Transaction existingTx = new Transaction();
         when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
-                dto.getClientId(), dto.getPropertyAddress().getStreet(), TransactionStatus.ACTIVE
-        )).thenReturn(Optional.of(existingTx));
+                dto.getClientId(), dto.getPropertyAddress().getStreet(), TransactionStatus.ACTIVE))
+                .thenReturn(Optional.of(existingTx));
 
         // Act & Assert
         assertThatThrownBy(() -> transactionService.createTransaction(dto))
@@ -205,8 +212,7 @@ class TransactionServiceImplTest {
         // Arrange
         TransactionRequestDTO dto = createValidBuyerTransactionDTO();
         when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
-                any(UUID.class), anyString(), any()
-        )).thenReturn(Optional.empty());
+                any(UUID.class), anyString(), any())).thenReturn(Optional.empty());
 
         Transaction savedTx = new Transaction();
         savedTx.setTransactionId(UUID.randomUUID());
@@ -226,11 +232,11 @@ class TransactionServiceImplTest {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID brokerUuid = UUID.randomUUID();
-        
+
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(brokerUuid);
-        
+
         TimelineEntry note = TimelineEntry.builder()
                 .type(TimelineEntryType.NOTE)
                 .title("Test Note")
@@ -253,7 +259,7 @@ class TransactionServiceImplTest {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID brokerUuid = UUID.randomUUID();
-        
+
         Transaction tx = new Transaction();
         tx.setBrokerId(UUID.randomUUID());
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
@@ -280,7 +286,7 @@ class TransactionServiceImplTest {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID brokerUuid = UUID.randomUUID();
-        
+
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(brokerUuid);
@@ -302,7 +308,7 @@ class TransactionServiceImplTest {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID brokerUuid = UUID.randomUUID();
-        
+
         NoteRequestDTO noteDTO = new NoteRequestDTO();
         noteDTO.setActorId(UUID.randomUUID());
         noteDTO.setTitle("New Note");
@@ -418,7 +424,8 @@ class TransactionServiceImplTest {
         when(transactionRepository.findAllByFilters(any(UUID.class), any(), any(), any())).thenReturn(List.of());
 
         // Act
-        List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(UUID.randomUUID(), null, null, null);
+        List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(UUID.randomUUID(), null, null,
+                null);
 
         // Assert
         assertThat(result).isEmpty();
@@ -428,7 +435,7 @@ class TransactionServiceImplTest {
     void getBrokerTransactions_withFilters_passesCorrectFilters() {
         // Arrange
         UUID brokerUuid = UUID.randomUUID();
-        
+
         // Act
         transactionService.getBrokerTransactions(brokerUuid, "ACTIVE", "BUY", "BUYER_PREQUALIFY_FINANCIALLY");
 
@@ -447,7 +454,7 @@ class TransactionServiceImplTest {
         // Assert
         verify(transactionRepository).findAllByFilters(eq(brokerUuid), isNull(), isNull(), isNull());
     }
-    
+
     @Test
     void getBrokerTransactions_withSellSideFilter_passesCorrectFilters() {
         // Arrange
@@ -459,7 +466,7 @@ class TransactionServiceImplTest {
         // Assert
         verify(transactionRepository).findAllByFilters(eq(brokerUuid), isNull(), any(), any());
     }
-    
+
     @Test
     void getBrokerTransactions_withInvalidFilters_passesNulls() {
         // Arrange
@@ -479,7 +486,7 @@ class TransactionServiceImplTest {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID brokerUuid = UUID.randomUUID();
-        
+
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(brokerUuid);
@@ -540,7 +547,8 @@ class TransactionServiceImplTest {
         savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
         savedTx.setTimeline(new ArrayList<>());
         // timeline entry will be the last element
-        savedTx.getTimeline().add(TimelineEntry.builder().type(TimelineEntryType.STAGE_CHANGE).title("Stage updated to BUYER_OFFER_ACCEPTED").note("note").visibleToClient(true).build());
+        savedTx.getTimeline().add(TimelineEntry.builder().type(TimelineEntryType.STAGE_CHANGE)
+                .title("Stage updated to BUYER_OFFER_ACCEPTED").note("note").visibleToClient(true).build());
 
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
         when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
@@ -565,7 +573,6 @@ class TransactionServiceImplTest {
         UUID transactionId = UUID.randomUUID();
         UUID brokerUuid = UUID.randomUUID();
 
-
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(brokerUuid);
@@ -579,7 +586,8 @@ class TransactionServiceImplTest {
         savedTx.setSide(TransactionSide.SELL_SIDE);
         savedTx.setSellerStage(SellerStage.SELLER_REVIEW_OFFERS);
         savedTx.setTimeline(new ArrayList<>());
-        savedTx.getTimeline().add(TimelineEntry.builder().type(TimelineEntryType.STAGE_CHANGE).title("Stage updated to SELLER_REVIEW_OFFERS").note("note").visibleToClient(true).build());
+        savedTx.getTimeline().add(TimelineEntry.builder().type(TimelineEntryType.STAGE_CHANGE)
+                .title("Stage updated to SELLER_REVIEW_OFFERS").note("note").visibleToClient(true).build());
 
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
         when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
@@ -668,7 +676,7 @@ class TransactionServiceImplTest {
         dto.setNote(customNote);
 
         ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
-        
+
         // Act
         TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto, brokerUuid);
 
@@ -690,6 +698,80 @@ class TransactionServiceImplTest {
         assertThat(last.getNote()).isEqualTo(customNote);
     }
 
+    @Test
+    void updateTransactionStage_shouldSendEmailAndNotification_whenSuccessful() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        // Mock Transaction
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setClientId(clientId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyAddress addr = new com.example.courtierprobackend.transactions.datalayer.PropertyAddress();
+        addr.setStreet("123 Test St");
+        tx.setPropertyAddress(addr);
+
+        // Saved Transaction (after update)
+        Transaction savedTx = new Transaction();
+        savedTx.setTransactionId(transactionId);
+        savedTx.setClientId(clientId);
+        savedTx.setBrokerId(brokerId);
+        savedTx.setSide(TransactionSide.BUY_SIDE);
+        savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
+        savedTx.setPropertyAddress(addr);
+        savedTx.setTimeline(new ArrayList<>()); // Ensure timeline is not null to avoid issues if implementation uses it
+
+        // Mock UserAccounts
+        com.example.courtierprobackend.user.dataaccesslayer.UserAccount client = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        client.setId(clientId);
+        client.setAuth0UserId("auth0|client");
+        client.setFirstName("Client");
+        client.setLastName("User");
+        client.setEmail("client@example.com");
+        client.setPreferredLanguage("en");
+
+        com.example.courtierprobackend.user.dataaccesslayer.UserAccount broker = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        broker.setId(brokerId);
+        broker.setFirstName("Broker");
+        broker.setLastName("Agent");
+
+        // Repositories
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OFFER_ACCEPTED");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        // 1. Verify Email sent
+        verify(emailService, times(1)).sendStageUpdateEmail(
+                eq("client@example.com"),
+                eq("Client User"),
+                eq("Broker Agent"),
+                eq("123 Test St"),
+                eq("BUYER_OFFER_ACCEPTED"), // Implementation passes the stage string as stageName
+                eq("en"));
+
+        // 2. Verify In-App Notification created
+        verify(notificationService, times(1)).createNotification(
+                eq("auth0|client"),
+                eq("Stage Update"),
+                eq("123 Test St is now BUYER_OFFER_ACCEPTED"),
+                eq(transactionId.toString()));
+    }
+
     // ========== Helper Methods ==========
 
     private TransactionRequestDTO createValidBuyerTransactionDTO() {
@@ -698,11 +780,11 @@ class TransactionServiceImplTest {
         dto.setBrokerId(UUID.randomUUID());
         dto.setSide(TransactionSide.BUY_SIDE);
         dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
-        
+
         var address = new com.example.courtierprobackend.transactions.datalayer.PropertyAddress();
         address.setStreet("123 Main St");
         dto.setPropertyAddress(address);
-        
+
         return dto;
     }
 
@@ -712,11 +794,11 @@ class TransactionServiceImplTest {
         dto.setBrokerId(UUID.randomUUID());
         dto.setSide(TransactionSide.SELL_SIDE);
         dto.setInitialStage("SELLER_INITIAL_CONSULTATION");
-        
+
         var address = new com.example.courtierprobackend.transactions.datalayer.PropertyAddress();
         address.setStreet("456 Oak Ave");
         dto.setPropertyAddress(address);
-        
+
         return dto;
     }
 }
