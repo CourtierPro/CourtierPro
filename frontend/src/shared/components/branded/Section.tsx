@@ -24,7 +24,7 @@ export const Section = forwardRef<HTMLDivElement, SectionProps>(({
             {hasHeader && (
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
                     <div className="space-y-1">
-                        {title && <CardTitle>{title}</CardTitle>}
+                        {title && <CardTitle className="text-lg font-semibold">{title}</CardTitle>}
                         {description && <CardDescription>{description}</CardDescription>}
                     </div>
                     {action && <div>{action}</div>}

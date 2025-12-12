@@ -112,7 +112,7 @@ export function DocumentCard({ document, onUpload, onReview, isFocused }: Docume
     return (
         <div
             ref={setRefs}
-            className={`rounded-lg transition-all duration-300 ${isFocused ? 'ring-2 ring-primary ring-offset-2 animate-pulse' : ''}`}
+            className={`rounded-lg transition-all duration-300 ${isFocused ? 'ring-[3px] ring-primary ring-offset-2 shadow-lg shadow-primary/20' : ''}`}
             role="article"
             aria-label={isFocused ? t('focusedDocument', 'Focused document from search') : undefined}
             {...rootProps}

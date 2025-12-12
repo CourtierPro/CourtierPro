@@ -1,6 +1,7 @@
 package com.example.courtierprobackend.common.exceptions;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -61,6 +62,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex, HttpServletRequest request) {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(err -> err.getField() + ": " + err.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+        ErrorResponse error = ErrorResponse.of(message, "VALIDATION_ERROR", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex, HttpServletRequest request) {
+        String message = ex.getConstraintViolations().stream()
+                .map(v -> {
+                    String path = v.getPropertyPath().toString();
+                    // Extract parameter name from path (e.g., "search.q" -> "q")
+                    String paramName = path.contains(".") ? path.substring(path.lastIndexOf('.') + 1) : path;
+                    return paramName + ": " + v.getMessage();
+                })
                 .collect(Collectors.joining(", "));
         ErrorResponse error = ErrorResponse.of(message, "VALIDATION_ERROR", request.getRequestURI());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
