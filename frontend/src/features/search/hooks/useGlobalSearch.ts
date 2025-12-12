@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import api from '@/shared/api/axiosInstance';
-import { useSearchContext } from '@/features/search/context/SearchContext';
+import { useSearchContext } from '@/features/search/context/useSearchContext';
 
 export type SearchResultType = 'TRANSACTION' | 'DOCUMENT' | 'USER' | 'PAGE';
 

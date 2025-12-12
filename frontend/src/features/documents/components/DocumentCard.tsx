@@ -104,7 +104,7 @@ export function DocumentCard({ document, onUpload, onReview, isFocused }: Docume
             if (typeof dropzoneRef === 'function') {
                 dropzoneRef(node);
             } else {
-                (dropzoneRef as any).current = node;
+                (dropzoneRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
             }
         }
     }, [dropzoneRef]);
