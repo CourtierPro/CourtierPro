@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getStagesForSide, enumToLabel, getStageLabel } from '@/shared/utils/stages';
+import { getStagesForSide, getStageLabel } from '@/shared/utils/stages';
 import { X, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/components/ui/button';

@@ -1,5 +1,6 @@
 // utils/stages.ts
 // Centralized stage enums and helpers for transactions — clean + deduped + consistent
+import type { TFunction } from 'i18next';
 
 // -----------------------------
 // BUYER STAGES (backend-order)
@@ -88,7 +89,11 @@ export function enumToLabel(value?: string): string {
 // Get translated stage label using i18n
 // Returns translated stage name from transactions.json
 // -----------------------------
-export function getStageLabel(value?: string, t?: any, side?: 'BUY_SIDE' | 'SELL_SIDE'): string {
+export function getStageLabel(
+  value?: string,
+  t?: TFunction<'transactions'>,
+  side?: 'BUY_SIDE' | 'SELL_SIDE',
+): string {
   if (!value || typeof value !== 'string' || !t) {
     return enumToLabel(value);
   }

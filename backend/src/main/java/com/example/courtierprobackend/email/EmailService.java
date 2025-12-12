@@ -157,7 +157,7 @@ public class EmailService {
             sendEmail(brokerEmail, subject, emailBody);
         } catch (IOException e) {
             logger.error("Failed to load document submitted email template", e);
-        } catch (MessagingException | UnsupportedEncodingException e) {
+        } catch (MessagingException e) {
             logger.error("Failed to send document submitted notification to {}", brokerEmail, e);
         }
     }
@@ -189,7 +189,7 @@ public class EmailService {
             sendEmail(clientEmail, subject, emailBody);
         } catch (IOException e) {
             logger.error("Failed to load document requested email template", e);
-        } catch (MessagingException | UnsupportedEncodingException e) {
+        } catch (MessagingException e) {
             logger.error("Failed to send document requested notification to {}", clientEmail, e);
         }
     }
