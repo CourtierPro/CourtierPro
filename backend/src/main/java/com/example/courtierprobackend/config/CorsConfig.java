@@ -21,11 +21,12 @@ public class CorsConfig {
         config.setAllowedOrigins(List.of(
                 "http://localhost:8081",
                 "http://localhost:5173",
-                "http://localhost:3000",
-                "https://courtierproapp.sraldon.work"));
+                "https://courtierproapp.sraldon.work"
+        ));
 
         config.setAllowedMethods(List.of(
-                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
+        ));
 
         config.setAllowedHeaders(List.of(
                 "Authorization",
@@ -33,7 +34,8 @@ public class CorsConfig {
                 "Accept",
                 "Origin",
                 "X-Requested-With",
-                "x-broker-id"));
+                "x-broker-id"
+        ));
 
         config.setAllowCredentials(true);
 
@@ -56,3 +58,4 @@ public class CorsConfig {
         return new CorsFilter(corsConfigurationSource());
     }
 }
+

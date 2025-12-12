@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from "react-i18next";
-import { useDropzone, type FileRejection } from 'react-dropzone';
+import { useDropzone } from 'react-dropzone';
 import { Button } from "@/shared/components/ui/button";
 import { Progress } from "@/shared/components/ui/progress";
 import { useSubmitDocument } from "@/features/documents/api/mutations";
@@ -68,7 +68,7 @@ export function UploadDocumentModal({
 
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,
-    onDropRejected: (fileRejections: FileRejection[]) => {
+    onDropRejected: (fileRejections) => {
       const rejection = fileRejections[0];
       if (rejection.errors[0].code === 'file-invalid-type') {
         setError(t("errors.invalidFileType", "Invalid file type. Please upload PDF, JPG, or PNG."));
