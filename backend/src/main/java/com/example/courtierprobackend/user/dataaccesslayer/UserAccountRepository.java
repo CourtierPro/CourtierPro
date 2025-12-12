@@ -22,9 +22,5 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
     List<UserAccount> searchClientsOfBroker(@org.springframework.data.repository.query.Param("brokerId") UUID brokerId,
                                             @org.springframework.data.repository.query.Param("query") String query);
 
-    @org.springframework.data.jpa.repository.Query("SELECT u FROM UserAccount u WHERE " +
-            "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%'))")
-    List<UserAccount> searchAllUsers(@org.springframework.data.repository.query.Param("query") String query);
+
 }
