@@ -39,7 +39,7 @@ public class NotificationServiceImpl implements NotificationService {
         // The controller gives us auth0UserId (subject). We must resolve to internal
         // UUID to query data.
         var user = userAccountRepository.findByAuth0UserId(auth0UserId)
-                .orElseThrow(() -> new NotFoundException("User not found for Auth0 ID: " + auth0UserId));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         // Use internal UUID to query notifications
         List<Notification> notifications = notificationRepository
