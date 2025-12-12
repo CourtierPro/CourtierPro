@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
+import { useAuth0 } from "@auth0/auth0-react";
 import { TransactionSummary } from "@/features/transactions/components/TransactionSummary";
 import { ErrorBoundary } from "@/shared/components/error/ErrorBoundary";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
@@ -11,11 +12,16 @@ import { DocumentReviewModal } from "@/features/documents/components/DocumentRev
 import { type DocumentRequest } from "@/features/documents/types";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { Button } from "@/shared/components/ui/button";
+import { getRoleFromUser } from "@/features/auth/roleUtils";
 
 export function ClientTransactionDetailsPage() {
   const { transactionId } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation('transactions');
+  const { user } = useAuth0();
+  const role = getRoleFromUser(user);
+  const canReview = role === "broker";
+  const canUpload = role === "client";
 
   const { data: documents, isLoading: isLoadingDocs } = useDocuments(transactionId ?? '');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -70,7 +76,7 @@ export function ClientTransactionDetailsPage() {
           {isLoadingDocs ? (
             <LoadingState />
           ) : documents && documents.length > 0 ? (
-            <DocumentList documents={documents} onUpload={handleUploadClick} onReview={handleReviewClick} />
+            <DocumentList documents={documents} onUpload={canUpload ? handleUploadClick : undefined} onReview={canReview ? handleReviewClick : undefined} />
           ) : (
             <div className="p-8 text-center bg-gray-50 rounded-lg border border-gray-100">
               <p className="text-gray-500">{t('noDocuments', { ns: 'documents' })}</p>

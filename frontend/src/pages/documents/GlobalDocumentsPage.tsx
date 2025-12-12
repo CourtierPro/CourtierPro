@@ -21,6 +21,7 @@ export function GlobalDocumentsPage() {
     const { user } = useAuth0();
     const role = getRoleFromUser(user);
     const canReview = role === "broker";
+    const canUpload = role === "client";
     const queryClient = useQueryClient();
     const [selectedDocument, setSelectedDocument] = useState<DocumentRequest | null>(null);
     const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<DocumentRequest | null>(null);
@@ -68,7 +69,7 @@ export function GlobalDocumentsPage() {
                     />
                 </Section>
             ) : (
-                <DocumentList documents={documents} onUpload={handleUploadClick} onReview={canReview ? handleReviewClick : undefined} />
+                <DocumentList documents={documents} onUpload={canUpload ? handleUploadClick : undefined} onReview={canReview ? handleReviewClick : undefined} />
             )}
 
             {selectedDocument && (

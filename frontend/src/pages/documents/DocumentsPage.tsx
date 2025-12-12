@@ -27,6 +27,7 @@ export function DocumentsPage({ transactionId }: DocumentsPageProps) {
   const { user } = useAuth0();
   const role = getRoleFromUser(user);
   const canReview = role === "broker";
+  const canUpload = role === "client";
   const {
     documents,
     isLoading,
@@ -94,7 +95,7 @@ export function DocumentsPage({ transactionId }: DocumentsPageProps) {
           />
         </Section>
       ) : (
-        <DocumentList documents={documents} onUpload={handleUploadClick} onReview={canReview ? handleReviewClick : undefined} />
+        <DocumentList documents={documents} onUpload={canUpload ? handleUploadClick : undefined} onReview={canReview ? handleReviewClick : undefined} />
       )}
 
       <RequestDocumentModal
