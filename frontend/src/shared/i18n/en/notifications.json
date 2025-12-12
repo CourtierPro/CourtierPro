@@ -1,4 +1,10 @@
 {
     "title": "Notifications",
-    "subtitle": "This is the page for viewing all notifications in CourtierPro."
+    "subtitle": "Manage your alerts and updates",
+    "empty": "You have no notifications.",
+    "new": "New",
+    "markAsRead": "Mark as read",
+    "viewAll": "View all notifications",
+    "close": "Close",
+    "noNotifications": "No notifications"
 }
