@@ -82,15 +82,8 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
         return aTime - bTime;
 
       case 'dateDesc':
-        return bTime - aTime;
-
-      // keep defaults exactly as before
-      case 'nameAsc':
-      case 'nameDesc':
-        return 0;
-
       default:
-        return 0;
+        return bTime - aTime;
     }
   });
 
