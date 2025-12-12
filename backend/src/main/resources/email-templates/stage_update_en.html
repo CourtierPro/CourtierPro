@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Transaction Stage Update</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .header { background-color: #f8f9fa; padding: 10px; text-align: center; border-bottom: 1px solid #ddd; }
+        .content { padding: 20px; }
+        .footer { font-size: 12px; color: #777; text-align: center; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 10px; }
+        .button { display: inline-block; background-color: #007bff; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2>Stage Update</h2>
+    </div>
+    <div class="content">
+        <p>Hi {{clientName}},</p>
+        <p>There is an update on your transaction for <strong>{{transactionAddress}}</strong>.</p>
+        <p>The new stage is: <strong>{{newStage}}</strong>.</p>
+        
+        <p>Please log in to your portal for more details.</p>
+        <p>Best regards,<br>{{brokerName}}</p>
+    </div>
+    <div class="footer">
+        <p>Sent by CourtierPro</p>
+    </div>
+</div>
+</body>
+</html>
