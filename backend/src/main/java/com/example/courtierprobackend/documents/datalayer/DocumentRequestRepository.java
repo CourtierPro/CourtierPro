@@ -19,20 +19,17 @@ public interface DocumentRequestRepository extends JpaRepository<DocumentRequest
     @Query("SELECT d FROM DocumentRequest d WHERE d.transactionRef.clientId = :userId OR d.transactionRef.transactionId IN (SELECT t.transactionId FROM Transaction t WHERE t.brokerId = :userId)")
     List<DocumentRequest> findByUserId(@Param("userId") UUID userId);
 
-    @Query("SELECT d FROM DocumentRequest d, Transaction t WHERE " +
-            "d.transactionRef.transactionId = t.transactionId AND " +
-            "(d.transactionRef.clientId = :userId OR t.brokerId = :userId) AND " +
+    @Query("SELECT d FROM DocumentRequest d WHERE " +
+            "(d.transactionRef.clientId = :userId OR d.transactionRef.transactionId IN (SELECT t.transactionId FROM Transaction t WHERE t.brokerId = :userId)) AND " +
             "(LOWER(COALESCE(d.customTitle, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(CAST(d.docType AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(COALESCE(d.brokerNotes, '')) LIKE LOWER(CONCAT('%', :query, '%')))")
     List<DocumentRequest> searchDocuments(@Param("userId") UUID userId, @Param("query") String query);
-    // Intended for future use or batch operations
+    // Derived query method used for optimizations where explicit JOINs are difficult
     List<DocumentRequest> findByTransactionRefClientIdIn(java.util.List<UUID> clientIds);
 
-    // Optimized join query instead of subqueries
-    @Query("SELECT d FROM DocumentRequest d, Transaction t WHERE " +
-            "d.transactionRef.transactionId = t.transactionId AND " +
-            "(d.transactionRef.clientId IN :userIds OR t.brokerId IN :userIds) AND " +
-            "(d.transactionRef.clientId = :requesterId OR t.brokerId = :requesterId)")
+    @Query("SELECT d FROM DocumentRequest d WHERE " +
+            "(d.transactionRef.clientId IN :userIds OR d.transactionRef.transactionId IN (SELECT t.transactionId FROM Transaction t WHERE t.brokerId IN :userIds)) AND " +
+            "(d.transactionRef.clientId = :requesterId OR d.transactionRef.transactionId IN (SELECT t.transactionId FROM Transaction t WHERE t.brokerId = :requesterId))")
     List<DocumentRequest> findLinkedToUsers(@Param("userIds") java.util.List<UUID> userIds, @Param("requesterId") UUID requesterId);
 }
