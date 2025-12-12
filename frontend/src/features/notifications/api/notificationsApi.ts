@@ -5,7 +5,7 @@ export interface NotificationResponseDTO {
     publicId: string;
     title: string;
     message: string;
-    isRead: boolean;
+    read: boolean;
     relatedTransactionId: string | null;
     createdAt: string; // ISO timestamp
 }

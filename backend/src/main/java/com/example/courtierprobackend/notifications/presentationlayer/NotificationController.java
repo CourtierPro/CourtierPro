@@ -27,7 +27,7 @@ public class NotificationController {
     }
 
     @PutMapping("/{publicId}/read")
-    public ResponseEntity<NotificationResponseDTO> markAsRead(@PathVariable String publicId) {
-        return ResponseEntity.ok(notificationService.markAsRead(publicId));
+    public ResponseEntity<NotificationResponseDTO> markAsRead(@PathVariable("publicId") java.util.UUID publicId) {
+        return ResponseEntity.ok(notificationService.markAsRead(publicId.toString()));
     }
 }

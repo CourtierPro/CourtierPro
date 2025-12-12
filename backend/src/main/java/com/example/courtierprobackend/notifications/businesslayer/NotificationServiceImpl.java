@@ -19,6 +19,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public void createNotification(String recipientId, String title, String message, String relatedTransactionId) {
         Notification notification = Notification.builder()
                 .recipientId(recipientId) // Expecting internal UUID here
@@ -32,6 +33,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<NotificationResponseDTO> getUserNotifications(String auth0UserId) {
         // ID Mapping: Auth0 ID -> Internal UUID
         // The controller gives us auth0UserId (subject). We must resolve to internal
@@ -46,6 +48,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public NotificationResponseDTO markAsRead(String publicId) {
         Notification notification = notificationRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new NotFoundException("Notification not found for id: " + publicId));

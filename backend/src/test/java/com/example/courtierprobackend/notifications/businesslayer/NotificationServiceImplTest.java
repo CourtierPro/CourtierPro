@@ -84,4 +84,59 @@ class NotificationServiceImplTest {
         verify(notificationRepository).findAllByRecipientIdOrderByCreatedAtDesc(internalId.toString());
         verify(notificationMapper).toResponseList(notifications);
     }
+
+    @Test
+    void markAsRead_shouldUpdateNotification() {
+        // Arrange
+        String publicId = UUID.randomUUID().toString();
+        Notification notification = new Notification();
+        notification.setPublicId(publicId);
+        notification.setRead(false);
+
+        Notification saved = new Notification();
+        saved.setPublicId(publicId);
+        saved.setRead(true);
+
+        NotificationResponseDTO dto = new NotificationResponseDTO();
+        dto.setPublicId(publicId);
+        dto.setRead(true);
+
+        when(notificationRepository.findByPublicId(publicId)).thenReturn(java.util.Optional.of(notification));
+        when(notificationRepository.save(notification)).thenReturn(saved);
+        when(notificationMapper.toResponseDTO(saved)).thenReturn(dto);
+
+        // Act
+        NotificationResponseDTO result = notificationService.markAsRead(publicId);
+
+        // Assert
+        assertThat(result.isRead()).isTrue();
+        verify(notificationRepository).findByPublicId(publicId);
+        verify(notificationRepository).save(notification);
+    }
+
+    @Test
+    void markAsRead_shouldThrowIfNotFound() {
+        // Arrange
+        String publicId = UUID.randomUUID().toString();
+        when(notificationRepository.findByPublicId(publicId)).thenReturn(java.util.Optional.empty());
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions
+                .assertThrows(com.example.courtierprobackend.common.exceptions.NotFoundException.class, () -> {
+                    notificationService.markAsRead(publicId);
+                });
+    }
+
+    @Test
+    void getUserNotifications_shouldThrowIfUserNotFound() {
+        // Arrange
+        String auth0UserId = "auth0|unknown";
+        when(userAccountRepository.findByAuth0UserId(auth0UserId)).thenReturn(java.util.Optional.empty());
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions
+                .assertThrows(com.example.courtierprobackend.common.exceptions.NotFoundException.class, () -> {
+                    notificationService.getUserNotifications(auth0UserId);
+                });
+    }
 }

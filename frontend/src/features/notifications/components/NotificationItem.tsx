@@ -14,8 +14,12 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
     const { t } = useTranslation('notifications');
 
     const handleClick = () => {
-        if (!notification.isRead) {
-            onMarkAsRead(notification.publicId);
+        if (!notification.read) {
+            try {
+                onMarkAsRead(notification.publicId);
+            } catch (error) {
+                console.error("Failed to mark notification as read", error);
+            }
         }
     };
 
@@ -23,20 +27,20 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
         <Card
             className={cn(
                 "cursor-pointer transition-colors hover:bg-muted/50 mb-2 relative overflow-hidden",
-                !notification.isRead && "bg-primary/5 border-primary/20",
-                notification.isRead && "opacity-80"
+                !notification.read && "bg-primary/5 border-primary/20",
+                notification.read && "opacity-80"
             )}
             onClick={handleClick}
         >
-            {!notification.isRead && (
+            {!notification.read && (
                 <div className="absolute top-0 right-0 w-2 h-full bg-primary" />
             )}
             <CardHeader className="p-3 pb-1">
                 <div className="flex justify-between items-center gap-2">
-                    <CardTitle className={cn("text-sm font-semibold", !notification.isRead && "text-primary")}>
+                    <CardTitle className={cn("text-sm font-semibold", !notification.read && "text-primary")}>
                         {notification.title}
                     </CardTitle>
-                    {!notification.isRead && (
+                    {!notification.read && (
                         <Badge variant="default" className="h-4 px-1 text-[10px]">
                             {t('new')}
                         </Badge>

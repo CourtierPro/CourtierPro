@@ -340,7 +340,11 @@ public class TransactionServiceImpl implements TransactionService {
 
                 String clientName = (client.getFirstName() + " " + client.getLastName()).trim();
                 String brokerName = (broker.getFirstName() + " " + broker.getLastName()).trim();
-                String address = saved.getPropertyAddress().getStreet(); // kept simple for now
+
+                String address = "Unknown Address";
+                if (saved.getPropertyAddress() != null && saved.getPropertyAddress().getStreet() != null) {
+                    address = saved.getPropertyAddress().getStreet();
+                }
 
                 // 1. Email
                 emailService.sendStageUpdateEmail(
@@ -352,15 +356,15 @@ public class TransactionServiceImpl implements TransactionService {
                         client.getPreferredLanguage());
 
                 // 2. In-App Notification
-                // AC: Notification includes transaction name, new stage, date/time, and broker
-                // name
                 String notifTitle = "Stage Update";
-                String translatedStage = StageTranslationUtil.getTranslatedStage(stageName,
+                String notifMessage = StageTranslationUtil.constructNotificationMessage(
+                        stageName,
+                        brokerName,
+                        address,
                         client.getPreferredLanguage());
-                String notifMessage = "Stage updated to " + translatedStage + " by " + brokerName + " for " + address;
 
                 notificationService.createNotification(
-                        client.getId().toString(),
+                        client.getId().toString(), // Internal UUID
                         notifTitle,
                         notifMessage,
                         saved.getTransactionId().toString());

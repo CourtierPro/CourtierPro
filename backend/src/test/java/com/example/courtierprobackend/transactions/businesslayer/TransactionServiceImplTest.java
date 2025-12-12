@@ -539,6 +539,8 @@ class TransactionServiceImplTest {
         tx.setSide(TransactionSide.BUY_SIDE);
         tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
         tx.setTimeline(new ArrayList<>());
+        tx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
+        tx.getPropertyAddress().setStreet("123 Main St");
 
         Transaction savedTx = new Transaction();
         savedTx.setTransactionId(transactionId);
@@ -546,6 +548,8 @@ class TransactionServiceImplTest {
         savedTx.setSide(TransactionSide.BUY_SIDE);
         savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
         savedTx.setTimeline(new ArrayList<>());
+        savedTx.setPropertyAddress(tx.getPropertyAddress());
+
         // timeline entry will be the last element
         savedTx.getTimeline().add(TimelineEntry.builder().type(TimelineEntryType.STAGE_CHANGE)
                 .title("Stage updated to BUYER_OFFER_ACCEPTED").note("note").visibleToClient(true).build());
@@ -558,12 +562,254 @@ class TransactionServiceImplTest {
         dto.setNote("note");
 
         // Act
-        // Act
         TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto, brokerUuid);
 
         // Assert
         assertThat(response).isNotNull();
         assertThat(response.getCurrentStage()).isEqualTo("BUYER_OFFER_ACCEPTED");
+        verify(transactionRepository).save(any(Transaction.class));
+    }
+
+    @Test
+    void updateTransactionStage_shouldSendEmailAndNotification_whenSuccessful_English() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        // Mock Transaction
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setClientId(clientId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyAddress addr = new com.example.courtierprobackend.transactions.datalayer.PropertyAddress();
+        addr.setStreet("123 Test St");
+        tx.setPropertyAddress(addr);
+
+        // Saved Transaction (after update)
+        Transaction savedTx = new Transaction();
+        savedTx.setTransactionId(transactionId);
+        savedTx.setClientId(clientId);
+        savedTx.setBrokerId(brokerId);
+        savedTx.setSide(TransactionSide.BUY_SIDE);
+        savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
+        savedTx.setPropertyAddress(addr);
+        savedTx.setTimeline(new ArrayList<>());
+
+        // Mock UserAccounts
+        var client = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        client.setId(clientId);
+        client.setFirstName("Client");
+        client.setLastName("User");
+        client.setEmail("client@example.com");
+        client.setPreferredLanguage("en");
+
+        var broker = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        broker.setId(brokerId);
+        broker.setFirstName("Broker");
+        broker.setLastName("Agent");
+
+        // Repositories
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OFFER_ACCEPTED");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        // 1. Verify Email sent
+        verify(emailService, times(1)).sendStageUpdateEmail(
+                eq("client@example.com"),
+                eq("Client User"),
+                eq("Broker Agent"),
+                eq("123 Test St"),
+                eq("BUYER_OFFER_ACCEPTED"),
+                eq("en"));
+
+        // 2. Verify In-App Notification created with localized message
+        // Stage: BUYER_OFFER_ACCEPTED -> Buyer Offer Accepted
+        verify(notificationService, times(1)).createNotification(
+                eq(clientId.toString()), // Internal UUID
+                eq("Stage Update"),
+                eq("Stage updated to Buyer Offer Accepted by Broker Agent for 123 Test St"),
+                eq(transactionId.toString()));
+    }
+
+    @Test
+    void updateTransactionStage_shouldSendEmailAndNotification_whenSuccessful_French() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setClientId(clientId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+        com.example.courtierprobackend.transactions.datalayer.PropertyAddress addr = new com.example.courtierprobackend.transactions.datalayer.PropertyAddress();
+        addr.setStreet("123 Rue Test");
+        tx.setPropertyAddress(addr);
+
+        Transaction savedTx = new Transaction();
+        savedTx.setTransactionId(transactionId);
+        savedTx.setClientId(clientId);
+        savedTx.setBrokerId(brokerId);
+        savedTx.setSide(TransactionSide.BUY_SIDE);
+        savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
+        savedTx.setPropertyAddress(addr);
+        savedTx.setTimeline(new ArrayList<>());
+
+        var client = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        client.setId(clientId);
+        client.setFirstName("Client");
+        client.setLastName("User");
+        client.setPreferredLanguage("fr");
+        client.setEmail("albert@example.com");
+
+        var broker = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        broker.setId(brokerId);
+        broker.setFirstName("Courtier");
+        broker.setLastName("Pro");
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OFFER_ACCEPTED");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        verify(emailService, times(1)).sendStageUpdateEmail(
+                eq("albert@example.com"),
+                eq("Client User"),
+                eq("Courtier Pro"),
+                eq("123 Rue Test"),
+                eq("BUYER_OFFER_ACCEPTED"),
+                eq("fr"));
+
+        // Verify French message: "Le stade a été mis à jour à Offre Acceptée par
+        // Courtier Pro pour 123 Rue Test"
+        verify(notificationService, times(1)).createNotification(
+                eq(clientId.toString()),
+                eq("Stage Update"),
+                eq("Le stade a été mis à jour à Offre Acceptée par Courtier Pro pour 123 Rue Test"),
+                eq(transactionId.toString()));
+    }
+
+    @Test
+    void updateTransactionStage_withNullPropertyAddress_handlesGracefully() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setClientId(clientId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+        tx.setPropertyAddress(null); // NULL ADDRESS
+
+        Transaction savedTx = new Transaction();
+        savedTx.setTransactionId(transactionId);
+        savedTx.setClientId(clientId);
+        savedTx.setBrokerId(brokerId);
+        savedTx.setSide(TransactionSide.BUY_SIDE);
+        savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
+        savedTx.setPropertyAddress(null); // NULL ADDRESS
+        savedTx.setTimeline(new ArrayList<>());
+
+        var client = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        client.setId(clientId);
+        client.setFirstName("Client");
+        client.setLastName("User");
+        client.setPreferredLanguage("en");
+
+        var broker = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        broker.setId(brokerId);
+        broker.setFirstName("Broker");
+        broker.setLastName("Agent");
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OFFER_ACCEPTED");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        // Should use "Unknown Address" default
+        verify(notificationService, times(1)).createNotification(
+                eq(clientId.toString()),
+                eq("Stage Update"),
+                contains("for Unknown Address"),
+                eq(transactionId.toString()));
+    }
+
+    @Test
+    void updateTransactionStage_withNotificationFailure_doesNotRollbackTransaction() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setClientId(clientId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+        tx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
+
+        Transaction savedTx = new Transaction();
+        savedTx.setTransactionId(transactionId);
+        savedTx.setClientId(clientId);
+        savedTx.setBrokerId(brokerId);
+        savedTx.setSide(TransactionSide.BUY_SIDE);
+        savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
+        savedTx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
+        savedTx.setTimeline(new ArrayList<>());
+
+        // Users exist
+        when(userAccountRepository.findById(any()))
+                .thenReturn(Optional.of(new com.example.courtierprobackend.user.dataaccesslayer.UserAccount()));
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+
+        // Make email service throw exception
+        doThrow(new RuntimeException("Email server down")).when(emailService).sendStageUpdateEmail(any(), any(), any(),
+                any(), any(), any());
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OFFER_ACCEPTED");
+
+        // Act
+        TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        // Transaction should still be returned successfully
+        assertThat(response).isNotNull();
+        // Repository save WAS called
         verify(transactionRepository).save(any(Transaction.class));
     }
 
@@ -579,6 +825,7 @@ class TransactionServiceImplTest {
         tx.setSide(TransactionSide.SELL_SIDE);
         tx.setSellerStage(SellerStage.SELLER_INITIAL_CONSULTATION);
         tx.setTimeline(new ArrayList<>());
+        tx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
 
         Transaction savedTx = new Transaction();
         savedTx.setTransactionId(transactionId);
@@ -586,6 +833,7 @@ class TransactionServiceImplTest {
         savedTx.setSide(TransactionSide.SELL_SIDE);
         savedTx.setSellerStage(SellerStage.SELLER_REVIEW_OFFERS);
         savedTx.setTimeline(new ArrayList<>());
+        savedTx.setPropertyAddress(tx.getPropertyAddress());
         savedTx.getTimeline().add(TimelineEntry.builder().type(TimelineEntryType.STAGE_CHANGE)
                 .title("Stage updated to SELLER_REVIEW_OFFERS").note("note").visibleToClient(true).build());
 
@@ -659,6 +907,7 @@ class TransactionServiceImplTest {
         tx.setSide(TransactionSide.BUY_SIDE);
         tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
         tx.setTimeline(new ArrayList<>());
+        tx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
 
         Transaction savedTx = new Transaction();
         savedTx.setTransactionId(transactionId);
@@ -666,6 +915,7 @@ class TransactionServiceImplTest {
         savedTx.setSide(TransactionSide.BUY_SIDE);
         savedTx.setBuyerStage(BuyerStage.BUYER_FINANCING_FINALIZED);
         savedTx.setTimeline(new ArrayList<>());
+        savedTx.setPropertyAddress(tx.getPropertyAddress());
         // savedTx will be returned by repository.save
 
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
@@ -696,80 +946,6 @@ class TransactionServiceImplTest {
         assertThat(last.getVisibleToClient()).isTrue();
         assertThat(last.getTitle()).contains("BUYER_FINANCING_FINALIZED");
         assertThat(last.getNote()).isEqualTo(customNote);
-    }
-
-    @Test
-    void updateTransactionStage_shouldSendEmailAndNotification_whenSuccessful() {
-        // Arrange
-        UUID transactionId = UUID.randomUUID();
-        UUID brokerId = UUID.randomUUID();
-        UUID clientId = UUID.randomUUID();
-
-        // Mock Transaction
-        Transaction tx = new Transaction();
-        tx.setTransactionId(transactionId);
-        tx.setClientId(clientId);
-        tx.setBrokerId(brokerId);
-        tx.setSide(TransactionSide.BUY_SIDE);
-        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
-
-        com.example.courtierprobackend.transactions.datalayer.PropertyAddress addr = new com.example.courtierprobackend.transactions.datalayer.PropertyAddress();
-        addr.setStreet("123 Test St");
-        tx.setPropertyAddress(addr);
-
-        // Saved Transaction (after update)
-        Transaction savedTx = new Transaction();
-        savedTx.setTransactionId(transactionId);
-        savedTx.setClientId(clientId);
-        savedTx.setBrokerId(brokerId);
-        savedTx.setSide(TransactionSide.BUY_SIDE);
-        savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
-        savedTx.setPropertyAddress(addr);
-        savedTx.setTimeline(new ArrayList<>()); // Ensure timeline is not null to avoid issues if implementation uses it
-
-        // Mock UserAccounts
-        com.example.courtierprobackend.user.dataaccesslayer.UserAccount client = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
-        client.setId(clientId);
-        client.setAuth0UserId("auth0|client");
-        client.setFirstName("Client");
-        client.setLastName("User");
-        client.setEmail("client@example.com");
-        client.setPreferredLanguage("en");
-
-        com.example.courtierprobackend.user.dataaccesslayer.UserAccount broker = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
-        broker.setId(brokerId);
-        broker.setFirstName("Broker");
-        broker.setLastName("Agent");
-
-        // Repositories
-        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
-        when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
-
-        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
-        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
-
-        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-        dto.setStage("BUYER_OFFER_ACCEPTED");
-
-        // Act
-        transactionService.updateTransactionStage(transactionId, dto, brokerId);
-
-        // Assert
-        // 1. Verify Email sent
-        verify(emailService, times(1)).sendStageUpdateEmail(
-                eq("client@example.com"),
-                eq("Client User"),
-                eq("Broker Agent"),
-                eq("123 Test St"),
-                eq("BUYER_OFFER_ACCEPTED"), // Implementation passes the stage string as stageName
-                eq("en"));
-
-        // 2. Verify In-App Notification created
-        verify(notificationService, times(1)).createNotification(
-                eq(clientId.toString()),
-                eq("Stage Update"),
-                eq("Stage updated to Buyer Offer Accepted by Broker Agent for 123 Test St"),
-                eq(transactionId.toString()));
     }
 
     // ========== Helper Methods ==========

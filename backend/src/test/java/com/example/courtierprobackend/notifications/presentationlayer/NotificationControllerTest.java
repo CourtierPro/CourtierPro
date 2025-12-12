@@ -75,6 +75,7 @@ class NotificationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].title").value("Test Notification"))
+                .andExpect(jsonPath("$[0].publicId").value(dto.getPublicId()))
                 .andExpect(jsonPath("$[0].createdAt").value("2023-01-01T12:00:00"));
 
         verify(notificationService).getUserNotifications(userId);
@@ -97,5 +98,16 @@ class NotificationControllerTest {
                 .andExpect(jsonPath("$.read").value(true));
 
         verify(notificationService).markAsRead(publicId);
+    }
+
+    @Test
+    void markAsRead_withInvalidUuid_shouldReturnBadRequest() throws Exception {
+        // Arrange
+        String invalidId = "invalid-uuid-format";
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/notifications/" + invalidId + "/read")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
     }
 }

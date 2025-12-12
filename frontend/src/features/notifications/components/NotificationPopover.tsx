@@ -16,7 +16,7 @@ export function NotificationPopover() {
     const { data: notifications = [] } = useNotifications();
     const { mutate: markAsRead } = useMarkNotificationAsRead();
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+    const unreadCount = notifications.filter(n => !n.read).length;
 
     const handleMarkAsRead = (id: string) => {
         markAsRead(id);
@@ -55,16 +55,14 @@ export function NotificationPopover() {
                         </div>
                     ) : (
                         <div className="flex flex-col p-2">
-                            {/* In a real app, backend should sort. Sorting here just in case. */}
-                            {[...notifications]
-                                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                                .map((notification) => (
-                                    <NotificationItem
-                                        key={notification.publicId}
-                                        notification={notification}
-                                        onMarkAsRead={handleMarkAsRead}
-                                    />
-                                ))}
+                            {/* Backend already sorts by CreatedAtDesc */}
+                            {notifications.map((notification) => (
+                                <NotificationItem
+                                    key={notification.publicId}
+                                    notification={notification}
+                                    onMarkAsRead={handleMarkAsRead}
+                                />
+                            ))}
                         </div>
                     )}
                 </ScrollArea>

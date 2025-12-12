@@ -1,6 +1,5 @@
 package com.example.courtierprobackend.notifications.presentationlayer;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,8 +16,7 @@ public class NotificationResponseDTO {
     private String title;
     private String message;
 
-    @JsonProperty("isRead")
-    private boolean isRead;
+    private boolean read;
 
     private String relatedTransactionId;
     @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
