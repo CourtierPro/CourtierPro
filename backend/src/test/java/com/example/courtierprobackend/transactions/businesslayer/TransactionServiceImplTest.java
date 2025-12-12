@@ -766,9 +766,9 @@ class TransactionServiceImplTest {
 
         // 2. Verify In-App Notification created
         verify(notificationService, times(1)).createNotification(
-                eq("auth0|client"),
+                eq(clientId.toString()),
                 eq("Stage Update"),
-                eq("123 Test St is now BUYER_OFFER_ACCEPTED"),
+                eq("Stage updated to Buyer Offer Accepted by Broker Agent for 123 Test St"),
                 eq(transactionId.toString()));
     }
 
