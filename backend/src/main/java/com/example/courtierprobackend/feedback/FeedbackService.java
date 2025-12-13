@@ -36,8 +36,19 @@ public class FeedbackService {
                     
         } catch (Exception e) {
             log.error("Failed to submit feedback: {}", e.getMessage(), e);
+            
+            String errorMessage;
+            if (e instanceof java.net.ConnectException || e instanceof java.net.SocketTimeoutException) {
+                errorMessage = "GitHub service unavailable. Please try again later.";
+            } else if (e instanceof IllegalArgumentException) {
+                errorMessage = "Invalid configuration or request data.";
+            } else {
+                errorMessage = "An unexpected error occurred while submitting feedback.";
+            }
+            
             return FeedbackResponse.builder()
                     .success(false)
+                    .errorMessage(errorMessage)
                     .build();
         }
     }

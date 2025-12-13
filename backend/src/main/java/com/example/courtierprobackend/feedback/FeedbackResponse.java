@@ -13,4 +13,5 @@ public class FeedbackResponse {
     private boolean success;
     private String issueUrl;
     private Integer issueNumber;
+    private String errorMessage;
 }

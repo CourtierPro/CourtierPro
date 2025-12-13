@@ -2,7 +2,10 @@ package com.example.courtierprobackend.feedback;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -127,9 +130,9 @@ public class GitHubService {
     }
 
     @Data
-    @lombok.Builder
-    @lombok.NoArgsConstructor
-    @lombok.AllArgsConstructor
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class GitHubIssueRequest {
         private String title;
         private String body;
@@ -137,9 +140,9 @@ public class GitHubService {
     }
 
     @Data
-    @lombok.Builder
-    @lombok.NoArgsConstructor
-    @lombok.AllArgsConstructor
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class GitHubIssueResponse {
         private Integer number;
         

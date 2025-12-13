@@ -26,11 +26,23 @@ class FeedbackResponseTest {
     void builder_CreatesFailureResponse() {
         FeedbackResponse response = FeedbackResponse.builder()
                 .success(false)
+                .errorMessage("An error occurred")
                 .build();
 
         assertThat(response.isSuccess()).isFalse();
         assertThat(response.getIssueNumber()).isNull();
         assertThat(response.getIssueUrl()).isNull();
+        assertThat(response.getErrorMessage()).isEqualTo("An error occurred");
+    }
+
+    @Test
+    void builder_CreatesFailureResponseWithoutErrorMessage() {
+        FeedbackResponse response = FeedbackResponse.builder()
+                .success(false)
+                .build();
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getErrorMessage()).isNull();
     }
 
     @Test
@@ -39,15 +51,17 @@ class FeedbackResponseTest {
         response.setSuccess(true);
         response.setIssueNumber(456);
         response.setIssueUrl("https://github.com/test/test/issues/456");
+        response.setErrorMessage(null);
 
         assertThat(response.isSuccess()).isTrue();
         assertThat(response.getIssueNumber()).isEqualTo(456);
         assertThat(response.getIssueUrl()).isEqualTo("https://github.com/test/test/issues/456");
+        assertThat(response.getErrorMessage()).isNull();
     }
 
     @Test
     void allArgsConstructor_Works() {
-        FeedbackResponse response = new FeedbackResponse(true, "https://github.com/test/issues/789", 789);
+        FeedbackResponse response = new FeedbackResponse(true, "https://github.com/test/issues/789", 789, null);
 
         assertThat(response.isSuccess()).isTrue();
         assertThat(response.getIssueNumber()).isEqualTo(789);

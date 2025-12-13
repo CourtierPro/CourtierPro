@@ -122,5 +122,44 @@ class FeedbackServiceTest {
         assertThat(response.isSuccess()).isFalse();
         assertThat(response.getIssueNumber()).isNull();
         assertThat(response.getIssueUrl()).isNull();
+        assertThat(response.getErrorMessage()).isEqualTo("An unexpected error occurred while submitting feedback.");
+    }
+
+    @Test
+    void submitFeedback_WhenConnectionException_ReturnsServiceUnavailableError() {
+        // Arrange
+        FeedbackRequest request = FeedbackRequest.builder()
+                .type("bug")
+                .message("Connection failure test")
+                .build();
+
+        when(gitHubService.createIssue(anyString(), anyString(), anyString()))
+                .thenThrow(new java.net.ConnectException("Connection refused"));
+
+        // Act
+        FeedbackResponse response = feedbackService.submitFeedback(request, "test@example.com");
+
+        // Assert
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getErrorMessage()).isEqualTo("GitHub service unavailable. Please try again later.");
+    }
+
+    @Test
+    void submitFeedback_WhenIllegalArgumentException_ReturnsInvalidConfigError() {
+        // Arrange
+        FeedbackRequest request = FeedbackRequest.builder()
+                .type("bug")
+                .message("Invalid config test")
+                .build();
+
+        when(gitHubService.createIssue(anyString(), anyString(), anyString()))
+                .thenThrow(new IllegalArgumentException("Invalid argument"));
+
+        // Act
+        FeedbackResponse response = feedbackService.submitFeedback(request, "test@example.com");
+
+        // Assert
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getErrorMessage()).isEqualTo("Invalid configuration or request data.");
     }
 }
