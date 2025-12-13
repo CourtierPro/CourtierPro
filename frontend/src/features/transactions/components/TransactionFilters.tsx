@@ -138,7 +138,6 @@ export function TransactionFilters({
                         <SelectContent>
                             <SelectItem value="dateDesc">{t('dateOpenedDesc')}</SelectItem>
                             <SelectItem value="dateAsc">{t('dateOpenedAsc')}</SelectItem>
-                                {/* Name sorting not supported for client view */}
                         </SelectContent>
                     </Select>
                 </div>

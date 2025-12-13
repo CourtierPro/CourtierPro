@@ -7,8 +7,8 @@ import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
 import { Button } from "@/shared/components/ui/button";
 import { TransactionFilters } from './TransactionFilters';
-import { TransactionTable } from './TransactionTable';
-import { TransactionCards } from './TransactionCards';
+import { ClientTransactionTable } from './ClientTransactionTable';
+import { ClientTransactionCards } from './ClientTransactionCards';
 import { TransactionPagination } from './TransactionPagination';
 import { useClientTransactionsPageLogic } from '../hooks/useClientTransactionsPageLogic';
 import { parseToTimestamp } from '@/shared/utils/date';
@@ -71,7 +71,7 @@ export function ClientTransactionList({ onNavigate }: ClientTransactionListProps
     });
   }, [filteredTransactions, sortBy]);
 
-  const totalPages = Math.ceil(sortedTransactions.length / ITEMS_PER_PAGE) || 1;
+  const totalPages = Math.max(1, Math.ceil(sortedTransactions.length / ITEMS_PER_PAGE));
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedTransactions = sortedTransactions.slice(startIndex, endIndex);
@@ -90,7 +90,7 @@ export function ClientTransactionList({ onNavigate }: ClientTransactionListProps
     return (
       <div className="space-y-6">
         <PageHeader title={t('title')} subtitle={t('subtitle')} />
-        <ErrorState message={error.message || 'Failed to load transactions'} onRetry={() => refetch()} />
+        <ErrorState message={error.message || t('errorLoadingTransactions')} onRetry={() => refetch()} />
       </div>
     );
   }
@@ -142,8 +142,8 @@ export function ClientTransactionList({ onNavigate }: ClientTransactionListProps
         </Section>
       ) : (
         <>
-          <TransactionTable transactions={paginatedTransactions} onNavigate={onNavigate} />
-          <TransactionCards transactions={paginatedTransactions} onNavigate={onNavigate} />
+          <ClientTransactionTable transactions={paginatedTransactions} onNavigate={onNavigate} />
+          <ClientTransactionCards transactions={paginatedTransactions} onNavigate={onNavigate} />
           <TransactionPagination
             currentPage={currentPage}
             totalPages={totalPages}
