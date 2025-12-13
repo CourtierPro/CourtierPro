@@ -6,6 +6,7 @@ import { Badge } from "@/shared/components/ui/badge";
 
 interface TransactionInfoProps {
     transaction: Transaction;
+    hideClientLabel?: boolean;
 }
 
 function formatAddress(address: Transaction['propertyAddress']) {
@@ -20,7 +21,7 @@ function formatAddress(address: Transaction['propertyAddress']) {
     return street;
 }
 
-export function TransactionInfo({ transaction }: TransactionInfoProps) {
+export function TransactionInfo({ transaction, hideClientLabel = false }: TransactionInfoProps) {
     const { t } = useTranslation('transactions');
 
     return (
@@ -44,9 +45,13 @@ export function TransactionInfo({ transaction }: TransactionInfoProps) {
                     </div>
                 </div>
                 <div className="text-left md:text-right mt-1 md:mt-0">
-                    <p className="text-xs md:text-sm text-muted-foreground">{t('client')}</p>
-                    <p className="text-base md:text-lg font-medium text-foreground">{transaction.clientName}</p>
-                    <p className="text-xs md:text-sm text-muted-foreground mt-1 md:mt-2">{t('openedDate')}</p>
+                    {!hideClientLabel && (
+                        <>
+                            <p className="text-xs md:text-sm text-muted-foreground">{t('client')}</p>
+                            <p className="text-base md:text-lg font-medium text-foreground">{transaction.clientName}</p>
+                        </>
+                    )}
+                    <p className={`text-xs md:text-sm text-muted-foreground ${hideClientLabel ? '' : 'mt-1 md:mt-2'}`}>{t('openedDate')}</p>
                     <p className="text-base md:text-lg font-medium text-foreground">
                         {formatDate(transaction.openedDate ?? transaction.openedAt)}
                     </p>
