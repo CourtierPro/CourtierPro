@@ -133,8 +133,9 @@ class FeedbackServiceTest {
                 .message("Connection failure test")
                 .build();
 
+        // GitHubService wraps connection exceptions in RuntimeException
         when(gitHubService.createIssue(anyString(), anyString(), anyString()))
-                .thenThrow(new java.net.ConnectException("Connection refused"));
+                .thenThrow(new RuntimeException("Connection failed", new java.net.ConnectException("Connection refused")));
 
         // Act
         FeedbackResponse response = feedbackService.submitFeedback(request, "test@example.com");

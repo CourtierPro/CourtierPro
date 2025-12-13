@@ -38,7 +38,8 @@ public class FeedbackService {
             log.error("Failed to submit feedback: {}", e.getMessage(), e);
             
             String errorMessage;
-            if (e instanceof java.net.ConnectException || e instanceof java.net.SocketTimeoutException) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            if (cause instanceof java.net.ConnectException || cause instanceof java.net.SocketTimeoutException) {
                 errorMessage = "GitHub service unavailable. Please try again later.";
             } else if (e instanceof IllegalArgumentException) {
                 errorMessage = "Invalid configuration or request data.";
