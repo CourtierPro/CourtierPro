@@ -58,3 +58,10 @@ aws:
   s3:
     bucket-name: courtierpro-dev-files
   region: us-east-1
+
+# GitHub integration for user feedback
+github:
+  token: ${GITHUB_TOKEN:}
+  repo:
+    owner: ${GITHUB_REPO_OWNER:CourtierPro}
+    name: ${GITHUB_REPO_NAME:CourtierPro}

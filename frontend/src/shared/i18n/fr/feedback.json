@@ -1,0 +1,31 @@
+{
+  "title": "Soumettre un commentaire",
+  "description": "Aidez-nous à améliorer CourtierPro en signalant des bugs ou en suggérant de nouvelles fonctionnalités.",
+  "type": {
+    "label": "Type",
+    "placeholder": "Sélectionner le type de commentaire",
+    "bug": "Rapport de bug",
+    "feature": "Demande de fonctionnalité"
+  },
+  "message": {
+    "label": "Message",
+    "placeholder": "Décrivez votre commentaire en détail..."
+  },
+  "submit": "Soumettre",
+  "submitting": "Soumission en cours...",
+  "cancel": "Annuler",
+  "success": {
+    "title": "Commentaire soumis",
+    "description": "Merci pour votre commentaire ! Nous l'examinerons sous peu."
+  },
+  "error": {
+    "title": "Échec de la soumission",
+    "description": "Impossible de soumettre le commentaire. Veuillez réessayer plus tard."
+  },
+  "validation": {
+    "typeRequired": "Veuillez sélectionner un type de commentaire",
+    "messageRequired": "Veuillez fournir un message",
+    "messageMinLength": "Le message doit contenir au moins 10 caractères"
+  },
+  "button": "Commentaire"
+}

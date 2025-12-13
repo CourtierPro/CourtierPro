@@ -12,10 +12,12 @@ import {
   Activity,
   Bell,
   Palette,
+  MessageSquare,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/shared/utils/utils";
 import { Button } from "@/shared/components/ui/button";
+import { FeedbackModal } from "@/shared/components/feedback/FeedbackModal";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -228,6 +230,20 @@ export function Sidebar({
               })}
             </ul>
           </nav>
+
+          {/* Feedback button at bottom */}
+          <div className="px-4 py-4 border-t border-sidebar-border">
+            <FeedbackModal
+              trigger={
+                <button
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                >
+                  <MessageSquare className="w-5 h-5 shrink-0" />
+                  <span className="whitespace-nowrap">{t("button", { ns: "feedback" })}</span>
+                </button>
+              }
+            />
+          </div>
         </div>
       </aside>
     </>

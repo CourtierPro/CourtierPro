@@ -20,6 +20,9 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_REGION: ${AWS_REGION}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      GITHUB_REPO_OWNER: ${GITHUB_REPO_OWNER:-CourtierPro}
+      GITHUB_REPO_NAME: ${GITHUB_REPO_NAME:-CourtierPro}
     depends_on:
       db:
         condition: service_healthy
