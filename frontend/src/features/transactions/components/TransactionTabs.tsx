@@ -14,6 +14,7 @@ interface TransactionTabsProps {
     onNotesChange: (notes: string) => void;
     onSaveNotes: () => void;
     isSavingNotes: boolean;
+    isReadOnly?: boolean;
 }
 
 export function TransactionTabs({
@@ -22,6 +23,7 @@ export function TransactionTabs({
     onNotesChange,
     onSaveNotes,
     isSavingNotes,
+    isReadOnly = false,
 }: TransactionTabsProps) {
     const { t } = useTranslation('transactions');
 
@@ -50,24 +52,25 @@ export function TransactionTabs({
 
             <TabsContent value="details" className="py-4">
                 <div className="grid grid-cols-1 gap-6">
-
-                    <Section className="p-4 md:p-6">
-                        <SectionHeader title={t('notes')} />
-                        <Textarea
-                            value={notes}
-                            onChange={(e) => onNotesChange(e.target.value)}
-                            className="h-32 mb-4"
-                            placeholder={t('addNotesPlaceholder')}
-                        />
-                        <Button
-                            variant="secondary"
-                            onClick={onSaveNotes}
-                            disabled={isSavingNotes}
-                            className="w-full"
-                        >
-                            {isSavingNotes ? t('saving') : t('saveNotes')}
-                        </Button>
-                    </Section>
+                    {!isReadOnly && (
+                        <Section className="p-4 md:p-6">
+                            <SectionHeader title={t('notes')} />
+                            <Textarea
+                                value={notes}
+                                onChange={(e) => onNotesChange(e.target.value)}
+                                className="h-32 mb-4"
+                                placeholder={t('addNotesPlaceholder')}
+                            />
+                            <Button
+                                variant="secondary"
+                                onClick={onSaveNotes}
+                                disabled={isSavingNotes}
+                                className="w-full"
+                            >
+                                {isSavingNotes ? t('saving') : t('saveNotes')}
+                            </Button>
+                        </Section>
+                    )}
                 </div>
             </TabsContent>
 

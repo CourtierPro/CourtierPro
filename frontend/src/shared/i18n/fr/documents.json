@@ -6,6 +6,7 @@
     "transactionDocumentsPageSubtitle": "Gérez tous vos documents de transaction en un seul endroit.",
     "subtitle": "Gérez tous vos documents de transaction en un seul endroit.",
     "requestDocument": "Demander un document",
+    "noDocuments": "Aucun document",
     "noDocumentsTitle": "Aucun document trouvé",
     "noDocumentsDesc": "Vous n'avez pas encore téléversé de documents. Commencez par créer une transaction.",
     "transactionDocuments": "Documents de transaction",

@@ -17,9 +17,10 @@ import { useUpdateTransactionStage } from '@/features/transactions/api/mutations
 
 interface TransactionDetailProps {
   transactionId?: string;
+  isReadOnly?: boolean;
 }
 
-function TransactionDetailContent({ transaction }: { transaction: NonNullable<Transaction> }) {
+function TransactionDetailContent({ transaction, isReadOnly = false }: { transaction: NonNullable<Transaction>; isReadOnly?: boolean }) {
   const navigate = useNavigate();
   const { t } = useTranslation('transactions');
   const saveNotes = useSaveTransactionNotes();
@@ -74,7 +75,7 @@ function TransactionDetailContent({ transaction }: { transaction: NonNullable<Tr
         actions={
           <Button
             variant="ghost"
-            onClick={() => navigate('/transactions')}
+            onClick={() => navigate(isReadOnly ? '/my-transaction' : '/transactions')}
             className="gap-2"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -83,11 +84,12 @@ function TransactionDetailContent({ transaction }: { transaction: NonNullable<Tr
         }
       />
 
-      <TransactionInfo transaction={transaction} />
+      <TransactionInfo transaction={transaction} hideClientLabel={isReadOnly} />
 
       <TransactionStageTracker
         transaction={transaction}
         onUpdateStage={() => setIsModalOpen(true)}
+        isReadOnly={isReadOnly}
       />
 
       <TransactionTabs
@@ -96,6 +98,7 @@ function TransactionDetailContent({ transaction }: { transaction: NonNullable<Tr
         onNotesChange={setNotes}
         onSaveNotes={handleSaveNotes}
         isSavingNotes={saveNotes.isPending}
+        isReadOnly={isReadOnly}
       />
 
       <StageUpdateModal
@@ -110,7 +113,7 @@ function TransactionDetailContent({ transaction }: { transaction: NonNullable<Tr
   );
 }
 
-export function TransactionDetail({ transactionId: propId }: TransactionDetailProps = {}) {
+export function TransactionDetail({ transactionId: propId, isReadOnly = false }: TransactionDetailProps = {}) {
   const { id: paramId } = useParams<{ id: string }>();
   const id = propId || paramId;
   const navigate = useNavigate();
@@ -125,7 +128,7 @@ export function TransactionDetail({ transactionId: propId }: TransactionDetailPr
           actions={
             <Button
               variant="outline"
-              onClick={() => navigate('/transactions')}
+              onClick={() => navigate(isReadOnly ? '/my-transaction' : '/transactions')}
               className="gap-2"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -149,5 +152,5 @@ export function TransactionDetail({ transactionId: propId }: TransactionDetailPr
 
   if (!transaction) return null;
 
-  return <TransactionDetailContent transaction={transaction} key={transaction.transactionId} />;
+  return <TransactionDetailContent transaction={transaction} isReadOnly={isReadOnly} key={transaction.transactionId} />;
 }

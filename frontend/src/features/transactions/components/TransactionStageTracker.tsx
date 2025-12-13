@@ -11,9 +11,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/
 interface TransactionStageTrackerProps {
     transaction: Transaction;
     onUpdateStage: () => void;
+    isReadOnly?: boolean;
 }
 
-export function TransactionStageTracker({ transaction, onUpdateStage }: TransactionStageTrackerProps) {
+export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly = false }: TransactionStageTrackerProps) {
     const { t } = useTranslation('transactions');
     const [isExpanded, setIsExpanded] = useState(false);
     const stages = getStagesForSide(transaction.side);
@@ -105,11 +106,13 @@ export function TransactionStageTracker({ transaction, onUpdateStage }: Transact
                 })}
             </div>
 
-            <div className="mt-2 md:mt-6 flex justify-end">
-                <Button onClick={onUpdateStage} className="w-full sm:w-auto">
-                    {t('updateStage')}
-                </Button>
-            </div>
+            {!isReadOnly && (
+                <div className="mt-2 md:mt-6 flex justify-end">
+                    <Button onClick={onUpdateStage} className="w-full sm:w-auto">
+                        {t('updateStage')}
+                    </Button>
+                </div>
+            )}
         </Section>
     );
 }

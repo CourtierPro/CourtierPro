@@ -9,9 +9,10 @@ import { Badge } from "@/shared/components/ui/badge";
 
 interface TransactionSummaryProps {
   transactionId: string;
+  isReadOnly?: boolean;
 }
 
-export function TransactionSummary({ transactionId }: TransactionSummaryProps) {
+export function TransactionSummary({ transactionId, isReadOnly = false }: TransactionSummaryProps) {
   const { t } = useTranslation('transactions');
   const { data: transaction, isLoading, error } = useTransaction(transactionId);
 
@@ -77,8 +78,8 @@ export function TransactionSummary({ transactionId }: TransactionSummaryProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 p-6 rounded-xl shadow-md bg-card border border-border">
+      <div className={`grid grid-cols-1 ${isReadOnly ? 'lg:grid-cols-1' : 'lg:grid-cols-3'} gap-6`}>
+        <div className={`${isReadOnly ? '' : 'lg:col-span-2'} p-6 rounded-xl shadow-md bg-card border border-border`}>
           <h3 className="text-lg font-semibold text-foreground mb-4">{t('transactionDetails')}</h3>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
             <div>
@@ -105,19 +106,21 @@ export function TransactionSummary({ transactionId }: TransactionSummaryProps) {
           </dl>
         </div>
 
-        <div className="space-y-6">
-          <div className="p-6 rounded-xl shadow-md bg-card border border-border">
-            <h3 className="text-lg font-semibold text-foreground mb-4">{t('quickActions')}</h3>
-            <div className="space-y-3">
-              <Button className="w-full">
-                {t('updateStage')}
-              </Button>
-              <Button variant="outline" className="w-full">
-                {t('addNote')}
-              </Button>
+        {!isReadOnly && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-xl shadow-md bg-card border border-border">
+              <h3 className="text-lg font-semibold text-foreground mb-4">{t('quickActions')}</h3>
+              <div className="space-y-3">
+                <Button className="w-full">
+                  {t('updateStage')}
+                </Button>
+                <Button variant="outline" className="w-full">
+                  {t('addNote')}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

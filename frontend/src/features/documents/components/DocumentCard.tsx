@@ -17,9 +17,10 @@ interface DocumentCardProps {
     document: DocumentRequest;
     onUpload?: (document: DocumentRequest, file?: File) => void;
     onReview?: (document: DocumentRequest) => void;
+    showBrokerNotes?: boolean;
 }
 
-export function DocumentCard({ document, onUpload, onReview }: DocumentCardProps) {
+export function DocumentCard({ document, onUpload, onReview, showBrokerNotes = true }: DocumentCardProps) {
     const { t, i18n } = useTranslation('documents');
     const [isLoadingView, setIsLoadingView] = useState(false);
     const title = formatDocumentTitle(document, t);
@@ -121,7 +122,7 @@ export function DocumentCard({ document, onUpload, onReview }: DocumentCardProps
                                 </Link>
                             </div>
                         </div>
-                        {document.brokerNotes && (
+                        {showBrokerNotes && document.brokerNotes && (
                             <p className="mt-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded">
                                 {document.brokerNotes}
                             </p>
