@@ -15,6 +15,7 @@ import profileEn from "@/shared/i18n/en/profile.json";
 import analyticsEn from "@/shared/i18n/en/analytics.json";
 import notificationsEn from "@/shared/i18n/en/notifications.json";
 import statusEn from "@/shared/i18n/en/status.json";
+import feedbackEn from "@/shared/i18n/en/feedback.json";
 
 // Import namespaces for FR
 import commonFr from "@/shared/i18n/fr/common.json";
@@ -30,6 +31,7 @@ import profileFr from "@/shared/i18n/fr/profile.json";
 import analyticsFr from "@/shared/i18n/fr/analytics.json";
 import notificationsFr from "@/shared/i18n/fr/notifications.json";
 import statusFr from "@/shared/i18n/fr/status.json";
+import feedbackFr from "@/shared/i18n/fr/feedback.json";
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -46,7 +48,8 @@ i18n.use(initReactI18next).init({
       profile: profileEn,
       analytics: analyticsEn,
       notifications: notificationsEn,
-      status: statusEn
+      status: statusEn,
+      feedback: feedbackEn
     },
     fr: {
       common: commonFr,
@@ -61,14 +64,15 @@ i18n.use(initReactI18next).init({
       profile: profileFr,
       analytics: analyticsFr,
       notifications: notificationsFr,
-      status: statusFr
+      status: statusFr,
+      feedback: feedbackFr
     }
   },
 
   lng: "en",
   fallbackLng: "en",
   initImmediate: false,
-  ns: ["common", "sidebar", "topnav", "transactions", "appointments", "documents", "dashboard", "admin", "clients", "profile", "analytics", "notifications", "status"],
+  ns: ["common", "sidebar", "topnav", "transactions", "appointments", "documents", "dashboard", "admin", "clients", "profile", "analytics", "notifications", "status", "feedback"],
   defaultNS: "common",
 
   interpolation: { escapeValue: false }
