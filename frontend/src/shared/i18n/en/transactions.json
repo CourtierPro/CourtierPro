@@ -121,7 +121,6 @@
   ],
   "buyStageDescriptions": [
     "The buyer's offer has been submitted to the seller and is awaiting review and response.",
-    "The seller has accepted the buyer's offer. Moving forward with due diligence and conditions.",
     "Professional property inspection is scheduled or completed. Review findings with client.",
     "Buyer is securing mortgage pre-approval or final approval from their financial institution.",
     "Legal documents including purchase agreement are being reviewed by the buyer's lawyer.",
@@ -181,6 +180,25 @@
   "transactionId": "Transaction ID",
   "quickActions": "Quick Actions",
   "stages": {
+    "buyer_prequalify_financially": "Prequalify Financially",
+    "buyer_shop_for_property": "Shop for Property",
+    "buyer_submit_offer": "Submit Offer",
+    "buyer_offer_accepted": "Offer Accepted",
+    "buyer_home_inspection": "Home Inspection",
+    "buyer_financing_finalized": "Financing Finalized",
+    "buyer_first_notary_appointment": "First Notary Appointment",
+    "buyer_second_notary_appointment": "Second Notary Appointment",
+    "buyer_occupancy": "Occupancy",
+    "buyer_terminated": "Terminated",
+    "seller_initial_consultation": "Initial Consultation",
+    "seller_listing_published": "Listing Published",
+    "seller_review_offers": "Review Offers",
+    "seller_accept_best_offer": "Accept Best Offer",
+    "seller_conditions_met": "Conditions Met",
+    "seller_notary_coordination": "Notary Coordination",
+    "seller_notary_appointment": "Notary Appointment",
+    "seller_handover_keys": "Handover Keys",
+    "seller_terminated": "Terminated",
     "buy": {
       "buyer_prequalify_financially": "Prequalify Financially",
       "buyer_shop_for_property": "Shop for Property",
@@ -204,5 +222,24 @@
       "seller_handover_keys": "Handover Keys",
       "seller_terminated": "Terminated"
     }
+  },
+  "timeline.submittedBy": "Submitted by {{name}}",
+  "timeline.requestedBy": "Requested by {{name}}",
+  "timeline.approvedBy": "Approved by {{name}}",
+  "timeline.revisionBy": "Revision requested by {{name}}",
+  "timeline.createdNote": "Transaction created for {{clientName}}, address: {{address}}.",
+    "timeline.stageChangeNote": "Stage changed to {{stage}}.",
+    "timeline.stageChangeNoteFull": "Stage changed: {{previousStage}} → {{newStage}}.",
+  "timeline.stageChangeNote": "Stage changed to {{stage}}.",
+  "timeline.by": "by {{name}}",
+  "timelineType": {
+    "CREATED": "Transaction Created",
+    "STAGE_CHANGE": "Stage Updated",
+    "NOTE": "Note",
+    "TRANSACTION_NOTE": "Note",
+    "DOCUMENT_REQUESTED": "Document Requested",
+    "DOCUMENT_SUBMITTED": "Document Submitted",
+    "DOCUMENT_APPROVED": "Document Approved",
+    "DOCUMENT_NEEDS_REVISION": "Document Needs Revision"
   }
 }

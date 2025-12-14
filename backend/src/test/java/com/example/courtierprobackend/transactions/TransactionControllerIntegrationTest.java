@@ -37,6 +37,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false) // Disable security filters for unit tests
 @Import(GlobalExceptionHandler.class)
 class TransactionControllerIntegrationTest {
+        @MockitoBean
+        private com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.businesslayer.TimelineService timelineService;
 
     @Autowired
     private MockMvc mockMvc;

@@ -3,10 +3,8 @@ package com.example.courtierprobackend.transactions.presentationlayer;
 import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
-import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
-import com.example.courtierprobackend.transactions.datalayer.enums.TimelineEntryType;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
@@ -38,6 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(TransactionController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class TransactionControllerTest {
+        @MockBean
+        private com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.businesslayer.TimelineService timelineService;
 
     @Autowired
     private MockMvc mockMvc;
@@ -65,17 +65,12 @@ class TransactionControllerTest {
         UUID txId = UUID.randomUUID();
         UUID brokerUuid = UUID.randomUUID();
         String brokerId = brokerUuid.toString();
-        
-        TimelineEntryDTO note1 = new TimelineEntryDTO();
-        note1.setType(TimelineEntryType.NOTE);
+
+        var note1 = new com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO();
         note1.setTitle("Note 1");
-
-        TimelineEntryDTO note2 = new TimelineEntryDTO();
-        note2.setType(TimelineEntryType.NOTE);
+        var note2 = new com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO();
         note2.setTitle("Note 2");
-
-        when(transactionService.getNotes(txId, brokerUuid))
-                .thenReturn(List.of(note1, note2));
+        when(transactionService.getNotes(txId, brokerUuid)).thenReturn(List.of(note1, note2));
 
         // Act & Assert
         mockMvc.perform(get("/transactions/" + txId + "/notes")

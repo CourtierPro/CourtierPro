@@ -35,6 +35,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(GlobalExceptionHandler.class)
 class TransactionControllerUnitTest {
 
+        @org.springframework.boot.test.mock.mockito.MockBean
+        private com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.businesslayer.TimelineService timelineService;
+
     @Autowired
     private MockMvc mockMvc;
 

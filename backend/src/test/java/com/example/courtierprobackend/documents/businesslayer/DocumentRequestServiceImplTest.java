@@ -1,5 +1,6 @@
 package com.example.courtierprobackend.documents.businesslayer;
 
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.businesslayer.TimelineService;
 import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
 import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
 import com.example.courtierprobackend.documents.datalayer.SubmittedDocument;
@@ -58,11 +59,14 @@ class DocumentRequestServiceImplTest {
     @Mock
     private UserAccountRepository userAccountRepository;
 
+    @Mock
+    TimelineService timelineService;
+
     private DocumentRequestServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new DocumentRequestServiceImpl(repository, storageService, emailService, transactionRepository, userAccountRepository);
+        service = new DocumentRequestServiceImpl(repository, storageService, emailService, transactionRepository, userAccountRepository,timelineService);
     }
 
     // ========== getDocumentsForTransaction Tests ==========

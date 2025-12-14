@@ -80,3 +80,28 @@ export function useClientTransactions(clientId: string) {
         enabled: !!clientId,
     });
 }
+
+export function useTransactionTimeline(transactionId: string) {
+    return useQuery({
+        queryKey: [
+            ...transactionKeys.detail(transactionId),
+            'timeline',
+        ],
+        queryFn: async () => {
+            const res = await axiosInstance.get<TimelineEntry[]>(`/transactions/${transactionId}/timeline`);
+            return res.data;
+        },
+        enabled: !!transactionId,
+    });
+}
+
+export function useClientTransactionTimeline(transactionId: string) {
+    return useQuery({
+        queryKey: ['transaction', transactionId, 'timeline', 'client'],
+        queryFn: async () => {
+            const res = await axiosInstance.get<TimelineEntryDTO[]>(`/transactions/${transactionId}/timeline/client`);
+            return res.data;
+        },
+        enabled: !!transactionId,
+    });
+}

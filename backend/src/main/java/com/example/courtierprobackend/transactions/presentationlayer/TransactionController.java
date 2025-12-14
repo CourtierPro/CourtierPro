@@ -1,14 +1,14 @@
 package com.example.courtierprobackend.transactions.presentationlayer;
 
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.businesslayer.TimelineService;
+import com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
-import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO;
 
 import com.example.courtierprobackend.security.UserContextUtils;
-import com.example.courtierprobackend.security.UserContextFilter;
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,6 @@ import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,7 +28,38 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TransactionController {
 
+        /**
+         * Get timeline entries visible to the client for a transaction.
+         */
+        @GetMapping("/{transactionId}/timeline/client")
+        @PreAuthorize("hasRole('CLIENT')")
+        public ResponseEntity<List<TimelineEntryDTO>> getClientTransactionTimeline(
+            @PathVariable UUID transactionId,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request
+        ) {
+                List<TimelineEntryDTO> dtos = timelineService.getTimelineForClient(transactionId);
+                return ResponseEntity.ok(dtos);
+        }
+    /**
+     * Save internal notes and create a NOTE event in the timeline.
+     */
+    @PostMapping("/{transactionId}/internal-notes")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<Void> saveInternalNotes(
+            @PathVariable UUID transactionId,
+            @RequestBody String notes,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request
+    ) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        service.saveInternalNotes(transactionId, notes, brokerId);
+        return ResponseEntity.ok().build();
+    }
+
     private final TransactionService service;
+    private final TimelineService timelineService;
 
     // Helper to extract user ID (returns UUID)
 
@@ -61,6 +91,7 @@ public class TransactionController {
     ) {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
         note.setTransactionId(transactionId);
+        note.setActorId(brokerId); // Injecte l'actorId côté backend
 
         TimelineEntryDTO created = service.createNote(transactionId, note, brokerId);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -76,6 +107,19 @@ public class TransactionController {
     ) {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
         return ResponseEntity.ok(service.getNotes(transactionId, brokerId));
+    }
+
+    @GetMapping("/{transactionId}/timeline")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<List<TimelineEntryDTO>> getTransactionTimeline(
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request
+    ) {
+        // Optionally: check access rights here
+        List<TimelineEntryDTO> dtos = timelineService.getTimelineForTransaction(transactionId);
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping

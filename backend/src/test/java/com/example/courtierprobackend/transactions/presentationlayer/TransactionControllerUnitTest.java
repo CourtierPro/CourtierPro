@@ -1,5 +1,6 @@
 package com.example.courtierprobackend.transactions.presentationlayer;
 
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.businesslayer.TimelineService;
 import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO;
@@ -27,11 +28,14 @@ class TransactionControllerUnitTest {
     @Mock
     private TransactionService transactionService;
 
+    @Mock
+    private TimelineService timelineService;
+
     private TransactionController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new TransactionController(transactionService);
+        controller = new TransactionController(transactionService, timelineService);
     }
 
     @Test

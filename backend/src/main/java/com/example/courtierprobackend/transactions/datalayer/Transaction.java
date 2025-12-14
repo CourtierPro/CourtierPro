@@ -1,5 +1,6 @@
 package com.example.courtierprobackend.transactions.datalayer;
 
+// TimelineEntry import removed: timeline is now handled via audit/timeline module
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
@@ -44,6 +45,5 @@ public class Transaction {
 
     private LocalDateTime closedAt;
 
-    @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TimelineEntry> timeline;
+    // Timeline is now handled via audit/timeline module, not as a direct relation
 }

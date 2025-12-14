@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/components/ui
 import { type Transaction } from '@/features/transactions/api/queries';
 import { DocumentsPage } from '@/pages/documents/DocumentsPage';
 import { Calendar } from 'lucide-react';
+import { TransactionTimeline } from './TransactionTimeline';
 
 interface TransactionTabsProps {
     transaction: Transaction;
@@ -44,6 +45,7 @@ export function TransactionTabs({
         });
     };
 
+
     return (
         <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="border-b border-border w-full justify-start rounded-none bg-transparent h-auto p-0 overflow-x-auto">
@@ -52,6 +54,12 @@ export function TransactionTabs({
                     className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
                 >
                     {t('details')}
+                </TabsTrigger>
+                <TabsTrigger
+                    value="timeline"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
+                >
+                    {t('timeline')}
                 </TabsTrigger>
                 <TabsTrigger
                     value="documents"
@@ -67,8 +75,10 @@ export function TransactionTabs({
                 </TabsTrigger>
             </TabsList>
 
+
             <TabsContent value="details" className="py-4">
                 <div className="grid grid-cols-1 gap-6">
+<<<<<<< HEAD
                     {!isReadOnly && (
                         <Section className="p-4 md:p-6">
                             <SectionHeader title={t('notes')} />
@@ -88,7 +98,30 @@ export function TransactionTabs({
                             </Button>
                         </Section>
                     )}
+=======
+                    <Section className="p-4 md:p-6">
+                        <SectionHeader title={t('notes')} />
+                        <Textarea
+                            value={notes}
+                            onChange={(e) => onNotesChange(e.target.value)}
+                            className="h-32 mb-4"
+                            placeholder={t('addNotesPlaceholder')}
+                        />
+                        <Button
+                            variant="secondary"
+                            onClick={onSaveNotes}
+                            disabled={isSavingNotes}
+                            className="w-full"
+                        >
+                            {isSavingNotes ? t('saving') : t('saveNotes')}
+                        </Button>
+                    </Section>
+>>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
                 </div>
+            </TabsContent>
+
+            <TabsContent value="timeline" className="py-4">
+                <TransactionTimeline transactionId={transaction.transactionId} />
             </TabsContent>
 
             <TabsContent value="documents" className="py-4">
