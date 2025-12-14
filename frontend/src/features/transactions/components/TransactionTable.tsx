@@ -81,7 +81,7 @@ export function TransactionTable({ transactions, onNavigate, pinnedIds }: Transa
                                     }}
                                     tabIndex={0}
                                     className={`border-t border-border hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary cursor-pointer transition-colors ${isPinned ? 'bg-primary/5' : ''}`}
-                                    aria-label={`View transaction for ${transaction.clientName}`}
+                                    aria-label={`View transaction for ${transaction.clientName}${isPinned ? ' (Pinned)' : ''}`}
                                 >
                                     <td className="p-4">
                                         <Button

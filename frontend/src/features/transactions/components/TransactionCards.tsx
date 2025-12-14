@@ -35,12 +35,13 @@ export function TransactionCards({ transactions, onNavigate, pinnedIds }: Transa
     };
 
     return (
-        <div className="lg:hidden space-y-4">
+        <div className="lg:hidden space-y-4" role="list">
             {transactions.map((transaction) => {
                 const isPinned = pinnedIds.has(transaction.transactionId);
                 return (
                     <div
                         key={transaction.transactionId}
+                        role="listitem"
                         className={`relative w-full p-4 rounded-xl shadow-sm border border-border bg-card text-card-foreground hover:shadow-md focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 transition-all ${isPinned ? 'ring-1 ring-primary/30' : ''}`}
                     >
                         <Button
@@ -65,7 +66,7 @@ export function TransactionCards({ transactions, onNavigate, pinnedIds }: Transa
                             }}
                             tabIndex={0}
                             className="w-full text-left focus:outline-none"
-                            aria-label={`View transaction for ${transaction.clientName}`}
+                            aria-label={`View transaction for ${transaction.clientName}${isPinned ? ' (Pinned)' : ''}`}
                         >
                             <div className="space-y-3 pr-8">
                                 <div className="flex items-start justify-between gap-2">
