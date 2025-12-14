@@ -1,20 +1,26 @@
-import type { ReactNode } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/shared/components/ui/card";
 import { cn } from "@/shared/utils/utils";
+import { type ReactNode, type HTMLAttributes, forwardRef } from "react";
 
-interface SectionProps {
+interface SectionProps extends HTMLAttributes<HTMLDivElement> {
     title?: string;
     description?: string;
     children: ReactNode;
-    className?: string;
     action?: ReactNode;
 }
 
-export function Section({ title, description, children, className, action }: SectionProps) {
+export const Section = forwardRef<HTMLDivElement, SectionProps>(({
+    title,
+    description,
+    children,
+    className,
+    action,
+    ...props
+}, ref) => {
     const hasHeader = title || description || action;
 
     return (
-        <Card className={cn("overflow-hidden", className)}>
+        <Card ref={ref} className={cn("overflow-hidden", className)} {...props}>
             {hasHeader && (
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
                     <div className="space-y-1">
@@ -24,7 +30,11 @@ export function Section({ title, description, children, className, action }: Sec
                     {action && <div>{action}</div>}
                 </CardHeader>
             )}
-            <CardContent className={cn(!hasHeader && "pt-6")}>{children}</CardContent>
+            <CardContent className={cn(!hasHeader && "pt-6")}>
+                {children}
+            </CardContent>
         </Card>
     );
-}
+});
+
+Section.displayName = "Section";

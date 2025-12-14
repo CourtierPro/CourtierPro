@@ -31,5 +31,22 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @org.springframework.data.repository.query.Param("side") com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide side,
             @org.springframework.data.repository.query.Param("stage") Enum<?> stage
     );
+
+    @org.springframework.data.jpa.repository.Query("SELECT t FROM Transaction t WHERE " +
+            "(t.brokerId = :userId OR t.clientId = :userId) AND " +
+            "(LOWER(COALESCE(t.propertyAddress.street, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(COALESCE(t.propertyAddress.city, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(COALESCE(t.propertyAddress.postalCode, '')) LIKE LOWER(CONCAT('%', :query, '%')))")
+    List<Transaction> searchTransactions(@org.springframework.data.repository.query.Param("userId") UUID userId,
+                                         @org.springframework.data.repository.query.Param("query") String query);
+    List<Transaction> findByClientIdIn(java.util.List<UUID> clientIds);
+
+    List<Transaction> findByTransactionIdIn(java.util.List<UUID> transactionIds);
+
+    @org.springframework.data.jpa.repository.Query("SELECT t FROM Transaction t WHERE " +
+            "(t.clientId IN :userIds OR t.brokerId IN :userIds) AND " +
+            "(t.brokerId = :requesterId OR t.clientId = :requesterId)")
+    List<Transaction> findLinkedToUsers(@org.springframework.data.repository.query.Param("userIds") java.util.List<UUID> userIds,
+                                        @org.springframework.data.repository.query.Param("requesterId") UUID requesterId);
 }
 
