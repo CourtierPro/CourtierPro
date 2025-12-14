@@ -10,12 +10,14 @@ export function useClientTransactionsPageLogic() {
     const {
         data: transactions,
         isLoading: isLoadingTransactions,
-        error
+        error,
+        refetch,
     } = useClientTransactions(clientId);
 
     return {
         transactions,
         isLoading: isLoadingUser || isLoadingTransactions,
         error,
+        refetch,
     };
 }

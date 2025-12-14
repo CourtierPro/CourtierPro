@@ -18,9 +18,10 @@ interface DocumentCardProps {
     onUpload?: (document: DocumentRequest, file?: File) => void;
     onReview?: (document: DocumentRequest) => void;
     isFocused?: boolean;
+    showBrokerNotes?: boolean;
 }
 
-export function DocumentCard({ document, onUpload, onReview, isFocused }: DocumentCardProps) {
+export function DocumentCard({ document, onUpload, onReview, isFocused, showBrokerNotes = true }: DocumentCardProps) {
     const { t, i18n } = useTranslation('documents');
     const [isLoadingView, setIsLoadingView] = useState(false);
     const title = formatDocumentTitle(document, t);
@@ -153,7 +154,7 @@ export function DocumentCard({ document, onUpload, onReview, isFocused }: Docume
                                     </Link>
                                 </div>
                             </div>
-                            {document.brokerNotes && (
+                            {showBrokerNotes && document.brokerNotes && (
                                 <p className="mt-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded">
                                     {document.brokerNotes}
                                 </p>
@@ -198,10 +199,9 @@ export function DocumentCard({ document, onUpload, onReview, isFocused }: Docume
                                 </Button>
                             )}
                         </div>
-                    </div>
-                </div>
-            </Section>
-        </div>
+                    </div >
+                </div >
+            </Section >
+        </div >
     );
 }
-

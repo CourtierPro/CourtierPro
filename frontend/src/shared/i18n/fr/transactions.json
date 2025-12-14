@@ -175,7 +175,7 @@
   "couldNotLoadTransaction": "Impossible de charger les détails de la transaction.",
   "errorLoadingTransactions": "Erreur lors du chargement des transactions",
   "couldNotLoadTransactions": "Impossible de charger vos transactions.",
-  "myTransactions": "Mes transactions",
+  "myTransactions": "Transactions",
   "noTransactionsFound": "Aucune transaction trouvée",
   "noActiveTransactions": "Vous n'avez actuellement aucune transaction active.",
   "goHome": "Accueil",

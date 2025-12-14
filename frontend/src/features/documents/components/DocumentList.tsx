@@ -6,9 +6,10 @@ interface DocumentListProps {
     onUpload?: (document: DocumentRequest) => void;
     onReview?: (document: DocumentRequest) => void;
     focusDocumentId?: string | null;
+    showBrokerNotes?: boolean;
 }
 
-export function DocumentList({ documents, onUpload, onReview, focusDocumentId }: DocumentListProps) {
+export function DocumentList({ documents, onUpload, onReview, focusDocumentId, showBrokerNotes = true }: DocumentListProps) {
     return (
         <div className="grid gap-4">
             {documents.map((doc) => (
@@ -18,6 +19,7 @@ export function DocumentList({ documents, onUpload, onReview, focusDocumentId }:
                     onUpload={onUpload}
                     onReview={onReview}
                     isFocused={focusDocumentId === doc.requestId}
+                    showBrokerNotes={showBrokerNotes}
                 />
             ))}
         </div>

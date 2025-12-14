@@ -2,6 +2,7 @@
     "title": "Documents",
     "subtitle": "Manage all your transaction documents in one place.",
     "requestDocument": "Request Document",
+    "noDocuments": "No documents",
     "noDocumentsTitle": "No documents found",
     "noDocumentsDesc": "You haven't uploaded any documents yet. Start by creating a transaction.",
     "transactionDocuments": "Transaction Documents",

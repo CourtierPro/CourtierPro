@@ -170,7 +170,7 @@
   "couldNotLoadTransaction": "Could not load transaction details.",
   "errorLoadingTransactions": "Error loading transactions",
   "couldNotLoadTransactions": "Could not load your transactions.",
-  "myTransactions": "My Transactions",
+  "myTransactions": "Transactions",
   "noTransactionsFound": "No transactions found",
   "noActiveTransactions": "You currently have no active transactions.",
   "goHome": "Go Home",
