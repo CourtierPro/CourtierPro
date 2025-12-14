@@ -124,7 +124,6 @@ public class TransactionController {
     public ResponseEntity<Void> pinTransaction(
             @PathVariable UUID transactionId,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
-            @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
@@ -137,7 +136,6 @@ public class TransactionController {
     public ResponseEntity<Void> unpinTransaction(
             @PathVariable UUID transactionId,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
-            @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
@@ -149,7 +147,6 @@ public class TransactionController {
     @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<Set<UUID>> getPinnedTransactionIds(
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
-            @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request
     ) {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);

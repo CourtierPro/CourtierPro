@@ -388,6 +388,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @Transactional
     public void pinTransaction(UUID transactionId, UUID brokerId) {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));

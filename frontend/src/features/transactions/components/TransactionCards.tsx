@@ -63,6 +63,7 @@ export function TransactionCards({ transactions, onNavigate, pinnedIds }: Transa
                                     if (transaction?.transactionId) onNavigate(`/transactions/${transaction.transactionId}`);
                                 }
                             }}
+                            tabIndex={0}
                             className="w-full text-left focus:outline-none"
                             aria-label={`View transaction for ${transaction.clientName}`}
                         >
