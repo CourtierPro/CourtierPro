@@ -22,7 +22,22 @@
     "home": "Home",
     "dashboard": "Dashboard",
     "settings": "Settings",
-    "logout": "Logout"
+    "logout": "Logout",
+    "profile": "Profile",
+    "transactions": "Transactions",
+    "documents": "Documents",
+    "contacts": "Contacts",
+    "manageAccount": "Manage your account",
+    "appPreferences": "App preferences",
+    "viewAllDocuments": "View all documents",
+    "directory": "Directory",
+    "list": "List"
+  },
+  "search": {
+    "placeholder": "Type to search...",
+    "searching": "Searching...",
+    "noResults": "No results found.",
+    "suggestions": "Suggestions"
   },
   "auth": {
     "sessionExpired": "Your session has expired due to inactivity.",

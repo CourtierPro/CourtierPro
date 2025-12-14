@@ -2,6 +2,8 @@ package com.example.courtierprobackend.user.domainclientlayer.auth0;
 
 import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -9,12 +11,21 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
 @Component
 public class Auth0ManagementClient {
+
+    private static final Logger log = LoggerFactory.getLogger(Auth0ManagementClient.class);
+    
+    // Token cache - Auth0 tokens are valid for 24h, we cache for 23h to be safe
+    private static final Duration TOKEN_CACHE_DURATION = Duration.ofHours(23);
+    private String cachedToken;
+    private Instant tokenExpiresAt;
 
     // RestTemplate to support PATCH
     private final RestTemplate restTemplate;
@@ -59,8 +70,15 @@ public class Auth0ManagementClient {
     }
 
 
-    // Obtention of token Management
-    private String getManagementToken() {
+    // Obtention of token Management (with caching to avoid rate limits)
+    private synchronized String getManagementToken() {
+        // Return cached token if still valid
+        if (cachedToken != null && tokenExpiresAt != null && Instant.now().isBefore(tokenExpiresAt)) {
+            return cachedToken;
+        }
+        
+        log.debug("Fetching new Auth0 management token (previous token expired or not cached)");
+        
         String url = tokenUrl;
 
         Map<String, String> body = Map.of(
@@ -81,7 +99,13 @@ public class Auth0ManagementClient {
             throw new IllegalStateException("Failed to obtain Auth0 management token");
         }
 
-        return response.getBody().accessToken();
+        // Cache the token
+        cachedToken = response.getBody().accessToken();
+        tokenExpiresAt = Instant.now().plus(TOKEN_CACHE_DURATION);
+        
+        log.debug("Auth0 management token cached, expires at {}", tokenExpiresAt);
+        
+        return cachedToken;
     }
 
     public record TokenResponse(@JsonProperty("access_token") String accessToken) {}
