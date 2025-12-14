@@ -1,0 +1,35 @@
+{
+  "title": "Submit Feedback",
+  "description": "Help us improve CourtierPro by reporting bugs or suggesting new features.",
+  "type": {
+    "label": "Type",
+    "placeholder": "Select feedback type",
+    "bug": "Bug Report",
+    "feature": "Feature Request"
+  },
+  "message": {
+    "label": "Message",
+    "placeholder": "Describe your feedback in detail..."
+  },
+  "submit": "Submit Feedback",
+  "submitting": "Submitting...",
+  "cancel": "Cancel",
+  "success": {
+    "title": "Feedback Submitted",
+    "description": "Thank you for your feedback! We'll review it shortly."
+  },
+  "error": {
+    "title": "Submission Failed",
+    "description": "Failed to submit feedback. Please try again later."
+  },
+  "validation": {
+    "typeRequired": "Please select a feedback type",
+    "messageRequired": "Please provide a message",
+    "messageMinLength": "Message must be at least 10 characters"
+  },
+  "privacy": {
+    "notice": "Your email will be included in the public GitHub issue unless you choose to submit anonymously.",
+    "anonymous": "Submit anonymously"
+  },
+  "button": "Feedback"
+}
