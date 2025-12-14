@@ -21,6 +21,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -116,5 +117,39 @@ public class TransactionController {
 
         TransactionResponseDTO updated = service.updateTransactionStage(transactionId, dto, brokerId);
         return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/{transactionId}/pin")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<Void> pinTransaction(
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request
+    ) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        service.pinTransaction(transactionId, brokerId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{transactionId}/pin")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<Void> unpinTransaction(
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request
+    ) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        service.unpinTransaction(transactionId, brokerId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/pinned")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<Set<UUID>> getPinnedTransactionIds(
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request
+    ) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.getPinnedTransactionIds(brokerId));
     }
 }

@@ -6,7 +6,7 @@ import { Section } from "@/shared/components/branded/Section";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
 import { Button } from "@/shared/components/ui/button";
-import { useTransactions } from '@/features/transactions/api/queries';
+import { useTransactions, usePinnedTransactionIds } from '@/features/transactions/api/queries';
 import { TransactionFilters } from './TransactionFilters';
 import { TransactionTable } from './TransactionTable';
 import { TransactionCards } from './TransactionCards';
@@ -36,6 +36,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     stage: stageFilter,
     side: sideFilter
   });
+  const { data: pinnedIds = new Set<string>() } = usePinnedTransactionIds();
 
   const { t, i18n } = useTranslation('transactions');
 
@@ -70,6 +71,12 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
 
 
   const sortedTransactions = [...transactions].sort((a, b) => {
+    // Pinned items always come first
+    const aPinned = pinnedIds.has(a.transactionId);
+    const bPinned = pinnedIds.has(b.transactionId);
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
+
     // fallback to openedDate if openedAt is missing
     const aRaw = a.openedAt ?? a.openedDate ?? '';
     const bRaw = b.openedAt ?? b.openedDate ?? '';
@@ -173,8 +180,8 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
         </Section>
       ) : (
         <>
-          <TransactionTable transactions={paginatedTransactions} onNavigate={onNavigate} />
-          <TransactionCards transactions={paginatedTransactions} onNavigate={onNavigate} />
+          <TransactionTable transactions={paginatedTransactions} onNavigate={onNavigate} pinnedIds={pinnedIds} />
+          <TransactionCards transactions={paginatedTransactions} onNavigate={onNavigate} pinnedIds={pinnedIds} />
           <TransactionPagination
             currentPage={currentPage}
             totalPages={totalPages}

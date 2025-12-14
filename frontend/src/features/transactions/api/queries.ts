@@ -11,6 +11,7 @@ export const transactionKeys = {
     details: () => [...transactionKeys.all, 'detail'] as const,
     detail: (id: string) => [...transactionKeys.details(), id] as const,
     client: (clientId: string) => [...transactionKeys.all, 'client', clientId] as const,
+    pinned: () => [...transactionKeys.all, 'pinned'] as const,
 };
 
 export interface Transaction {
@@ -31,6 +32,16 @@ export interface Transaction {
     openedDate?: string;
     notes?: string;
     brokerId?: string;
+}
+
+export function usePinnedTransactionIds() {
+    return useQuery({
+        queryKey: transactionKeys.pinned(),
+        queryFn: async () => {
+            const res = await axiosInstance.get<string[]>('/transactions/pinned');
+            return new Set(res.data);
+        },
+    });
 }
 
 export function useTransactions(filters?: { status?: string; stage?: string; side?: string }) {

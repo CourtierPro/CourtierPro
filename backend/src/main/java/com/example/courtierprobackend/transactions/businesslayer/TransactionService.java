@@ -4,6 +4,7 @@ package com.example.courtierprobackend.transactions.businesslayer;
 import com.example.courtierprobackend.transactions.datalayer.dto.*;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public interface TransactionService {
@@ -21,5 +22,11 @@ public interface TransactionService {
     TransactionResponseDTO updateTransactionStage(UUID transactionId, StageUpdateRequestDTO dto, UUID brokerId);
 
     TransactionResponseDTO getByTransactionId(UUID transactionId, UUID userId);
+
+    void pinTransaction(UUID transactionId, UUID brokerId);
+
+    void unpinTransaction(UUID transactionId, UUID brokerId);
+
+    Set<UUID> getPinnedTransactionIds(UUID brokerId);
 }
 

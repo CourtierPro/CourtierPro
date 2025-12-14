@@ -50,3 +50,29 @@ export function useCreateTransaction() {
         },
     });
 }
+
+export function usePinTransaction() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (transactionId: string) => {
+            await axiosInstance.post(`/transactions/${transactionId}/pin`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: transactionKeys.pinned() });
+        },
+    });
+}
+
+export function useUnpinTransaction() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (transactionId: string) => {
+            await axiosInstance.delete(`/transactions/${transactionId}/pin`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: transactionKeys.pinned() });
+        },
+    });
+}
