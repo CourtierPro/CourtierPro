@@ -8,6 +8,7 @@ import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequ
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
+import com.example.courtierprobackend.transactions.datalayer.repositories.PinnedTransactionRepository;
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.common.exceptions.ForbiddenException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
@@ -42,6 +43,9 @@ class TransactionServiceImplTest {
     private TransactionRepository transactionRepository;
 
     @Mock
+    private PinnedTransactionRepository pinnedTransactionRepository;
+
+    @Mock
     private UserAccountRepository userAccountRepository;
 
     @Mock
@@ -54,12 +58,7 @@ class TransactionServiceImplTest {
 
     @BeforeEach
     void setup() {
-        // Explicitly close mocks if open, though usually not needed with Extension,
-        // but explicit open helps if Extension context is weird.
-        // Actually, just relying on constructor injection should be enough if fields
-        // are mocked.
-        // But let's try just fixing the logic first.
-        transactionService = new TransactionServiceImpl(transactionRepository, userAccountRepository, emailService,
+        transactionService = new TransactionServiceImpl(transactionRepository, pinnedTransactionRepository, userAccountRepository, emailService,
                 notificationService);
         lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
     }

@@ -3,11 +3,13 @@ package com.example.courtierprobackend.transactions.businesslayer;
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.shared.utils.StageTranslationUtil;
+import com.example.courtierprobackend.transactions.datalayer.PinnedTransaction;
 import com.example.courtierprobackend.transactions.datalayer.TimelineEntry;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
+import com.example.courtierprobackend.transactions.datalayer.repositories.PinnedTransactionRepository;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
@@ -20,9 +22,11 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.TimelineEntryType;
@@ -35,6 +39,7 @@ public class TransactionServiceImpl implements TransactionService {
     private static final Logger log = LoggerFactory.getLogger(TransactionServiceImpl.class);
 
     private final TransactionRepository repo;
+    private final PinnedTransactionRepository pinnedTransactionRepository;
     private final UserAccountRepository userAccountRepository;
     private final EmailService emailService;
     private final NotificationService notificationService;
@@ -380,5 +385,44 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         return EntityDtoUtil.toResponse(saved, lookupClientName(saved.getClientId()));
+    }
+
+    @Override
+    public void pinTransaction(UUID transactionId, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        // Check if already pinned
+        if (pinnedTransactionRepository.existsByBrokerIdAndTransactionId(brokerId, transactionId)) {
+            return; // Already pinned, no-op
+        }
+
+        PinnedTransaction pin = PinnedTransaction.builder()
+                .brokerId(brokerId)
+                .transactionId(transactionId)
+                .pinnedAt(LocalDateTime.now())
+                .build();
+
+        pinnedTransactionRepository.save(pin);
+    }
+
+    @Override
+    @Transactional
+    public void unpinTransaction(UUID transactionId, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        pinnedTransactionRepository.deleteByBrokerIdAndTransactionId(brokerId, transactionId);
+    }
+
+    @Override
+    public Set<UUID> getPinnedTransactionIds(UUID brokerId) {
+        return pinnedTransactionRepository.findAllByBrokerId(brokerId).stream()
+                .map(PinnedTransaction::getTransactionId)
+                .collect(Collectors.toSet());
     }
 }
