@@ -8,6 +8,7 @@ import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequ
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
+import com.example.courtierprobackend.transactions.datalayer.repositories.PinnedTransactionRepository;
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.common.exceptions.ForbiddenException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
@@ -42,6 +43,9 @@ class TransactionServiceImplTest {
     private TransactionRepository transactionRepository;
 
     @Mock
+    private PinnedTransactionRepository pinnedTransactionRepository;
+
+    @Mock
     private UserAccountRepository userAccountRepository;
 
     @Mock
@@ -54,12 +58,7 @@ class TransactionServiceImplTest {
 
     @BeforeEach
     void setup() {
-        // Explicitly close mocks if open, though usually not needed with Extension,
-        // but explicit open helps if Extension context is weird.
-        // Actually, just relying on constructor injection should be enough if fields
-        // are mocked.
-        // But let's try just fixing the logic first.
-        transactionService = new TransactionServiceImpl(transactionRepository, userAccountRepository, emailService,
+        transactionService = new TransactionServiceImpl(transactionRepository, pinnedTransactionRepository, userAccountRepository, emailService,
                 notificationService);
         lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
     }
@@ -946,6 +945,167 @@ class TransactionServiceImplTest {
         assertThat(last.getVisibleToClient()).isTrue();
         assertThat(last.getTitle()).contains("BUYER_FINANCING_FINALIZED");
         assertThat(last.getNote()).isEqualTo(customNote);
+    }
+
+    // ========== pinTransaction Tests ==========
+
+    @Test
+    void pinTransaction_withValidBrokerAndTransaction_createsPin() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(pinnedTransactionRepository.existsByBrokerIdAndTransactionId(brokerId, transactionId)).thenReturn(false);
+
+        // Act
+        transactionService.pinTransaction(transactionId, brokerId);
+
+        // Assert
+        verify(pinnedTransactionRepository).save(any(com.example.courtierprobackend.transactions.datalayer.PinnedTransaction.class));
+    }
+
+    @Test
+    void pinTransaction_withAlreadyPinned_doesNotDuplicate() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(pinnedTransactionRepository.existsByBrokerIdAndTransactionId(brokerId, transactionId)).thenReturn(true);
+
+        // Act
+        transactionService.pinTransaction(transactionId, brokerId);
+
+        // Assert
+        verify(pinnedTransactionRepository, never()).save(any());
+    }
+
+    @Test
+    void pinTransaction_withWrongBroker_throwsForbiddenException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID otherBrokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(otherBrokerId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.pinTransaction(transactionId, brokerId))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void pinTransaction_withNonExistentTransaction_throwsNotFoundException() {
+        // Arrange
+        when(transactionRepository.findByTransactionId(any(UUID.class))).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.pinTransaction(UUID.randomUUID(), UUID.randomUUID()))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // ========== unpinTransaction Tests ==========
+
+    @Test
+    void unpinTransaction_withValidBrokerAndTransaction_deletesPin() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act
+        transactionService.unpinTransaction(transactionId, brokerId);
+
+        // Assert
+        verify(pinnedTransactionRepository).deleteByBrokerIdAndTransactionId(brokerId, transactionId);
+    }
+
+    @Test
+    void unpinTransaction_withWrongBroker_throwsForbiddenException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID otherBrokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(otherBrokerId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.unpinTransaction(transactionId, brokerId))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void unpinTransaction_withNonExistentTransaction_throwsNotFoundException() {
+        // Arrange
+        when(transactionRepository.findByTransactionId(any(UUID.class))).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.unpinTransaction(UUID.randomUUID(), UUID.randomUUID()))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // ========== getPinnedTransactionIds Tests ==========
+
+    @Test
+    void getPinnedTransactionIds_withPinnedTransactions_returnsIds() {
+        // Arrange
+        UUID brokerId = UUID.randomUUID();
+        UUID txId1 = UUID.randomUUID();
+        UUID txId2 = UUID.randomUUID();
+
+        var pin1 = com.example.courtierprobackend.transactions.datalayer.PinnedTransaction.builder()
+                .brokerId(brokerId)
+                .transactionId(txId1)
+                .build();
+        var pin2 = com.example.courtierprobackend.transactions.datalayer.PinnedTransaction.builder()
+                .brokerId(brokerId)
+                .transactionId(txId2)
+                .build();
+
+        when(pinnedTransactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(pin1, pin2));
+
+        // Act
+        var result = transactionService.getPinnedTransactionIds(brokerId);
+
+        // Assert
+        assertThat(result).containsExactlyInAnyOrder(txId1, txId2);
+    }
+
+    @Test
+    void getPinnedTransactionIds_withNoPinnedTransactions_returnsEmptySet() {
+        // Arrange
+        UUID brokerId = UUID.randomUUID();
+        when(pinnedTransactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of());
+
+        // Act
+        var result = transactionService.getPinnedTransactionIds(brokerId);
+
+        // Assert
+        assertThat(result).isEmpty();
     }
 
     // ========== Helper Methods ==========
