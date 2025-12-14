@@ -27,5 +27,9 @@
     "messageRequired": "Veuillez fournir un message",
     "messageMinLength": "Le message doit contenir au moins 10 caractères"
   },
+  "privacy": {
+    "notice": "Votre adresse courriel sera incluse dans le ticket GitHub public à moins que vous choisissiez de soumettre anonymement.",
+    "anonymous": "Soumettre anonymement"
+  },
   "button": "Commentaire"
 }

@@ -5,6 +5,7 @@ export type FeedbackType = "bug" | "feature";
 export interface FeedbackRequest {
   type: FeedbackType;
   message: string;
+  anonymous?: boolean;
 }
 
 export interface FeedbackResponse {

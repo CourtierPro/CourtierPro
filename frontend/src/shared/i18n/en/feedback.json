@@ -27,5 +27,9 @@
     "messageRequired": "Please provide a message",
     "messageMinLength": "Message must be at least 10 characters"
   },
+  "privacy": {
+    "notice": "Your email will be included in the public GitHub issue unless you choose to submit anonymously.",
+    "anonymous": "Submit anonymously"
+  },
   "button": "Feedback"
 }

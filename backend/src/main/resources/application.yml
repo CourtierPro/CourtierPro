@@ -59,9 +59,12 @@ aws:
     bucket-name: courtierpro-dev-files
   region: us-east-1
 
-# GitHub integration for user feedback
+# GitHub App integration for user feedback
 github:
-  token: ${GITHUB_TOKEN:}
+  app:
+    id: ${GITHUB_APP_ID:}
+    installation-id: ${GITHUB_APP_INSTALLATION_ID:}
+    private-key: ${GITHUB_APP_PRIVATE_KEY:}
   repo:
     owner: ${GITHUB_REPO_OWNER:CourtierPro}
     name: ${GITHUB_REPO_NAME:CourtierPro}

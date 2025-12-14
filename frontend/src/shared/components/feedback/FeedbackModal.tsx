@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -14,6 +14,8 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Label } from "@/shared/components/ui/label";
+import { Checkbox } from "@/shared/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -34,6 +36,7 @@ export function FeedbackModal({ trigger }: FeedbackModalProps) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<FeedbackType | "">("");
   const [message, setMessage] = useState("");
+  const [anonymous, setAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ type?: string; message?: string }>({});
 
@@ -62,6 +65,7 @@ export function FeedbackModal({ trigger }: FeedbackModalProps) {
       await submitFeedback({
         type: type as FeedbackType,
         message: message.trim(),
+        anonymous,
       });
 
       toast.success(t("success.title"), {
@@ -71,6 +75,7 @@ export function FeedbackModal({ trigger }: FeedbackModalProps) {
       // Reset form and close modal
       setType("");
       setMessage("");
+      setAnonymous(false);
       setErrors({});
       setOpen(false);
     } catch {
@@ -87,6 +92,7 @@ export function FeedbackModal({ trigger }: FeedbackModalProps) {
       // Reset form when closing
       setType("");
       setMessage("");
+      setAnonymous(false);
       setErrors({});
     }
     setOpen(newOpen);
@@ -144,6 +150,26 @@ export function FeedbackModal({ trigger }: FeedbackModalProps) {
               className={`min-h-[120px] ${errors.message ? "border-destructive" : ""}`}
             />
             {errors.message && <p className="text-sm text-destructive">{errors.message}</p>}
+          </div>
+
+          {/* Privacy Notice */}
+          <Alert variant="default" className="border-amber-500/50 bg-amber-500/10 dark:border-amber-400/30 dark:bg-amber-400/10">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-amber-800 dark:text-amber-200 text-sm">
+              {t("privacy.notice")}
+            </AlertDescription>
+          </Alert>
+
+          {/* Anonymous Checkbox */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="anonymous"
+              checked={anonymous}
+              onCheckedChange={(checked) => setAnonymous(checked === true)}
+            />
+            <Label htmlFor="anonymous" className="text-sm font-normal cursor-pointer">
+              {t("privacy.anonymous")}
+            </Label>
           </div>
         </div>
 

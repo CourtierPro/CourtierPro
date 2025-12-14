@@ -185,9 +185,10 @@ class FeedbackRequestTest {
 
     @Test
     void allArgsConstructorWorks() {
-        FeedbackRequest request = new FeedbackRequest("bug", "Bug description");
+        FeedbackRequest request = new FeedbackRequest("bug", "Bug description", false);
 
         assertThat(request.getType()).isEqualTo("bug");
         assertThat(request.getMessage()).isEqualTo("Bug description");
+        assertThat(request.getAnonymous()).isEqualTo(false);
     }
 }

@@ -19,13 +19,17 @@ public class FeedbackService {
      * @return FeedbackResponse with success status and issue details
      */
     public FeedbackResponse submitFeedback(FeedbackRequest request, String userEmail) {
-        log.info("Processing feedback submission - Type: {}, User: {}", request.getType(), userEmail);
+        log.info("Processing feedback submission - Type: {}, User: {}, Anonymous: {}", 
+                request.getType(), userEmail, request.getAnonymous());
+        
+        // If anonymous submission, don't include user email
+        String emailToInclude = Boolean.TRUE.equals(request.getAnonymous()) ? null : userEmail;
         
         try {
             GitHubService.GitHubIssueResponse issueResponse = gitHubService.createIssue(
                     request.getType(),
                     request.getMessage(),
-                    userEmail
+                    emailToInclude
             );
 
             return FeedbackResponse.builder()
