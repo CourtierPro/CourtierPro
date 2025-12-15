@@ -1,5 +1,7 @@
 package com.example.courtierprobackend.transactions.util;
 
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntry;
+import com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO;
 import com.example.courtierprobackend.transactions.datalayer.*;
 import com.example.courtierprobackend.transactions.datalayer.dto.*;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
@@ -49,13 +51,15 @@ public class EntityDtoUtil {
        ========================================================= */
     public static TimelineEntryDTO toTimelineDTO(TimelineEntry entry) {
         return TimelineEntryDTO.builder()
-                .type(entry.getType())
-                .note(entry.getNote())
-                .title(entry.getTitle())
-                .visibleToClient(entry.getVisibleToClient())
-                .occurredAt(entry.getOccurredAt())
-                .addedByBrokerId(entry.getAddedByBrokerId())
-                .build();
+            .id(entry.getId())
+            .type(entry.getType())
+            .note(entry.getNote())
+            .title(null) // Adapter si le champ existe dans TimelineEntry
+            .visibleToClient(entry.isVisibleToClient())
+            .occurredAt(entry.getTimestamp())
+            .addedByBrokerId(entry.getActorId())
+            .docType(entry.getDocType())
+            .build();
     }
 
 

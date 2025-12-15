@@ -56,17 +56,27 @@ CREATE INDEX IF NOT EXISTS idx_transactions_broker_id ON transactions(broker_id)
 CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
 
 -- =============================================================================
--- TIMELINE ENTRIES
+-- TIMELINE ENTRIES (nouvelle version audit)
 -- =============================================================================
+
 CREATE TABLE IF NOT EXISTS timeline_entries (
-    id BIGSERIAL PRIMARY KEY,
-    transaction_id BIGINT REFERENCES transactions(id) ON DELETE CASCADE,
-    type VARCHAR(50),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    transaction_id UUID NOT NULL,
+    timestamp TIMESTAMP NOT NULL,
+    actor_id UUID NOT NULL,
+    type VARCHAR(50) NOT NULL,
     note TEXT,
-    title VARCHAR(255),
-    visible_to_client BOOLEAN,
-    occurred_at TIMESTAMP,
-    added_by_broker_id UUID          -- Fixed: UUID
+    doc_type VARCHAR(100),
+    visible_to_client BOOLEAN DEFAULT false,
+    client_name VARCHAR(255),
+    address VARCHAR(255),
+    actor_name VARCHAR(255),
+    stage VARCHAR(100),
+    previous_stage VARCHAR(100),
+    new_stage VARCHAR(100),
+    -- Ajoutez d'autres colonnes spécifiques si besoin (ex: appointment_id)
+    -- Immutabilité garantie par la logique applicative
+    CONSTRAINT fk_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_timeline_entries_transaction ON timeline_entries(transaction_id);

@@ -1,5 +1,6 @@
 package com.example.courtierprobackend.transactions;
 
+import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
 import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
@@ -34,6 +35,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false) // Disable security filters for unit tests
 @Import(GlobalExceptionHandler.class)
 class TransactionControllerUnitTest {
+
+        @org.springframework.boot.test.mock.mockito.MockBean
+        private TimelineService timelineService;
 
     @Autowired
     private MockMvc mockMvc;

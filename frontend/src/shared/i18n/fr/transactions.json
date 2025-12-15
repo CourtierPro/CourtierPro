@@ -128,7 +128,6 @@
   ],
   "buyStageDescriptions": [
     "L'offre de l'acheteur a été soumise au vendeur et est en attente d'examen et de réponse.",
-    "Le vendeur a accepté l'offre de l'acheteur. Nous passons à la vérification diligente et aux conditions.",
     "L'inspection professionnelle de la propriété est prévue ou terminée. Examinez les résultats avec le client.",
     "L'acheteur obtient une pré-approbation ou approbation finale de son institution financière.",
     "Les documents juridiques incluant le contrat d'achat sont examinés par l'avocat de l'acheteur.",
@@ -209,5 +208,23 @@
       "seller_handover_keys": "Remise des clés",
       "seller_terminated": "Terminé"
     }
+  },
+  "timeline.submittedBy": "Soumis par {{name}}",
+  "timeline.requestedBy": "Demandé par {{name}}",
+  "timeline.approvedBy": "Approuvé par {{name}}",
+  "timeline.revisionBy": "Révision demandée par {{name}}",
+  "timeline.createdNote": "Transaction créée pour {{clientName}}, adresse : {{address}}.",
+  "timeline.stageChangeNote": "Étape changée en {{stage}}.",
+  "timeline.stageChangeNoteFull": "Changement d'étape : {{previousStage}} → {{newStage}}.",
+  "timeline.by": "par {{name}}",
+  "timelineType": {
+    "CREATED": "Transaction créée",
+    "STAGE_CHANGE": "Changement d'étape",
+    "NOTE": "Note",
+    "TRANSACTION_NOTE": "Note",
+    "DOCUMENT_REQUESTED": "Demande de document",
+    "DOCUMENT_SUBMITTED": "Document soumis",
+    "DOCUMENT_APPROVED": "Document approuvé",
+    "DOCUMENT_NEEDS_REVISION": "Document à réviser"
   }
 }

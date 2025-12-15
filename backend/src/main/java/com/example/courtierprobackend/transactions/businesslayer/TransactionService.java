@@ -1,6 +1,8 @@
+
 package com.example.courtierprobackend.transactions.businesslayer;
 
 
+import com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.*;
 
 import java.util.List;
@@ -8,6 +10,11 @@ import java.util.Set;
 import java.util.UUID;
 
 public interface TransactionService {
+
+    /**
+     * Save internal notes for a transaction and create a NOTE event in the timeline.
+     */
+    void saveInternalNotes(UUID transactionId, String notes, UUID brokerId);
 
     TransactionResponseDTO createTransaction(TransactionRequestDTO dto);
 

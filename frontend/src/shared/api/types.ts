@@ -1,4 +1,3 @@
-
 export interface PropertyAddress {
   street: string;
   city?: string;
@@ -27,14 +26,37 @@ export interface TransactionResponseDTO {
   openedDate?: string;
 }
 
+export type TimelineEventType =
+  | 'CREATED'
+  | 'STAGE_CHANGE'
+  | 'NOTE'
+  | 'TRANSACTION_NOTE'
+  | 'DOCUMENT_REQUESTED'
+  | 'DOCUMENT_SUBMITTED'
+  | 'DOCUMENT_APPROVED'
+  | 'DOCUMENT_NEEDS_REVISION';
+
+export interface TransactionInfo {
+  clientName?: string;
+  address?: string;
+  actorName?: string;
+  stage?: string;
+  previousStage?: string;
+  newStage?: string;
+}
+
 export interface TimelineEntryDTO {
   id?: number;
-  type: 'CREATED' | 'STAGE_CHANGE' | 'NOTE';
+  type: TimelineEventType;
   title?: string;
   note?: string;
   visibleToClient?: boolean;
   occurredAt?: string;
   addedByBrokerId?: string;
+  docType?: string;
+  status?: string;
+  actorName?: string;
+  transactionInfo?: TransactionInfo;
 }
 
 export interface NoteCreateRequest {
