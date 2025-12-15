@@ -70,11 +70,6 @@ class TransactionServiceImplTest {
     void setup() {
         transactionService = new TransactionServiceImpl(transactionRepository, pinnedTransactionRepository, userAccountRepository, emailService,
                 notificationService, timelineService);
-        // Explicitly close mocks if open, though usually not needed with Extension,
-        // but explicit open helps if Extension context is weird.
-        // Actually, just relying on constructor injection should be enough if fields are mocked.
-        // But let's try just fixing the logic first.
-        transactionService = new TransactionServiceImpl(transactionRepository,pinnedTransactionRepository, userAccountRepository,emailService,notificationService, timelineService);
         lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
     }
 

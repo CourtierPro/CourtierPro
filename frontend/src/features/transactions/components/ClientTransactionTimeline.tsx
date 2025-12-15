@@ -1,34 +1,16 @@
 import { useClientTransactionTimeline } from '@/features/transactions/api/queries';
-import type { TimelineEntryDTO as TimelineEntry } from '@/shared/api/types';
 import { useTranslation } from 'react-i18next';
-import { Clock, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
 import { LoadingState } from '@/shared/components/branded/LoadingState';
 import { ErrorState } from '@/shared/components/branded/ErrorState';
 import { Section } from '@/shared/components/branded/Section';
 import { formatDateTime } from '@/shared/utils/date';
+import { getEventIcon } from './getEventIcon';
 import { getEventTypeLabel } from './getEventTypeLabel';
 
 
 interface ClientTransactionTimelineProps {
     transactionId: string;
 }
-
-function getEventIcon(type: TimelineEntry['type']) {
-    switch (type) {
-        case 'DOCUMENT_REQUESTED':
-            return <FileText className="w-5 h-5 text-amber-500" />;
-        case 'DOCUMENT_SUBMITTED':
-            return <FileText className="w-5 h-5 text-purple-500" />;
-        case 'DOCUMENT_APPROVED':
-            return <CheckCircle className="w-5 h-5 text-green-500" />;
-        case 'DOCUMENT_NEEDS_REVISION':
-            return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
-        default:
-            return <Clock className="w-5 h-5 text-gray-400" />;
-    }
-}
-
-
 
 
 export function ClientTransactionTimeline({ transactionId }: ClientTransactionTimelineProps) {
@@ -83,12 +65,12 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                                     {entry.type === 'DOCUMENT_SUBMITTED'
                                                         ? t('timeline.submittedBy', { name: entry.actorName })
                                                         : entry.type === 'DOCUMENT_REQUESTED'
-                                                        ? t('timeline.requestedBy', { name: entry.actorName })
-                                                        : entry.type === 'DOCUMENT_APPROVED'
-                                                        ? t('timeline.approvedBy', { name: entry.actorName })
-                                                        : entry.type === 'DOCUMENT_NEEDS_REVISION'
-                                                        ? t('timeline.revisionBy', { name: entry.actorName })
-                                                        : null}
+                                                            ? t('timeline.requestedBy', { name: entry.actorName })
+                                                            : entry.type === 'DOCUMENT_APPROVED'
+                                                                ? t('timeline.approvedBy', { name: entry.actorName })
+                                                                : entry.type === 'DOCUMENT_NEEDS_REVISION'
+                                                                    ? t('timeline.revisionBy', { name: entry.actorName })
+                                                                    : null}
                                                 </span>
                                             )}
                                         </div>
@@ -106,14 +88,22 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                             </p>
                                         )}
                                         {/* Affiche le changement d'étape pour STAGE_CHANGE */}
-                                        {entry.type === 'STAGE_CHANGE' && entry.transactionInfo && (
-                                            <p className="text-sm text-muted-foreground mt-1">
-                                                {t('timeline.stageChangeNoteFull', {
-                                                    previousStage: entry.transactionInfo.previousStage ? t(`stages.${entry.transactionInfo.previousStage.toLowerCase()}`) : '',
-                                                    newStage: entry.transactionInfo.newStage ? t(`stages.${entry.transactionInfo.newStage.toLowerCase()}`) : ''
-                                                })}
-                                            </p>
-                                        )}
+                                        {entry.type === 'STAGE_CHANGE' && entry.transactionInfo && (() => {
+                                            const translateStage = (stage: string | undefined) => {
+                                                if (!stage) return '';
+                                                const lowerStage = stage.toLowerCase();
+                                                const sideKey = lowerStage.startsWith('seller') ? 'sell' : 'buy';
+                                                return t(`stages.${sideKey}.${lowerStage}`, { defaultValue: stage });
+                                            };
+                                            return (
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    {t('timeline.stageChangeNoteFull', {
+                                                        previousStage: translateStage(entry.transactionInfo.previousStage),
+                                                        newStage: translateStage(entry.transactionInfo.newStage)
+                                                    })}
+                                                </p>
+                                            );
+                                        })()}
                                     </div>
                                     {entry.occurredAt && (
                                         <div className="text-right">

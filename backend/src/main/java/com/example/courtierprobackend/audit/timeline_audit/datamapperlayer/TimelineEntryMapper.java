@@ -3,15 +3,17 @@ package com.example.courtierprobackend.audit.timeline_audit.datamapperlayer;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntry;
 import com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
+import org.springframework.stereotype.Component;
 
+@Component
 public class TimelineEntryMapper {
-    private static UserAccountRepository userAccountRepository;
+    private final UserAccountRepository userAccountRepository;
 
-    public static void setUserAccountRepository(UserAccountRepository repo) {
-        userAccountRepository = repo;
+    public TimelineEntryMapper(UserAccountRepository userAccountRepository) {
+        this.userAccountRepository = userAccountRepository;
     }
 
-    public static TimelineEntryDTO toDTO(TimelineEntry entry) {
+    public TimelineEntryDTO toDTO(TimelineEntry entry) {
         String actorName = null;
         if (userAccountRepository != null && entry.getActorId() != null) {
             actorName = userAccountRepository.findById(entry.getActorId())

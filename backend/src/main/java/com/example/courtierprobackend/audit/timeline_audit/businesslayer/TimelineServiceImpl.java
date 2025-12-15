@@ -7,10 +7,8 @@ import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Timel
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.value_object.TransactionInfo;
 import com.example.courtierprobackend.audit.timeline_audit.datamapperlayer.TimelineEntryMapper;
 import com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO;
-import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-// import lombok.RequiredArgsConstructor;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -19,13 +17,12 @@ import java.util.UUID;
 public class TimelineServiceImpl implements TimelineService {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TimelineServiceImpl.class);
     private final TimelineEntryRepository repository;
-    private final UserAccountRepository userAccountRepository;
+    private final TimelineEntryMapper timelineEntryMapper;
 
     @Autowired
-    public TimelineServiceImpl(TimelineEntryRepository repository, UserAccountRepository userAccountRepository) {
+    public TimelineServiceImpl(TimelineEntryRepository repository, TimelineEntryMapper timelineEntryMapper) {
         this.repository = repository;
-        this.userAccountRepository = userAccountRepository;
-        TimelineEntryMapper.setUserAccountRepository(userAccountRepository);
+        this.timelineEntryMapper = timelineEntryMapper;
     }
 
     @Override
@@ -36,7 +33,7 @@ public class TimelineServiceImpl implements TimelineService {
     @Override
     public void addEntry(UUID transactionId, UUID actorId, TimelineEntryType type, String note, String docType, TransactionInfo transactionInfo) {
         boolean visibleToClient = switch (type) {
-            case DOCUMENT_REQUESTED, DOCUMENT_SUBMITTED, DOCUMENT_APPROVED, DOCUMENT_NEEDS_REVISION, STAGE_CHANGE -> true;
+            case CREATED, DOCUMENT_REQUESTED, DOCUMENT_SUBMITTED, DOCUMENT_APPROVED, DOCUMENT_NEEDS_REVISION, STAGE_CHANGE -> true;
             default -> false;
         };
         TimelineEntry entry = TimelineEntry.builder()
@@ -55,7 +52,7 @@ public class TimelineServiceImpl implements TimelineService {
     @Override
     public List<TimelineEntryDTO> getTimelineForTransaction(UUID transactionId) {
         List<TimelineEntry> entries = repository.findByTransactionIdOrderByTimestampAsc(transactionId);
-        return entries.stream().map(TimelineEntryMapper::toDTO).toList();
+        return entries.stream().map(timelineEntryMapper::toDTO).toList();
     }
 
     @Override
@@ -67,6 +64,6 @@ public class TimelineServiceImpl implements TimelineService {
             log.info("[Timeline] Entry: id={}, type={}, docType={}, visibleToClient={}, timestamp={}",
                 entry.getId(), entry.getType(), entry.getDocType(), entry.isVisibleToClient(), entry.getTimestamp());
         }
-        return entries.stream().map(TimelineEntryMapper::toDTO).toList();
+        return entries.stream().map(timelineEntryMapper::toDTO).toList();
     }
 }

@@ -39,7 +39,7 @@ import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequ
 @RequiredArgsConstructor
 public class TransactionServiceImpl implements TransactionService {
 
-
+    @Override
     public void saveInternalNotes(UUID transactionId, String notes, UUID brokerId) {
         // Optionally: persist notes on the transaction entity if needed (not required per user)
         // Always: create a timeline NOTE event
@@ -341,12 +341,12 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BadRequestException("Unsupported transaction side: " + tx.getSide());
         }
 
-        String actorName2 = lookupClientName(tx.getBrokerId());
-        TransactionInfo info2 = TransactionInfo.builder()
+        String stageChangeActorName = lookupClientName(tx.getBrokerId());
+        TransactionInfo stageChangeInfo = TransactionInfo.builder()
             .previousStage(previousStage)
             .newStage(stageStr)
             .stage(stageStr) // pour compatibilité
-            .actorName(actorName2)
+            .actorName(stageChangeActorName)
             .build();
         timelineService.addEntry(
             transactionId,
@@ -354,7 +354,7 @@ public class TransactionServiceImpl implements TransactionService {
             TimelineEntryType.STAGE_CHANGE,
             null,
             null,
-            info2
+            stageChangeInfo
         );
 
         Transaction saved = repo.save(tx);
