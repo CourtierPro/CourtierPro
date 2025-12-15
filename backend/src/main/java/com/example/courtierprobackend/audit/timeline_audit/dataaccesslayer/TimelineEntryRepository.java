@@ -11,4 +11,7 @@ public interface TimelineEntryRepository extends JpaRepository<TimelineEntry, UU
     List<TimelineEntry> findByTransactionIdOrderByTimestampAsc(UUID transactionId);
 
     List<TimelineEntry> findByTransactionIdAndVisibleToClientTrueOrderByTimestampAsc(UUID transactionId);
+
+    @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM timeline_entries WHERE transaction_id = :transactionId", nativeQuery = true)
+    List<TimelineEntry> findByTransactionIdIncludingDeleted(UUID transactionId);
 }
