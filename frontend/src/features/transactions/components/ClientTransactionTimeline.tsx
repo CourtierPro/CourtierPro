@@ -1,11 +1,13 @@
 import { useClientTransactionTimeline } from '@/features/transactions/api/queries';
 import type { TimelineEntryDTO as TimelineEntry } from '@/shared/api/types';
+import { useTranslation } from 'react-i18next';
+import { Clock, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
 import { LoadingState } from '@/shared/components/branded/LoadingState';
 import { ErrorState } from '@/shared/components/branded/ErrorState';
 import { Section } from '@/shared/components/branded/Section';
-import { useTranslation } from 'react-i18next';
-import { Clock, FileText, CheckCircle, AlertCircle, AlertTriangle, Archive } from 'lucide-react';
 import { formatDateTime } from '@/shared/utils/date';
+import { getEventTypeLabel } from './getEventTypeLabel';
+
 
 interface ClientTransactionTimelineProps {
     transactionId: string;
@@ -26,10 +28,8 @@ function getEventIcon(type: TimelineEntry['type']) {
     }
 }
 
-function getEventTypeLabel(type: TimelineEntry['type'], t: (k: string, o?: any) => string, tDoc: (k: string, o?: any) => string) {
-    // Utilise la clé timelineType.* pour tous les types
-    return t(`timelineType.${type}`);
-}
+
+
 
 export function ClientTransactionTimeline({ transactionId }: ClientTransactionTimelineProps) {
     const { t } = useTranslation('transactions');
@@ -74,8 +74,8 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                         <div className="flex items-center gap-2 mb-1">
                                             <h3 className="font-semibold">
                                                 {entry.docType
-                                                    ? `${getEventTypeLabel(entry.type, t, tDoc)} : ${tDoc(`types.${entry.docType}`)}`
-                                                    : getEventTypeLabel(entry.type, t, tDoc)}
+                                                    ? `${getEventTypeLabel(entry.type, t)} : ${tDoc(`types.${entry.docType}`)}`
+                                                    : getEventTypeLabel(entry.type, t)}
                                             </h3>
                                             {/* Subtitle for document events: 'Soumis par [nom]' or 'Demandé par [nom]' */}
                                             {entry.type.startsWith('DOCUMENT_') && entry.actorName && (

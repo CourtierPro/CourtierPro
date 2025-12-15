@@ -35,7 +35,7 @@ function getEventIcon(type: TimelineEntry['type']) {
 
 
 
-function getEventTypeLabel(type: TimelineEntry['type'], t: (k: string, o?: any) => string, tDoc: (k: string, o?: any) => string) {
+function getEventTypeLabel(type: TimelineEntry['type'], t: (k: string, o?: Record<string, unknown>) => string) {
     // Utilise la clé timelineType.* pour tous les types
     return t(`timelineType.${type}`);
 }

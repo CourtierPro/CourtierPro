@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { ErrorBoundary } from "@/shared/components/error/ErrorBoundary";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
 import { Button } from "@/shared/components/ui/button";
-import { getRoleFromUser } from "@/features/auth/roleUtils";
+
 import { ClientTransactionTimeline } from '@/features/transactions/components/ClientTransactionTimeline';
 import { useDocumentsPageLogic } from '@/features/documents/hooks/useDocumentsPageLogic';
 import { DocumentList } from '@/features/documents/components/DocumentList';
@@ -30,7 +30,7 @@ export function ClientTransactionDetailsPage() {
   const {
     documents,
     isLoading: isLoadingDocs,
-    error: docsError,
+    // error: docsError, // supprimé car non utilisé
     refetch: refetchDocs
   } = useDocumentsPageLogic(transactionId!);
 
