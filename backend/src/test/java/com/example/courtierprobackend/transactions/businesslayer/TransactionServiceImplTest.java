@@ -2,7 +2,7 @@ package com.example.courtierprobackend.transactions.businesslayer;
 
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntry;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
-import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.businesslayer.TimelineService;
+import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
 import com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
@@ -68,33 +68,25 @@ class TransactionServiceImplTest {
 
     @BeforeEach
     void setup() {
-<<<<<<< HEAD
         transactionService = new TransactionServiceImpl(transactionRepository, pinnedTransactionRepository, userAccountRepository, emailService,
-                notificationService);
-=======
-        // Explicitly close mocks if open, though usually not needed with Extension, 
+                notificationService, timelineService);
+        // Explicitly close mocks if open, though usually not needed with Extension,
         // but explicit open helps if Extension context is weird.
         // Actually, just relying on constructor injection should be enough if fields are mocked.
         // But let's try just fixing the logic first.
-        transactionService = new TransactionServiceImpl(transactionRepository, userAccountRepository, timelineService);
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
+        transactionService = new TransactionServiceImpl(transactionRepository,pinnedTransactionRepository, userAccountRepository,emailService,notificationService, timelineService);
         lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
     }
 
     // ========== createTransaction Tests ==========
 
-        @Test
-        void createTransaction_withValidBuyerSideData_createsTransaction() {
+    @Test
+    void createTransaction_withValidBuyerSideData_createsTransaction() {
         // Arrange
         TransactionRequestDTO dto = createValidBuyerTransactionDTO();
         when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
-<<<<<<< HEAD
-                any(UUID.class), anyString(), any())).thenReturn(Optional.empty());
-
-=======
-            any(UUID.class), anyString(), any()
+                any(UUID.class), anyString(), any()
         )).thenReturn(Optional.empty());
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
         Transaction expectedTx = new Transaction();
         expectedTx.setTransactionId(UUID.randomUUID());
         expectedTx.setClientId(dto.getClientId());
@@ -111,14 +103,14 @@ class TransactionServiceImplTest {
         verify(transactionRepository).save(any(Transaction.class));
         // Vérifie que l'audit timeline est bien appelé
         verify(timelineService).addEntry(
-            any(UUID.class), // transactionId
-            eq(dto.getBrokerId()),
-            eq(TimelineEntryType.CREATED),
-            isNull(),
-            isNull(),
-            any() // TransactionInfo
+                any(UUID.class), // transactionId
+                eq(dto.getBrokerId()),
+                eq(TimelineEntryType.CREATED),
+                isNull(),
+                isNull(),
+                any() // TransactionInfo
         );
-        }
+    }
     @Test
     void createTransaction_withValidSellerSideData_createsTransaction() {
         // Arrange
@@ -262,24 +254,9 @@ class TransactionServiceImplTest {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID brokerUuid = UUID.randomUUID();
-<<<<<<< HEAD
-
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(brokerUuid);
-
-        TimelineEntry note = TimelineEntry.builder()
-                .type(TimelineEntryType.NOTE)
-                .title("Test Note")
-                .note("Test message")
-                .build();
-        tx.setTimeline(List.of(note));
-
-=======
-        Transaction tx = new Transaction();
-        tx.setTransactionId(transactionId);
-        tx.setBrokerId(brokerUuid);
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
 
         TimelineEntryDTO noteDTO = new TimelineEntryDTO();
@@ -295,7 +272,6 @@ class TransactionServiceImplTest {
         assertThat(result.get(0).getNote()).isEqualTo("Test message");
     }
 
-<<<<<<< HEAD
     @Test
     void getNotes_withWrongBrokerId_throwsForbiddenException() {
         // Arrange
@@ -322,18 +298,12 @@ class TransactionServiceImplTest {
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Transaction not found");
     }
-=======
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
 
     @Test
     void getNotes_withNullTimeline_returnsEmptyList() {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID brokerUuid = UUID.randomUUID();
-<<<<<<< HEAD
-
-=======
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(brokerUuid);
@@ -354,10 +324,7 @@ class TransactionServiceImplTest {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID brokerUuid = UUID.randomUUID();
-<<<<<<< HEAD
 
-=======
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
         NoteRequestDTO noteDTO = new NoteRequestDTO();
         noteDTO.setActorId(brokerUuid); // L'acteur est le broker dans ce contexte
         noteDTO.setTitle("New Note");
@@ -382,11 +349,11 @@ class TransactionServiceImplTest {
         assertThat(result).isNotNull();
         assertThat(result.getNote()).isEqualTo("New Note: Note content");
         verify(timelineService, times(1)).addEntry(
-            eq(transactionId),
-            eq(brokerUuid),
-            eq(TimelineEntryType.NOTE),
-            eq("New Note: Note content"),
-            isNull()
+                eq(transactionId),
+                eq(brokerUuid),
+                eq(TimelineEntryType.NOTE),
+                eq("New Note: Note content"),
+                isNull()
         );
         verify(timelineService, times(1)).getTimelineForTransaction(transactionId);
     }
@@ -400,10 +367,10 @@ class TransactionServiceImplTest {
         noteDTO.setMessage("Message");
 
         // Act & Assert
-            // La logique métier actuelle nève plus d'exception si actorId est null
-            // On vérifie simplement que la méthode ne lève pas d'exception et retourne null (car pas de stub sur timelineService)
-            var result = transactionService.createNote(UUID.randomUUID(), noteDTO, UUID.randomUUID());
-            assertThat(result).isNull();
+        // La logique métier actuelle nève plus d'exception si actorId est null
+        // On vérifie simplement que la méthode ne lève pas d'exception et retourne null (car pas de stub sur timelineService)
+        var result = transactionService.createNote(UUID.randomUUID(), noteDTO, UUID.randomUUID());
+        assertThat(result).isNull();
     }
 
     @Test
@@ -572,25 +539,6 @@ class TransactionServiceImplTest {
         tx.setBrokerId(brokerUuid);
         tx.setSide(TransactionSide.BUY_SIDE);
         tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
-<<<<<<< HEAD
-        tx.setTimeline(new ArrayList<>());
-        tx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
-        tx.getPropertyAddress().setStreet("123 Main St");
-
-        Transaction savedTx = new Transaction();
-        savedTx.setTransactionId(transactionId);
-        savedTx.setBrokerId(brokerUuid);
-        savedTx.setSide(TransactionSide.BUY_SIDE);
-        savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
-        savedTx.setTimeline(new ArrayList<>());
-        savedTx.setPropertyAddress(tx.getPropertyAddress());
-
-        // timeline entry will be the last element
-        savedTx.getTimeline().add(TimelineEntry.builder().type(TimelineEntryType.STAGE_CHANGE)
-                .title("Stage updated to BUYER_OFFER_ACCEPTED").note("note").visibleToClient(true).build());
-
-=======
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
         when(transactionRepository.save(any(Transaction.class))).thenReturn(tx);
 
@@ -635,7 +583,7 @@ class TransactionServiceImplTest {
         savedTx.setSide(TransactionSide.BUY_SIDE);
         savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
         savedTx.setPropertyAddress(addr);
-        savedTx.setTimeline(new ArrayList<>());
+        //savedTx.setTimeline(new ArrayList<>());
 
         // Mock UserAccounts
         var client = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
@@ -705,7 +653,7 @@ class TransactionServiceImplTest {
         savedTx.setSide(TransactionSide.BUY_SIDE);
         savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
         savedTx.setPropertyAddress(addr);
-        savedTx.setTimeline(new ArrayList<>());
+       // savedTx.setTimeline(new ArrayList<>());
 
         var client = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
         client.setId(clientId);
@@ -770,7 +718,7 @@ class TransactionServiceImplTest {
         savedTx.setSide(TransactionSide.BUY_SIDE);
         savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
         savedTx.setPropertyAddress(null); // NULL ADDRESS
-        savedTx.setTimeline(new ArrayList<>());
+        //savedTx.setTimeline(new ArrayList<>());
 
         var client = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
         client.setId(clientId);
@@ -825,7 +773,7 @@ class TransactionServiceImplTest {
         savedTx.setSide(TransactionSide.BUY_SIDE);
         savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
         savedTx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
-        savedTx.setTimeline(new ArrayList<>());
+       // savedTx.setTimeline(new ArrayList<>());
 
         // Users exist
         when(userAccountRepository.findById(any()))
@@ -862,26 +810,14 @@ class TransactionServiceImplTest {
         tx.setBrokerId(brokerUuid);
         tx.setSide(TransactionSide.SELL_SIDE);
         tx.setSellerStage(SellerStage.SELLER_INITIAL_CONSULTATION);
-<<<<<<< HEAD
-        tx.setTimeline(new ArrayList<>());
-        tx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
-=======
         // Plus de setTimeline
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
 
         Transaction savedTx = new Transaction();
         savedTx.setTransactionId(transactionId);
         savedTx.setBrokerId(brokerUuid);
         savedTx.setSide(TransactionSide.SELL_SIDE);
         savedTx.setSellerStage(SellerStage.SELLER_REVIEW_OFFERS);
-<<<<<<< HEAD
-        savedTx.setTimeline(new ArrayList<>());
-        savedTx.setPropertyAddress(tx.getPropertyAddress());
-        savedTx.getTimeline().add(TimelineEntry.builder().type(TimelineEntryType.STAGE_CHANGE)
-                .title("Stage updated to SELLER_REVIEW_OFFERS").note("note").visibleToClient(true).build());
-=======
         // Plus de setTimeline
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
 
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
         when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
@@ -899,12 +835,12 @@ class TransactionServiceImplTest {
         verify(transactionRepository).save(any(Transaction.class));
         // Vérifie que l'audit timeline est bien appelé
         verify(timelineService).addEntry(
-            eq(transactionId),
-            eq(brokerUuid),
-            eq(TimelineEntryType.STAGE_CHANGE),
-            isNull(),
-            isNull(),
-            any() // TransactionInfo
+                eq(transactionId),
+                eq(brokerUuid),
+                eq(TimelineEntryType.STAGE_CHANGE),
+                isNull(),
+                isNull(),
+                any() // TransactionInfo
         );
     }
 
@@ -961,21 +897,6 @@ class TransactionServiceImplTest {
         tx.setBrokerId(brokerUuid);
         tx.setSide(TransactionSide.BUY_SIDE);
         tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
-<<<<<<< HEAD
-        tx.setTimeline(new ArrayList<>());
-        tx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
-
-        Transaction savedTx = new Transaction();
-        savedTx.setTransactionId(transactionId);
-        savedTx.setBrokerId(brokerUuid);
-        savedTx.setSide(TransactionSide.BUY_SIDE);
-        savedTx.setBuyerStage(BuyerStage.BUYER_FINANCING_FINALIZED);
-        savedTx.setTimeline(new ArrayList<>());
-        savedTx.setPropertyAddress(tx.getPropertyAddress());
-        // savedTx will be returned by repository.save
-
-=======
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
         when(transactionRepository.save(any(Transaction.class))).thenReturn(tx);
 
@@ -983,11 +904,8 @@ class TransactionServiceImplTest {
         dto.setStage("BUYER_FINANCING_FINALIZED");
         dto.setNote(customNote);
 
-<<<<<<< HEAD
         ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
 
-=======
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
         // Act
         TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto, brokerUuid);
 

@@ -1,6 +1,6 @@
 package com.example.courtierprobackend.documents.businesslayer;
 
-import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.businesslayer.TimelineService;
+import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
 import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
 import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
 import com.example.courtierprobackend.documents.datalayer.SubmittedDocument;

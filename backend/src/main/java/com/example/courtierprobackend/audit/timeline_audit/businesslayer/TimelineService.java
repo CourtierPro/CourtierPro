@@ -1,4 +1,4 @@
-package com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.businesslayer;
+package com.example.courtierprobackend.audit.timeline_audit.businesslayer;
 
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.value_object.TransactionInfo;

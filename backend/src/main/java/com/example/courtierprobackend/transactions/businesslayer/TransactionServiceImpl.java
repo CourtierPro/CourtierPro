@@ -3,16 +3,13 @@ package com.example.courtierprobackend.transactions.businesslayer;
 
 import com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
-import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.businesslayer.TimelineService;
+import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.value_object.TransactionInfo;
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
-<<<<<<< HEAD
 import com.example.courtierprobackend.shared.utils.StageTranslationUtil;
 import com.example.courtierprobackend.transactions.datalayer.PinnedTransaction;
-import com.example.courtierprobackend.transactions.datalayer.TimelineEntry;
-=======
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntry;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
@@ -62,12 +59,9 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionRepository repo;
     private final PinnedTransactionRepository pinnedTransactionRepository;
     private final UserAccountRepository userAccountRepository;
-<<<<<<< HEAD
     private final EmailService emailService;
     private final NotificationService notificationService;
-=======
     private final TimelineService timelineService;
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
 
     private String lookupClientName(UUID clientId) {
         if (clientId == null) {
@@ -78,17 +72,11 @@ public class TransactionServiceImpl implements TransactionService {
             UserAccount u = byId.get();
             String f = u.getFirstName();
             String l = u.getLastName();
-<<<<<<< HEAD
-            log.debug("lookupClientName: found UserAccount for clientId={} firstName='{}' lastName='{}'", clientId, f,
-                    l);
+            log.debug("lookupClientName: found UserAccount for clientId={} firstName='{}' lastName='{}'", clientId, f, l);
             String name = ((f == null ? "" : f) + " " + (l == null ? "" : l)).trim();
             if (name.isEmpty())
                 name = "Unknown Client";
             log.debug("lookupClientName: returning '{}' for clientId={}", name, clientId);
-=======
-            String name = ((f == null ? "" : f) + " " + (l == null ? "" : l)).trim();
-            if (name.isEmpty()) name = "Unknown Client";
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
             return name;
         }
         return "Unknown Client";
@@ -190,7 +178,14 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public List<TimelineEntryDTO> getNotes(UUID transactionId, UUID brokerId) {
-        // Optionally add access checks here
+        // 1. Vérifier que la transaction existe
+        Transaction tx = repo.findByTransactionId(transactionId)
+            .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        // 2. Vérifier l'accès du broker
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        // 3. Récupérer les notes
         List<TimelineEntryDTO> entries = timelineService.getTimelineForTransaction(transactionId);
         return entries.stream()
             .filter(e -> e.getType() == TimelineEntryType.NOTE)
@@ -205,34 +200,6 @@ public class TransactionServiceImpl implements TransactionService {
         if (note.getMessage() == null || note.getMessage().isBlank()) {
             throw new BadRequestException("message is required");
         }
-<<<<<<< HEAD
-
-        Transaction tx = repo.findByTransactionId(transactionId)
-                .orElseThrow(() -> new NotFoundException("Transaction not found"));
-
-        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
-
-        TimelineEntry entry = TimelineEntry.builder()
-                .type(TimelineEntryType.NOTE)
-                .title(note.getTitle())
-                .note(note.getMessage())
-                .visibleToClient(note.getVisibleToClient() != null ? note.getVisibleToClient() : false)
-                .occurredAt(LocalDateTime.now())
-                .addedByBrokerId(note.getActorId())
-                .transaction(tx)
-                .build();
-
-        if (tx.getTimeline() == null)
-            tx.setTimeline(new ArrayList<>());
-        tx.getTimeline().add(entry);
-
-        Transaction saved = repo.save(tx);
-
-        // find the saved entry (last)
-        TimelineEntry savedEntry = saved.getTimeline().get(saved.getTimeline().size() - 1);
-
-        return EntityDtoUtil.toTimelineDTO(savedEntry);
-=======
         // Optionally add access checks here
         timelineService.addEntry(
             transactionId,
@@ -248,7 +215,6 @@ public class TransactionServiceImpl implements TransactionService {
             .toList();
         if (notes.isEmpty()) return null;
         return notes.get(notes.size() - 1);
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
     }
 
     @Override
@@ -375,23 +341,6 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BadRequestException("Unsupported transaction side: " + tx.getSide());
         }
 
-<<<<<<< HEAD
-        // Create timeline entry for stage change
-        String stageName = stageStr;
-        TimelineEntry entry = TimelineEntry.builder()
-                .type(TimelineEntryType.STAGE_CHANGE)
-                .title("Stage updated to " + stageName)
-                .note(dto.getNote() != null && !dto.getNote().isBlank() ? dto.getNote() : "Stage moved to " + stageName)
-                .visibleToClient(true)
-                .occurredAt(LocalDateTime.now())
-                .addedByBrokerId(brokerId)
-                .transaction(tx)
-                .build();
-
-        if (tx.getTimeline() == null)
-            tx.setTimeline(new ArrayList<>());
-        tx.getTimeline().add(entry);
-=======
         String actorName2 = lookupClientName(tx.getBrokerId());
         TransactionInfo info2 = TransactionInfo.builder()
             .previousStage(previousStage)
@@ -407,7 +356,6 @@ public class TransactionServiceImpl implements TransactionService {
             null,
             info2
         );
->>>>>>> 768abe9 (refactor: remove duplicate TimelineEntryDTO, clean imports, unify timeline audit logic)
 
         Transaction saved = repo.save(tx);
 
@@ -435,13 +383,13 @@ public class TransactionServiceImpl implements TransactionService {
                         clientName,
                         brokerName,
                         address,
-                        stageName,
+                        stageStr,
                         client.getPreferredLanguage());
 
                 // 2. In-App Notification
                 String notifTitle = "Stage Update";
                 String notifMessage = StageTranslationUtil.constructNotificationMessage(
-                        stageName,
+                        stageStr,
                         brokerName,
                         address,
                         client.getPreferredLanguage());

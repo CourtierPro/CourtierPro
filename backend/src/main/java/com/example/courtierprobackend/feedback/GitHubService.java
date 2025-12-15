@@ -170,7 +170,7 @@ public class GitHubService {
     /**
      * Generate a JWT for GitHub App authentication
      */
-    private String generateJwt() throws Exception {
+    String generateJwt() throws Exception {
         PrivateKey privateKey = parsePrivateKey(privateKeyPem);
 
         Instant now = Instant.now();
