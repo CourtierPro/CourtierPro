@@ -11,7 +11,8 @@ import com.example.courtierprobackend.documents.datalayer.DocumentRequestReposit
 import com.example.courtierprobackend.documents.datalayer.SubmittedDocument;
 import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
-import com.example.courtierprobackend.transactions.datalayer.TimelineEntry;
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntry;
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntryRepository;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -20,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -32,6 +32,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
 
     private final TransactionRepository transactionRepository;
     private final DocumentRequestRepository documentRequestRepository;
+    private final TimelineEntryRepository timelineEntryRepository;
     private final AdminDeletionAuditRepository auditRepository;
     private final S3StorageService s3StorageService;
     private final ObjectMapper objectMapper;
@@ -145,14 +146,14 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         List<DeletionPreviewResponse.S3FileToDelete> s3Files = new ArrayList<>();
 
         // Timeline entries
-        if (transaction.getTimeline() != null) {
-            for (TimelineEntry entry : transaction.getTimeline()) {
-                linked.add(DeletionPreviewResponse.LinkedResource.builder()
-                        .type("TIMELINE_ENTRY")
-                        .id(null) // Timeline entries don't have UUID
-                        .summary(entry.getTitle() != null ? entry.getTitle() : entry.getType().name())
-                        .build());
-            }
+        // Timeline entries
+        List<TimelineEntry> timeline = timelineEntryRepository.findByTransactionIdIncludingDeleted(transactionId);
+        for (TimelineEntry entry : timeline) {
+            linked.add(DeletionPreviewResponse.LinkedResource.builder()
+                    .type("TIMELINE_ENTRY")
+                    .id(null)
+                    .summary(entry.getType() != null ? entry.getType().name() : "Unknown Timeline Entry")
+                    .build());
         }
 
         // Document requests and their submitted documents
@@ -247,12 +248,13 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         List<String> cascaded = new ArrayList<>();
 
         // Soft-delete timeline entries
-        if (transaction.getTimeline() != null) {
-            for (TimelineEntry entry : transaction.getTimeline()) {
-                entry.setDeletedAt(now);
-                entry.setDeletedBy(adminId);
-                cascaded.add("TimelineEntry:" + entry.getId());
-            }
+        // Soft-delete timeline entries
+        List<TimelineEntry> timeline = timelineEntryRepository.findByTransactionIdIncludingDeleted(transactionId);
+        for (TimelineEntry entry : timeline) {
+            entry.setDeletedAt(now);
+            entry.setDeletedBy(adminId);
+            timelineEntryRepository.save(entry);
+            cascaded.add("TimelineEntry:" + entry.getId());
         }
 
         // Soft-delete document requests and hard-delete S3 files
@@ -345,11 +347,13 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         List<String> cascaded = new ArrayList<>();
 
         // Restore timeline entries
-        if (transaction.getTimeline() != null) {
-            for (TimelineEntry entry : transaction.getTimeline()) {
+        // Restore timeline entries
+        List<TimelineEntry> timeline = timelineEntryRepository.findByTransactionIdIncludingDeleted(transactionId);
+        for (TimelineEntry entry : timeline) {
+            if (entry.getDeletedAt() != null) { // Only restore if it was deleted
                 entry.setDeletedAt(null);
                 entry.setDeletedBy(null);
-                cascaded.add("TimelineEntry:" + entry.getId());
+                timelineEntryRepository.save(entry);
             }
         }
 

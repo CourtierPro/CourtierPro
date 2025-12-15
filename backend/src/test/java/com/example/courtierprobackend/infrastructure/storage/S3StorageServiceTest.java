@@ -186,5 +186,15 @@ class S3StorageServiceTest {
         // Act & Assert
         assertThrows(RuntimeException.class, () -> s3StorageService.deleteFile(s3Key));
     }
+    @Test
+    void generatePresignedUrl_WhenS3Fails_ShouldThrowRuntimeException() {
+        // Arrange
+        String s3Key = "documents/tx-123/req-456/file.pdf";
+        when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class)))
+                .thenThrow(new RuntimeException("Presign error"));
+
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> s3StorageService.generatePresignedUrl(s3Key));
+    }
 }
 

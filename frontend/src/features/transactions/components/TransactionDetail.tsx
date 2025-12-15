@@ -18,9 +18,10 @@ import { useUpdateTransactionStage } from '@/features/transactions/api/mutations
 interface TransactionDetailProps {
   transactionId?: string;
   isReadOnly?: boolean;
+  TimelineComponent?: React.ComponentType<{ transactionId: string }>;
 }
 
-function TransactionDetailContent({ transaction, isReadOnly = false }: { transaction: NonNullable<Transaction>; isReadOnly?: boolean }) {
+function TransactionDetailContent({ transaction, isReadOnly = false, TimelineComponent }: { transaction: NonNullable<Transaction>; isReadOnly?: boolean; TimelineComponent?: React.ComponentType<{ transactionId: string }> }) {
   const navigate = useNavigate();
   const { t } = useTranslation('transactions');
   const saveNotes = useSaveTransactionNotes();
@@ -99,6 +100,7 @@ function TransactionDetailContent({ transaction, isReadOnly = false }: { transac
         onSaveNotes={handleSaveNotes}
         isSavingNotes={saveNotes.isPending}
         isReadOnly={isReadOnly}
+        TimelineComponent={TimelineComponent}
       />
 
       <StageUpdateModal
@@ -113,9 +115,9 @@ function TransactionDetailContent({ transaction, isReadOnly = false }: { transac
   );
 }
 
-export function TransactionDetail({ transactionId: propId, isReadOnly = false }: TransactionDetailProps = {}) {
-  const { id: paramId } = useParams<{ id: string }>();
-  const id = propId || paramId;
+export function TransactionDetail({ transactionId: propId, isReadOnly = false, TimelineComponent }: TransactionDetailProps = {}) {
+  const params = useParams();
+  const id = propId || params.id || params.transactionId;
   const navigate = useNavigate();
   const { t } = useTranslation('transactions');
   const { data: transaction, isLoading, error } = useTransaction(id);
@@ -152,5 +154,5 @@ export function TransactionDetail({ transactionId: propId, isReadOnly = false }:
 
   if (!transaction) return null;
 
-  return <TransactionDetailContent transaction={transaction} isReadOnly={isReadOnly} key={transaction.transactionId} />;
+  return <TransactionDetailContent transaction={transaction} isReadOnly={isReadOnly} key={transaction.transactionId} TimelineComponent={TimelineComponent} />;
 }

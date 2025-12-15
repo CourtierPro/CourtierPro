@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Section } from "@/shared/components/branded/Section";
 import { SectionHeader } from "@/shared/components/branded/SectionHeader";
 import { Button } from "@/shared/components/ui/button";
+import { EmptyState } from "@/shared/components/branded/EmptyState";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/components/ui/tabs";
 import { type Transaction } from '@/features/transactions/api/queries';
@@ -17,21 +18,24 @@ interface TransactionTabsProps {
   onSaveNotes: () => void;
   isSavingNotes: boolean;
   isReadOnly?: boolean;
+  TimelineComponent?: React.ComponentType<{ transactionId: string }>;
 }
 
 export function TransactionTabs({
-                                  transaction,
-                                  notes,
-                                  onNotesChange,
-                                  onSaveNotes,
-                                  isSavingNotes,
-                                  isReadOnly = false,
-                                }: TransactionTabsProps) {
+  transaction,
+  notes,
+  onNotesChange,
+  onSaveNotes,
+  isSavingNotes,
+  isReadOnly = false,
+  TimelineComponent = TransactionTimeline,
+}: TransactionTabsProps) {
   const { t } = useTranslation('transactions');
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Get tab from URL or default to 'details'
-  const currentTab = searchParams.get('tab') || 'details';
+  // Get tab from URL or default to 'details' (or 'timeline' if read-only)
+  const defaultTab = isReadOnly ? 'timeline' : 'details';
+  const currentTab = searchParams.get('tab') || defaultTab;
   const focusDocumentId = searchParams.get('focus');
 
   const handleTabChange = (value: string) => {
@@ -49,12 +53,14 @@ export function TransactionTabs({
   return (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
       <TabsList className="border-b border-border w-full justify-start rounded-none bg-transparent h-auto p-0 overflow-x-auto">
-        <TabsTrigger
-          value="details"
-          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
-        >
-          {t('details')}
-        </TabsTrigger>
+        {!isReadOnly && (
+          <TabsTrigger
+            value="details"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
+          >
+            {t('details')}
+          </TabsTrigger>
+        )}
         <TabsTrigger
           value="timeline"
           className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
@@ -101,23 +107,21 @@ export function TransactionTabs({
       </TabsContent>
 
       <TabsContent value="timeline" className="py-4">
-        <TransactionTimeline transactionId={transaction.transactionId} />
+        <TimelineComponent transactionId={transaction.transactionId} />
       </TabsContent>
 
       <TabsContent value="documents" className="py-4">
-        <DocumentsPage transactionId={transaction.transactionId} focusDocumentId={focusDocumentId} />
+        <DocumentsPage transactionId={transaction.transactionId} focusDocumentId={focusDocumentId} isReadOnly={isReadOnly} />
       </TabsContent>
 
       <TabsContent value="appointments" className="py-4">
-        <Section className="p-12 text-center flex flex-col items-center justify-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-            <Calendar className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <div>
-            <h3 className="text-lg font-medium mb-1">{t('noAppointments')}</h3>
-            <p className="text-muted-foreground max-w-sm mx-auto">{t('appointmentsPlaceholder')}</p>
-          </div>
-          <Button variant="outline">{t('scheduleAppointment')}</Button>
+        <Section>
+          <EmptyState
+            icon={<Calendar />}
+            title={t('noAppointments')}
+            description={t('appointmentsPlaceholder')}
+            action={<Button variant="outline">{t('scheduleAppointment')}</Button>}
+          />
         </Section>
       </TabsContent>
     </Tabs>

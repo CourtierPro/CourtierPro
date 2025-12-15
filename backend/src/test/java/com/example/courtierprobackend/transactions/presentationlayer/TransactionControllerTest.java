@@ -214,4 +214,154 @@ class TransactionControllerTest {
 
         verify(transactionService).getByTransactionId(eq(txId), eq(brokerUuid));
     }
+
+    // ========== updateTransactionStage Tests ==========
+
+    @Test
+    @WithMockUser(roles = "BROKER")
+    void updateTransactionStage_withValidData_returnsUpdatedTransaction() throws Exception {
+        UUID txId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
+        String brokerId = brokerUuid.toString();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO requestDto = 
+            new com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO();
+        requestDto.setStage("BUYER_OFFER_ACCEPTED");
+        requestDto.setNote("Everything looks good");
+
+        TransactionResponseDTO responseDto = TransactionResponseDTO.builder()
+                .transactionId(txId)
+                .brokerId(brokerUuid)
+                .currentStage("BUYER_OFFER_ACCEPTED")
+                .build();
+
+        when(transactionService.updateTransactionStage(eq(txId), any(), eq(brokerUuid)))
+                .thenReturn(responseDto);
+
+        mockMvc.perform(patch("/transactions/" + txId + "/stage")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto))
+                        .with(jwt())
+                        .header("x-broker-id", brokerId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentStage").value("BUYER_OFFER_ACCEPTED"));
+
+        verify(transactionService).updateTransactionStage(eq(txId), any(), eq(brokerUuid));
+    }
+
+    // ========== pin/unpin/getPinned Tests ==========
+
+    @Test
+    @WithMockUser(roles = "BROKER")
+    void pinTransaction_returnsNoContent() throws Exception {
+        UUID txId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
+        String brokerId = brokerUuid.toString();
+
+        mockMvc.perform(post("/transactions/" + txId + "/pin")
+                        .with(jwt())
+                        .header("x-broker-id", brokerId))
+                .andExpect(status().isNoContent());
+
+        verify(transactionService).pinTransaction(txId, brokerUuid);
+    }
+
+    @Test
+    @WithMockUser(roles = "BROKER")
+    void unpinTransaction_returnsNoContent() throws Exception {
+        UUID txId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
+        String brokerId = brokerUuid.toString();
+
+        mockMvc.perform(delete("/transactions/" + txId + "/pin")
+                        .with(jwt())
+                        .header("x-broker-id", brokerId))
+                .andExpect(status().isNoContent());
+
+        verify(transactionService).unpinTransaction(txId, brokerUuid);
+    }
+
+    @Test
+    @WithMockUser(roles = "BROKER")
+    void getPinnedTransactionIds_returnsSetOfIds() throws Exception {
+        UUID brokerUuid = UUID.randomUUID();
+        String brokerId = brokerUuid.toString();
+        UUID txId1 = UUID.randomUUID();
+
+        when(transactionService.getPinnedTransactionIds(brokerUuid))
+                .thenReturn(java.util.Set.of(txId1));
+
+        mockMvc.perform(get("/transactions/pinned")
+                        .with(jwt())
+                        .header("x-broker-id", brokerId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0]").value(txId1.toString()));
+
+        verify(transactionService).getPinnedTransactionIds(brokerUuid);
+    }
+
+    // ========== Notes & Internal Notes ==========
+
+    @Test
+    @WithMockUser(roles = "BROKER")
+    void createNote_returnsCreatedEntry() throws Exception {
+        UUID txId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
+        String brokerId = brokerUuid.toString();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO requestDto = 
+            new com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO();
+        requestDto.setTransactionId(txId); // Required by @NotNull validation
+        requestDto.setActorId(brokerUuid); // Required by @NotNull validation
+        requestDto.setTitle("Title");
+        requestDto.setMessage("Message");
+
+        com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO responseDto = 
+            new com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO();
+        responseDto.setTitle("Title");
+        
+        when(transactionService.createNote(eq(txId), any(), eq(brokerUuid))).thenReturn(responseDto);
+
+        mockMvc.perform(post("/transactions/" + txId + "/notes")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto))
+                        .with(jwt())
+                        .header("x-broker-id", brokerId))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("Title"));
+    }
+
+    @Test
+    @WithMockUser(roles = "BROKER")
+    void saveInternalNotes_returnsOk() throws Exception {
+        UUID txId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
+        String brokerId = brokerUuid.toString();
+        String notes = "Internal secret note";
+
+        mockMvc.perform(post("/transactions/" + txId + "/internal-notes")
+                        .content(notes) // raw string body
+                        .with(jwt())
+                        .header("x-broker-id", brokerId))
+                .andExpect(status().isOk());
+
+        verify(transactionService).saveInternalNotes(eq(txId), eq(notes), eq(brokerUuid));
+    }
+
+    // ========== Client Timeline ==========
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void getClientTransactionTimeline_returnsList() throws Exception {
+        UUID txId = UUID.randomUUID();
+        
+        when(timelineService.getTimelineForClient(txId)).thenReturn(List.of());
+
+        mockMvc.perform(get("/transactions/" + txId + "/timeline/client")
+                        .with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        verify(timelineService).getTimelineForClient(txId);
+    }
 }

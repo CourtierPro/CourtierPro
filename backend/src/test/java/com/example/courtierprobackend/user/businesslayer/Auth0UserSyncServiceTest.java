@@ -161,4 +161,49 @@ class Auth0UserSyncServiceTest {
         // Assert
         verify(userRepository).save(argThat(user -> user.isActive()));
     }
+    
+    @Test
+    void syncUsersFromAuth0_DeletesFakeSeededUsers() {
+        // Arrange
+        // Fake seeded user pattern: auth0|client\d+
+        UserAccount fakeUser = new UserAccount("auth0|client123", "fake@exa.com", "Fake", "User", UserRole.CLIENT, "en");
+        
+        when(auth0Client.listAllUsers()).thenReturn(Collections.emptyList());
+        when(userRepository.findAll()).thenReturn(List.of(fakeUser));
+
+        // Act
+        syncService.syncUsersFromAuth0();
+
+        // Assert
+        verify(userRepository).delete(fakeUser);
+    }
+
+    @Test
+    void syncUsersFromAuth0_HandlesExceptionForSingleUser_AndContinues() {
+        // Arrange
+        Auth0User badUser = new Auth0User("auth0|bad", "bad@exa.com", "Bad", "User", Collections.emptyMap());
+        Auth0User goodUser = new Auth0User("auth0|good", "good@exa.com", "Good", "User", Collections.emptyMap());
+        List<Auth0User> users = List.of(badUser, goodUser);
+        
+        when(auth0Client.listAllUsers()).thenReturn(users);
+        
+        // First user throws exception
+        when(auth0Client.getUserRoles("auth0|bad")).thenThrow(new RuntimeException("Sync fail"));
+        
+        // Second user succeeds
+        List<Auth0Role> roles = List.of(new Auth0Role("roleId", "BROKER"));
+        when(auth0Client.getUserRoles("auth0|good")).thenReturn(roles);
+        when(auth0Client.mapRoleToUserRole(roles)).thenReturn(UserRole.BROKER);
+        when(userRepository.findByAuth0UserId("auth0|good")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("good@exa.com")).thenReturn(Optional.empty());
+
+        // Act
+        syncService.syncUsersFromAuth0();
+
+        // Assert
+        // Verify good user was saved
+        verify(userRepository).save(argThat(user -> user.getAuth0UserId().equals("auth0|good")));
+        // Verify bad user caused no save (implicitly, or explicitly verify exact count)
+        verify(userRepository, times(1)).save(any(UserAccount.class));
+    }
 }

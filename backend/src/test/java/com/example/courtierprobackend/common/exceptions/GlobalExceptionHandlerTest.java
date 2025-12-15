@@ -232,4 +232,102 @@ class GlobalExceptionHandlerTest {
         assertThat(exception.getMessage()).isEqualTo("Error message");
         assertThat(exception.getCause()).isEqualTo(cause);
     }
+    // ========== handleValidationErrors Tests ==========
+
+    @Test
+    void handleValidationErrors_ReturnsBadRequestWithFieldErrors() {
+        // Arrange
+        org.springframework.validation.BindingResult bindingResult = mock(org.springframework.validation.BindingResult.class);
+        org.springframework.validation.FieldError fieldError = new org.springframework.validation.FieldError("object", "field", "default message");
+        when(bindingResult.getFieldErrors()).thenReturn(java.util.List.of(fieldError));
+        
+        org.springframework.web.bind.MethodArgumentNotValidException exception = 
+            new org.springframework.web.bind.MethodArgumentNotValidException(
+                mock(org.springframework.core.MethodParameter.class), bindingResult);
+
+        // Act
+        ResponseEntity<ErrorResponse> response = handler.handleValidationErrors(exception, request);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().getError()).contains("field: default message");
+        assertThat(response.getBody().getCode()).isEqualTo("VALIDATION_ERROR");
+    }
+
+    // ========== handleConstraintViolation Tests ==========
+
+    @Test
+    void handleConstraintViolation_ReturnsBadRequestWithViolations() {
+        // Arrange
+        jakarta.validation.ConstraintViolation<?> violation = mock(jakarta.validation.ConstraintViolation.class);
+        jakarta.validation.Path path = mock(jakarta.validation.Path.class);
+        when(path.toString()).thenReturn("method.param");
+        when(violation.getPropertyPath()).thenReturn(path);
+        when(violation.getMessage()).thenReturn("must not be null");
+        
+        jakarta.validation.ConstraintViolationException exception = 
+            new jakarta.validation.ConstraintViolationException(java.util.Set.of(violation));
+
+        // Act
+        ResponseEntity<ErrorResponse> response = handler.handleConstraintViolation(exception, request);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().getError()).contains("param: must not be null");
+        assertThat(response.getBody().getCode()).isEqualTo("VALIDATION_ERROR");
+    }
+
+    // ========== handleResponseStatusException Tests ==========
+
+    @Test
+    void handleResponseStatusException_ReturnsStatusAndReason() {
+        // Arrange
+        org.springframework.web.server.ResponseStatusException exception = 
+            new org.springframework.web.server.ResponseStatusException(HttpStatus.I_AM_A_TEAPOT, "Reason");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = handler.handleResponseStatusException(exception, request);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.I_AM_A_TEAPOT);
+        assertThat(response.getBody().getError()).isEqualTo("Reason");
+        assertThat(response.getBody().getCode()).isEqualTo("I_AM_A_TEAPOT");
+    }
+
+    // ========== handleGenericException Tests ==========
+
+    @Test
+    void handleGenericException_ReturnsInternalServerError() {
+        // Arrange
+        Exception exception = new Exception("Unexpected");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = handler.handleGenericException(exception, request);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody().getError()).isEqualTo("An unexpected error occurred");
+        assertThat(response.getBody().getCode()).isEqualTo("INTERNAL_ERROR");
+    }
+    
+    @Test
+    void handleUnauthorized_WithNullMessage_ReturnsDefaultMessage() {
+        UnauthorizedException ex = new UnauthorizedException((String)null);
+        ResponseEntity<ErrorResponse> response = handler.handleUnauthorized(ex, request);
+        assertThat(response.getBody().getError()).isEqualTo("Authentication required");
+    }
+
+    @Test
+    void handleInternalError_WithNullMessage_ReturnsDefaultMessage() {
+        InternalServerException ex = new InternalServerException((String)null);
+        ResponseEntity<ErrorResponse> response = handler.handleInternalError(ex, request);
+        assertThat(response.getBody().getError()).isEqualTo("An unexpected error occurred");
+    }
+    
+    @Test
+    void handleIllegalArgument_WithNullMessage_ReturnsDefault() {
+        IllegalArgumentException ex = new IllegalArgumentException();
+        ResponseEntity<ErrorResponse> response = handler.handleIllegalArgument(ex, request);
+        assertThat(response.getBody().getError()).isEqualTo("Invalid argument");
+    }
 }

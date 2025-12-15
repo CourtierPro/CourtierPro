@@ -340,7 +340,17 @@ export function AdminResourcesPage() {
                             {logs.length > 0 ? (
                                 logs.map((log) => {
                                     const cascadedItems = parseCascaded(log.cascadedDeletions);
-                                    const hasRelated = cascadedItems.length > 0;
+
+                                    // Filter out events/actions (TimelineEntry, SubmittedDocument, etc.)
+                                    // User only wants to see resources (DocumentRequest, etc.)
+                                    const visibleItems = cascadedItems.filter(item => {
+                                        const [type] = item.split(":");
+                                        return !item.startsWith('TimelineEntry') &&
+                                            !item.startsWith('SubmittedDocument') &&
+                                            !type.toLowerCase().includes('review');
+                                    });
+
+                                    const hasRelated = visibleItems.length > 0;
                                     const isExpanded = expandedLogIds.has(log.id);
 
                                     return (
@@ -377,7 +387,7 @@ export function AdminResourcesPage() {
                                                 <td className="px-6 py-4">
                                                     {hasRelated ? (
                                                         <Badge variant="secondary">
-                                                            +{cascadedItems.length} {t("items")}
+                                                            +{visibleItems.length} {t("items")}
                                                         </Badge>
                                                     ) : (
                                                         <span className="text-muted-foreground">—</span>
@@ -392,7 +402,7 @@ export function AdminResourcesPage() {
                                                                 {t("relatedItemsAffected")}:
                                                             </p>
                                                             <ul className="space-y-1 ml-4">
-                                                                {cascadedItems.map((item, idx) => {
+                                                                {visibleItems.map((item, idx) => {
                                                                     const [type, id] = item.split(":");
                                                                     return (
                                                                         <li key={idx} className="flex items-center gap-2 text-xs">
