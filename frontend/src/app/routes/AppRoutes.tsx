@@ -35,6 +35,7 @@ const AdminSettingsPage = lazy(() => import("@/pages/admin/AdminSettingsPage").t
 const LoginAuditPage = lazy(() => import("@/pages/admin/LoginAuditPage").then(module => ({ default: module.LoginAuditPage })));
 const SystemLogsPage = lazy(() => import("@/pages/admin/SystemLogsPage").then(module => ({ default: module.SystemLogsPage })));
 const PasswordResetAuditPage = lazy(() => import("@/pages/admin/PasswordResetAuditPage").then(module => ({ default: module.PasswordResetAuditPage })));
+const AdminResourcesPage = lazy(() => import("@/pages/admin/AdminResourcesPage").then(module => ({ default: module.AdminResourcesPage })));
 
 // Profile
 const ProfilePage = lazy(() => import("@/pages/profile/ProfilePage").then(module => ({ default: module.ProfilePage })));
@@ -278,6 +279,16 @@ export function AppRoutes() {
                         <RequireRole allowed={["admin"]}>
                             <AppShell>
                                 <PasswordResetAuditPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
+                <Route
+                    path="/admin/resources"
+                    element={
+                        <RequireRole allowed={["admin"]}>
+                            <AppShell>
+                                <AdminResourcesPage />
                             </AppShell>
                         </RequireRole>
                     }

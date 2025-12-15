@@ -3,6 +3,7 @@ package com.example.courtierprobackend.transactions.datalayer;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Where;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "transactions")
+@Where(clause = "deleted_at IS NULL")
 @Data
 @Builder
 @AllArgsConstructor
@@ -46,4 +48,8 @@ public class Transaction {
 
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TimelineEntry> timeline;
+
+    // Soft delete fields
+    private LocalDateTime deletedAt;
+    private UUID deletedBy;
 }

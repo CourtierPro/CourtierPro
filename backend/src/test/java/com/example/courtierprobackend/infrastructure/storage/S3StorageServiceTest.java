@@ -12,6 +12,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -148,4 +149,42 @@ class S3StorageServiceTest {
         assertNull(s3StorageService.generatePresignedUrl(null));
         assertNull(s3StorageService.generatePresignedUrl(""));
     }
+
+    @Test
+    void deleteFile_ShouldDeleteFromS3() {
+        // Arrange
+        String s3Key = "documents/tx-123/req-456/file.pdf";
+        ArgumentCaptor<DeleteObjectRequest> captor = ArgumentCaptor.forClass(DeleteObjectRequest.class);
+
+        // Act
+        s3StorageService.deleteFile(s3Key);
+
+        // Assert
+        verify(s3Client).deleteObject(captor.capture());
+        DeleteObjectRequest request = captor.getValue();
+        assertEquals(BUCKET_NAME, request.bucket());
+        assertEquals(s3Key, request.key());
+    }
+
+    @Test
+    void deleteFile_WhenKeyIsNull_ShouldNotCallS3() {
+        // Act
+        s3StorageService.deleteFile(null);
+        s3StorageService.deleteFile("");
+
+        // Assert - S3 client should never be called
+        verify(s3Client, never()).deleteObject(any(DeleteObjectRequest.class));
+    }
+
+    @Test
+    void deleteFile_WhenS3Fails_ShouldThrowRuntimeException() {
+        // Arrange
+        String s3Key = "documents/tx-123/req-456/file.pdf";
+        when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
+                .thenThrow(new RuntimeException("S3 error"));
+
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> s3StorageService.deleteFile(s3Key));
+    }
 }
+
