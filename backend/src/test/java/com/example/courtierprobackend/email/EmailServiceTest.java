@@ -241,37 +241,5 @@ class EmailServiceTest {
         assertThat(content).isNotNull();
     }
     
-   @Test
-    void getBrokerTransactions_sideStrBuySellAndFallback() {
-        UUID brokerId = UUID.randomUUID();
-        // buy
-        transactionService.getBrokerTransactions(brokerId, null, null, "buy");
-        // sell
-        transactionService.getBrokerTransactions(brokerId, null, null, "sell");
-        // fallback (not buy/sell/all)
-        transactionService.getBrokerTransactions(brokerId, null, null, "other");
-        // all
-        transactionService.getBrokerTransactions(brokerId, null, null, "all");
-    }
-
-    @Test
-    void getBrokerTransactions_statusStrCoversTryCatch() {
-        UUID brokerId = UUID.randomUUID();
-        // statusStr not all, valid
-        transactionService.getBrokerTransactions(brokerId, "ACTIVE", null, null);
-        // statusStr not all, invalid (triggers catch)
-        transactionService.getBrokerTransactions(brokerId, "INVALID_STATUS", null, null);
-    }
-
-    @Test
-    void getBrokerTransactions_stageStrCoversBuyerSellerAndFallback() {
-        UUID brokerId = UUID.randomUUID();
-        // BuyerStage valid
-        transactionService.getBrokerTransactions(brokerId, null, "BUYER_PREQUALIFY_FINANCIALLY", null);
-        // SellerStage valid
-        transactionService.getBrokerTransactions(brokerId, null, "SELLER_INITIAL_CONSULTATION", null);
-        // Fallback (invalid for both)
-        transactionService.getBrokerTransactions(brokerId, null, "INVALID_STAGE", null);
-    }
 }
 
