@@ -91,8 +91,8 @@ export function TransactionTimeline({ transactionId }: TransactionTimelineProps)
                                             <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                 <h3 className="font-semibold">
                                                     {isDocumentEvent && entry.docType
-                                                        ? `${getEventTypeLabel(entry.type, t, tDoc)} : ${tDoc(`types.${entry.docType}`)}`
-                                                        : getEventTypeLabel(entry.type, t, tDoc)}
+                                                        ? `${getEventTypeLabel(entry.type, t)} : ${tDoc(`types.${entry.docType}`)}`
+                                                        : getEventTypeLabel(entry.type, t)}
                                                 </h3>
                                                 {/* Badge always next to title for all types */}
                                                 {(() => {
