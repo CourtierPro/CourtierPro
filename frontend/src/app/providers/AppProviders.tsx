@@ -24,17 +24,18 @@ function Auth0ProviderWithNavigate({ children }: { children: ReactNode }) {
     };
 
     return (
-        <Auth0Provider
-            domain={domain}
-            clientId={clientId}
-            authorizationParams={{
-                audience,
-                redirect_uri: window.location.origin,
-            }}
-            onRedirectCallback={onRedirectCallback}
-        >
-            {children}
-        </Auth0Provider>
+            <Auth0Provider
+                domain={domain}
+                clientId={clientId}
+                authorizationParams={{
+                    audience,
+                    redirect_uri: window.location.origin,
+                }}
+                onRedirectCallback={onRedirectCallback}
+                cacheLocation="localstorage"
+            >
+                {children}
+            </Auth0Provider>
     );
 }
 

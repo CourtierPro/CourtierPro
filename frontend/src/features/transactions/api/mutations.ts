@@ -17,6 +17,7 @@ export function useUpdateTransactionStage() {
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
             queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] }); // Ajouté
         },
     });
 }
@@ -26,10 +27,15 @@ export function useSaveTransactionNotes() {
 
     return useMutation({
         mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
+            // Call backend endpoint to save internal notes and create timeline event
+            await axiosInstance.post(`/transactions/${id}/internal-notes`, notes, {
+                headers: { 'Content-Type': 'text/plain' },
+            });
             return { id, notes };
         },
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.id) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.id), 'timeline'] });
         },
     });
 }

@@ -1,5 +1,7 @@
 package com.example.courtierprobackend.email;
 
+import org.springframework.test.util.ReflectionTestUtils;
+
 import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
 import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
@@ -198,5 +200,46 @@ class EmailServiceTest {
             throw new RuntimeException(e);
         }
     }
+    
+    @Test
+    void sendStageUpdateEmail_sendsEmail() {
+        when(organizationSettingsService.getSettings()).thenReturn(createSettings("en", "Stage Update", "Stage body", null, null));
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            ReflectionTestUtils.invokeMethod(emailService, "sendStageUpdateEmail", "user@example.com", "Client", "Broker", "123 Main St", "OFFER", "en");
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    @Test
+    void translateDocumentType_returnsTranslation() {
+        String result = ReflectionTestUtils.invokeMethod(emailService, "translateDocumentType", "PAY_STUBS", true);
+        assertThat(result).isNotBlank();
+        String result2 = ReflectionTestUtils.invokeMethod(emailService, "translateDocumentType", "PAY_STUBS", false);
+        assertThat(result2).isNotBlank();
+    }
+
+    @Test
+    void escapeHtml_escapesTags() {
+        String input = "<b>bold</b> & <script>";
+        String result = ReflectionTestUtils.invokeMethod(emailService, "escapeHtml", input);
+        assertThat(result).contains("&lt;b&gt;bold&lt;/b&gt;");
+        assertThat(result).contains("&lt;script&gt;");
+    }
+
+    @Test
+    void sendEmail_returnsTrue() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            boolean result = ReflectionTestUtils.invokeMethod(emailService, "sendEmail", "to@mail.com", "subject", "body");
+            assertThat(result).isTrue();
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    @Test
+    void loadTemplateFromClasspath_returnsContent() {
+        String content = ReflectionTestUtils.invokeMethod(emailService, "loadTemplateFromClasspath", "email-templates/password-setup-en.html");
+        assertThat(content).isNotNull();
+    }
+    
 }
 

@@ -59,11 +59,15 @@ public class SecurityConfig {
                         // TODO: Implement webhook signature verification (HMAC/JWT) or IP allowlisting
                         // Currently exposed without authentication - Auth0 should sign webhook payloads
                         .requestMatchers("/api/webhooks/**").permitAll()
+
                         // Document APIs
                         .requestMatchers(HttpMethod.GET, "/transactions/*/documents").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers(HttpMethod.POST, "/transactions/*/documents/*/submit").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*/documents/*/download").hasAnyRole("BROKER", "CLIENT")
+
+                        // Timeline client endpoint
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/timeline/client").hasRole("CLIENT")
 
                         // Transaction APIs
                         .requestMatchers(HttpMethod.GET, "/transactions/*").hasAnyRole("BROKER", "CLIENT")

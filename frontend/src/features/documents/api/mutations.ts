@@ -12,6 +12,12 @@ export function useRequestDocument() {
         onSuccess: (_, { transactionId }) => {
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({ queryKey: [
+                'transactions', 'detail', transactionId, 'timeline'
+            ] }); // Timeline broker
+            queryClient.invalidateQueries({ queryKey: [
+                'transaction', transactionId, 'timeline', 'client'
+            ] }); // Timeline client
         },
     });
 }
@@ -25,6 +31,12 @@ export function useSubmitDocument() {
         onSuccess: (_, { transactionId }) => {
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({ queryKey: [
+                'transactions', 'detail', transactionId, 'timeline'
+            ] }); // Timeline broker
+            queryClient.invalidateQueries({ queryKey: [
+                'transaction', transactionId, 'timeline', 'client'
+            ] }); // Timeline client
         },
     });
 }
@@ -42,8 +54,13 @@ export const useReviewDocument = () => {
         onSuccess: (_, { transactionId }) => {
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({ queryKey: [
+                'transactions', 'detail', transactionId, 'timeline'
+            ] }); // Timeline broker
+            queryClient.invalidateQueries({ queryKey: [
+                'transaction', transactionId, 'timeline', 'client'
+            ] }); // Timeline client
         },
     });
 };
 
-            

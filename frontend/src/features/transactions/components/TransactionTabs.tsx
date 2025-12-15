@@ -8,105 +8,118 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/components/ui
 import { type Transaction } from '@/features/transactions/api/queries';
 import { DocumentsPage } from '@/pages/documents/DocumentsPage';
 import { Calendar } from 'lucide-react';
+import { TransactionTimeline } from './TransactionTimeline';
 
 interface TransactionTabsProps {
-    transaction: Transaction;
-    notes: string;
-    onNotesChange: (notes: string) => void;
-    onSaveNotes: () => void;
-    isSavingNotes: boolean;
-    isReadOnly?: boolean;
+  transaction: Transaction;
+  notes: string;
+  onNotesChange: (notes: string) => void;
+  onSaveNotes: () => void;
+  isSavingNotes: boolean;
+  isReadOnly?: boolean;
 }
 
 export function TransactionTabs({
-    transaction,
-    notes,
-    onNotesChange,
-    onSaveNotes,
-    isSavingNotes,
-    isReadOnly = false,
-}: TransactionTabsProps) {
-    const { t } = useTranslation('transactions');
-    const [searchParams, setSearchParams] = useSearchParams();
+                                  transaction,
+                                  notes,
+                                  onNotesChange,
+                                  onSaveNotes,
+                                  isSavingNotes,
+                                  isReadOnly = false,
+                                }: TransactionTabsProps) {
+  const { t } = useTranslation('transactions');
+  const [searchParams, setSearchParams] = useSearchParams();
 
-    // Get tab from URL or default to 'details'
-    const currentTab = searchParams.get('tab') || 'details';
-    const focusDocumentId = searchParams.get('focus');
+  // Get tab from URL or default to 'details'
+  const currentTab = searchParams.get('tab') || 'details';
+  const focusDocumentId = searchParams.get('focus');
 
-    const handleTabChange = (value: string) => {
-        setSearchParams(prev => {
-            const newParams = new URLSearchParams(prev);
-            newParams.set('tab', value);
-            if (value !== 'documents') {
-                newParams.delete('focus');
-            }
-            return newParams;
-        });
-    };
+  const handleTabChange = (value: string) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      newParams.set('tab', value);
+      if (value !== 'documents') {
+        newParams.delete('focus');
+      }
+      return newParams;
+    });
+  };
 
-    return (
-        <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="border-b border-border w-full justify-start rounded-none bg-transparent h-auto p-0 overflow-x-auto">
-                <TabsTrigger
-                    value="details"
-                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
-                >
-                    {t('details')}
-                </TabsTrigger>
-                <TabsTrigger
-                    value="documents"
-                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
-                >
-                    {t('documents')}
-                </TabsTrigger>
-                <TabsTrigger
-                    value="appointments"
-                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
-                >
-                    {t('appointments')}
-                </TabsTrigger>
-            </TabsList>
 
-            <TabsContent value="details" className="py-4">
-                <div className="grid grid-cols-1 gap-6">
-                    {!isReadOnly && (
-                        <Section className="p-4 md:p-6">
-                            <SectionHeader title={t('notes')} />
-                            <Textarea
-                                value={notes}
-                                onChange={(e) => onNotesChange(e.target.value)}
-                                className="h-32 mb-4"
-                                placeholder={t('addNotesPlaceholder')}
-                            />
-                            <Button
-                                variant="secondary"
-                                onClick={onSaveNotes}
-                                disabled={isSavingNotes}
-                                className="w-full"
-                            >
-                                {isSavingNotes ? t('saving') : t('saveNotes')}
-                            </Button>
-                        </Section>
-                    )}
-                </div>
-            </TabsContent>
+  return (
+    <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+      <TabsList className="border-b border-border w-full justify-start rounded-none bg-transparent h-auto p-0 overflow-x-auto">
+        <TabsTrigger
+          value="details"
+          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
+        >
+          {t('details')}
+        </TabsTrigger>
+        <TabsTrigger
+          value="timeline"
+          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
+        >
+          {t('timeline')}
+        </TabsTrigger>
+        <TabsTrigger
+          value="documents"
+          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
+        >
+          {t('documents')}
+        </TabsTrigger>
+        <TabsTrigger
+          value="appointments"
+          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
+        >
+          {t('appointments')}
+        </TabsTrigger>
+      </TabsList>
 
-            <TabsContent value="documents" className="py-4">
-                <DocumentsPage transactionId={transaction.transactionId} focusDocumentId={focusDocumentId} />
-            </TabsContent>
 
-            <TabsContent value="appointments" className="py-4">
-                <Section className="p-12 text-center flex flex-col items-center justify-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                        <Calendar className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-medium mb-1">{t('noAppointments')}</h3>
-                        <p className="text-muted-foreground max-w-sm mx-auto">{t('appointmentsPlaceholder')}</p>
-                    </div>
-                    <Button variant="outline">{t('scheduleAppointment')}</Button>
-                </Section>
-            </TabsContent>
-        </Tabs>
-    );
+      <TabsContent value="details" className="py-4">
+        <div className="grid grid-cols-1 gap-6">
+          {!isReadOnly && (
+            <Section className="p-4 md:p-6">
+              <SectionHeader title={t('notes')} />
+              <Textarea
+                value={notes}
+                onChange={(e) => onNotesChange(e.target.value)}
+                className="h-32 mb-4"
+                placeholder={t('addNotesPlaceholder')}
+              />
+              <Button
+                variant="secondary"
+                onClick={onSaveNotes}
+                disabled={isSavingNotes}
+                className="w-full"
+              >
+                {isSavingNotes ? t('saving') : t('saveNotes')}
+              </Button>
+            </Section>
+          )}
+        </div>
+      </TabsContent>
+
+      <TabsContent value="timeline" className="py-4">
+        <TransactionTimeline transactionId={transaction.transactionId} />
+      </TabsContent>
+
+      <TabsContent value="documents" className="py-4">
+        <DocumentsPage transactionId={transaction.transactionId} focusDocumentId={focusDocumentId} />
+      </TabsContent>
+
+      <TabsContent value="appointments" className="py-4">
+        <Section className="p-12 text-center flex flex-col items-center justify-center gap-4">
+          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+            <Calendar className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <div>
+            <h3 className="text-lg font-medium mb-1">{t('noAppointments')}</h3>
+            <p className="text-muted-foreground max-w-sm mx-auto">{t('appointmentsPlaceholder')}</p>
+          </div>
+          <Button variant="outline">{t('scheduleAppointment')}</Button>
+        </Section>
+      </TabsContent>
+    </Tabs>
+  );
 }

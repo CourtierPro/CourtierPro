@@ -1,5 +1,6 @@
 package com.example.courtierprobackend.transactions.presentationlayer;
 
+import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
 import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO;
@@ -12,7 +13,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -27,11 +27,14 @@ class TransactionControllerUnitTest {
     @Mock
     private TransactionService transactionService;
 
+    @Mock
+    private TimelineService timelineService;
+
     private TransactionController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new TransactionController(transactionService);
+        controller = new TransactionController(transactionService, timelineService);
     }
 
     @Test

@@ -87,7 +87,6 @@ public class Auth0UserSyncService {
                         if (changed) {
                             userRepository.save(user);
                             updated++;
-                            log.debug("Updated user: {} ({})", auth0User.email(), userRole);
                         } else {
                             skipped++;
                         }
@@ -119,7 +118,6 @@ public class Auth0UserSyncService {
                         );
                         userRepository.save(newUser);
                         created++;
-                        log.debug("Created user: {} ({})", auth0User.email(), userRole);
                     }
                 } catch (Exception e) {
                     log.warn("Failed to sync user {}: {}", auth0User.userId(), e.getMessage());

@@ -34,6 +34,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionAccessUtils;
+import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +47,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
     private final EmailService emailService;
     private final TransactionRepository transactionRepository;
     private final UserAccountRepository userAccountRepository;
+    private final TimelineService timelineService;
 
     /**
      * Helper to find a UserAccount by internal UUID.
@@ -107,6 +110,14 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         request.setLastUpdatedAt(LocalDateTime.now());
 
         DocumentRequest savedRequest = repository.save(request);
+        // Add timeline entry for document requested
+        timelineService.addEntry(
+                transactionId,
+                tx.getBrokerId(),
+                TimelineEntryType.DOCUMENT_REQUESTED,
+                "Document requested: " + requestDTO.getDocType(),
+                requestDTO.getDocType() != null ? requestDTO.getDocType().toString() : null
+        );
 
         // Notify client via email
         // Resolve Client and Broker robustly
@@ -195,6 +206,14 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         request.setLastUpdatedAt(LocalDateTime.now());
 
         DocumentRequest savedRequest = repository.save(request);
+        // Add timeline entry for document submitted
+        timelineService.addEntry(
+                transactionId,
+                uploaderId,
+                TimelineEntryType.DOCUMENT_SUBMITTED,
+                "Document submitted: " + (savedRequest.getCustomTitle() != null ? savedRequest.getCustomTitle() : savedRequest.getDocType()),
+                savedRequest.getDocType() != null ? savedRequest.getDocType().toString() : null
+        );
 
         // Notify broker
         UserAccount broker = resolveUserAccount(tx.getBrokerId())
@@ -281,6 +300,23 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         request.setLastUpdatedAt(LocalDateTime.now());
 
         DocumentRequest updated = repository.save(request);
+        // Add timeline entry for document reviewed
+        TimelineEntryType timelineType;
+        if (reviewDTO.getDecision() == DocumentStatusEnum.NEEDS_REVISION) {
+                timelineType = TimelineEntryType.DOCUMENT_NEEDS_REVISION;
+        } else if (reviewDTO.getDecision() == DocumentStatusEnum.APPROVED) {
+                timelineType = TimelineEntryType.DOCUMENT_APPROVED;
+        } else {
+                // fallback for other statuses, default to DOCUMENT_APPROVED for now
+                timelineType = TimelineEntryType.DOCUMENT_APPROVED;
+        }
+        timelineService.addEntry(
+                transactionId,
+                brokerId,
+                timelineType,
+                "Document reviewed: " + (updated.getCustomTitle() != null ? updated.getCustomTitle() : updated.getDocType()) + ", decision: " + reviewDTO.getDecision(),
+                updated.getDocType() != null ? updated.getDocType().toString() : null
+        );
 
         // Send email notification
         Transaction tx = transactionRepository.findByTransactionId(transactionId)
