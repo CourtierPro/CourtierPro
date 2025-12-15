@@ -32,4 +32,17 @@ public interface DocumentRequestRepository extends JpaRepository<DocumentRequest
             "(d.transactionRef.clientId IN :userIds OR d.transactionRef.transactionId IN (SELECT t.transactionId FROM Transaction t WHERE t.brokerId IN :userIds)) AND " +
             "(d.transactionRef.clientId = :requesterId OR d.transactionRef.transactionId IN (SELECT t.transactionId FROM Transaction t WHERE t.brokerId = :requesterId))")
     List<DocumentRequest> findLinkedToUsers(@Param("userIds") java.util.List<UUID> userIds, @Param("requesterId") UUID requesterId);
+
+    // Admin queries - bypass @Where filter to see all records including soft-deleted
+    @Query(value = "SELECT * FROM document_requests ORDER BY last_updated_at DESC NULLS LAST", nativeQuery = true)
+    List<DocumentRequest> findAllIncludingDeleted();
+
+    @Query(value = "SELECT * FROM document_requests WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC", nativeQuery = true)
+    List<DocumentRequest> findAllDeleted();
+
+    @Query(value = "SELECT * FROM document_requests WHERE request_id = :requestId", nativeQuery = true)
+    Optional<DocumentRequest> findByRequestIdIncludingDeleted(@Param("requestId") UUID requestId);
+
+    @Query(value = "SELECT * FROM document_requests WHERE transaction_id = :transactionId", nativeQuery = true)
+    List<DocumentRequest> findByTransactionIdIncludingDeleted(@Param("transactionId") UUID transactionId);
 }

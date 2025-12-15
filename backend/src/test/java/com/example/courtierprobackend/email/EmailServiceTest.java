@@ -114,6 +114,34 @@ class EmailServiceTest {
     }
 
     @Test
+    void sendPasswordSetupEmail_WithNullSettingsSubjectAndBody_UsesHardcodedDefaults() {
+        // Arrange
+        OrganizationSettingsResponseModel settings = createSettings("en", null, null, null, null);
+        when(organizationSettingsService.getSettings()).thenReturn(settings);
+
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            // Act
+            boolean result = emailService.sendPasswordSetupEmail("user@example.com", "https://reset.url", "en");
+
+            // Assert
+            assertThat(result).isTrue();
+            
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(captor.capture()), times(1));
+            Message message = captor.getValue();
+            
+            // Allow generic unchecked exception for getSubject/getContent
+            try {
+                assertThat(message.getSubject()).isEqualTo("CourtierPro Invitation");
+                String body = (String) ((MimeMessage) message).getContent();
+                assertThat(body).contains("Hi user@example.com, your CourtierPro account has been created.");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Test
     void sendDocumentSubmittedNotification_SendsEmail() {
         // Arrange
         DocumentRequest request = new DocumentRequest();
@@ -241,5 +269,81 @@ class EmailServiceTest {
         assertThat(content).isNotNull();
     }
     
+    @Test
+    void sendPasswordSetupEmail_MessagingException_ReturnsFalse() {
+        OrganizationSettingsResponseModel settings = createSettings("en", "S", "B", null, null);
+        when(organizationSettingsService.getSettings()).thenReturn(settings);
+
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            transportMock.when(() -> Transport.send(any())).thenThrow(new jakarta.mail.MessagingException("Fail"));
+            
+            boolean result = emailService.sendPasswordSetupEmail("user@example.com", "url", "en");
+            
+            assertThat(result).isFalse();
+        }
+    }
+
+    @Test
+    void sendDocumentSubmittedNotification_MessagingException_LogsError() {
+        DocumentRequest request = new DocumentRequest();
+        request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+        request.setCustomTitle("Doc");
+
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            transportMock.when(() -> Transport.send(any())).thenThrow(new jakarta.mail.MessagingException("Fail"));
+            
+            // Should not throw
+            emailService.sendDocumentSubmittedNotification(request, "broker@mail.com", "User", "Doc", "TYPE", "en");
+            
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    @Test
+    void sendDocumentRequestedNotification_MessagingException_LogsError() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            transportMock.when(() -> Transport.send(any())).thenThrow(new jakarta.mail.MessagingException("Fail"));
+            
+            // Should not throw
+            emailService.sendDocumentRequestedNotification("client@mail.com", "Client", "Broker", "Doc", "TYPE", "en");
+            
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    @Test
+    void sendDocumentStatusUpdatedNotification_MessagingException_LogsError() {
+        DocumentRequest request = new DocumentRequest();
+        request.setStatus(DocumentStatusEnum.APPROVED);
+        request.setCustomTitle("Doc");
+        request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            transportMock.when(() -> Transport.send(any())).thenThrow(new jakarta.mail.MessagingException("Fail"));
+            
+            // Should not throw
+            emailService.sendDocumentStatusUpdatedNotification(request, "client@mail.com", "Broker", "Doc", "TYPE", "en");
+            
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    @Test
+    void sendStageUpdateEmail_MessagingException_LogsError() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            transportMock.when(() -> Transport.send(any())).thenThrow(new jakarta.mail.MessagingException("Fail"));
+            
+            // Should not throw
+            emailService.sendStageUpdateEmail("client@mail.com", "Client", "Broker", "Addr", "OFFER", "en");
+            
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+    
+    @Test
+    void translateDocumentType_UnknownType_ReturnsOriginal() {
+        String result = ReflectionTestUtils.invokeMethod(emailService, "translateDocumentType", "UNKNOWN_TYPE", true);
+        assertThat(result).isEqualTo("UNKNOWN_TYPE");
+    }
 }
 

@@ -21,9 +21,10 @@ import { getRoleFromUser } from "@/features/auth/roleUtils";
 interface DocumentsPageProps {
   transactionId: string;
   focusDocumentId?: string | null;
+  isReadOnly?: boolean;
 }
 
-export function DocumentsPage({ transactionId, focusDocumentId }: DocumentsPageProps) {
+export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = false }: DocumentsPageProps) {
   const { t } = useTranslation('documents');
   const { user } = useAuth0();
   const role = getRoleFromUser(user);
@@ -75,7 +76,7 @@ export function DocumentsPage({ transactionId, focusDocumentId }: DocumentsPageP
         title={t('title', 'Documents')}
         subtitle={t('subtitle', 'Manage all your transaction documents in one place.')}
         actions={
-          documents.length > 0 && (
+          !isReadOnly && documents.length > 0 && (
             <Button onClick={() => setIsModalOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               {t('requestDocument', 'Request Document')}
@@ -91,7 +92,9 @@ export function DocumentsPage({ transactionId, focusDocumentId }: DocumentsPageP
             title={t('noDocumentsTitle', 'No documents found')}
             description={t('noDocumentsDesc', "You haven't uploaded any documents yet. Start by creating a transaction.")}
             action={
-              <Button onClick={() => setIsModalOpen(true)}>{t('requestDocument', 'Request Document')}</Button>
+              !isReadOnly ? (
+                <Button onClick={() => setIsModalOpen(true)}>{t('requestDocument', 'Request Document')}</Button>
+              ) : undefined
             }
           />
         </Section>

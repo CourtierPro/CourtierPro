@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -99,5 +100,32 @@ public class S3StorageService {
             throw new RuntimeException("Could not generate download URL", e);
         }
     }
+
+    /**
+     * Deletes a file from S3.
+     *
+     * @param s3Key The S3 object key to delete
+     */
+    public void deleteFile(String s3Key) {
+        if (s3Key == null || s3Key.isEmpty()) {
+            log.warn("Attempted to delete file with null or empty S3 key");
+            return;
+        }
+
+        try {
+            DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(s3Key)
+                    .build();
+
+            s3Client.deleteObject(deleteRequest);
+            log.info("Deleted file from S3. Key: {}", s3Key);
+
+        } catch (Exception e) {
+            log.error("Failed to delete file from S3. Key: {}", s3Key, e);
+            throw new RuntimeException("Could not delete file from S3", e);
+        }
+    }
 }
+
 

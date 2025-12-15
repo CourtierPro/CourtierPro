@@ -216,4 +216,118 @@ class SearchServiceTest {
                 .customTitle(customTitle)
                 .build();
     }
+    // ========== Mapper & Edge Case Tests ==========
+
+    @Test
+    void search_TransactionMap_HandlesNullAddressFields() {
+        // Arrange
+        String query = "123";
+        Transaction tx = createTestTransaction(transactionId, brokerId, userId);
+        tx.setPropertyAddress(new PropertyAddress(null, null, null, null)); // Null fields
+        
+        when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
+        when(transactionRepository.searchTransactions(userId, query)).thenReturn(List.of(tx));
+        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
+
+        // Act
+        List<SearchResultDTO> results = searchService.search(query);
+
+        // Assert
+        SearchResultDTO result = results.get(0);
+        assertThat(result.getTitle()).isEqualTo("Unknown Address");
+        assertThat(result.getSubtitle()).isEmpty();
+    }
+
+    @Test
+    void search_TransactionMap_HandlesPartialAddress() {
+        String query = "Montreal";
+        Transaction tx = createTestTransaction(transactionId, brokerId, userId);
+        tx.setPropertyAddress(new PropertyAddress("Street", "Montreal", null, "Zip")); // City only, no province
+        
+        when(transactionRepository.searchTransactions(userId, query)).thenReturn(List.of(tx));
+
+        List<SearchResultDTO> results = searchService.search(query);
+        assertThat(results.get(0).getSubtitle()).isEqualTo("Montreal");
+    }
+    
+    @Test
+    void search_UserMap_HandlesNullNames() {
+        String query = "test";
+        UserAccount user = new UserAccount("auth0|999", "test@mail.com", null, null, UserRole.CLIENT, "en");
+        
+        when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of(user));
+
+        List<SearchResultDTO> results = searchService.search(query);
+        assertThat(results.get(0).getTitle()).isEqualTo("Unknown User");
+    }
+    
+    @Test
+    void search_CurrentUser_MatchesQuery_AndIsNotDuplicated() {
+        // Prepare current user that matches 'john'
+        UserAccount currentUser = new UserAccount("auth0|123", "me@mail.com", "John", "Me", UserRole.BROKER, "en");
+        currentUser.setId(userId);
+        
+        // Prepare a client lookup that ALSO returns the current user (if that were possible) or just emptylist
+        // We want to verify dedup logic if matchedUsers already contains it?
+        // Service logic: matchedUsers = searchClientsOfBroker(...).
+        // if (matchedUsers.stream().noneMatch(u -> u.getId().equals(userId))) { add currentUser }
+        
+        when(userAccountRepository.findById(userId)).thenReturn(Optional.of(currentUser));
+        when(userAccountRepository.searchClientsOfBroker(userId, "John")).thenReturn(List.of()); // Empty clients
+
+        List<SearchResultDTO> results = searchService.search("John");
+        
+        // Should find current user
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getId()).isEqualTo(userId.toString());
+    }
+
+    @Test
+    void searchDocumentById_WhenNotRelated_ReturnsEmpty() {
+        UUID docId = UUID.randomUUID();
+        DocumentRequest doc = createTestDocument(transactionId, "Doc");
+        
+        // Fix: Ensure the document belongs to a different client so isClient check fails
+        TransactionRef originalRef = doc.getTransactionRef();
+        TransactionRef otherClientRef = TransactionRef.builder()
+                .transactionId(originalRef.getTransactionId())
+                .clientId(UUID.randomUUID()) // Different user
+                .side(originalRef.getSide())
+                .build();
+        doc.setTransactionRef(otherClientRef);
+        
+        // Transaction exists but user is neither client nor broker
+        Transaction tx = createTestTransaction(transactionId, UUID.randomUUID(), UUID.randomUUID());
+        
+        when(documentRequestRepository.findByRequestId(docId)).thenReturn(Optional.of(doc));
+        // Strict stubbing complains if we don't stub the call made with docId (searchById -> searchTransactionById -> findByTransactionId(docId))
+        lenient().when(transactionRepository.findByTransactionId(docId)).thenReturn(Optional.empty());
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        List<SearchResultDTO> results = searchService.search(docId.toString());
+        assertThat(results).isEmpty();
+    }
+    
+    @Test
+    void search_WithValidNonUuidString_SkipsIdSearch() {
+        // "Valid" length string but not a UUID
+        String query = "NotAUUIDString"; 
+        
+        when(transactionRepository.searchTransactions(userId, query)).thenReturn(List.of());
+        
+        // Should not throw exception
+        List<SearchResultDTO> results = searchService.search(query);
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    void search_Users_WhenNoneFound_ReturnsEmpty() {
+        String query = "Ghost";
+        when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
+        when(transactionRepository.searchTransactions(userId, query)).thenReturn(List.of());
+        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
+
+        List<SearchResultDTO> results = searchService.search(query);
+        assertThat(results).isEmpty();
+    }
 }

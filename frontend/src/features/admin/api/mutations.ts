@@ -2,6 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/shared/api/axiosInstance';
 import { adminKeys } from '@/features/admin/api/queries';
 import { setUserActiveStatus } from '@/features/admin/api/adminUserApi';
+import {
+    deleteResource,
+    restoreResource,
+    type ResourceType,
+} from '@/features/admin/api/adminResourcesApi';
 import type { AdminUserResponse } from '@/features/admin/components/InviteUserModal';
 
 export interface InviteUserPayload {
@@ -35,6 +40,32 @@ export function useSetUserActiveStatus() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: adminKeys.users() });
+        },
+    });
+}
+
+export function useDeleteResource() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ type, resourceId }: { type: ResourceType; resourceId: string }) => {
+            return deleteResource(type, resourceId);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: adminKeys.all });
+        },
+    });
+}
+
+export function useRestoreResource() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ type, resourceId }: { type: ResourceType; resourceId: string }) => {
+            return restoreResource(type, resourceId);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: adminKeys.all });
         },
     });
 }

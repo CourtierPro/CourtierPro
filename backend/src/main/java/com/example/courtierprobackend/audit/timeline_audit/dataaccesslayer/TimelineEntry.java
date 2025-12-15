@@ -6,9 +6,12 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.Where;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "timeline_entries")
+@Where(clause = "deleted_at IS NULL")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -45,5 +48,8 @@ public class TimelineEntry {
     @Embedded
     private TransactionInfo transactionInfo;
 
+    // Soft delete fields
+    private LocalDateTime deletedAt;
+    private UUID deletedBy;
 }
 

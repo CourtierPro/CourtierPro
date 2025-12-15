@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Where;
 
 import java.util.UUID;
 
@@ -20,6 +21,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "document_requests")
+@Where(clause = "deleted_at IS NULL")
 @Data
 @Builder
 @AllArgsConstructor
@@ -62,4 +64,9 @@ public class DocumentRequest {
     private LocalDateTime lastUpdatedAt;
 
     private boolean visibleToClient;
+
+    // Soft delete fields
+    private LocalDateTime deletedAt;
+    private UUID deletedBy;
 }
+

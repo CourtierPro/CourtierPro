@@ -51,12 +51,8 @@ export function getErrorMessage(error: unknown, fallback = "An unexpected error 
     return fallback;
   }
 
-  // AppError or regular Error
-  if (error instanceof AppError || error instanceof Error) {
-    return error.message || fallback;
-  }
-
-  // AxiosError with response payload
+  // Check for axios error with response payload FIRST (before generic Error check)
+  // This is important because AxiosError extends Error, and we want response.data.error/message
   if (isAxiosError(error)) {
     const axiosError = error as AxiosError<Record<string, unknown>>;
 
@@ -74,6 +70,44 @@ export function getErrorMessage(error: unknown, fallback = "An unexpected error 
 
     if (axiosError.response?.statusText) {
       return axiosError.response.statusText;
+    }
+
+    // Only fall back to axios error.message if no response data
+    if (axiosError.message) {
+      return axiosError.message;
+    }
+  }
+
+  // Handle error objects that might have response inside (e.g., from mutations)
+  if (typeof error === "object") {
+    const err = error as Record<string, unknown>;
+
+    // Check for nested response structure
+    if (err.response && typeof err.response === "object") {
+      const resp = err.response as Record<string, unknown>;
+      if (resp.data && typeof resp.data === "object") {
+        const data = resp.data as Record<string, unknown>;
+        if (typeof data.message === "string" && data.message.trim().length > 0) {
+          return data.message;
+        }
+        if (typeof data.error === "string" && data.error.trim().length > 0) {
+          return data.error;
+        }
+      }
+    }
+  }
+
+  // AppError messages (custom app errors, not axios)
+  if (error instanceof AppError) {
+    return error.message || fallback;
+  }
+
+  // Generic Error - but skip if it looks like a default axios message
+  if (error instanceof Error) {
+    const msg = error.message;
+    // Don't return generic axios messages like "Request failed with status code 400"
+    if (msg && !msg.includes("Request failed with status code")) {
+      return msg;
     }
   }
 

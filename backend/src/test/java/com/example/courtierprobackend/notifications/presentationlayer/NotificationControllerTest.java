@@ -110,4 +110,16 @@ class NotificationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
     }
+    @Test
+    void getUserNotifications_whenEmpty_shouldReturnEmptyList() throws Exception {
+        // Arrange
+        String userId = "auth0|123";
+        when(notificationService.getUserNotifications(userId)).thenReturn(List.of());
+
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/notifications")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
 }

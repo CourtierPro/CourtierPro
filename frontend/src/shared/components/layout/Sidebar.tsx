@@ -13,6 +13,7 @@ import {
   Bell,
   Palette,
   MessageSquare,
+  Database,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/shared/utils/utils";
@@ -134,6 +135,11 @@ export function Sidebar({
             label: t("orgSettings"),
             route: "/admin/settings",
             icon: <Settings size={iconSize} />,
+          },
+          {
+            label: t("resources"),
+            route: "/admin/resources",
+            icon: <Database size={iconSize} />,
           },
           {
             label: t("loginAudit"),

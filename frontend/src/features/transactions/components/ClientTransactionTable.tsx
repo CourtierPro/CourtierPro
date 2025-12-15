@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Section } from "@/shared/components/branded/Section";
 import { StatusBadge } from "@/shared/components/branded/StatusBadge";
 import { Badge } from "@/shared/components/ui/badge";
-import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/shared/utils/stages';
+import { getStagesForSide, resolveStageIndex, getStageLabel } from '@/shared/utils/stages';
 import { type Transaction } from '@/features/transactions/api/queries';
 
 interface ClientTransactionTableProps {
@@ -17,7 +17,8 @@ export function ClientTransactionTable({ transactions, onNavigate }: ClientTrans
     const getStageName = (tx: Transaction) => {
         const stageEnums = getStagesForSide(tx.side);
         const idx = resolveStageIndex(tx.currentStage, stageEnums);
-        return enumToLabel(stageEnums[idx]);
+        // Use getStageLabel for translated value
+        return getStageLabel(stageEnums[idx], t, tx.side);
     };
 
     return (

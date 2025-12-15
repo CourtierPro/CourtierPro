@@ -163,4 +163,28 @@ class FeedbackServiceTest {
         assertThat(response.isSuccess()).isFalse();
         assertThat(response.getErrorMessage()).isEqualTo("Invalid configuration or request data.");
     }
+    @Test
+    void submitFeedback_AnonymousRequest_IgnoresUserEmail() {
+        // Arrange
+        FeedbackRequest request = FeedbackRequest.builder()
+                .type("bug")
+                .message("Anonymous bug")
+                .anonymous(true)
+                .build();
+
+        GitHubService.GitHubIssueResponse issueResponse = GitHubService.GitHubIssueResponse.builder()
+                .number(999)
+                .htmlUrl("http://url")
+                .build();
+        
+        when(gitHubService.createIssue(anyString(), anyString(), isNull())).thenReturn(issueResponse);
+
+        // Act
+        // Pass a user email, but expect it to be ignored (passed as null to gitHubService)
+        FeedbackResponse response = feedbackService.submitFeedback(request, "user@example.com");
+
+        // Assert
+        assertThat(response.isSuccess()).isTrue();
+        verify(gitHubService).createIssue("bug", "Anonymous bug", null);
+    }
 }
