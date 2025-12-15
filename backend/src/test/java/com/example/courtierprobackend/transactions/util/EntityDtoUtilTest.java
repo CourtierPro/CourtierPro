@@ -1,9 +1,10 @@
 package com.example.courtierprobackend.transactions.util;
 
 import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
-import com.example.courtierprobackend.transactions.datalayer.TimelineEntry;
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntry;
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
-import com.example.courtierprobackend.transactions.datalayer.dto.TimelineEntryDTO;
+import com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
@@ -164,23 +165,22 @@ class EntityDtoUtilTest {
         // Arrange
         UUID brokerUuid = UUID.randomUUID();
         TimelineEntry entry = TimelineEntry.builder()
-                .type(TimelineEntryType.NOTE)
-                .title("Important Note")
-                .note("This is the note content")
-                .visibleToClient(true)
-                .occurredAt(LocalDateTime.of(2025, 3, 10, 9, 30))
-                .addedByBrokerId(brokerUuid)
-                .build();
+            .type(TimelineEntryType.NOTE)
+            .note("This is the note content")
+            .visibleToClient(true)
+            .timestamp(java.time.Instant.parse("2025-03-10T09:30:00Z"))
+            .actorId(brokerUuid)
+            .build();
 
         // Act
         TimelineEntryDTO result = EntityDtoUtil.toTimelineDTO(entry);
 
         // Assert
         assertThat(result.getType()).isEqualTo(TimelineEntryType.NOTE);
-        assertThat(result.getTitle()).isEqualTo("Important Note");
+        assertThat(result.getTitle()).isNull();
         assertThat(result.getNote()).isEqualTo("This is the note content");
         assertThat(result.getVisibleToClient()).isTrue();
-        assertThat(result.getOccurredAt()).isEqualTo(LocalDateTime.of(2025, 3, 10, 9, 30));
+        assertThat(result.getOccurredAt()).isEqualTo(java.time.Instant.parse("2025-03-10T09:30:00Z"));
         assertThat(result.getAddedByBrokerId()).isEqualTo(brokerUuid);
     }
 
@@ -188,13 +188,12 @@ class EntityDtoUtilTest {
     void toTimelineDTO_withNullValues_handlesGracefully() {
         // Arrange
         TimelineEntry entry = TimelineEntry.builder()
-                .type(TimelineEntryType.NOTE)
-                .title(null)
-                .note(null)
-                .visibleToClient(null)
-                .occurredAt(null)
-                .addedByBrokerId(null)
-                .build();
+            .type(TimelineEntryType.NOTE)
+            .note(null)
+            // .visibleToClient(null) // Adapter si champ existe
+            // .occurredAt(null) // Adapter si champ existe
+            // .addedByBrokerId(null) // Adapter si champ existe
+            .build();
 
         // Act
         TimelineEntryDTO result = EntityDtoUtil.toTimelineDTO(entry);
@@ -211,14 +210,12 @@ class EntityDtoUtilTest {
     void toTimelineDTOs_withMultipleEntries_mapsAll() {
         // Arrange
         TimelineEntry entry1 = TimelineEntry.builder()
-                .type(TimelineEntryType.NOTE)
-                .title("Note 1")
-                .build();
+            .type(TimelineEntryType.NOTE)
+            .build();
         
         TimelineEntry entry2 = TimelineEntry.builder()
-                .type(TimelineEntryType.STAGE_CHANGE)
-                .title("Stage Change")
-                .build();
+            .type(TimelineEntryType.STAGE_CHANGE)
+            .build();
 
         List<TimelineEntry> entries = List.of(entry1, entry2);
 
@@ -227,8 +224,8 @@ class EntityDtoUtilTest {
 
         // Assert
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).getTitle()).isEqualTo("Note 1");
-        assertThat(result.get(1).getTitle()).isEqualTo("Stage Change");
+        assertThat(result.get(0).getTitle()).isNull();
+        assertThat(result.get(1).getTitle()).isNull();
     }
 
     @Test
