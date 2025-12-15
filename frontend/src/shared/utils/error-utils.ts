@@ -79,7 +79,7 @@ export function getErrorMessage(error: unknown, fallback = "An unexpected error 
   }
 
   // Handle error objects that might have response inside (e.g., from mutations)
-  if (typeof error === "object" && error !== null) {
+  if (typeof error === "object") {
     const err = error as Record<string, unknown>;
 
     // Check for nested response structure
