@@ -23,7 +23,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata (tags, labels) for Backend
         id: meta-backend
@@ -72,6 +72,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository (for docker-compose file)
+        uses: actions/checkout@v4
+
+      - name: Transfer Docker Compose file
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.prod.yml"
+          target: "courtierpro"
+
       - name: Deploy to EC2 (rollback if containers fail)
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -101,48 +113,59 @@ jobs:
               return 1
             }
 
-            if ! command -v git >/dev/null 2>&1; then
-              echo "git is not installed on this server."
+            # Ensure dependencies
+            if ! command -v curl >/dev/null 2>&1; then
+              echo "curl is not installed. Please install it."
               exit 1
             fi
 
-            if [ ! -d "$HOME/courtierpro/.git" ]; then
-              rm -rf "$HOME/courtierpro"
-              git clone https://github.com/CourtierPro/CourtierPro.git "$HOME/courtierpro"
+            mkdir -p ~/courtierpro
+            cd ~/courtierpro
+
+            # 1. Backup: Tag current images as 'rollback' before pulling new ones
+            echo "Backing up current images..."
+            if docker image inspect ghcr.io/${{ github.repository }}/backend:latest >/dev/null 2>&1; then
+              docker tag ghcr.io/${{ github.repository }}/backend:latest ghcr.io/${{ github.repository }}/backend:rollback
+            fi
+            if docker image inspect ghcr.io/${{ github.repository }}/frontend:latest >/dev/null 2>&1; then
+              docker tag ghcr.io/${{ github.repository }}/frontend:latest ghcr.io/${{ github.repository }}/frontend:rollback
             fi
 
-            cd "$HOME/courtierpro"
-            git pull origin main
-
-            # Capture old container IDs for rollback
-            OLD_BACKEND=$(docker ps -q -f name=courtierpro_backend)
-            OLD_FRONTEND=$(docker ps -q -f name=courtierpro_frontend)
-
-            # Pull and start new containers
+            # 2. Deploy New Version
+            echo "Pulling new images..."
             docker compose -f docker-compose.prod.yml pull
+
+            echo "Starting services..."
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
-            # Health Checks
-            # Backend uses Spring Boot Actuator
-            # Frontend uses Nginx (check root)
+            # 3. Wait for DB / Services to Init
+            echo "Waiting 15s for services to stabilize..."
+            sleep 15
+
+            # 4. Health Checks with Rollback
+            # Backend uses Spring Boot Actuator, Frontend uses Nginx
             if check_health "http://localhost:8080/actuator/health" && check_health "http://localhost:8081"; then
               echo "Deployment successful!"
-              # Prune only dangling images to avoid removing rollback-capable images
-              docker image prune -f
+              docker system prune -af
             else
-              echo "Health checks failed! Initiating rollback..."
-              docker stop courtierpro_backend || true
-              docker stop courtierpro_frontend || true
+              echo "Health checks failed! Initiating rollback to previous version..."
 
-              if [ -n "$OLD_BACKEND" ]; then
-                echo "Restoring old backend..."
-                docker start $OLD_BACKEND
+              # Restore logic: Tag the 'rollback' image back to 'latest' locally
+              # This forces 'compose up' to use the old image SHA
+              
+              if docker image inspect ghcr.io/${{ github.repository }}/backend:rollback >/dev/null 2>&1; then
+                echo "Restoring Backend..."
+                docker tag ghcr.io/${{ github.repository }}/backend:rollback ghcr.io/${{ github.repository }}/backend:latest
               fi
 
-              if [ -n "$OLD_FRONTEND" ]; then
-                echo "Restoring old frontend..."
-                docker start $OLD_FRONTEND
+              if docker image inspect ghcr.io/${{ github.repository }}/frontend:rollback >/dev/null 2>&1; then
+                echo "Restoring Frontend..."
+                docker tag ghcr.io/${{ github.repository }}/frontend:rollback ghcr.io/${{ github.repository }}/frontend:latest
               fi
 
+              # Restart with the restored images
+              docker compose -f docker-compose.prod.yml up -d --remove-orphans
+              
+              echo "Rollback completed. Exiting with failure."
               exit 1
             fi
