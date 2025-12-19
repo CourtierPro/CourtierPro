@@ -154,7 +154,7 @@ jobs:
             # Backend uses Spring Boot Actuator, Frontend uses Nginx
             if check_health "http://localhost:8080/actuator/health" && check_health "http://localhost:8081"; then
               echo "Deployment successful!"
-              docker system prune -af
+              docker system prune -f
             else
               echo "Health checks failed! Initiating rollback to previous version..."
 
