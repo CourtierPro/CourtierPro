@@ -18,6 +18,14 @@ interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
     handleLocally?: boolean;
 }
 
+declare global {
+    interface Window {
+        env: {
+            VITE_API_URL: string;
+        };
+    }
+}
+
 // Small “bridge” to connect Auth0 to axios
 let accessTokenProvider:
     | (() => Promise<string | undefined>)
@@ -35,7 +43,7 @@ const API_PREFIX = ""; // change to "/api/v1" if VITE_API_URL is just "http://lo
 
 const createAxiosInstance = (): AxiosInstance => {
     const instance = axios.create({
-        baseURL: import.meta.env.VITE_API_URL,
+        baseURL: window.env?.VITE_API_URL || import.meta.env.VITE_API_URL,
         headers: {
             "Content-Type": "application/json",
         },
