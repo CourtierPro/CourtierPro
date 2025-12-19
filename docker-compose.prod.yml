@@ -1,6 +1,6 @@
 services:
   backend:
-    image: ghcr.io/courtierpro/courtierpro/backend:latest
+    image: ghcr.io/courtierpro/courtierpro/backend:${IMAGE_TAG:-latest}
     container_name: courtierpro_backend
     ports:
       - "8080:8080"
@@ -24,7 +24,7 @@ services:
       - db
 
   frontend:
-    image: ghcr.io/courtierpro/courtierpro/frontend:latest
+    image: ghcr.io/courtierpro/courtierpro/frontend:${IMAGE_TAG:-latest}
     container_name: courtierpro_frontend
     ports:
       - "8081:80"
