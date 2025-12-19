@@ -127,7 +127,8 @@ jobs:
             # Frontend uses Nginx (check root)
             if check_health "http://localhost:8080/actuator/health" && check_health "http://localhost:8081"; then
               echo "Deployment successful!"
-              docker system prune -af
+              # Prune only dangling images to avoid removing rollback-capable images
+              docker image prune -f
             else
               echo "Health checks failed! Initiating rollback..."
               docker stop courtierpro_backend || true
