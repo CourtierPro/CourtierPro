@@ -119,9 +119,15 @@ jobs:
               exit 1
             fi
 
-            mkdir -p ~/courtierpro
-            cd ~/courtierpro
+            # Handle migration from legacy Git-based deployment, if present
+            if [ -d "$HOME/courtierpro/.git" ] && [ ! -f "$HOME/courtierpro/docker-compose.prod.yml" ]; then
+              echo "Detected legacy Git-based deployment in ~/courtierpro. Backing it up..."
+              ts=$(date +%Y%m%d%H%M%S)
+              mv "$HOME/courtierpro" "$HOME/courtierpro_legacy_$ts"
+            fi
 
+            mkdir -p "$HOME/courtierpro"
+            cd "$HOME/courtierpro"
             # 1. Backup: Tag current images as 'rollback' before pulling new ones
             echo "Backing up current images..."
             if docker image inspect ghcr.io/${{ github.repository }}/backend:latest >/dev/null 2>&1; then
