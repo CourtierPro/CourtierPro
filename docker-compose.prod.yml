@@ -8,8 +8,8 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       DB_HOST: db
       DB_PORT: 5432
-      DB_USER: courtier
-      DB_PASS: courtier
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
       AUTH0_DOMAIN: ${AUTH0_DOMAIN}
       AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
       AUTH0_MGMT_CLIENT_ID: ${AUTH0_MGMT_CLIENT_ID}
@@ -34,8 +34,8 @@ services:
     container_name: courtierpro_db
     environment:
       POSTGRES_DB: courtierpro
-      POSTGRES_USER: courtier
-      POSTGRES_PASSWORD: courtier
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
     volumes:
       - pgdata:/var/lib/postgresql/data
 

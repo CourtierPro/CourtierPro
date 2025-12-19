@@ -86,10 +86,23 @@ jobs:
 
       - name: Deploy to EC2 (rollback if containers fail)
         uses: appleboy/ssh-action@v0.1.7
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          AUTH0_DOMAIN: ${{ secrets.AUTH0_DOMAIN }}
+          AUTH0_AUDIENCE: ${{ secrets.AUTH0_AUDIENCE }}
+          AUTH0_MGMT_CLIENT_ID: ${{ secrets.AUTH0_MGMT_CLIENT_ID }}
+          AUTH0_MGMT_CLIENT_SECRET: ${{ secrets.AUTH0_MGMT_CLIENT_SECRET }}
+          AUTH0_MGMT_AUDIENCE: ${{ secrets.AUTH0_MGMT_AUDIENCE }}
+          GITHUB_APP_ID: ${{ secrets.GITHUB_APP_ID }}
+          GITHUB_APP_INSTALLATION_ID: ${{ secrets.GITHUB_APP_INSTALLATION_ID }}
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DB_USER,DB_PASS,AUTH0_DOMAIN,AUTH0_AUDIENCE,AUTH0_MGMT_CLIENT_ID,AUTH0_MGMT_CLIENT_SECRET,AUTH0_MGMT_AUDIENCE,GITHUB_APP_ID,GITHUB_APP_INSTALLATION_ID,GITHUB_APP_PRIVATE_KEY,GITHUB_TOKEN
           script: |
             set -e
 
@@ -147,7 +160,10 @@ jobs:
 
             # 2. Deploy New Version
             echo "Logging into GitHub Container Registry (GHCR)..."
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            if ! echo "$GITHUB_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin; then
+              echo "Error: Failed to authenticate with GHCR. Please ensure GITHUB_TOKEN has 'packages: read' permissions."
+              exit 1
+            fi
             echo "Pulling new images..."
             docker compose -f docker-compose.prod.yml pull
 
@@ -162,7 +178,7 @@ jobs:
             # Backend uses Spring Boot Actuator, Frontend uses Nginx
             if check_health "http://localhost:8080/actuator/health" && curl -fsS "http://localhost:8081" | grep -q "CourtierPro"; then
               echo "Deployment successful!"
-              docker system prune -f
+              docker image prune -f
             else
               echo "Health checks failed! Initiating rollback to previous version..."
 
