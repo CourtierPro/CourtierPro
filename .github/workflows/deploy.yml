@@ -96,8 +96,8 @@ jobs:
             # Helper function for health checks
             check_health() {
               url=$1
-              timeout=60
-              interval=5
+              timeout=180
+              interval=10
               elapsed=0
 
               echo "Waiting for $url to be healthy (status=UP)..."
@@ -129,6 +129,13 @@ jobs:
 
             mkdir -p "$HOME/courtierpro"
             cd "$HOME/courtierpro"
+
+            # Verify configuration file exists
+            if [ ! -f "docker-compose.prod.yml" ]; then
+              echo "Error: docker-compose.prod.yml not found in $HOME/courtierpro configuration missing."
+              exit 1
+            fi
+
             # 1. Backup: Tag current images as 'rollback' before pulling new ones
             echo "Backing up current images..."
             if docker image inspect ghcr.io/${{ github.repository }}/backend:latest >/dev/null 2>&1; then
@@ -159,20 +166,17 @@ jobs:
             else
               echo "Health checks failed! Initiating rollback to previous version..."
 
-              # Restore logic: Tag the 'rollback' image back to 'latest' locally
-              # This forces 'compose up' to use the old image SHA
+              # Restore logic: Switch to 'rollback' tag explicitly
+              export IMAGE_TAG=rollback
               
               if docker image inspect ghcr.io/${{ github.repository }}/backend:rollback >/dev/null 2>&1; then
-                echo "Restoring Backend..."
-                docker tag ghcr.io/${{ github.repository }}/backend:rollback ghcr.io/${{ github.repository }}/backend:latest
+                 echo "Rolling back Backend..."
               fi
-
               if docker image inspect ghcr.io/${{ github.repository }}/frontend:rollback >/dev/null 2>&1; then
-                echo "Restoring Frontend..."
-                docker tag ghcr.io/${{ github.repository }}/frontend:rollback ghcr.io/${{ github.repository }}/frontend:latest
+                 echo "Rolling back Frontend..."
               fi
 
-              # Restart with the restored images
+              # Restart with the rollback images
               docker compose -f docker-compose.prod.yml up -d --remove-orphans
               
               echo "Rollback completed. Exiting with failure."
