@@ -100,9 +100,10 @@ jobs:
               interval=5
               elapsed=0
 
-              echo "Waiting for $url to be healthy..."
+              echo "Waiting for $url to be healthy (status=UP)..."
               while [ $elapsed -lt $timeout ]; do
-                if curl -s -f "$url" > /dev/null; then
+                response=$(curl -s -f "$url" || true)
+                if echo "$response" | grep -q '"status"[[:space:]]*:[[:space:]]*"UP"'; then
                   echo "$url is up!"
                   return 0
                 fi
