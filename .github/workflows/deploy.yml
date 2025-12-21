@@ -1,72 +1,104 @@
-name: CourtierPro CI/CD
+name: Deploy to AWS ECS
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY_BACKEND: courtierpro-backend
+  ECR_REPOSITORY_FRONTEND: courtierpro-frontend
+  ECS_SERVICE_BACKEND: courtierpro-backend-service
+  ECS_SERVICE_FRONTEND: courtierpro-frontend-service
+  ECS_CLUSTER: courtierpro-cluster
+  ECS_TASK_DEFINITION_BACKEND: courtierpro-backend-task
+  ECS_TASK_DEFINITION_FRONTEND: courtierpro-frontend-task
+  CONTAINER_NAME_BACKEND: backend-container
+  CONTAINER_NAME_FRONTEND: frontend-container
 
 jobs:
-  build-and-push:
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    environment: production
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Extract metadata (tags, labels) for Backend
-        id: meta-backend
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}/backend
-          tags: |
-            type=raw,value=latest
-            type=sha
-          labels: |
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.title=CourtierPro Backend
-            org.opencontainers.image.description=Backend service for CourtierPro application
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Extract metadata (tags, labels) for Frontend
-        id: meta-frontend
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}/frontend
-          tags: |
-            type=raw,value=latest
-            type=sha
-          labels: |
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.title=CourtierPro Frontend
-            org.opencontainers.image.description=Frontend application for CourtierPro
+      # Backend Deployment
+      - name: Build, tag, and push backend image to Amazon ECR
+        id: build-backend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG ./backend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Build and push Backend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: true
-          tags: ${{ steps.meta-backend.outputs.tags }}
-          labels: ${{ steps.meta-backend.outputs.labels }}
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,mode=max,scope=backend
+      - name: Download backend task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION_BACKEND }} --query taskDefinition > backend-task-def.json
 
-      - name: Build and push Frontend image
-        uses: docker/build-push-action@v5
+      - name: Fill in the new backend image ID in the Amazon ECS task definition
+        id: task-def-backend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          context: ./frontend
-          push: true
-          tags: ${{ steps.meta-frontend.outputs.tags }}
-          labels: ${{ steps.meta-frontend.outputs.labels }}
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,mode=max,scope=frontend
+          task-definition: backend-task-def.json
+          container-name: ${{ env.CONTAINER_NAME_BACKEND }}
+          image: ${{ steps.build-backend.outputs.image }}
+
+      - name: Deploy backend Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def-backend.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE_BACKEND }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      # Frontend Deployment
+      - name: Build, tag, and push frontend image to Amazon ECR
+        id: build-frontend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG ./frontend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Download frontend task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION_FRONTEND }} --query taskDefinition > frontend-task-def.json
+
+      - name: Fill in the new frontend image ID in the Amazon ECS task definition
+        id: task-def-frontend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: frontend-task-def.json
+          container-name: ${{ env.CONTAINER_NAME_FRONTEND }}
+          image: ${{ steps.build-frontend.outputs.image }}
+
+      - name: Deploy frontend Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def-frontend.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE_FRONTEND }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
