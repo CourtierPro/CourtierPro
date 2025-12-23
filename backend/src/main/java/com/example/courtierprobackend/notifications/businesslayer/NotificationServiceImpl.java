@@ -72,18 +72,21 @@ public class NotificationServiceImpl implements NotificationService {
     public void sendBroadcast(BroadcastRequestDTO request, String adminId) {
         List<UserAccount> activeUsers = userAccountRepository.findByActiveTrue();
 
-        for (UserAccount user : activeUsers) {
-            Notification notification = Notification.builder()
-                    .publicId(UUID.randomUUID().toString())
-                    .recipientId(user.getId().toString())
-                    .title(request.getTitle())
-                    .message(request.getMessage())
-                    .type(com.example.courtierprobackend.notifications.datalayer.enums.NotificationType.BROADCAST)
-                    .isRead(false)
-                    .createdAt(LocalDateTime.now())
-                    .relatedTransactionId(null)
-                    .build();
-            notificationRepository.save(notification);
+        List<Notification> notifications = activeUsers.stream()
+                .map(user -> Notification.builder()
+                        .publicId(UUID.randomUUID().toString())
+                        .recipientId(user.getId().toString())
+                        .title(request.getTitle())
+                        .message(request.getMessage())
+                        .type(com.example.courtierprobackend.notifications.datalayer.enums.NotificationType.BROADCAST)
+                        .isRead(false)
+                        .createdAt(LocalDateTime.now())
+                        .relatedTransactionId(null)
+                        .build())
+                .toList();
+
+        if (!notifications.isEmpty()) {
+            notificationRepository.saveAll(notifications);
         }
 
         BroadcastAudit audit = BroadcastAudit.builder()

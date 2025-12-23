@@ -167,12 +167,14 @@ class NotificationServiceImplTest {
         notificationService.sendBroadcast(request, adminId);
 
         // Assert
-        // Should save 2 notifications
-        org.mockito.ArgumentCaptor<Notification> notificationCaptor = org.mockito.ArgumentCaptor
-                .forClass(Notification.class);
-        verify(notificationRepository, org.mockito.Mockito.times(2)).save(notificationCaptor.capture());
+        // Should save all notifications in one batch
+        @SuppressWarnings("unchecked")
+        org.mockito.ArgumentCaptor<List<Notification>> notificationsCaptor = org.mockito.ArgumentCaptor
+                .forClass(List.class);
+        verify(notificationRepository).saveAll(notificationsCaptor.capture());
 
-        List<Notification> capturedNotifications = notificationCaptor.getAllValues();
+        List<Notification> capturedNotifications = notificationsCaptor.getValue();
+        assertThat(capturedNotifications).hasSize(2);
         assertThat(capturedNotifications).allMatch(n -> n
                 .getType() == com.example.courtierprobackend.notifications.datalayer.enums.NotificationType.BROADCAST);
 
@@ -201,8 +203,8 @@ class NotificationServiceImplTest {
         notificationService.sendBroadcast(request, adminId);
 
         // Assert
-        // Should save 0 notifications
-        verify(notificationRepository, org.mockito.Mockito.never()).save(any(Notification.class));
+        // Should NOT save any notifications (saveAll not called)
+        verify(notificationRepository, org.mockito.Mockito.never()).saveAll(any());
 
         // Should save 1 audit log with count 0
         org.mockito.ArgumentCaptor<com.example.courtierprobackend.notifications.datalayer.BroadcastAudit> auditCaptor = org.mockito.ArgumentCaptor
