@@ -6,7 +6,14 @@ import com.example.courtierprobackend.notifications.datalayer.NotificationReposi
 import com.example.courtierprobackend.notifications.presentationlayer.NotificationMapper;
 import com.example.courtierprobackend.notifications.presentationlayer.NotificationResponseDTO;
 import lombok.RequiredArgsConstructor;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
+import com.example.courtierprobackend.notifications.datalayer.BroadcastAudit;
+import com.example.courtierprobackend.notifications.datalayer.BroadcastAuditRepository;
+import com.example.courtierprobackend.notifications.presentationlayer.BroadcastRequestDTO;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 import java.util.List;
 
@@ -17,6 +24,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
     private final com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
+    private final BroadcastAuditRepository broadcastAuditRepository;
 
     @Override
     @org.springframework.transaction.annotation.Transactional
@@ -56,5 +64,35 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setRead(true);
         Notification saved = notificationRepository.save(notification);
         return notificationMapper.toResponseDTO(saved);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void sendBroadcast(BroadcastRequestDTO request, String adminId) {
+        List<UserAccount> activeUsers = userAccountRepository.findByActiveTrue();
+
+        for (UserAccount user : activeUsers) {
+            Notification notification = Notification.builder()
+                    .publicId(UUID.randomUUID().toString())
+                    .recipientId(user.getId().toString())
+                    .title(request.getTitle())
+                    .message(request.getMessage())
+                    .isRead(false)
+                    .createdAt(LocalDateTime.now())
+                    .relatedTransactionId(null)
+                    .build();
+            notificationRepository.save(notification);
+        }
+
+        BroadcastAudit audit = BroadcastAudit.builder()
+                .id(UUID.randomUUID())
+                .adminId(adminId)
+                .title(request.getTitle())
+                .message(request.getMessage())
+                .sentAt(LocalDateTime.now())
+                .recipientCount(activeUsers.size())
+                .build();
+
+        broadcastAuditRepository.save(audit);
     }
 }

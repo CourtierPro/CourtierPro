@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
     username: sa
     password: sa
     driver-class-name: org.h2.Driver
@@ -44,7 +44,7 @@ spring:
 management:
   health:
     mail:
-      enabled: false  # Disable mail health check in tests
+      enabled: false # Disable mail health check in tests
   endpoints:
     web:
       exposure:
