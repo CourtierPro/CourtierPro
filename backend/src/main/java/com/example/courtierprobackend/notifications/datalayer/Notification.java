@@ -32,6 +32,10 @@ public class Notification {
     private String message;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private com.example.courtierprobackend.notifications.datalayer.enums.NotificationType type; // GENERAL, BROADCAST
+
+    @Column(nullable = false)
     private boolean isRead;
 
     private String relatedTransactionId; // Optional link

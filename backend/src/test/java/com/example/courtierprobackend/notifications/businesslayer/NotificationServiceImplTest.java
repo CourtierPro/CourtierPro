@@ -55,7 +55,11 @@ class NotificationServiceImplTest {
         notificationService.createNotification(recipientId, title, message, relatedTransactionId);
 
         // Assert
-        verify(notificationRepository).save(any(Notification.class));
+        org.mockito.ArgumentCaptor<Notification> notificationCaptor = org.mockito.ArgumentCaptor
+                .forClass(Notification.class);
+        verify(notificationRepository).save(notificationCaptor.capture());
+        assertThat(notificationCaptor.getValue().getType())
+                .isEqualTo(com.example.courtierprobackend.notifications.datalayer.enums.NotificationType.GENERAL);
     }
 
     @Test
@@ -164,7 +168,13 @@ class NotificationServiceImplTest {
 
         // Assert
         // Should save 2 notifications
-        verify(notificationRepository, org.mockito.Mockito.times(2)).save(any(Notification.class));
+        org.mockito.ArgumentCaptor<Notification> notificationCaptor = org.mockito.ArgumentCaptor
+                .forClass(Notification.class);
+        verify(notificationRepository, org.mockito.Mockito.times(2)).save(notificationCaptor.capture());
+
+        List<Notification> capturedNotifications = notificationCaptor.getAllValues();
+        assertThat(capturedNotifications).allMatch(n -> n
+                .getType() == com.example.courtierprobackend.notifications.datalayer.enums.NotificationType.BROADCAST);
 
         // Should save 1 audit log
         org.mockito.ArgumentCaptor<com.example.courtierprobackend.notifications.datalayer.BroadcastAudit> auditCaptor = org.mockito.ArgumentCaptor
