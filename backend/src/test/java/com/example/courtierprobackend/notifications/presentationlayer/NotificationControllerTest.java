@@ -1,5 +1,6 @@
 package com.example.courtierprobackend.notifications.presentationlayer;
 
+import com.example.courtierprobackend.notifications.presentationlayer.BroadcastRequestDTO;
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -168,6 +169,34 @@ class NotificationControllerTest {
     @Test
     void sendBroadcast_withEmptyMessage_shouldReturnBadRequest() throws Exception {
         BroadcastRequestDTO request = new BroadcastRequestDTO("Title", "");
+
+        mockMvc.perform(post("/api/v1/notifications/broadcast")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))
+                        .jwt(jwt -> jwt.subject("auth0|admin")))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void sendBroadcast_withTitleTooLong_shouldReturnBadRequest() throws Exception {
+        String longTitle = "a".repeat(101);
+        BroadcastRequestDTO request = new BroadcastRequestDTO(longTitle, "Message");
+
+        mockMvc.perform(post("/api/v1/notifications/broadcast")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))
+                        .jwt(jwt -> jwt.subject("auth0|admin")))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void sendBroadcast_withMessageTooLong_shouldReturnBadRequest() throws Exception {
+        String longMessage = "a".repeat(501);
+        BroadcastRequestDTO request = new BroadcastRequestDTO("Title", longMessage);
 
         mockMvc.perform(post("/api/v1/notifications/broadcast")
                 .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))

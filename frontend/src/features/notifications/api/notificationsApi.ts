@@ -1,13 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/shared/api/axiosInstance';
 
+export const NotificationType = {
+    GENERAL: 'GENERAL',
+    BROADCAST: 'BROADCAST',
+} as const;
+
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];
+
 export interface NotificationResponseDTO {
     publicId: string;
     title: string;
     message: string;
     read: boolean;
     relatedTransactionId: string | null;
-    type: 'GENERAL' | 'BROADCAST';
+    type: NotificationType;
     createdAt: string; // ISO timestamp
 }
 
