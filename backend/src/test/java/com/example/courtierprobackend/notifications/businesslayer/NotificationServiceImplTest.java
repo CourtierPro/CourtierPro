@@ -32,12 +32,15 @@ class NotificationServiceImplTest {
     @Mock
     private com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
 
+    @Mock
+    private com.example.courtierprobackend.notifications.datalayer.BroadcastAuditRepository broadcastAuditRepository;
+
     private NotificationService notificationService;
 
     @BeforeEach
     void setup() {
         notificationService = new NotificationServiceImpl(notificationRepository, notificationMapper,
-                userAccountRepository);
+                userAccountRepository, broadcastAuditRepository);
     }
 
     @Test
@@ -138,5 +141,64 @@ class NotificationServiceImplTest {
                 .assertThrows(com.example.courtierprobackend.common.exceptions.NotFoundException.class, () -> {
                     notificationService.getUserNotifications(auth0UserId);
                 });
+    }
+
+    @Test
+    void sendBroadcast_shouldNotifyActiveUsersAndLogAudit() {
+        // Arrange
+        com.example.courtierprobackend.notifications.presentationlayer.BroadcastRequestDTO request = new com.example.courtierprobackend.notifications.presentationlayer.BroadcastRequestDTO(
+                "Title", "Message");
+        String adminId = "auth0|admin";
+
+        com.example.courtierprobackend.user.dataaccesslayer.UserAccount user1 = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        user1.setId(UUID.randomUUID());
+        com.example.courtierprobackend.user.dataaccesslayer.UserAccount user2 = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        user2.setId(UUID.randomUUID());
+
+        List<com.example.courtierprobackend.user.dataaccesslayer.UserAccount> activeUsers = List.of(user1, user2);
+
+        when(userAccountRepository.findByActiveTrue()).thenReturn(activeUsers);
+
+        // Act
+        notificationService.sendBroadcast(request, adminId);
+
+        // Assert
+        // Should save 2 notifications
+        verify(notificationRepository, org.mockito.Mockito.times(2)).save(any(Notification.class));
+
+        // Should save 1 audit log
+        org.mockito.ArgumentCaptor<com.example.courtierprobackend.notifications.datalayer.BroadcastAudit> auditCaptor = org.mockito.ArgumentCaptor
+                .forClass(com.example.courtierprobackend.notifications.datalayer.BroadcastAudit.class);
+        verify(broadcastAuditRepository).save(auditCaptor.capture());
+
+        com.example.courtierprobackend.notifications.datalayer.BroadcastAudit capturedAudit = auditCaptor.getValue();
+        assertThat(capturedAudit.getAdminId()).isEqualTo(adminId);
+        assertThat(capturedAudit.getTitle()).isEqualTo("Title");
+        assertThat(capturedAudit.getMessage()).isEqualTo("Message");
+        assertThat(capturedAudit.getRecipientCount()).isEqualTo(2);
+    }
+
+    @Test
+    void sendBroadcast_shouldLogAuditEvenIfNoUsers() {
+        // Arrange
+        com.example.courtierprobackend.notifications.presentationlayer.BroadcastRequestDTO request = new com.example.courtierprobackend.notifications.presentationlayer.BroadcastRequestDTO(
+                "Title", "Message");
+        String adminId = "auth0|admin";
+
+        when(userAccountRepository.findByActiveTrue()).thenReturn(List.of());
+
+        // Act
+        notificationService.sendBroadcast(request, adminId);
+
+        // Assert
+        // Should save 0 notifications
+        verify(notificationRepository, org.mockito.Mockito.never()).save(any(Notification.class));
+
+        // Should save 1 audit log with count 0
+        org.mockito.ArgumentCaptor<com.example.courtierprobackend.notifications.datalayer.BroadcastAudit> auditCaptor = org.mockito.ArgumentCaptor
+                .forClass(com.example.courtierprobackend.notifications.datalayer.BroadcastAudit.class);
+        verify(broadcastAuditRepository).save(auditCaptor.capture());
+
+        assertThat(auditCaptor.getValue().getRecipientCount()).isZero();
     }
 }
