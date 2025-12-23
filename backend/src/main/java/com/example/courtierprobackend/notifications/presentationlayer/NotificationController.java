@@ -36,4 +36,15 @@ public class NotificationController {
         }
         return ResponseEntity.ok(notificationService.markAsRead(uuid.toString()));
     }
+
+    @PostMapping("/broadcast")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> sendBroadcast(
+            @jakarta.validation.Valid @RequestBody com.example.courtierprobackend.notifications.presentationlayer.BroadcastRequestDTO request,
+            @AuthenticationPrincipal Jwt principal) {
+        // Extract admin ID from principal, e.g. "auth0|..."
+        String adminId = principal.getSubject();
+        notificationService.sendBroadcast(request, adminId);
+        return ResponseEntity.ok().build();
+    }
 }
