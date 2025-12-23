@@ -1,62 +1,54 @@
 package com.example.courtierprobackend.notifications.presentationlayer;
 
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.MethodParameter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.bind.support.WebDataBinderFactory;
-import org.springframework.web.context.request.NativeWebRequest;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
-@ExtendWith(MockitoExtension.class)
+import com.example.courtierprobackend.security.UserContextFilter;
+
+@WebMvcTest(NotificationController.class)
+@EnableMethodSecurity
+@org.springframework.context.annotation.Import(com.example.courtierprobackend.config.SecurityConfig.class)
 class NotificationControllerTest {
 
-    @Mock
-    private NotificationService notificationService;
-
-    @InjectMocks
-    private NotificationController notificationController;
-
+    @Autowired
     private MockMvc mockMvc;
 
-    @BeforeEach
-    void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(notificationController)
-                .setCustomArgumentResolvers(new HandlerMethodArgumentResolver() {
-                    @Override
-                    public boolean supportsParameter(MethodParameter parameter) {
-                        return parameter.getParameterType().equals(Jwt.class);
-                    }
+    @MockBean
+    private NotificationService notificationService;
 
-                    @Override
-                    public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
-                            NativeWebRequest webRequest, WebDataBinderFactory binderFactory) throws Exception {
-                        return Jwt.withTokenValue("token")
-                                .header("alg", "none")
-                                .claim("sub", "auth0|123")
-                                .build();
-                    }
-                })
-                .build();
+    @MockBean
+    private UserContextFilter userContextFilter;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setup() throws Exception {
+        org.mockito.Mockito.doAnswer(invocation -> {
+            jakarta.servlet.FilterChain chain = invocation.getArgument(2);
+            chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(userContextFilter).doFilter(any(), any(), any());
     }
 
     @Test
@@ -68,11 +60,13 @@ class NotificationControllerTest {
         dto.setTitle("Test Notification");
         dto.setCreatedAt(java.time.LocalDateTime.of(2023, 1, 1, 12, 0, 0));
 
-        when(notificationService.getUserNotifications(userId)).thenReturn(List.of(dto));
+        when(notificationService.getUserNotifications(anyString())).thenReturn(List.of(dto));
 
         // Act & Assert
         mockMvc.perform(get("/api/v1/notifications")
+                .with(jwt().jwt(jwt -> jwt.subject(userId)))
                 .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].title").value("Test Notification"))
                 .andExpect(jsonPath("$[0].publicId").value(dto.getPublicId()))
@@ -93,6 +87,8 @@ class NotificationControllerTest {
 
         // Act & Assert
         mockMvc.perform(put("/api/v1/notifications/" + publicId + "/read")
+                .with(jwt().jwt(jwt -> jwt.subject("auth0|123")))
+                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.read").value(true));
@@ -107,9 +103,12 @@ class NotificationControllerTest {
 
         // Act & Assert
         mockMvc.perform(put("/api/v1/notifications/" + invalidId + "/read")
+                .with(jwt().jwt(jwt -> jwt.subject("auth0|123")))
+                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
     }
+
     @Test
     void getUserNotifications_whenEmpty_shouldReturnEmptyList() throws Exception {
         // Arrange
@@ -118,8 +117,64 @@ class NotificationControllerTest {
 
         // Act & Assert
         mockMvc.perform(get("/api/v1/notifications")
+                .with(jwt().jwt(jwt -> jwt.subject(userId)))
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void sendBroadcast_shouldReturnOk_whenAdmin() throws Exception {
+        BroadcastRequestDTO request = new BroadcastRequestDTO("Title", "Message");
+
+        mockMvc.perform(post("/api/v1/notifications/broadcast")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))
+                        .jwt(jwt -> jwt.subject("auth0|admin")))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        verify(notificationService).sendBroadcast(any(BroadcastRequestDTO.class), any());
+    }
+
+    @Test
+    void sendBroadcast_shouldReturnForbidden_whenNotAdmin() throws Exception {
+        BroadcastRequestDTO request = new BroadcastRequestDTO("Title", "Message");
+
+        mockMvc.perform(post("/api/v1/notifications/broadcast")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")).jwt(jwt -> jwt.subject("auth0|user")))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+
+        verify(notificationService, org.mockito.Mockito.never()).sendBroadcast(any(), any());
+    }
+
+    @Test
+    void sendBroadcast_withEmptyTitle_shouldReturnBadRequest() throws Exception {
+        BroadcastRequestDTO request = new BroadcastRequestDTO("", "Message");
+
+        mockMvc.perform(post("/api/v1/notifications/broadcast")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))
+                        .jwt(jwt -> jwt.subject("auth0|admin")))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void sendBroadcast_withEmptyMessage_shouldReturnBadRequest() throws Exception {
+        BroadcastRequestDTO request = new BroadcastRequestDTO("Title", "");
+
+        mockMvc.perform(post("/api/v1/notifications/broadcast")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))
+                        .jwt(jwt -> jwt.subject("auth0|admin")))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 }
