@@ -243,6 +243,8 @@ CREATE TABLE IF NOT EXISTS broadcast_audit (
     recipient_count INTEGER NOT NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_broadcast_audit_admin_id ON broadcast_audit(admin_id);
+CREATE INDEX IF NOT EXISTS idx_broadcast_audit_sent_at ON broadcast_audit(sent_at);
 
 -- Login Audit
 CREATE TABLE IF NOT EXISTS login_audit_events (
