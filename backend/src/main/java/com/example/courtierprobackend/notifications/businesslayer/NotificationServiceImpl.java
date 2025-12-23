@@ -69,6 +69,24 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional
+    /**
+     * Sends a broadcast notification to all active users in the system and records an audit entry.
+     * <p>
+     * For each active {@link UserAccount}, this method creates and persists a new
+     * {@link Notification} of type {@code BROADCAST} using the title and message provided
+     * in the {@link BroadcastRequestDTO}. In addition, a {@link BroadcastAudit} record is
+     * created to capture details about the broadcast operation for auditing purposes.
+     *
+     * @param request the broadcast request containing the title and message to be sent
+     *                to all active users.
+     * @param adminId the identifier of the administrator initiating the broadcast; this value
+     *                is stored in {@link BroadcastAudit} and used for audit logging of who
+     *                performed the broadcast.
+     * @implNote This operation may create a large number of {@link Notification} entities,
+     *           one for each active user, and will always create a single {@link BroadcastAudit}
+     *           entry to record the broadcast metadata (including {@code adminId} and
+     *           recipient count).
+     */
     public void sendBroadcast(BroadcastRequestDTO request, String adminId) {
         List<UserAccount> activeUsers = userAccountRepository.findByActiveTrue();
 
