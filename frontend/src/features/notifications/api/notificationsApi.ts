@@ -7,6 +7,7 @@ export interface NotificationResponseDTO {
     message: string;
     read: boolean;
     relatedTransactionId: string | null;
+    type: 'GENERAL' | 'BROADCAST';
     createdAt: string; // ISO timestamp
 }
 

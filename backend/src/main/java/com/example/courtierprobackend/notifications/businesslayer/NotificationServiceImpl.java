@@ -33,6 +33,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .recipientId(recipientId) // Expecting internal UUID here
                 .title(title)
                 .message(message)
+                .type(com.example.courtierprobackend.notifications.datalayer.enums.NotificationType.GENERAL)
                 .isRead(false)
                 .relatedTransactionId(relatedTransactionId)
                 .build();
@@ -77,6 +78,7 @@ public class NotificationServiceImpl implements NotificationService {
                     .recipientId(user.getId().toString())
                     .title(request.getTitle())
                     .message(request.getMessage())
+                    .type(com.example.courtierprobackend.notifications.datalayer.enums.NotificationType.BROADCAST)
                     .isRead(false)
                     .createdAt(LocalDateTime.now())
                     .relatedTransactionId(null)
