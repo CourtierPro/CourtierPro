@@ -184,6 +184,7 @@ CREATE TABLE notifications (
     message TEXT NOT NULL,
     is_read BOOLEAN DEFAULT FALSE NOT NULL,
     related_transaction_id VARCHAR(255),
+    type VARCHAR(50) NOT NULL DEFAULT 'GENERAL',
     created_at TIMESTAMP NOT NULL
 );
 
