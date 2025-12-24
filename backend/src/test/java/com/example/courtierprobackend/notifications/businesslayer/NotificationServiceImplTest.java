@@ -32,12 +32,15 @@ class NotificationServiceImplTest {
     @Mock
     private com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
 
+    @Mock
+    private com.example.courtierprobackend.notifications.datalayer.BroadcastAuditRepository broadcastAuditRepository;
+
     private NotificationService notificationService;
 
     @BeforeEach
     void setup() {
         notificationService = new NotificationServiceImpl(notificationRepository, notificationMapper,
-                userAccountRepository);
+                userAccountRepository, broadcastAuditRepository);
     }
 
     @Test
@@ -52,7 +55,11 @@ class NotificationServiceImplTest {
         notificationService.createNotification(recipientId, title, message, relatedTransactionId);
 
         // Assert
-        verify(notificationRepository).save(any(Notification.class));
+        org.mockito.ArgumentCaptor<Notification> notificationCaptor = org.mockito.ArgumentCaptor
+                .forClass(Notification.class);
+        verify(notificationRepository).save(notificationCaptor.capture());
+        assertThat(notificationCaptor.getValue().getType())
+                .isEqualTo(com.example.courtierprobackend.notifications.datalayer.enums.NotificationType.GENERAL);
     }
 
     @Test
@@ -138,5 +145,72 @@ class NotificationServiceImplTest {
                 .assertThrows(com.example.courtierprobackend.common.exceptions.NotFoundException.class, () -> {
                     notificationService.getUserNotifications(auth0UserId);
                 });
+    }
+
+    @Test
+    void sendBroadcast_shouldNotifyActiveUsersAndLogAudit() {
+        // Arrange
+        com.example.courtierprobackend.notifications.presentationlayer.BroadcastRequestDTO request = new com.example.courtierprobackend.notifications.presentationlayer.BroadcastRequestDTO(
+                "Title", "Message");
+        String adminId = "auth0|admin";
+
+        com.example.courtierprobackend.user.dataaccesslayer.UserAccount user1 = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        user1.setId(UUID.randomUUID());
+        com.example.courtierprobackend.user.dataaccesslayer.UserAccount user2 = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        user2.setId(UUID.randomUUID());
+
+        List<com.example.courtierprobackend.user.dataaccesslayer.UserAccount> activeUsers = List.of(user1, user2);
+
+        when(userAccountRepository.findByActiveTrue()).thenReturn(activeUsers);
+
+        // Act
+        notificationService.sendBroadcast(request, adminId);
+
+        // Assert
+        // Should save all notifications in one batch
+        @SuppressWarnings("unchecked")
+        org.mockito.ArgumentCaptor<List<Notification>> notificationsCaptor = org.mockito.ArgumentCaptor
+                .forClass(List.class);
+        verify(notificationRepository).saveAll(notificationsCaptor.capture());
+
+        List<Notification> capturedNotifications = notificationsCaptor.getValue();
+        assertThat(capturedNotifications).hasSize(2);
+        assertThat(capturedNotifications).allMatch(n -> n
+                .getType() == com.example.courtierprobackend.notifications.datalayer.enums.NotificationType.BROADCAST);
+
+        // Should save 1 audit log
+        org.mockito.ArgumentCaptor<com.example.courtierprobackend.notifications.datalayer.BroadcastAudit> auditCaptor = org.mockito.ArgumentCaptor
+                .forClass(com.example.courtierprobackend.notifications.datalayer.BroadcastAudit.class);
+        verify(broadcastAuditRepository).save(auditCaptor.capture());
+
+        com.example.courtierprobackend.notifications.datalayer.BroadcastAudit capturedAudit = auditCaptor.getValue();
+        assertThat(capturedAudit.getAdminId()).isEqualTo(adminId);
+        assertThat(capturedAudit.getTitle()).isEqualTo("Title");
+        assertThat(capturedAudit.getMessage()).isEqualTo("Message");
+        assertThat(capturedAudit.getRecipientCount()).isEqualTo(2);
+    }
+
+    @Test
+    void sendBroadcast_shouldLogAuditEvenIfNoUsers() {
+        // Arrange
+        com.example.courtierprobackend.notifications.presentationlayer.BroadcastRequestDTO request = new com.example.courtierprobackend.notifications.presentationlayer.BroadcastRequestDTO(
+                "Title", "Message");
+        String adminId = "auth0|admin";
+
+        when(userAccountRepository.findByActiveTrue()).thenReturn(List.of());
+
+        // Act
+        notificationService.sendBroadcast(request, adminId);
+
+        // Assert
+        // Should NOT save any notifications (saveAll not called)
+        verify(notificationRepository, org.mockito.Mockito.never()).saveAll(any());
+
+        // Should save 1 audit log with count 0
+        org.mockito.ArgumentCaptor<com.example.courtierprobackend.notifications.datalayer.BroadcastAudit> auditCaptor = org.mockito.ArgumentCaptor
+                .forClass(com.example.courtierprobackend.notifications.datalayer.BroadcastAudit.class);
+        verify(broadcastAuditRepository).save(auditCaptor.capture());
+
+        assertThat(auditCaptor.getValue().getRecipientCount()).isZero();
     }
 }
