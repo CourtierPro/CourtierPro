@@ -26,6 +26,7 @@
   "inviteUser_sendInvite": "Envoyer l’invitation",
   "inviteUser_fillAllFields": "Veuillez remplir tous les champs obligatoires.",
   "inviteUser_inviteSent": "Invitation envoyée.",
+  "inviteUser_emailInvalid": "Adresse courriel invalide.",
   "inviteUser_inviteError": "Impossible d’envoyer l’invitation. Veuillez réessayer.",
   "inviteUser_sending": "Envoi…",
   "inviteUser_role_BROKER": "courtier",

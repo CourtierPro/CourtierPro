@@ -1,7 +1,10 @@
-import React, { type FormEvent, useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { AxiosError } from "axios";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -18,25 +21,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/shared/components/ui/form";
 
 import axiosInstance from "@/shared/api/axiosInstance";
 import { useInviteUser } from "@/features/admin/api/mutations";
-
-type UserRole = "BROKER" | "CLIENT" | "ADMIN";
-type Language = "en" | "fr";
+import { inviteUserSchema, type InviteUserFormValues } from "@/shared/schemas";
 
 interface InviteUserModalProps {
   open: boolean;
   onClose: () => void;
   onUserCreated?: (user: AdminUserResponse) => void;
-}
-
-interface InviteFormState {
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: UserRole;
-  preferredLanguage: Language;
 }
 
 export interface AdminUserResponse {
@@ -49,14 +50,7 @@ export interface AdminUserResponse {
   preferredLanguage: string;
 }
 
-// Start with EN (backend/organization settings can still override if needed)
-const defaultFormState: InviteFormState = {
-  email: "",
-  firstName: "",
-  lastName: "",
-  role: "BROKER",
-  preferredLanguage: "en",
-};
+type Language = "en" | "fr";
 
 export function InviteUserModal(props: InviteUserModalProps) {
   return (
@@ -70,10 +64,20 @@ export function InviteUserModal(props: InviteUserModalProps) {
 
 function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
   const { t } = useTranslation("admin");
-  const [form, setForm] = useState<InviteFormState>(defaultFormState);
-  const [error, setError] = useState<string | null>(null);
-
   const inviteUser = useInviteUser();
+
+  const form = useForm<InviteUserFormValues>({
+    resolver: zodResolver(inviteUserSchema),
+    defaultValues: {
+      email: "",
+      firstName: "",
+      lastName: "",
+      role: "BROKER",
+      preferredLanguage: "en",
+    },
+  });
+
+  const { setValue } = form;
 
   useEffect(() => {
     axiosInstance
@@ -81,44 +85,22 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
       .then((res) => {
         const lang = res.data?.defaultLanguage?.toLowerCase();
         if (lang === "en" || lang === "fr") {
-          setForm((prev) => ({
-            ...prev,
-            preferredLanguage: lang as Language,
-          }));
+          setValue("preferredLanguage", lang as Language);
         }
       })
       .catch(() => {
         toast.error(t("inviteUser_settingsLoadError"));
       });
-  }, [t]);
+  }, [t, setValue]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!form.email || !form.firstName || !form.lastName) {
-      setError(t("inviteUser_fillAllFields"));
-      return;
-    }
-
+  const onSubmit = async (data: InviteUserFormValues) => {
     try {
       const createdUser = await inviteUser.mutateAsync({
-        email: form.email,
-        firstName: form.firstName,
-        lastName: form.lastName,
-        role: form.role,
-        preferredLanguage: form.preferredLanguage,
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        role: data.role,
+        preferredLanguage: data.preferredLanguage,
       });
 
       onUserCreated?.(createdUser);
@@ -139,7 +121,6 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
           t("inviteUser_inviteError");
       }
 
-      setError(errorMessage);
       toast.error(errorMessage);
     }
   };
@@ -151,150 +132,139 @@ function InviteUserForm({ onClose, onUserCreated }: InviteUserModalProps) {
         <DialogDescription>{t("inviteUserDesc")}</DialogDescription>
       </DialogHeader>
 
-      {error && (
-        <div className="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Email */}
-        <div className="space-y-2">
-          <label
-            htmlFor="email"
-            className="text-sm font-medium text-foreground"
-          >
-            {t("inviteUser_emailLabel")} *
-          </label>
-          <Input
-            id="email"
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Email */}
+          <FormField
+            control={form.control}
             name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            required
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("inviteUser_emailLabel")} *</FormLabel>
+                <FormControl>
+                  <Input {...field} type="email" />
+                </FormControl>
+                <FormMessage>{form.formState.errors.email?.message && t(form.formState.errors.email?.message)}</FormMessage>
+              </FormItem>
+            )}
           />
-        </div>
 
-        {/* First / last name */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label
-              htmlFor="firstName"
-              className="text-sm font-medium text-foreground"
-            >
-              {t("inviteUser_firstNameLabel")} *
-            </label>
-            <Input
-              id="firstName"
+          {/* First / last name */}
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
               name="firstName"
-              value={form.firstName}
-              onChange={handleChange}
-              required
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("inviteUser_firstNameLabel")} *</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage>{form.formState.errors.firstName?.message && t(form.formState.errors.firstName?.message)}</FormMessage>
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <label
-              htmlFor="lastName"
-              className="text-sm font-medium text-foreground"
-            >
-              {t("inviteUser_lastNameLabel")} *
-            </label>
-            <Input
-              id="lastName"
+            <FormField
+              control={form.control}
               name="lastName"
-              value={form.lastName}
-              onChange={handleChange}
-              required
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("inviteUser_lastNameLabel")} *</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage>{form.formState.errors.lastName?.message && t(form.formState.errors.lastName?.message)}</FormMessage>
+                </FormItem>
+              )}
             />
           </div>
-        </div>
 
-        {/* Role / language */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label
-              htmlFor="role"
-              className="text-sm font-medium text-foreground"
-            >
-              {t("inviteUser_roleLabel")}
-            </label>
-            <Select
-              value={form.role}
-              onValueChange={(value) =>
-                setForm((prev) => ({ ...prev, role: value as UserRole }))
-              }
-            >
-              <SelectTrigger id="role" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="BROKER">
-                  {t("inviteUser_role_BROKER")}
-                </SelectItem>
-                <SelectItem value="CLIENT">
-                  {t("inviteUser_role_CLIENT")}
-                </SelectItem>
-                <SelectItem value="ADMIN">
-                  {t("inviteUser_role_ADMIN")}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Role / language */}
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("inviteUser_roleLabel")}</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="BROKER">
+                        {t("inviteUser_role_BROKER")}
+                      </SelectItem>
+                      <SelectItem value="CLIENT">
+                        {t("inviteUser_role_CLIENT")}
+                      </SelectItem>
+                      <SelectItem value="ADMIN">
+                        {t("inviteUser_role_ADMIN")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage>{form.formState.errors.role?.message && t(form.formState.errors.role?.message)}</FormMessage>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="preferredLanguage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("inviteUser_languageLabel")}</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="en">
+                        {t("inviteUser_language_en")}
+                      </SelectItem>
+                      <SelectItem value="fr">
+                        {t("inviteUser_language_fr")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage>{form.formState.errors.preferredLanguage?.message && t(form.formState.errors.preferredLanguage?.message)}</FormMessage>
+                </FormItem>
+              )}
+            />
           </div>
 
-          <div className="space-y-2">
-            <label
-              htmlFor="preferredLanguage"
-              className="text-sm font-medium text-foreground"
+          {/* Actions */}
+          <div className="mt-6 flex justify-between gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onClose}
+              disabled={inviteUser.isPending}
             >
-              {t("inviteUser_languageLabel")}
-            </label>
-            <Select
-              value={form.preferredLanguage}
-              onValueChange={(value) =>
-                setForm((prev) => ({
-                  ...prev,
-                  preferredLanguage: value as Language,
-                }))
-              }
-            >
-              <SelectTrigger
-                id="preferredLanguage"
-                className="w-full"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en">
-                  {t("inviteUser_language_en")}
-                </SelectItem>
-                <SelectItem value="fr">
-                  {t("inviteUser_language_fr")}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+              {t("inviteUser_close")}
+            </Button>
+
+            <Button type="submit" disabled={inviteUser.isPending}>
+              {inviteUser.isPending
+                ? t("inviteUser_sending")
+                : t("inviteUser_sendInvite")}
+            </Button>
           </div>
-        </div>
-
-        {/* Actions */}
-        <div className="mt-6 flex justify-between gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onClose}
-            disabled={inviteUser.isPending}
-          >
-            {t("inviteUser_close")}
-          </Button>
-
-          <Button type="submit" disabled={inviteUser.isPending}>
-            {inviteUser.isPending
-              ? t("inviteUser_sending")
-              : t("inviteUser_sendInvite")}
-          </Button>
-        </div>
-      </form>
+        </form>
+      </Form>
     </>
   );
 }
