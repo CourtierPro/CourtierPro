@@ -11,7 +11,8 @@
 -- ============================================================================
 
 -- Enable the pg_trgm extension for trigram-based indexing (needed for search)
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- Enable the pg_trgm extension for trigram-based indexing (needed for search)
+-- CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- =============================================================================
 -- USER ACCOUNTS
@@ -34,12 +35,13 @@ CREATE INDEX IF NOT EXISTS idx_user_accounts_email ON user_accounts(email);
 CREATE INDEX IF NOT EXISTS idx_user_accounts_role ON user_accounts(role);
 
 -- Search Indexes
-CREATE INDEX IF NOT EXISTS idx_user_accounts_first_name_trgm 
-    ON user_accounts USING GIN (first_name gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_user_accounts_last_name_trgm 
-    ON user_accounts USING GIN (last_name gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_user_accounts_email_trgm 
-    ON user_accounts USING GIN (email gin_trgm_ops);
+-- Search Indexes
+-- CREATE INDEX IF NOT EXISTS idx_user_accounts_first_name_trgm 
+--     ON user_accounts USING GIN (first_name gin_trgm_ops);
+-- CREATE INDEX IF NOT EXISTS idx_user_accounts_last_name_trgm 
+--     ON user_accounts USING GIN (last_name gin_trgm_ops);
+-- CREATE INDEX IF NOT EXISTS idx_user_accounts_email_trgm 
+--     ON user_accounts USING GIN (email gin_trgm_ops);
 
 -- =============================================================================
 -- TRANSACTIONS
@@ -73,16 +75,17 @@ CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
 CREATE INDEX IF NOT EXISTS idx_transactions_deleted_at ON transactions(deleted_at);
 
 -- Search Indexes
-CREATE INDEX IF NOT EXISTS idx_transactions_street_trgm 
-    ON transactions USING GIN (street gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_transactions_city_trgm 
-    ON transactions USING GIN (city gin_trgm_ops);
+-- Search Indexes
+-- CREATE INDEX IF NOT EXISTS idx_transactions_street_trgm 
+--     ON transactions USING GIN (street gin_trgm_ops);
+-- CREATE INDEX IF NOT EXISTS idx_transactions_city_trgm 
+--     ON transactions USING GIN (city gin_trgm_ops);
 
 -- =============================================================================
 -- TIMELINE ENTRIES
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS timeline_entries (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     transaction_id UUID NOT NULL,
     timestamp TIMESTAMP NOT NULL,
     actor_id UUID NOT NULL,
@@ -137,10 +140,11 @@ CREATE INDEX IF NOT EXISTS idx_document_requests_status ON document_requests(sta
 CREATE INDEX IF NOT EXISTS idx_document_requests_deleted_at ON document_requests(deleted_at);
 
 -- Search Indexes
-CREATE INDEX IF NOT EXISTS idx_document_requests_custom_title_trgm 
-    ON document_requests USING GIN (custom_title gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_document_requests_broker_notes_trgm 
-    ON document_requests USING GIN (broker_notes gin_trgm_ops);
+-- Search Indexes
+-- CREATE INDEX IF NOT EXISTS idx_document_requests_custom_title_trgm 
+--     ON document_requests USING GIN (custom_title gin_trgm_ops);
+-- CREATE INDEX IF NOT EXISTS idx_document_requests_broker_notes_trgm 
+--     ON document_requests USING GIN (broker_notes gin_trgm_ops);
 
 -- =============================================================================
 -- SUBMITTED DOCUMENTS
@@ -180,6 +184,7 @@ CREATE TABLE notifications (
     message TEXT NOT NULL,
     is_read BOOLEAN DEFAULT FALSE NOT NULL,
     related_transaction_id VARCHAR(255),
+    type VARCHAR(50) NOT NULL DEFAULT 'GENERAL',
     created_at TIMESTAMP NOT NULL
 );
 
@@ -228,6 +233,19 @@ CREATE TABLE IF NOT EXISTS organization_settings_audit (
 -- AUDIT EVENTS
 -- =============================================================================
 
+-- Broadcast Audit
+CREATE TABLE IF NOT EXISTS broadcast_audit (
+    id UUID PRIMARY KEY,
+    admin_id VARCHAR(255) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    sent_at TIMESTAMP NOT NULL,
+    recipient_count INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_broadcast_audit_admin_id ON broadcast_audit(admin_id);
+CREATE INDEX IF NOT EXISTS idx_broadcast_audit_sent_at ON broadcast_audit(sent_at);
+
 -- Login Audit
 CREATE TABLE IF NOT EXISTS login_audit_events (
     id UUID PRIMARY KEY,
@@ -261,7 +279,7 @@ CREATE INDEX IF NOT EXISTS idx_logout_audit_timestamp ON logout_audit_events(tim
 
 -- Password Reset Events
 CREATE TABLE IF NOT EXISTS password_reset_events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     event_type VARCHAR(50) NOT NULL CHECK (event_type IN ('REQUESTED', 'COMPLETED')),

@@ -1,111 +1,104 @@
-name: CourtierPro CI/CD
+name: Deploy to AWS ECS
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY_BACKEND: courtierpro-backend
+  ECR_REPOSITORY_FRONTEND: courtierpro-frontend
+  ECS_SERVICE_BACKEND: courtierpro-backend-service
+  ECS_SERVICE_FRONTEND: courtierpro-frontend-service
+  ECS_CLUSTER: courtierpro-cluster
+  ECS_TASK_DEFINITION_BACKEND: courtierpro-backend-task
+  ECS_TASK_DEFINITION_FRONTEND: courtierpro-frontend-task
+  CONTAINER_NAME_BACKEND: backend-container
+  CONTAINER_NAME_FRONTEND: frontend-container
 
 jobs:
-  build-and-push:
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          distribution: "temurin"
-          java-version: "17"
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build backend with Gradle
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Backend Deployment
+      - name: Build, tag, and push backend image to Amazon ECR
+        id: build-backend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          cd backend
-          ./gradlew clean build --no-daemon
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG ./backend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Set up Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Build frontend
+      - name: Download backend task definition
         run: |
-          cd frontend
-          npm ci
-          npm run build
+          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION_BACKEND }} --query taskDefinition > backend-task-def.json
 
-      - name: Log in to GHCR
-        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Build backend image
-        run: docker build -t ghcr.io/courtierpro/courtierpro/backend:latest ./backend
-
-      - name: Build frontend image
-        run: docker build -t ghcr.io/courtierpro/courtierpro/frontend:latest ./frontend
-
-      - name: Push backend image
-        run: docker push ghcr.io/courtierpro/courtierpro/backend:latest
-
-      - name: Push frontend image
-        run: docker push ghcr.io/courtierpro/courtierpro/frontend:latest
-
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Deploy to EC2 (rollback if containers fail)
-        uses: appleboy/ssh-action@v0.1.7
+      - name: Fill in the new backend image ID in the Amazon ECS task definition
+        id: task-def-backend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            set -e
+          task-definition: backend-task-def.json
+          container-name: ${{ env.CONTAINER_NAME_BACKEND }}
+          image: ${{ steps.build-backend.outputs.image }}
 
-            if ! command -v git >/dev/null 2>&1; then
-              echo "git is not installed on this server. Please install git (e.g. 'sudo yum install -y git' or 'sudo dnf install -y git') and rerun the deployment."
-              exit 1
-            fi
+      - name: Deploy backend Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def-backend.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE_BACKEND }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
 
-            if [ ! -d "$HOME/courtierpro/.git" ]; then
-              echo "courtierpro directory missing or not a git repo, resetting..."
-              rm -rf "$HOME/courtierpro"
-              git clone https://github.com/CourtierPro/CourtierPro.git "$HOME/courtierpro"
-            fi
+      # Frontend Deployment
+      - name: Build, tag, and push frontend image to Amazon ECR
+        id: build-frontend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG ./frontend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-            cd "$HOME/courtierpro"
+      - name: Download frontend task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION_FRONTEND }} --query taskDefinition > frontend-task-def.json
 
-            git pull origin main
+      - name: Fill in the new frontend image ID in the Amazon ECS task definition
+        id: task-def-frontend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: frontend-task-def.json
+          container-name: ${{ env.CONTAINER_NAME_FRONTEND }}
+          image: ${{ steps.build-frontend.outputs.image }}
 
-            OLD_BACKEND=$(docker ps -q -f name=courtierpro_backend)
-            OLD_FRONTEND=$(docker ps -q -f name=courtierpro_frontend)
-
-            docker compose -f docker-compose.prod.yml pull
-
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
-
-            sleep 10
-
-            BACKEND_RUNNING=$(docker inspect -f '{{.State.Running}}' courtierpro_backend || echo "false")
-            FRONTEND_RUNNING=$(docker inspect -f '{{.State.Running}}' courtierpro_frontend || echo "false")
-
-            echo "Backend running: $BACKEND_RUNNING"
-            echo "Frontend running: $FRONTEND_RUNNING"
-
-            if [ "$BACKEND_RUNNING" != "true" ] || [ "$FRONTEND_RUNNING" != "true" ]; then
-              docker stop courtierpro_backend || true
-              docker stop courtierpro_frontend || true
-
-              if [ -n "$OLD_BACKEND" ]; then
-                docker start $OLD_BACKEND
-              fi
-
-              if [ -n "$OLD_FRONTEND" ]; then
-                docker start $OLD_FRONTEND
-              fi
-
-              exit 1
-            fi
-
-            docker system prune -af
+      - name: Deploy frontend Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def-frontend.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE_FRONTEND }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

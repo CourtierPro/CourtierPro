@@ -6,7 +6,14 @@ import com.example.courtierprobackend.notifications.datalayer.NotificationReposi
 import com.example.courtierprobackend.notifications.presentationlayer.NotificationMapper;
 import com.example.courtierprobackend.notifications.presentationlayer.NotificationResponseDTO;
 import lombok.RequiredArgsConstructor;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
+import com.example.courtierprobackend.notifications.datalayer.BroadcastAudit;
+import com.example.courtierprobackend.notifications.datalayer.BroadcastAuditRepository;
+import com.example.courtierprobackend.notifications.presentationlayer.BroadcastRequestDTO;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 import java.util.List;
 
@@ -17,6 +24,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
     private final com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
+    private final BroadcastAuditRepository broadcastAuditRepository;
 
     @Override
     @org.springframework.transaction.annotation.Transactional
@@ -25,6 +33,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .recipientId(recipientId) // Expecting internal UUID here
                 .title(title)
                 .message(message)
+                .type(com.example.courtierprobackend.notifications.datalayer.enums.NotificationType.GENERAL)
                 .isRead(false)
                 .relatedTransactionId(relatedTransactionId)
                 .build();
@@ -56,5 +65,57 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setRead(true);
         Notification saved = notificationRepository.save(notification);
         return notificationMapper.toResponseDTO(saved);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    /**
+     * Sends a broadcast notification to all active users in the system and records an audit entry.
+     * <p>
+     * For each active {@link UserAccount}, this method creates and persists a new
+     * {@link Notification} of type {@code BROADCAST} using the title and message provided
+     * in the {@link BroadcastRequestDTO}. In addition, a {@link BroadcastAudit} record is
+     * created to capture details about the broadcast operation for auditing purposes.
+     *
+     * @param request the broadcast request containing the title and message to be sent
+     *                to all active users.
+     * @param adminId the identifier of the administrator initiating the broadcast; this value
+     *                is stored in {@link BroadcastAudit} and used for audit logging of who
+     *                performed the broadcast.
+     * @implNote This operation may create a large number of {@link Notification} entities,
+     *           one for each active user, and will always create a single {@link BroadcastAudit}
+     *           entry to record the broadcast metadata (including {@code adminId} and
+     *           recipient count).
+     */
+    public void sendBroadcast(BroadcastRequestDTO request, String adminId) {
+        List<UserAccount> activeUsers = userAccountRepository.findByActiveTrue();
+
+        List<Notification> notifications = activeUsers.stream()
+                .map(user -> Notification.builder()
+                        .publicId(UUID.randomUUID().toString())
+                        .recipientId(user.getId().toString())
+                        .title(request.getTitle())
+                        .message(request.getMessage())
+                        .type(com.example.courtierprobackend.notifications.datalayer.enums.NotificationType.BROADCAST)
+                        .isRead(false)
+                        .createdAt(LocalDateTime.now())
+                        .relatedTransactionId(null)
+                        .build())
+                .toList();
+
+        if (!notifications.isEmpty()) {
+            notificationRepository.saveAll(notifications);
+        }
+
+        BroadcastAudit audit = BroadcastAudit.builder()
+                .id(UUID.randomUUID())
+                .adminId(adminId)
+                .title(request.getTitle())
+                .message(request.getMessage())
+                .sentAt(LocalDateTime.now())
+                .recipientCount(activeUsers.size())
+                .build();
+
+        broadcastAuditRepository.save(audit);
     }
 }
