@@ -57,8 +57,15 @@ export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParti
         }
     };
 
+    const handleOpenChange = (open: boolean) => {
+        if (!open) {
+            reset();
+            onClose();
+        }
+    };
+
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>{t('addParticipant')}</DialogTitle>
