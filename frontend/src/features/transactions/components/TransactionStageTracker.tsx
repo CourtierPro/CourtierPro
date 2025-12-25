@@ -43,15 +43,9 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
 
                         let status: "completed" | "current" | "upcoming" | "terminated" = "upcoming";
                         if (transaction.status === 'TERMINATED_EARLY') status = "terminated";
-                        else if (transaction.status === 'CLOSED_SUCCESSFULLY') status = "completed"; // treat all as completed if closed? Or just normal logic?
+                        else if (transaction.status === 'CLOSED_SUCCESSFULLY') status = "completed"; // When closed successfully, all stages are treated as completed.
                         else if (index < currentStageIndex) status = "completed";
                         else if (index === currentStageIndex) status = "current";
-
-                        // Special case: If closed successfully, make sure current stage (Occupancy/Handover) is marked completed/current
-                        if (transaction.status === 'CLOSED_SUCCESSFULLY') {
-                            if (index <= currentStageIndex) status = "completed";
-                        }
-
                         return (
                             <Tooltip key={stage}>
                                 <TooltipTrigger asChild>
