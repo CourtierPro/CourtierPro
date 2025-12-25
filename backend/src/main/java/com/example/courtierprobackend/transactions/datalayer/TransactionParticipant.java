@@ -15,8 +15,8 @@ import java.util.UUID;
 public class TransactionParticipant {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO) // Using UUID generation strategies usually
-    private UUID id;
+    @Builder.Default
+    private UUID id = UUID.randomUUID();
 
     @Column(name = "transaction_id", nullable = false)
     private UUID transactionId;
