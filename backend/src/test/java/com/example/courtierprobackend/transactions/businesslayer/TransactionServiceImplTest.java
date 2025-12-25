@@ -920,6 +920,105 @@ class TransactionServiceImplTest {
                 isNull(), isNull(), any());
     }
 
+    @Test
+    void updateTransactionStage_AutoClose_BuyerOccupancy() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_SECOND_NOTARY_APPOINTMENT);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OCCUPANCY");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.CLOSED_SUCCESSFULLY);
+        assertThat(tx.getClosedAt()).isNotNull();
+    }
+
+    @Test
+    void updateTransactionStage_AutoTerminate_BuyerTerminated() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_TERMINATED");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.TERMINATED_EARLY);
+        assertThat(tx.getClosedAt()).isNotNull();
+    }
+
+    @Test
+    void updateTransactionStage_AutoTerminate_SellerTerminated() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+        tx.setSellerStage(SellerStage.SELLER_LISTING_PUBLISHED);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("SELLER_TERMINATED");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.TERMINATED_EARLY);
+        assertThat(tx.getClosedAt()).isNotNull();
+    }
+
+    @Test
+    void updateTransactionStage_ClosedTransaction_ThrowsException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setStatus(TransactionStatus.CLOSED_SUCCESSFULLY);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OCCUPANCY");
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Cannot update stage of a closed or terminated transaction");
+    }
+
     // ========== pinTransaction Tests ==========
 
     @Test

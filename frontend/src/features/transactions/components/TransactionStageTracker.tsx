@@ -5,8 +5,9 @@ import { StageBadge } from "@/shared/components/branded/StageBadge";
 import { Button } from "@/shared/components/ui/button";
 import { getStagesForSide, resolveStageIndex } from '@/shared/utils/stages';
 import { type Transaction } from '@/features/transactions/api/queries';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Lock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
+import { Badge } from "@/shared/components/ui/badge";
 
 interface TransactionStageTrackerProps {
     transaction: Transaction;
@@ -38,10 +39,18 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
                 <div className="absolute top-4 left-0 w-full h-0.5 bg-muted -z-10" />
                 <div className="flex justify-between">
                     {stages.map((stage, index) => {
+
+
                         let status: "completed" | "current" | "upcoming" | "terminated" = "upcoming";
-                        if (transaction.status === 'terminated') status = "terminated";
+                        if (transaction.status === 'TERMINATED_EARLY') status = "terminated";
+                        else if (transaction.status === 'CLOSED_SUCCESSFULLY') status = "completed"; // treat all as completed if closed? Or just normal logic?
                         else if (index < currentStageIndex) status = "completed";
                         else if (index === currentStageIndex) status = "current";
+
+                        // Special case: If closed successfully, make sure current stage (Occupancy/Handover) is marked completed/current
+                        if (transaction.status === 'CLOSED_SUCCESSFULLY') {
+                            if (index <= currentStageIndex) status = "completed";
+                        }
 
                         return (
                             <Tooltip key={stage}>
@@ -64,7 +73,8 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
                                 </TooltipContent>
                             </Tooltip>
                         );
-                    })}
+                    })
+                    }
                 </div>
             </div>
 
@@ -75,7 +85,10 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
                     if (!isExpanded && index !== currentStageIndex) return null;
 
                     let status: "completed" | "current" | "upcoming" | "terminated" = "upcoming";
-                    if (transaction.status === 'terminated') status = "terminated";
+                    if (transaction.status === 'TERMINATED_EARLY') status = "terminated";
+                    else if (transaction.status === 'CLOSED_SUCCESSFULLY') {
+                        if (index <= currentStageIndex) status = "completed";
+                    }
                     else if (index < currentStageIndex) status = "completed";
                     else if (index === currentStageIndex) status = "current";
 
@@ -108,9 +121,21 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
 
             {!isReadOnly && (
                 <div className="mt-2 md:mt-6 flex justify-end">
-                    <Button onClick={onUpdateStage} className="w-full sm:w-auto">
-                        {t('updateStage')}
-                    </Button>
+                    {transaction.status === 'CLOSED_SUCCESSFULLY' ? (
+                        <Badge variant="success" className="px-3 py-1.5 min-h-[36px] flex gap-2">
+                            <Lock className="w-4 h-4" />
+                            {t('transactionClosed') || "Transaction Closed"}
+                        </Badge>
+                    ) : transaction.status === 'TERMINATED_EARLY' ? (
+                        <Badge variant="destructive" className="px-3 py-1.5 min-h-[36px] flex gap-2">
+                            <Lock className="w-4 h-4" />
+                            {t('transactionTerminated') || "Transaction Terminated"}
+                        </Badge>
+                    ) : (
+                        <Button onClick={onUpdateStage} className="w-full sm:w-auto">
+                            {t('updateStage')}
+                        </Button>
+                    )}
                 </div>
             )}
         </Section>

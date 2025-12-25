@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getStagesForSide, getStageLabel } from '@/shared/utils/stages';
-import { X, MessageSquare } from 'lucide-react';
+import { X, MessageSquare, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/components/ui/button';
 import { Textarea } from '@/shared/components/ui/textarea';
@@ -84,6 +84,15 @@ function StageUpdateForm({
 
   const isFormValid = selectedStage !== '';
 
+  const isFinalStage = (stage: string) => {
+    return [
+      'BUYER_OCCUPANCY',
+      'BUYER_TERMINATED',
+      'SELLER_HANDOVER_KEYS',
+      'SELLER_TERMINATED'
+    ].includes(stage);
+  };
+
   return (
     <form onSubmit={handleSubmit} ref={modalRef}>
       <div className="flex items-center justify-between p-6 border-b border-border">
@@ -141,6 +150,26 @@ function StageUpdateForm({
             </SelectContent>
           </Select>
         </div>
+
+        {selectedStage && isFinalStage(selectedStage) && (
+          <div className="rounded-md bg-yellow-50 p-4 border border-yellow-200">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">
+                  {t('warningFinalStageTitle') || "Warning: Final Stage"}
+                </h3>
+                <div className="mt-2 text-sm text-yellow-700">
+                  <p>
+                    {t('warningFinalStageMessage') || "This will close the transaction. You will not be able to modify the stage afterwards."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {selectedStage !== '' && (
           <div

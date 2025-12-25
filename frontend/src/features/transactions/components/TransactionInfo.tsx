@@ -39,7 +39,7 @@ export function TransactionInfo({ transaction, hideClientLabel = false }: Transa
                         <Badge variant={transaction.side === 'BUY_SIDE' ? 'info' : 'warning'}>
                             {transaction.side === 'BUY_SIDE' ? t('buySide') : t('sellSide')}
                         </Badge>
-                        <Badge variant={transaction.status === 'active' ? 'success' : 'secondary'}>
+                        <Badge variant={transaction.status === 'ACTIVE' ? 'success' : transaction.status === 'CLOSED_SUCCESSFULLY' ? 'secondary' : 'destructive'}>
                             {t(transaction.status)}
                         </Badge>
                     </div>

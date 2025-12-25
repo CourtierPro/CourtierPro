@@ -37,7 +37,7 @@ export interface Transaction {
     side: 'BUY_SIDE' | 'SELL_SIDE';
     currentStage: number;
     totalStages: number;
-    status: 'active' | 'closed' | 'terminated';
+    status: 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY';
     openedAt?: string;
     openedDate?: string;
     notes?: string;

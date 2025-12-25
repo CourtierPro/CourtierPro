@@ -308,6 +308,13 @@ public class TransactionServiceImpl implements TransactionService {
 
         TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
 
+        // Guard Clause: Cannot update stage if transaction is already closed or
+        // terminated
+        if (tx.getStatus() == TransactionStatus.CLOSED_SUCCESSFULLY ||
+                tx.getStatus() == TransactionStatus.TERMINATED_EARLY) {
+            throw new BadRequestException("Cannot update stage of a closed or terminated transaction.");
+        }
+
         String stageStr = dto.getStage();
         if (stageStr == null || stageStr.isBlank()) {
             throw new BadRequestException("stage is required");
@@ -342,6 +349,25 @@ public class TransactionServiceImpl implements TransactionService {
             }
         } else {
             throw new BadRequestException("Unsupported transaction side: " + tx.getSide());
+        }
+
+        // Auto-Closing Logic
+        if (tx.getSide() == TransactionSide.BUY_SIDE) {
+            if (tx.getBuyerStage() == BuyerStage.BUYER_OCCUPANCY) {
+                tx.setStatus(TransactionStatus.CLOSED_SUCCESSFULLY);
+                tx.setClosedAt(LocalDateTime.now());
+            } else if (tx.getBuyerStage() == BuyerStage.BUYER_TERMINATED) {
+                tx.setStatus(TransactionStatus.TERMINATED_EARLY);
+                tx.setClosedAt(LocalDateTime.now());
+            }
+        } else if (tx.getSide() == TransactionSide.SELL_SIDE) {
+            if (tx.getSellerStage() == SellerStage.SELLER_HANDOVER_KEYS) {
+                tx.setStatus(TransactionStatus.CLOSED_SUCCESSFULLY);
+                tx.setClosedAt(LocalDateTime.now());
+            } else if (tx.getSellerStage() == SellerStage.SELLER_TERMINATED) {
+                tx.setStatus(TransactionStatus.TERMINATED_EARLY);
+                tx.setClosedAt(LocalDateTime.now());
+            }
         }
 
         String stageChangeActorName = lookupClientName(tx.getBrokerId());
