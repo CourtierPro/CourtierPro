@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     status VARCHAR(50),
     opened_at TIMESTAMP,
     closed_at TIMESTAMP,
+    version BIGINT DEFAULT 0,
     -- Soft Delete Columns
     deleted_at TIMESTAMP,
     deleted_by UUID

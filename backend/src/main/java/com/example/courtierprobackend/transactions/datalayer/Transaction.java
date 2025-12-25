@@ -47,6 +47,9 @@ public class Transaction {
 
     private LocalDateTime closedAt;
 
+    @Version
+    private Long version;
+
     // Timeline is now handled via audit/timeline module, not as a direct relation
 
     // Soft delete fields

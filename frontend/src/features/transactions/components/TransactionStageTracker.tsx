@@ -80,9 +80,7 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
 
                     let status: "completed" | "current" | "upcoming" | "terminated" = "upcoming";
                     if (transaction.status === 'TERMINATED_EARLY') status = "terminated";
-                    else if (transaction.status === 'CLOSED_SUCCESSFULLY') {
-                        if (index <= currentStageIndex) status = "completed";
-                    }
+                    else if (transaction.status === 'CLOSED_SUCCESSFULLY') status = "completed";
                     else if (index < currentStageIndex) status = "completed";
                     else if (index === currentStageIndex) status = "current";
 

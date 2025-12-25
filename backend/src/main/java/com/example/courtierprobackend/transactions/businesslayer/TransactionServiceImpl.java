@@ -297,6 +297,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @Transactional
     public TransactionResponseDTO updateTransactionStage(UUID transactionId, StageUpdateRequestDTO dto, UUID brokerId) {
 
         if (dto == null) {
@@ -368,6 +369,17 @@ public class TransactionServiceImpl implements TransactionService {
                 tx.setStatus(TransactionStatus.TERMINATED_EARLY);
                 tx.setClosedAt(LocalDateTime.now());
             }
+        }
+
+        // Log explicit status change if it happened
+        if (tx.getStatus() == TransactionStatus.CLOSED_SUCCESSFULLY ||
+                tx.getStatus() == TransactionStatus.TERMINATED_EARLY) {
+            timelineService.addEntry(
+                    transactionId,
+                    brokerId,
+                    TimelineEntryType.STATUS_CHANGE,
+                    "Transaction automatically updated to " + tx.getStatus(),
+                    null);
         }
 
         String stageChangeActorName = lookupClientName(tx.getBrokerId());
