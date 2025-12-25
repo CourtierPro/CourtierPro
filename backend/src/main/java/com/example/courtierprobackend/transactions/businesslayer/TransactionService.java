@@ -1,7 +1,6 @@
 
 package com.example.courtierprobackend.transactions.businesslayer;
 
-
 import com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.*;
 
@@ -12,7 +11,8 @@ import java.util.UUID;
 public interface TransactionService {
 
     /**
-     * Save internal notes for a transaction and create a NOTE event in the timeline.
+     * Save internal notes for a transaction and create a NOTE event in the
+     * timeline.
      */
     void saveInternalNotes(UUID transactionId, String notes, UUID brokerId);
 
@@ -25,7 +25,7 @@ public interface TransactionService {
     List<TransactionResponseDTO> getBrokerTransactions(UUID brokerId, String status, String stage, String side);
 
     List<TransactionResponseDTO> getClientTransactions(UUID clientId);
-    
+
     TransactionResponseDTO updateTransactionStage(UUID transactionId, StageUpdateRequestDTO dto, UUID brokerId);
 
     TransactionResponseDTO getByTransactionId(UUID transactionId, UUID userId);
@@ -35,5 +35,11 @@ public interface TransactionService {
     void unpinTransaction(UUID transactionId, UUID brokerId);
 
     Set<UUID> getPinnedTransactionIds(UUID brokerId);
-}
 
+    // Participants
+    ParticipantResponseDTO addParticipant(UUID transactionId, AddParticipantRequestDTO dto, UUID brokerId);
+
+    void removeParticipant(UUID transactionId, UUID participantId, UUID brokerId);
+
+    List<ParticipantResponseDTO> getParticipants(UUID transactionId);
+}
