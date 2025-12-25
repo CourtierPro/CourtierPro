@@ -242,6 +242,9 @@
   "email": "Courriel",
   "phoneNumber": "Numéro de téléphone",
   "participantNamePlaceholder": "Entrer le nom du participant",
+  "remove": "Retirer",
+  "confirmRemoveParticipant": "Retirer le participant",
+  "confirmRemoveParticipantDescription": "Êtes-vous sûr de vouloir retirer ce participant? Cette action est irréversible.",
   "timelineType": {
     "CREATED": "Transaction créée",
     "STAGE_CHANGE": "Changement d'étape",

@@ -402,6 +402,23 @@ class TransactionControllerTest {
 
         @Test
         @WithMockUser(roles = "BROKER")
+        void addParticipant_withInvalidEmail_returnsBadRequest() throws Exception {
+                UUID txId = UUID.randomUUID();
+                AddParticipantRequestDTO requestDto = new AddParticipantRequestDTO();
+                requestDto.setName("John Doe");
+                requestDto.setRole(ParticipantRole.CO_BROKER);
+                requestDto.setEmail("invalid-email");
+
+                mockMvc.perform(post("/transactions/" + txId + "/participants")
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(requestDto))
+                                .with(jwt())
+                                .header("x-broker-id", UUID.randomUUID().toString()))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @WithMockUser(roles = "BROKER")
         void removeParticipant_returnsNoContent() throws Exception {
                 UUID txId = UUID.randomUUID();
                 UUID participantId = UUID.randomUUID();
@@ -426,15 +443,16 @@ class TransactionControllerTest {
                                 .role(ParticipantRole.BROKER)
                                 .build();
 
-                when(transactionService.getParticipants(txId)).thenReturn(List.of(p1));
+                when(transactionService.getParticipants(eq(txId), any())).thenReturn(List.of(p1));
 
                 mockMvc.perform(get("/transactions/" + txId + "/participants")
-                                .with(jwt()))
+                                .with(jwt())
+                                .requestAttr(UserContextFilter.INTERNAL_USER_ID_ATTR, UUID.randomUUID()))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.length()").value(1))
                                 .andExpect(jsonPath("$[0].name").value("P1"));
 
-                verify(transactionService).getParticipants(txId);
+                verify(transactionService).getParticipants(eq(txId), any());
         }
 
         @Test

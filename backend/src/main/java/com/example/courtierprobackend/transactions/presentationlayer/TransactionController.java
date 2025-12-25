@@ -213,7 +213,10 @@ public class TransactionController {
     @GetMapping("/{transactionId}/participants")
     @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
     public ResponseEntity<List<ParticipantResponseDTO>> getParticipants(
-            @PathVariable UUID transactionId) {
-        return ResponseEntity.ok(service.getParticipants(transactionId));
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.getParticipants(transactionId, userId));
     }
 }

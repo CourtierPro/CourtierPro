@@ -12,6 +12,7 @@ public class AddParticipantRequestDTO {
     @NotNull(message = "Role is required")
     private ParticipantRole role;
 
+    @jakarta.validation.constraints.Email(message = "Invalid email format")
     private String email;
     private String phoneNumber;
 }

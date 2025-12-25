@@ -237,6 +237,9 @@
   "email": "Email",
   "phoneNumber": "Phone Number",
   "participantNamePlaceholder": "Enter participant name",
+  "remove": "Remove",
+  "confirmRemoveParticipant": "Remove Participant",
+  "confirmRemoveParticipantDescription": "Are you sure you want to remove this participant? This action cannot be undone.",
   "timelineType": {
     "CREATED": "Transaction Created",
     "STAGE_CHANGE": "Stage Updated",

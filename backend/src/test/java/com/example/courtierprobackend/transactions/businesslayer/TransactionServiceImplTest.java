@@ -1175,16 +1175,30 @@ class TransactionServiceImplTest {
     void getParticipants_returnsList() {
         // Arrange
         UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
         TransactionParticipant p1 = new TransactionParticipant();
         p1.setId(UUID.randomUUID());
         p1.setName("P1");
         p1.setTransactionId(transactionId);
         p1.setRole(ParticipantRole.BROKER);
 
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        // We need to ensure the access check passes.
+        // If we pass a random userId in the test, verifyTransactionAccess will fail
+        // unless we mock it or setup the tx correctly.
+        // The service implementation calls
+        // TransactionAccessUtils.verifyTransactionAccess(tx, userId).
+        // If we pass a random user ID, that util will likely throw Forbidden unless the
+        // user is the broker or client.
+        // So we should use the brokerId as the userId in the test.
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
         when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of(p1));
 
         // Act
-        List<ParticipantResponseDTO> result = transactionService.getParticipants(transactionId);
+        List<ParticipantResponseDTO> result = transactionService.getParticipants(transactionId, brokerId);
 
         // Assert
         assertThat(result).hasSize(1);

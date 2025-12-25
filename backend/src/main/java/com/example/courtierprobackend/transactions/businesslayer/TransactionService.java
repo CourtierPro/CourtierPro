@@ -41,5 +41,5 @@ public interface TransactionService {
 
     void removeParticipant(UUID transactionId, UUID participantId, UUID brokerId);
 
-    List<ParticipantResponseDTO> getParticipants(UUID transactionId);
+    List<ParticipantResponseDTO> getParticipants(UUID transactionId, UUID userId);
 }

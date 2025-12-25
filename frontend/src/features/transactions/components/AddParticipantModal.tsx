@@ -1,6 +1,6 @@
 
 import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -28,7 +28,7 @@ export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParti
     const { t } = useTranslation('transactions');
     const addParticipant = useAddParticipant();
 
-    const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ParticipantFormValues>({
+    const { register, handleSubmit, reset, control, formState: { errors } } = useForm<ParticipantFormValues>({
         defaultValues: {
             name: '',
             role: 'CO_BROKER',
@@ -36,8 +36,6 @@ export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParti
             phoneNumber: ''
         }
     });
-
-    const role = watch('role');
 
     const onSubmit = async (data: ParticipantFormValues) => {
         try {
@@ -76,20 +74,27 @@ export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParti
 
                     <div className="space-y-2">
                         <Label htmlFor="role">{t('role')}</Label>
-                        <Select onValueChange={(val) => setValue('role', val as Role)} defaultValue={role}>
-                            <SelectTrigger>
-                                <SelectValue placeholder={t('selectRole')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="BROKER">{t('roles.BROKER')}</SelectItem>
-                                <SelectItem value="CO_BROKER">{t('roles.CO_BROKER')}</SelectItem>
-                                <SelectItem value="NOTARY">{t('roles.NOTARY')}</SelectItem>
-                                <SelectItem value="LAWYER">{t('roles.LAWYER')}</SelectItem>
-                                <SelectItem value="BUYER">{t('roles.BUYER')}</SelectItem>
-                                <SelectItem value="SELLER">{t('roles.SELLER')}</SelectItem>
-                                <SelectItem value="OTHER">{t('roles.OTHER')}</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <Controller
+                            control={control}
+                            name="role"
+                            rules={{ required: t('selectRole') }}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={t('selectRole')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="BROKER">{t('roles.BROKER')}</SelectItem>
+                                        <SelectItem value="CO_BROKER">{t('roles.CO_BROKER')}</SelectItem>
+                                        <SelectItem value="NOTARY">{t('roles.NOTARY')}</SelectItem>
+                                        <SelectItem value="LAWYER">{t('roles.LAWYER')}</SelectItem>
+                                        <SelectItem value="BUYER">{t('roles.BUYER')}</SelectItem>
+                                        <SelectItem value="SELLER">{t('roles.SELLER')}</SelectItem>
+                                        <SelectItem value="OTHER">{t('roles.OTHER')}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
                         {errors.role && <p className="text-sm text-destructive">{errors.role.message}</p>}
                     </div>
 
