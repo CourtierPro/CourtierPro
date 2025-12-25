@@ -39,8 +39,6 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
                 <div className="absolute top-4 left-0 w-full h-0.5 bg-muted -z-10" />
                 <div className="flex justify-between">
                     {stages.map((stage, index) => {
-
-
                         let status: "completed" | "current" | "upcoming" | "terminated" = "upcoming";
                         if (transaction.status === 'TERMINATED_EARLY') status = "terminated";
                         else if (transaction.status === 'CLOSED_SUCCESSFULLY') status = "completed"; // When closed successfully, all stages are treated as completed.
