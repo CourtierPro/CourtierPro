@@ -82,3 +82,29 @@ export function useUnpinTransaction() {
         },
     });
 }
+
+export function useAddParticipant() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, data }: { transactionId: string; data: { name: string; role: string; email?: string; phoneNumber?: string } }) => {
+            await axiosInstance.post(`/transactions/${transactionId}/participants`, data);
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: transactionKeys.participants(variables.transactionId) });
+        },
+    });
+}
+
+export function useRemoveParticipant() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, participantId }: { transactionId: string; participantId: string }) => {
+            await axiosInstance.delete(`/transactions/${transactionId}/participants/${participantId}`);
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: transactionKeys.participants(variables.transactionId) });
+        },
+    });
+}

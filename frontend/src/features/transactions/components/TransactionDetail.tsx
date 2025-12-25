@@ -14,6 +14,7 @@ import { TransactionInfo } from '@/features/transactions/components/TransactionI
 import { TransactionStageTracker } from '@/features/transactions/components/TransactionStageTracker';
 import { TransactionTabs } from '@/features/transactions/components/TransactionTabs';
 import { useUpdateTransactionStage } from '@/features/transactions/api/mutations';
+import { ParticipantsList } from '@/features/transactions/components/ParticipantsList';
 
 interface TransactionDetailProps {
   transactionId?: string;
@@ -86,6 +87,8 @@ function TransactionDetailContent({ transaction, isReadOnly = false, TimelineCom
       />
 
       <TransactionInfo transaction={transaction} hideClientLabel={isReadOnly} />
+
+      <ParticipantsList transactionId={transaction.transactionId} isReadOnly={isReadOnly} />
 
       <TransactionStageTracker
         transaction={transaction}
