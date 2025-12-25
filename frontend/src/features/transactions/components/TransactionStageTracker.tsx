@@ -67,11 +67,9 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
                                 </TooltipContent>
                             </Tooltip>
                         );
-                    })
-                    }
+                    }) }
                 </div>
             </div>
-
             {/* Mobile View (Vertical Collapsible) */}
             <div className="md:hidden space-y-0">
                 {stages.map((stage, index) => {
