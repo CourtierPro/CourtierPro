@@ -63,6 +63,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     status VARCHAR(50),
     opened_at TIMESTAMP,
     closed_at TIMESTAMP,
+    -- Optimistic locking version column to prevent concurrent updates.
+    -- Existing rows created before this column was added will start at 0, which is intentional.
     version BIGINT DEFAULT 0,
     -- Soft Delete Columns
     deleted_at TIMESTAMP,
