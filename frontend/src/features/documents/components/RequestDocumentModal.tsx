@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import DOMPurify from 'dompurify';
 import { Send, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

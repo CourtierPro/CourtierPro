@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, Search, CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -59,6 +59,7 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
   // Initialize form
   const form = useForm<TransactionCreateFormValues>({
     resolver: zodResolver(transactionCreateSchema),
+    mode: 'onBlur',
     defaultValues: {
       transactionSide: undefined,
       clientId: '',
