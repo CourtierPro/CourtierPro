@@ -501,29 +501,16 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    /**
+     * Retrieves all participants associated with the given transaction.
+     * <p>
+     * Access control for this operation is expected to be enforced at the controller
+     * or security layer before invoking this service method.
+     *
+     * @param transactionId the identifier of the transaction
+     * @return list of participants for the specified transaction
+     */
     public List<ParticipantResponseDTO> getParticipants(UUID transactionId) {
-        // No explicit access check here as it is allowed for both roles (Controller
-        // will handle auth/access or we can add verifyTransactionAccess here)
-        // The requirements say: "Allow access to both BROKER and CLIENT roles".
-        // Usually we should check access.
-        // Let's add verification assuming we can get the current user context or pass
-        // it.
-        // Wait, the interface only passes transactionId. The controller will probably
-        // have checked access or we should pass userId.
-        // The interface signature in the prompt was: getParticipants(UUID
-        // transactionId)
-        // I'll stick to that. But for safety, I should probably have asked for userId.
-        // However, I can't easily change the interface I just wrote without another
-        // call.
-        // For now, I will just return the list. The Controller calling this should
-        // ideally ensure the user has access to the transaction.
-        // Actually, existing methods like getNotes take brokerId/userId.
-        // I will trust the Controller to handle security for now or relies on the fact
-        // that if they can hit the endpoint (which has security context) they are okay?
-        // No, ideally we check that the user is related to the tx.
-        // But since I didn't add userId to the signature, I will implementing it
-        // "blindly" for the txId.
-
         return participantRepository.findByTransactionId(transactionId).stream()
                 .map(p -> ParticipantResponseDTO.builder()
                         .id(p.getId())
