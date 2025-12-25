@@ -7,6 +7,8 @@ import com.example.courtierprobackend.audit.timeline_audit.businesslayer.Timelin
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.value_object.TransactionInfo;
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
+import com.example.courtierprobackend.common.exceptions.ConflictException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import com.example.courtierprobackend.shared.utils.StageTranslationUtil;
 import com.example.courtierprobackend.transactions.datalayer.PinnedTransaction;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
@@ -397,7 +399,13 @@ public class TransactionServiceImpl implements TransactionService {
                 null,
                 stageChangeInfo);
 
-        Transaction saved = repo.save(tx);
+        Transaction saved;
+        try {
+            saved = repo.save(tx);
+        } catch (OptimisticLockingFailureException e) {
+            throw new ConflictException("The transaction was updated by another user. Please refresh and try again.",
+                    e);
+        }
 
         // CP-48: Send Notifications and Emails
         try {

@@ -1020,6 +1020,8 @@ class TransactionServiceImplTest {
         // Assert
         assertThat(tx.getStatus()).isEqualTo(TransactionStatus.CLOSED_SUCCESSFULLY);
         assertThat(tx.getClosedAt()).isNotNull();
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
+                contains("CLOSED_SUCCESSFULLY"), isNull());
     }
 
     @Test
@@ -1046,6 +1048,8 @@ class TransactionServiceImplTest {
         // Assert
         assertThat(tx.getStatus()).isEqualTo(TransactionStatus.TERMINATED_EARLY);
         assertThat(tx.getClosedAt()).isNotNull();
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
+                contains("TERMINATED_EARLY"), isNull());
     }
 
     @Test
@@ -1072,6 +1076,8 @@ class TransactionServiceImplTest {
         // Assert
         assertThat(tx.getStatus()).isEqualTo(TransactionStatus.TERMINATED_EARLY);
         assertThat(tx.getClosedAt()).isNotNull();
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
+                contains("TERMINATED_EARLY"), isNull());
     }
 
     @Test
@@ -1098,6 +1104,8 @@ class TransactionServiceImplTest {
         // Assert
         assertThat(tx.getStatus()).isEqualTo(TransactionStatus.CLOSED_SUCCESSFULLY);
         assertThat(tx.getClosedAt()).isNotNull();
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
+                contains("CLOSED_SUCCESSFULLY"), isNull());
     }
 
     @Test
@@ -1140,6 +1148,31 @@ class TransactionServiceImplTest {
         assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Cannot update stage of a closed or terminated transaction");
+    }
+
+    @Test
+    void updateTransactionStage_OptimisticLockingFailure_ThrowsConflictException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenThrow(new org.springframework.dao.OptimisticLockingFailureException("Optimistic lock failed"));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_SHOP_FOR_PROPERTY");
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.ConflictException.class)
+                .hasMessageContaining("The transaction was updated by another user");
     }
 
     // ========== pinTransaction Tests ==========
