@@ -31,7 +31,10 @@ export const useNotifications = () => {
     return useQuery({
         queryKey: ['notifications'],
         queryFn: fetchNotifications,
-        refetchInterval: 30000,
+        refetchInterval: () =>
+            typeof document !== 'undefined' && document.visibilityState === 'visible'
+                ? 60000
+                : false,
     });
 };
 
