@@ -7,7 +7,8 @@ import java.util.List;
 
 public interface NotificationService {
 
-    void createNotification(String recipientId, String title, String message, String relatedTransactionId);
+    void createNotification(String recipientId, String title, String message, String relatedTransactionId,
+            com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory category);
 
     List<NotificationResponseDTO> getUserNotifications(String auth0UserId);
 

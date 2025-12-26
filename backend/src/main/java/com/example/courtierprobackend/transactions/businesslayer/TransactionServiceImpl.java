@@ -7,9 +7,10 @@ import com.example.courtierprobackend.audit.timeline_audit.businesslayer.Timelin
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.value_object.TransactionInfo;
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
+import com.example.courtierprobackend.common.exceptions.ConflictException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import com.example.courtierprobackend.shared.utils.StageTranslationUtil;
 import com.example.courtierprobackend.transactions.datalayer.PinnedTransaction;
-import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntry;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
@@ -34,6 +35,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.AddParticipantRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.ParticipantResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository;
+import com.example.courtierprobackend.transactions.datalayer.TransactionParticipant;
 
 @Service
 @RequiredArgsConstructor
@@ -41,16 +46,16 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public void saveInternalNotes(UUID transactionId, String notes, UUID brokerId) {
-        // Optionally: persist notes on the transaction entity if needed (not required per user)
+        // Optionally: persist notes on the transaction entity if needed (not required
+        // per user)
         // Always: create a timeline NOTE event
         if (notes != null && !notes.isBlank()) {
             timelineService.addEntry(
-                transactionId,
-                brokerId,
-                TimelineEntryType.NOTE,
-                notes,
-                null
-            );
+                    transactionId,
+                    brokerId,
+                    TimelineEntryType.NOTE,
+                    notes,
+                    null);
         }
     }
 
@@ -62,6 +67,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final EmailService emailService;
     private final NotificationService notificationService;
     private final TimelineService timelineService;
+    private final TransactionParticipantRepository participantRepository;
 
     private String lookupClientName(UUID clientId) {
         if (clientId == null) {
@@ -72,7 +78,8 @@ public class TransactionServiceImpl implements TransactionService {
             UserAccount u = byId.get();
             String f = u.getFirstName();
             String l = u.getLastName();
-            log.debug("lookupClientName: found UserAccount for clientId={} firstName='{}' lastName='{}'", clientId, f, l);
+            log.debug("lookupClientName: found UserAccount for clientId={} firstName='{}' lastName='{}'", clientId, f,
+                    l);
             String name = ((f == null ? "" : f) + " " + (l == null ? "" : l)).trim();
             if (name.isEmpty())
                 name = "Unknown Client";
@@ -159,28 +166,41 @@ public class TransactionServiceImpl implements TransactionService {
         String property = saved.getPropertyAddress() != null ? saved.getPropertyAddress().getStreet() : "";
         String actorName = lookupClientName(saved.getBrokerId());
         TransactionInfo info = TransactionInfo.builder()
-            .clientName(clientName)
-            .address(property)
-            .actorName(actorName)
-            .build();
+                .clientName(clientName)
+                .address(property)
+                .actorName(actorName)
+                .build();
         timelineService.addEntry(
-            saved.getTransactionId(),
-            brokerId,
-            TimelineEntryType.CREATED,
-            null,
-            null,
-            info
-        );
+                saved.getTransactionId(),
+                brokerId,
+                TimelineEntryType.CREATED,
+                null,
+                null,
+                info);
+
+        // CP-48: Send Welcome Notification to Client
+        try {
+            String title = "Welcome to CourtierPro!";
+            String message = String.format("A new transaction for %s has been created for you by %s.",
+                    street, actorName);
+            notificationService.createNotification(
+                    clientId.toString(),
+                    title,
+                    message,
+                    saved.getTransactionId().toString(),
+                    com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME);
+        } catch (Exception e) {
+            log.error("Failed to send welcome notification for transaction {}", saved.getTransactionId(), e);
+        }
 
         return EntityDtoUtil.toResponse(saved, lookupClientName(saved.getClientId()));
     }
-
 
     @Override
     public List<TimelineEntryDTO> getNotes(UUID transactionId, UUID brokerId) {
         // 1. Vérifier que la transaction existe
         Transaction tx = repo.findByTransactionId(transactionId)
-            .orElseThrow(() -> new NotFoundException("Transaction not found"));
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
         // 2. Vérifier l'accès du broker
         TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
@@ -188,8 +208,8 @@ public class TransactionServiceImpl implements TransactionService {
         // 3. Récupérer les notes
         List<TimelineEntryDTO> entries = timelineService.getTimelineForTransaction(transactionId);
         return entries.stream()
-            .filter(e -> e.getType() == TimelineEntryType.NOTE)
-            .toList();
+                .filter(e -> e.getType() == TimelineEntryType.NOTE)
+                .toList();
     }
 
     @Override
@@ -202,18 +222,18 @@ public class TransactionServiceImpl implements TransactionService {
         }
         // Optionally add access checks here
         timelineService.addEntry(
-            transactionId,
-            brokerId,
-            TimelineEntryType.NOTE,
-            note.getTitle() + ": " + note.getMessage(),
-            null
-        );
+                transactionId,
+                brokerId,
+                TimelineEntryType.NOTE,
+                note.getTitle() + ": " + note.getMessage(),
+                null);
         // Return the last note entry for this transaction as DTO
         List<TimelineEntryDTO> entries = timelineService.getTimelineForTransaction(transactionId);
         List<TimelineEntryDTO> notes = entries.stream()
-            .filter(e -> e.getType() == TimelineEntryType.NOTE)
-            .toList();
-        if (notes.isEmpty()) return null;
+                .filter(e -> e.getType() == TimelineEntryType.NOTE)
+                .toList();
+        if (notes.isEmpty())
+            return null;
         return notes.get(notes.size() - 1);
     }
 
@@ -294,6 +314,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @Transactional
     public TransactionResponseDTO updateTransactionStage(UUID transactionId, StageUpdateRequestDTO dto, UUID brokerId) {
 
         if (dto == null) {
@@ -304,6 +325,13 @@ public class TransactionServiceImpl implements TransactionService {
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
         TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        // Guard Clause: Cannot update stage if transaction is already closed or
+        // terminated
+        if (tx.getStatus() == TransactionStatus.CLOSED_SUCCESSFULLY ||
+                tx.getStatus() == TransactionStatus.TERMINATED_EARLY) {
+            throw new BadRequestException("Cannot update stage of a closed or terminated transaction.");
+        }
 
         String stageStr = dto.getStage();
         if (stageStr == null || stageStr.isBlank()) {
@@ -341,23 +369,58 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BadRequestException("Unsupported transaction side: " + tx.getSide());
         }
 
+        // Auto-Closing Logic
+        if (tx.getSide() == TransactionSide.BUY_SIDE) {
+            if (tx.getBuyerStage() == BuyerStage.BUYER_OCCUPANCY) {
+                tx.setStatus(TransactionStatus.CLOSED_SUCCESSFULLY);
+                tx.setClosedAt(LocalDateTime.now());
+            } else if (tx.getBuyerStage() == BuyerStage.BUYER_TERMINATED) {
+                tx.setStatus(TransactionStatus.TERMINATED_EARLY);
+                tx.setClosedAt(LocalDateTime.now());
+            }
+        } else if (tx.getSide() == TransactionSide.SELL_SIDE) {
+            if (tx.getSellerStage() == SellerStage.SELLER_HANDOVER_KEYS) {
+                tx.setStatus(TransactionStatus.CLOSED_SUCCESSFULLY);
+                tx.setClosedAt(LocalDateTime.now());
+            } else if (tx.getSellerStage() == SellerStage.SELLER_TERMINATED) {
+                tx.setStatus(TransactionStatus.TERMINATED_EARLY);
+                tx.setClosedAt(LocalDateTime.now());
+            }
+        }
+
+        // Log explicit status change if it happened
+        if (tx.getStatus() == TransactionStatus.CLOSED_SUCCESSFULLY ||
+                tx.getStatus() == TransactionStatus.TERMINATED_EARLY) {
+            timelineService.addEntry(
+                    transactionId,
+                    brokerId,
+                    TimelineEntryType.STATUS_CHANGE,
+                    "Transaction automatically updated to " + tx.getStatus(),
+                    null);
+        }
+
         String stageChangeActorName = lookupClientName(tx.getBrokerId());
         TransactionInfo stageChangeInfo = TransactionInfo.builder()
-            .previousStage(previousStage)
-            .newStage(stageStr)
-            .stage(stageStr) // pour compatibilité
-            .actorName(stageChangeActorName)
-            .build();
+                .previousStage(previousStage)
+                .newStage(stageStr)
+                .stage(stageStr) // pour compatibilité
+                .actorName(stageChangeActorName)
+                .build();
         timelineService.addEntry(
-            transactionId,
-            brokerId,
-            TimelineEntryType.STAGE_CHANGE,
-            null,
-            null,
-            stageChangeInfo
-        );
+                transactionId,
+                brokerId,
+                TimelineEntryType.STAGE_CHANGE,
+                null,
+                null,
+                stageChangeInfo);
 
-        Transaction saved = repo.save(tx);
+        Transaction saved;
+        try {
+            saved = repo.save(tx);
+        } catch (OptimisticLockingFailureException e) {
+            throw new ConflictException("The transaction was updated by another user. Please refresh and try again.",
+                    e);
+        }
 
         // CP-48: Send Notifications and Emails
         try {
@@ -398,7 +461,8 @@ public class TransactionServiceImpl implements TransactionService {
                         client.getId().toString(), // Internal UUID
                         notifTitle,
                         notifMessage,
-                        saved.getTransactionId().toString());
+                        saved.getTransactionId().toString(),
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE);
 
             } else {
                 log.warn("Could not send notifications for transaction {}: Client or Broker not found",
@@ -451,5 +515,68 @@ public class TransactionServiceImpl implements TransactionService {
         return pinnedTransactionRepository.findAllByBrokerId(brokerId).stream()
                 .map(PinnedTransaction::getTransactionId)
                 .collect(Collectors.toSet());
+    }
+
+    @Override
+    public ParticipantResponseDTO addParticipant(UUID transactionId, AddParticipantRequestDTO dto, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        TransactionParticipant participant = TransactionParticipant.builder()
+                .transactionId(transactionId)
+                .name(dto.getName())
+                .role(dto.getRole())
+                .email(dto.getEmail())
+                .phoneNumber(dto.getPhoneNumber())
+                .build();
+
+        TransactionParticipant saved = participantRepository.save(participant);
+
+        return ParticipantResponseDTO.builder()
+                .id(saved.getId())
+                .transactionId(saved.getTransactionId())
+                .name(saved.getName())
+                .role(saved.getRole())
+                .email(saved.getEmail())
+                .phoneNumber(saved.getPhoneNumber())
+                .build();
+    }
+
+    @Override
+    public void removeParticipant(UUID transactionId, UUID participantId, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        TransactionParticipant participant = participantRepository.findById(participantId)
+                .orElseThrow(() -> new NotFoundException("Participant not found"));
+
+        if (!participant.getTransactionId().equals(transactionId)) {
+            throw new BadRequestException("Participant does not belong to this transaction");
+        }
+
+        participantRepository.delete(participant);
+    }
+
+    @Override
+    public List<ParticipantResponseDTO> getParticipants(UUID transactionId, UUID userId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
+
+        return participantRepository.findByTransactionId(transactionId).stream()
+                .map(p -> ParticipantResponseDTO.builder()
+                        .id(p.getId())
+                        .transactionId(p.getTransactionId())
+                        .name(p.getName())
+                        .role(p.getRole())
+                        .email(p.getEmail())
+                        .phoneNumber(p.getPhoneNumber())
+                        .build())
+                .toList();
     }
 }

@@ -63,6 +63,9 @@ CREATE TABLE IF NOT EXISTS transactions (
     status VARCHAR(50),
     opened_at TIMESTAMP,
     closed_at TIMESTAMP,
+    -- Optimistic locking version column to prevent concurrent updates.
+    -- Existing rows created before this column was added will start at 0, which is intentional.
+    version BIGINT DEFAULT 0,
     -- Soft Delete Columns
     deleted_at TIMESTAMP,
     deleted_by UUID
@@ -185,6 +188,7 @@ CREATE TABLE notifications (
     is_read BOOLEAN DEFAULT FALSE NOT NULL,
     related_transaction_id VARCHAR(255),
     type VARCHAR(50) NOT NULL DEFAULT 'GENERAL',
+    category VARCHAR(50) NOT NULL DEFAULT 'GENERAL',
     created_at TIMESTAMP NOT NULL
 );
 
@@ -202,6 +206,21 @@ CREATE TABLE pinned_transactions (
 );
 
 CREATE INDEX idx_pinned_transactions_broker_id ON pinned_transactions(broker_id);
+
+-- =============================================================================
+-- TRANSACTION PARTICIPANTS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS transaction_participants (
+    id UUID PRIMARY KEY,
+    transaction_id UUID NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL,
+    email VARCHAR(255),
+    phone_number VARCHAR(50),
+    CONSTRAINT fk_participant_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_transaction_participants_transaction_id ON transaction_participants(transaction_id);
 
 -- =============================================================================
 -- ORGANIZATION SETTINGS

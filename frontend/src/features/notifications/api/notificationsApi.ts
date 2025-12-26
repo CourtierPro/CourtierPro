@@ -8,6 +8,21 @@ export const NotificationType = {
 
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];
 
+export const NotificationCategory = {
+    WELCOME: 'WELCOME',
+    DOCUMENT_REQUEST: 'DOCUMENT_REQUEST',
+    DOCUMENT_SUBMITTED: 'DOCUMENT_SUBMITTED',
+    DOCUMENT_APPROVED: 'DOCUMENT_APPROVED',
+    DOCUMENT_REVISION: 'DOCUMENT_REVISION',
+    DOCUMENT_REJECTED: 'DOCUMENT_REJECTED',
+    STAGE_UPDATE: 'STAGE_UPDATE',
+    TRANSACTION_CANCELLED: 'TRANSACTION_CANCELLED',
+    BROADCAST: 'BROADCAST',
+    GENERAL: 'GENERAL',
+} as const;
+
+export type NotificationCategory = (typeof NotificationCategory)[keyof typeof NotificationCategory];
+
 export interface NotificationResponseDTO {
     publicId: string;
     title: string;
@@ -15,6 +30,7 @@ export interface NotificationResponseDTO {
     read: boolean;
     relatedTransactionId: string | null;
     type: NotificationType;
+    category: NotificationCategory;
     createdAt: string; // ISO timestamp
 }
 
@@ -31,6 +47,10 @@ export const useNotifications = () => {
     return useQuery({
         queryKey: ['notifications'],
         queryFn: fetchNotifications,
+        refetchInterval: () =>
+            typeof document !== 'undefined' && document.visibilityState === 'visible'
+                ? 60000 // 60 seconds
+                : false,
     });
 };
 

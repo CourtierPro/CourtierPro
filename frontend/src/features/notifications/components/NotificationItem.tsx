@@ -2,7 +2,10 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { formatDateTime } from '@/shared/utils/date';
-import { NotificationType, type NotificationResponseDTO } from '../api/notificationsApi';
+import { useNavigate } from 'react-router-dom';
+import { FileText, Bell, AlertCircle, CheckCircle, Info, Sparkles, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { NotificationType, NotificationCategory, type NotificationResponseDTO } from '../api/notificationsApi';
 import { cn } from '@/shared/utils/utils';
 
 interface NotificationItemProps {
@@ -12,6 +15,34 @@ interface NotificationItemProps {
 
 export function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
     const { t } = useTranslation('notifications');
+    const navigate = useNavigate();
+
+    const getIcon = () => {
+        if (notification.type === NotificationType.BROADCAST) {
+            return <AlertCircle className="w-4 h-4 text-orange-600" />;
+        }
+
+        switch (notification.category) {
+            case NotificationCategory.BROADCAST:
+                return <AlertCircle className="w-4 h-4 text-orange-600" />;
+            case NotificationCategory.WELCOME:
+                return <Sparkles className="w-4 h-4 text-amber-500" />;
+            case NotificationCategory.DOCUMENT_REQUEST:
+            case NotificationCategory.DOCUMENT_SUBMITTED:
+            case NotificationCategory.DOCUMENT_REVISION:
+                return <FileText className="w-4 h-4 text-primary" />;
+            case NotificationCategory.DOCUMENT_APPROVED:
+                return <CheckCircle className="w-4 h-4 text-green-600" />;
+            case NotificationCategory.DOCUMENT_REJECTED:
+                return <XCircle className="w-4 h-4 text-destructive" />;
+            case NotificationCategory.STAGE_UPDATE:
+                return <Info className="w-4 h-4 text-blue-500" />;
+            case NotificationCategory.TRANSACTION_CANCELLED:
+                return <XCircle className="w-4 h-4 text-destructive" />;
+            default:
+                return <Bell className="w-4 h-4 text-foreground/60" />;
+        }
+    };
 
     const handleClick = () => {
         if (!notification.read) {
@@ -20,6 +51,30 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
             } catch (error) {
                 console.error("Failed to mark notification as read", error);
             }
+        }
+
+        if (notification.relatedTransactionId) {
+            // Prevent navigation for cancelled transactions
+            if (notification.category === NotificationCategory.TRANSACTION_CANCELLED) {
+                toast.info(t('transactionDeletedMessage', 'This transaction has been cancelled or deleted.'));
+                return;
+            }
+
+            const isDocumentRelated = (
+                [
+                    NotificationCategory.DOCUMENT_REQUEST,
+                    NotificationCategory.DOCUMENT_SUBMITTED,
+                    NotificationCategory.DOCUMENT_APPROVED,
+                    NotificationCategory.DOCUMENT_REJECTED,
+                    NotificationCategory.DOCUMENT_REVISION,
+                ] as NotificationCategory[]
+            ).includes(notification.category);
+
+            const targetUrl = isDocumentRelated
+                ? `/transactions/${notification.relatedTransactionId}?tab=documents`
+                : `/transactions/${notification.relatedTransactionId}`;
+
+            navigate(targetUrl);
         }
     };
 
@@ -48,6 +103,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
                                 {t('broadcast', 'Broadcast')}
                             </span>
                         )}
+                        <span className="flex-shrink-0 mt-0.5">{getIcon()}</span>
                         {notification.title}
                     </CardTitle>
                     {!notification.read && (

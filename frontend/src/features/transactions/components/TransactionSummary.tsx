@@ -27,7 +27,7 @@ export function TransactionSummary({ transactionId, isReadOnly = false }: Transa
   const stageEnums = getStagesForSide(transaction.side);
   const stages = stageEnums.map(enumToLabel);
   const stageIndex = resolveStageIndex(transaction.currentStage, stageEnums);
-  const isTerminated = isTerminatedStage(transaction.currentStage, stageEnums) || transaction.status === 'terminated';
+  const isTerminated = isTerminatedStage(transaction.currentStage, stageEnums) || transaction.status === 'TERMINATED_EARLY';
   const displayStage = stageIndex >= 0 ? stageIndex + 1 : 1;
   const totalStages = ((transaction.totalStages ?? stages.length) || 1);
 
@@ -89,8 +89,8 @@ export function TransactionSummary({ transactionId, isReadOnly = false }: Transa
             <div>
               <dt className="text-sm font-medium text-muted-foreground">{t('status')}</dt>
               <dd className="mt-1">
-                <Badge variant={transaction.status === 'active' ? 'success' : transaction.status === 'closed' ? 'secondary' : 'destructive'}>
-                  {transaction.status}
+                <Badge variant={transaction.status === 'ACTIVE' ? 'success' : transaction.status === 'CLOSED_SUCCESSFULLY' ? 'secondary' : 'destructive'}>
+                  {t(transaction.status)}
                 </Badge>
               </dd>
             </div>

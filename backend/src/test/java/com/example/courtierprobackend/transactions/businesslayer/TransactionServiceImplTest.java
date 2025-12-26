@@ -8,8 +8,12 @@ import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.AddParticipantRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.ParticipantResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
+import com.example.courtierprobackend.transactions.datalayer.TransactionParticipant;
+import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import com.example.courtierprobackend.transactions.datalayer.repositories.PinnedTransactionRepository;
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
@@ -20,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
@@ -66,10 +71,14 @@ class TransactionServiceImplTest {
     @Mock
     private TimelineService timelineService;
 
+    @Mock
+    private TransactionParticipantRepository participantRepository;
+
     @BeforeEach
     void setup() {
-        transactionService = new TransactionServiceImpl(transactionRepository, pinnedTransactionRepository, userAccountRepository, emailService,
-                notificationService, timelineService);
+        transactionService = new TransactionServiceImpl(transactionRepository, pinnedTransactionRepository,
+                userAccountRepository, emailService,
+                notificationService, timelineService, participantRepository);
         lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
     }
 
@@ -80,8 +89,7 @@ class TransactionServiceImplTest {
         // Arrange
         TransactionRequestDTO dto = createValidBuyerTransactionDTO();
         when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
-                any(UUID.class), anyString(), any()
-        )).thenReturn(Optional.empty());
+                any(UUID.class), anyString(), any())).thenReturn(Optional.empty());
         Transaction expectedTx = new Transaction();
         expectedTx.setTransactionId(UUID.randomUUID());
         expectedTx.setClientId(dto.getClientId());
@@ -106,6 +114,7 @@ class TransactionServiceImplTest {
                 any() // TransactionInfo
         );
     }
+
     @Test
     void createTransaction_withValidSellerSideData_createsTransaction() {
         // Arrange
@@ -123,6 +132,42 @@ class TransactionServiceImplTest {
         // Assert
         assertThat(result).isNotNull();
         verify(transactionRepository).save(any(Transaction.class));
+        verify(notificationService).createNotification(
+                eq(dto.getClientId().toString()),
+                eq("Welcome to CourtierPro!"),
+                anyString(),
+                anyString(),
+                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME));
+    }
+
+    @Test
+    void createTransaction_NotificationFailure_LogsAndProceeds() {
+        // Arrange
+        TransactionRequestDTO dto = createValidBuyerTransactionDTO();
+        when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
+                any(UUID.class), anyString(), any())).thenReturn(Optional.empty());
+
+        Transaction expectedTx = new Transaction();
+        expectedTx.setTransactionId(UUID.randomUUID());
+        expectedTx.setClientId(dto.getClientId());
+        expectedTx.setBrokerId(dto.getBrokerId());
+        expectedTx.setPropertyAddress(
+                new PropertyAddress(dto.getPropertyAddress().getStreet(), dto.getPropertyAddress().getCity(),
+                        dto.getPropertyAddress().getProvince(), dto.getPropertyAddress().getPostalCode()));
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(expectedTx);
+
+        // Simulate Notification exception
+        doThrow(new RuntimeException("Notification Error")).when(notificationService)
+                .createNotification(anyString(), anyString(), anyString(), anyString(), any());
+
+        // Act
+        TransactionResponseDTO result = transactionService.createTransaction(dto);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(transactionRepository).save(any(Transaction.class));
+        // Verify notification service WAS called (but failed)
+        verify(notificationService).createNotification(anyString(), anyString(), anyString(), anyString(), any());
     }
 
     @Test
@@ -242,6 +287,55 @@ class TransactionServiceImplTest {
         assertThat(result.getTransactionId()).isNotNull();
     }
 
+    @Test
+    void createTransaction_whenClientNotFound_usesUnknownClientName() {
+        // Arrange
+        TransactionRequestDTO dto = createValidBuyerTransactionDTO();
+        when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
+                any(UUID.class), anyString(), any())).thenReturn(Optional.empty());
+
+        Transaction savedTx = new Transaction();
+        savedTx.setTransactionId(UUID.randomUUID());
+        savedTx.setClientId(dto.getClientId());
+        savedTx.setBrokerId(dto.getBrokerId());
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+
+        // Ensure user lookup returns empty
+        when(userAccountRepository.findById(dto.getClientId())).thenReturn(Optional.empty());
+
+        // Act
+        TransactionResponseDTO result = transactionService.createTransaction(dto);
+
+        // Assert
+        assertThat(result.getClientName()).isEqualTo("Unknown Client");
+    }
+
+    @Test
+    void createTransaction_whenClientNameIsEmpty_usesUnknownClientName() {
+        // Arrange
+        TransactionRequestDTO dto = createValidBuyerTransactionDTO();
+        when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
+                any(UUID.class), anyString(), any())).thenReturn(Optional.empty());
+
+        Transaction savedTx = new Transaction();
+        savedTx.setTransactionId(UUID.randomUUID());
+        savedTx.setClientId(dto.getClientId());
+        savedTx.setBrokerId(dto.getBrokerId());
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+
+        // Ensure user lookup returns user with null/empty names
+        var user = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        user.setFirstName("");
+        user.setLastName(null);
+        when(userAccountRepository.findById(dto.getClientId())).thenReturn(Optional.of(user));
+
+        // Act
+        TransactionResponseDTO result = transactionService.createTransaction(dto);
+
+        // Assert
+        assertThat(result.getClientName()).isEqualTo("Unknown Client");
+    }
+
     // ========== getNotes Tests ==========
 
     @Test
@@ -348,8 +442,7 @@ class TransactionServiceImplTest {
                 eq(brokerUuid),
                 eq(TimelineEntryType.NOTE),
                 eq("New Note: Note content"),
-                isNull()
-        );
+                isNull());
         verify(timelineService, times(1)).getTimelineForTransaction(transactionId);
     }
 
@@ -363,7 +456,8 @@ class TransactionServiceImplTest {
 
         // Act & Assert
         // La logique métier actuelle nève plus d'exception si actorId est null
-        // On vérifie simplement que la méthode ne lève pas d'exception et retourne null (car pas de stub sur timelineService)
+        // On vérifie simplement que la méthode ne lève pas d'exception et retourne null
+        // (car pas de stub sur timelineService)
         var result = transactionService.createNote(UUID.randomUUID(), noteDTO, UUID.randomUUID());
         assertThat(result).isNull();
     }
@@ -395,7 +489,6 @@ class TransactionServiceImplTest {
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("message is required");
     }
-
 
     // ========== getBrokerTransactions Tests ==========
 
@@ -524,6 +617,33 @@ class TransactionServiceImplTest {
     // ========== updateTransactionStage Tests ==========
 
     @Test
+    void updateTransactionStage_withNullDto_throwsBadRequestException() {
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(UUID.randomUUID(), null, UUID.randomUUID()))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("request body is required");
+    }
+
+    @Test
+    void updateTransactionStage_withNullStage_throwsBadRequestException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage(null);
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("stage is required");
+    }
+
+    @Test
     void updateTransactionStage_BuySide_Success() {
         // Arrange
         UUID transactionId = UUID.randomUUID();
@@ -548,7 +668,8 @@ class TransactionServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(response.getCurrentStage()).isEqualTo("BUYER_OFFER_ACCEPTED");
         verify(transactionRepository).save(any(Transaction.class));
-        verify(timelineService).addEntry(eq(transactionId), eq(brokerUuid), eq(TimelineEntryType.STAGE_CHANGE), isNull(), isNull(), any());
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerUuid), eq(TimelineEntryType.STAGE_CHANGE),
+                isNull(), isNull(), any());
     }
 
     @Test
@@ -578,7 +699,7 @@ class TransactionServiceImplTest {
         savedTx.setSide(TransactionSide.BUY_SIDE);
         savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
         savedTx.setPropertyAddress(addr);
-        //savedTx.setTimeline(new ArrayList<>());
+        // savedTx.setTimeline(new ArrayList<>());
 
         // Mock UserAccounts
         var client = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
@@ -621,7 +742,8 @@ class TransactionServiceImplTest {
                 eq(clientId.toString()), // Internal UUID
                 eq("Stage Update"),
                 eq("Stage updated to Buyer Offer Accepted by Broker Agent for 123 Test St"),
-                eq(transactionId.toString()));
+                eq(transactionId.toString()),
+                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE));
     }
 
     @Test
@@ -648,7 +770,7 @@ class TransactionServiceImplTest {
         savedTx.setSide(TransactionSide.BUY_SIDE);
         savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
         savedTx.setPropertyAddress(addr);
-       // savedTx.setTimeline(new ArrayList<>());
+        // savedTx.setTimeline(new ArrayList<>());
 
         var client = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
         client.setId(clientId);
@@ -688,7 +810,8 @@ class TransactionServiceImplTest {
                 eq(clientId.toString()),
                 eq("Stage Update"),
                 eq("Le stade a été mis à jour à Offre Acceptée par Courtier Pro pour 123 Rue Test"),
-                eq(transactionId.toString()));
+                eq(transactionId.toString()),
+                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE));
     }
 
     @Test
@@ -713,7 +836,7 @@ class TransactionServiceImplTest {
         savedTx.setSide(TransactionSide.BUY_SIDE);
         savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
         savedTx.setPropertyAddress(null); // NULL ADDRESS
-        //savedTx.setTimeline(new ArrayList<>());
+        // savedTx.setTimeline(new ArrayList<>());
 
         var client = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
         client.setId(clientId);
@@ -743,7 +866,8 @@ class TransactionServiceImplTest {
                 eq(clientId.toString()),
                 eq("Stage Update"),
                 contains("for Unknown Address"),
-                eq(transactionId.toString()));
+                eq(transactionId.toString()),
+                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE));
     }
 
     @Test
@@ -768,7 +892,7 @@ class TransactionServiceImplTest {
         savedTx.setSide(TransactionSide.BUY_SIDE);
         savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
         savedTx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
-       // savedTx.setTimeline(new ArrayList<>());
+        // savedTx.setTimeline(new ArrayList<>());
 
         // Users exist
         when(userAccountRepository.findById(any()))
@@ -908,7 +1032,187 @@ class TransactionServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(response.getCurrentStage()).isEqualTo("BUYER_FINANCING_FINALIZED");
         verify(transactionRepository).save(any(Transaction.class));
-        verify(timelineService).addEntry(eq(transactionId), eq(brokerUuid), eq(TimelineEntryType.STAGE_CHANGE), isNull(), isNull(), any());
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerUuid), eq(TimelineEntryType.STAGE_CHANGE),
+                isNull(), isNull(), any());
+    }
+
+    @Test
+    void updateTransactionStage_AutoClose_BuyerOccupancy() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_SECOND_NOTARY_APPOINTMENT);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OCCUPANCY");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.CLOSED_SUCCESSFULLY);
+        assertThat(tx.getClosedAt()).isNotNull();
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
+                contains("CLOSED_SUCCESSFULLY"), isNull());
+    }
+
+    @Test
+    void updateTransactionStage_AutoTerminate_BuyerTerminated() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_TERMINATED");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.TERMINATED_EARLY);
+        assertThat(tx.getClosedAt()).isNotNull();
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
+                contains("TERMINATED_EARLY"), isNull());
+    }
+
+    @Test
+    void updateTransactionStage_AutoTerminate_SellerTerminated() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+        tx.setSellerStage(SellerStage.SELLER_LISTING_PUBLISHED);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("SELLER_TERMINATED");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.TERMINATED_EARLY);
+        assertThat(tx.getClosedAt()).isNotNull();
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
+                contains("TERMINATED_EARLY"), isNull());
+    }
+
+    @Test
+    void updateTransactionStage_AutoClose_SellerHandoverKeys() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+        tx.setSellerStage(SellerStage.SELLER_NOTARY_APPOINTMENT);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("SELLER_HANDOVER_KEYS");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.CLOSED_SUCCESSFULLY);
+        assertThat(tx.getClosedAt()).isNotNull();
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
+                contains("CLOSED_SUCCESSFULLY"), isNull());
+    }
+
+    @Test
+    void updateTransactionStage_ClosedTransaction_ThrowsException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setStatus(TransactionStatus.CLOSED_SUCCESSFULLY);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OCCUPANCY");
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Cannot update stage of a closed or terminated transaction");
+    }
+
+    @Test
+    void updateTransactionStage_TerminatedTransaction_ThrowsException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setStatus(TransactionStatus.TERMINATED_EARLY);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OCCUPANCY");
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Cannot update stage of a closed or terminated transaction");
+    }
+
+    @Test
+    void updateTransactionStage_OptimisticLockingFailure_ThrowsConflictException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenThrow(new org.springframework.dao.OptimisticLockingFailureException("Optimistic lock failed"));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_SHOP_FOR_PROPERTY");
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.ConflictException.class)
+                .hasMessageContaining("The transaction was updated by another user");
     }
 
     // ========== pinTransaction Tests ==========
@@ -930,7 +1234,8 @@ class TransactionServiceImplTest {
         transactionService.pinTransaction(transactionId, brokerId);
 
         // Assert
-        verify(pinnedTransactionRepository).save(any(com.example.courtierprobackend.transactions.datalayer.PinnedTransaction.class));
+        verify(pinnedTransactionRepository)
+                .save(any(com.example.courtierprobackend.transactions.datalayer.PinnedTransaction.class));
     }
 
     @Test
@@ -1100,5 +1405,247 @@ class TransactionServiceImplTest {
         dto.setPropertyAddress(address);
 
         return dto;
+    }
+
+    // ========== Participant Tests ==========
+
+    @Test
+    void addParticipant_withValidData_addsParticipant() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        AddParticipantRequestDTO dto = new AddParticipantRequestDTO();
+        dto.setName("Co-Broker John");
+        dto.setRole(ParticipantRole.CO_BROKER);
+        dto.setEmail("john@example.com");
+
+        TransactionParticipant savedParticipant = new TransactionParticipant();
+        savedParticipant.setId(UUID.randomUUID());
+        savedParticipant.setTransactionId(transactionId);
+        savedParticipant.setName("Co-Broker John");
+        savedParticipant.setRole(ParticipantRole.CO_BROKER);
+        savedParticipant.setEmail("john@example.com");
+
+        when(participantRepository.save(any(TransactionParticipant.class))).thenReturn(savedParticipant);
+
+        // Act
+        ParticipantResponseDTO result = transactionService.addParticipant(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getName()).isEqualTo("Co-Broker John");
+        verify(participantRepository).save(any(TransactionParticipant.class));
+    }
+
+    @Test
+    void removeParticipant_withValidData_removesParticipant() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID participantId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        TransactionParticipant participant = new TransactionParticipant();
+        participant.setId(participantId);
+        participant.setTransactionId(transactionId);
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
+
+        // Act
+        transactionService.removeParticipant(transactionId, participantId, brokerId);
+
+        // Assert
+        verify(participantRepository).delete(participant);
+    }
+
+    @Test
+    void getParticipants_returnsList() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        TransactionParticipant p1 = new TransactionParticipant();
+        p1.setId(UUID.randomUUID());
+        p1.setName("P1");
+        p1.setTransactionId(transactionId);
+        p1.setRole(ParticipantRole.BROKER);
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        // We need to ensure the access check passes.
+        // If we pass a random userId in the test, verifyTransactionAccess will fail
+        // unless we mock it or setup the tx correctly.
+        // The service implementation calls
+        // TransactionAccessUtils.verifyTransactionAccess(tx, userId).
+        // If we pass a random user ID, that util will likely throw Forbidden unless the
+        // user is the broker or client.
+        // So we should use the brokerId as the userId in the test.
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of(p1));
+
+        // Act
+        List<ParticipantResponseDTO> result = transactionService.getParticipants(transactionId, brokerId);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getName()).isEqualTo("P1");
+    }
+
+    @Test
+    void addParticipant_withNonExistentTransaction_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        AddParticipantRequestDTO dto = new AddParticipantRequestDTO();
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.addParticipant(transactionId, dto, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    @Test
+    void addParticipant_withWrongBrokerId_throwsForbiddenException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(UUID.randomUUID()); // Different broker
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        AddParticipantRequestDTO dto = new AddParticipantRequestDTO();
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.addParticipant(transactionId, dto, brokerId))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("access");
+    }
+
+    @Test
+    void removeParticipant_withNonExistentTransaction_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID participantId = UUID.randomUUID();
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.removeParticipant(transactionId, participantId, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    @Test
+    void removeParticipant_withWrongBrokerId_throwsForbiddenException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID participantId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(UUID.randomUUID()); // Different broker
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.removeParticipant(transactionId, participantId, brokerId))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("access");
+    }
+
+    @Test
+    void removeParticipant_withNonExistentParticipant_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID participantId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(participantRepository.findById(participantId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.removeParticipant(transactionId, participantId, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Participant not found");
+    }
+
+    @Test
+    void removeParticipant_withParticipantNotBelongingToTransaction_throwsBadRequestException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID participantId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        TransactionParticipant participant = new TransactionParticipant();
+        participant.setId(participantId);
+        participant.setTransactionId(UUID.randomUUID()); // Different transaction
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.removeParticipant(transactionId, participantId, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("does not belong");
+    }
+
+    @Test
+    void saveInternalNotes_withValidNotes_addsTimelineEntry() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        String notes = "Internal meeting notes";
+
+        // Act
+        transactionService.saveInternalNotes(transactionId, notes, brokerId);
+
+        // Assert
+        verify(timelineService).addEntry(
+                eq(transactionId),
+                eq(brokerId),
+                eq(TimelineEntryType.NOTE),
+                eq(notes),
+                isNull());
+    }
+
+    @Test
+    void saveInternalNotes_withNullNotes_doesNothing() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        // Act
+        transactionService.saveInternalNotes(transactionId, null, brokerId);
+
+        // Assert
+        verify(timelineService, never()).addEntry(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void saveInternalNotes_withBlankNotes_doesNothing() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        // Act
+        transactionService.saveInternalNotes(transactionId, "   ", brokerId);
+
+        // Assert
+        verify(timelineService, never()).addEntry(any(), any(), any(), any(), any());
     }
 }

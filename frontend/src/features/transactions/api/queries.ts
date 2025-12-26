@@ -10,9 +10,19 @@ export const transactionKeys = {
     lists: () => [...transactionKeys.all, 'list'] as const,
     details: () => [...transactionKeys.all, 'detail'] as const,
     detail: (id: string) => [...transactionKeys.details(), id] as const,
+    participants: (id: string) => [...transactionKeys.detail(id), 'participants'] as const,
     client: (clientId: string) => [...transactionKeys.all, 'client', clientId] as const,
     pinned: () => [...transactionKeys.all, 'pinned'] as const,
 };
+
+export interface Participant {
+    id: string;
+    transactionId: string;
+    name: string;
+    role: 'BROKER' | 'CO_BROKER' | 'NOTARY' | 'LAWYER' | 'BUYER' | 'SELLER' | 'OTHER';
+    email?: string;
+    phoneNumber?: string;
+}
 
 export interface Transaction {
     transactionId: string;
@@ -27,7 +37,7 @@ export interface Transaction {
     side: 'BUY_SIDE' | 'SELL_SIDE';
     currentStage: number;
     totalStages: number;
-    status: 'active' | 'closed' | 'terminated';
+    status: 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY';
     openedAt?: string;
     openedDate?: string;
     notes?: string;
@@ -100,6 +110,17 @@ export function useClientTransactionTimeline(transactionId: string) {
         queryKey: ['transaction', transactionId, 'timeline', 'client'],
         queryFn: async () => {
             const res = await axiosInstance.get<TimelineEntryDTO[]>(`/transactions/${transactionId}/timeline/client`);
+            return res.data;
+        },
+        enabled: !!transactionId,
+    });
+}
+
+export function useTransactionParticipants(transactionId: string) {
+    return useQuery({
+        queryKey: transactionKeys.participants(transactionId),
+        queryFn: async () => {
+            const res = await axiosInstance.get<Participant[]>(`/transactions/${transactionId}/participants`);
             return res.data;
         },
         enabled: !!transactionId,
