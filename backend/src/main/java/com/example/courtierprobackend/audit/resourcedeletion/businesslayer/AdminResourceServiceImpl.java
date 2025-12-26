@@ -37,6 +37,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
     private final S3StorageService s3StorageService;
     private final ObjectMapper objectMapper;
     private final UserAccountRepository userAccountRepository;
+    private final com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
 
     @Override
     public ResourceListResponse listResources(AdminDeletionAuditLog.ResourceType type, boolean includeDeleted) {
@@ -103,10 +104,10 @@ public class AdminResourceServiceImpl implements AdminResourceService {
 
         List<ResourceListResponse.ResourceItem> items = requests.stream()
                 .map(d -> {
-                    UUID transactionId = d.getTransactionRef() != null 
-                            ? d.getTransactionRef().getTransactionId() 
+                    UUID transactionId = d.getTransactionRef() != null
+                            ? d.getTransactionRef().getTransactionId()
                             : null;
-                    
+
                     return ResourceListResponse.ResourceItem.builder()
                             .id(d.getRequestId())
                             .summary(buildDocumentRequestSummary(d))
@@ -242,6 +243,39 @@ public class AdminResourceServiceImpl implements AdminResourceService {
 
         if (transaction.getDeletedAt() != null) {
             throw new BadRequestException("Transaction is already deleted");
+        }
+
+        // Notify users before deletion (Best effort)
+        try {
+            String title = "Transaction Cancelled";
+            String propertyRef = transaction.getPropertyAddress() != null
+                    ? transaction.getPropertyAddress().getStreet()
+                    : "ID: " + transactionId.toString();
+
+            String message = String.format("Transaction for %s has been cancelled by an administrator.", propertyRef);
+
+            // Notify Broker
+            if (transaction.getBrokerId() != null) {
+                notificationService.createNotification(
+                        transaction.getBrokerId().toString(),
+                        title,
+                        message,
+                        transactionId.toString(),
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.TRANSACTION_CANCELLED);
+            }
+
+            // Notify Client
+            if (transaction.getClientId() != null) {
+                notificationService.createNotification(
+                        transaction.getClientId().toString(),
+                        title,
+                        message,
+                        transactionId.toString(),
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.TRANSACTION_CANCELLED);
+            }
+        } catch (Exception e) {
+            log.error("Failed to send deletion notifications for transaction {}", transactionId, e);
+            // Proceed with deletion even if notification fails
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -390,16 +424,16 @@ public class AdminResourceServiceImpl implements AdminResourceService {
             throw new BadRequestException("Document request is not deleted");
         }
 
-        // Check if parent transaction is deleted - can't restore orphaned document requests
+        // Check if parent transaction is deleted - can't restore orphaned document
+        // requests
         UUID transactionId = request.getTransactionRef().getTransactionId();
         Transaction parentTransaction = transactionRepository.findByTransactionIdIncludingDeleted(transactionId)
                 .orElse(null);
-        
+
         if (parentTransaction != null && parentTransaction.getDeletedAt() != null) {
             throw new BadRequestException(
                     "Cannot restore document request: its parent transaction " + transactionId + " is deleted. " +
-                    "Restore the transaction first."
-            );
+                            "Restore the transaction first.");
         }
 
         List<String> cascaded = new ArrayList<>();
@@ -473,11 +507,11 @@ public class AdminResourceServiceImpl implements AdminResourceService {
     }
 
     private void createAuditLog(AdminDeletionAuditLog.ActionType action,
-                                AdminDeletionAuditLog.ResourceType type, 
-                                UUID resourceId, 
-                                UUID adminId,
-                                String snapshot, 
-                                List<String> cascaded) {
+            AdminDeletionAuditLog.ResourceType type,
+            UUID resourceId,
+            UUID adminId,
+            String snapshot,
+            List<String> cascaded) {
         try {
             AdminDeletionAuditLog log = AdminDeletionAuditLog.builder()
                     .action(action)

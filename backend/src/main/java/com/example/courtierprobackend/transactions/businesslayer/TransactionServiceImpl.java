@@ -178,6 +178,21 @@ public class TransactionServiceImpl implements TransactionService {
                 null,
                 info);
 
+        // CP-48: Send Welcome Notification to Client
+        try {
+            String title = "Welcome to CourtierPro!";
+            String message = String.format("A new transaction for %s has been created for you by %s.",
+                    street, actorName);
+            notificationService.createNotification(
+                    clientId.toString(),
+                    title,
+                    message,
+                    saved.getTransactionId().toString(),
+                    com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME);
+        } catch (Exception e) {
+            log.error("Failed to send welcome notification for transaction {}", saved.getTransactionId(), e);
+        }
+
         return EntityDtoUtil.toResponse(saved, lookupClientName(saved.getClientId()));
     }
 
@@ -446,7 +461,8 @@ public class TransactionServiceImpl implements TransactionService {
                         client.getId().toString(), // Internal UUID
                         notifTitle,
                         notifMessage,
-                        saved.getTransactionId().toString());
+                        saved.getTransactionId().toString(),
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE);
 
             } else {
                 log.warn("Could not send notifications for transaction {}: Client or Broker not found",

@@ -33,7 +33,8 @@ public class SecurityConfig {
     private static final String ROLES_CLAIM = "https://courtierpro.dev/roles";
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, UserContextFilter userContextFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, UserContextFilter userContextFilter)
+            throws Exception {
 
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
@@ -53,7 +54,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/admin/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/users").hasRole("ADMIN")
 
-                        //  Admin organization settings
+                        // Admin organization settings
                         .requestMatchers("/api/admin/settings/**").hasRole("ADMIN")
 
                         // TODO: Implement webhook signature verification (HMAC/JWT) or IP allowlisting
@@ -63,24 +64,27 @@ public class SecurityConfig {
                         // Document APIs
                         .requestMatchers(HttpMethod.GET, "/transactions/*/documents").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*").hasAnyRole("BROKER", "CLIENT")
-                        .requestMatchers(HttpMethod.POST, "/transactions/*/documents/*/submit").hasAnyRole("BROKER", "CLIENT")
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*/documents/*/download").hasAnyRole("BROKER", "CLIENT")
+                        .requestMatchers(HttpMethod.POST, "/transactions/*/documents/*/submit")
+                        .hasAnyRole("BROKER", "CLIENT")
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*/documents/*/download")
+                        .hasAnyRole("BROKER", "CLIENT")
 
                         // Timeline client endpoint
                         .requestMatchers(HttpMethod.GET, "/transactions/*/timeline/client").hasRole("CLIENT")
 
                         // Transaction APIs
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/participants").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers(HttpMethod.GET, "/transactions/*").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers("/transactions/**").hasRole("BROKER")
 
                         // Everything else must be authenticated
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                )
-                // Add UserContextFilter after JWT authentication to translate Auth0 ID to internal UUID
-                .addFilterAfter(userContextFilter, org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class);
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                // Add UserContextFilter after JWT authentication to translate Auth0 ID to
+                // internal UUID
+                .addFilterAfter(userContextFilter,
+                        org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class);
 
         return http.build();
     }

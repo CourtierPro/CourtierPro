@@ -16,6 +16,7 @@ public class NotificationResponseDTO {
     private String title;
     private String message;
     private com.example.courtierprobackend.notifications.datalayer.enums.NotificationType type;
+    private com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory category;
 
     private boolean read;
 

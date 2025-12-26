@@ -17,6 +17,9 @@ gmail:
   password: ${GMAIL_PASSWORD_ENCRYPTED:${GMAIL_PASSWORD}}
 
 spring:
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
   servlet:
     multipart:
       max-file-size: 25MB
@@ -30,7 +33,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate  # Schema managed by Flyway migrations. Hibernate only validates entities match DB schema.
+      ddl-auto: validate # Schema managed by Flyway migrations. Hibernate only validates entities match DB schema.
     properties:
       hibernate:
         format_sql: true
