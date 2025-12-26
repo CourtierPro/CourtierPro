@@ -178,6 +178,20 @@ public class TransactionServiceImpl implements TransactionService {
                 null,
                 info);
 
+        // CP-48: Send Welcome Notification to Client
+        try {
+            String title = "Welcome to CourtierPro!";
+            String message = String.format("A new transaction for %s has been created for you by %s.",
+                    street, actorName);
+            notificationService.createNotification(
+                    clientId.toString(),
+                    title,
+                    message,
+                    saved.getTransactionId().toString());
+        } catch (Exception e) {
+            log.error("Failed to send welcome notification for transaction {}", saved.getTransactionId(), e);
+        }
+
         return EntityDtoUtil.toResponse(saved, lookupClientName(saved.getClientId()));
     }
 

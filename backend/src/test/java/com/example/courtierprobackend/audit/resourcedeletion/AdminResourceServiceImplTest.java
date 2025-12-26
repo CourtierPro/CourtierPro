@@ -43,656 +43,682 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AdminResourceServiceImplTest {
 
-    @Mock
-    private TransactionRepository transactionRepository;
-    @Mock
-    private DocumentRequestRepository documentRequestRepository;
-    @Mock
-    private AdminDeletionAuditRepository auditRepository;
-    @Mock
-    private S3StorageService s3StorageService;
-    @Mock
-    private UserAccountRepository userAccountRepository;
-    @Mock
-    private TimelineEntryRepository timelineEntryRepository;
-
-    private AdminResourceServiceImpl service;
-    private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setUp() {
-        objectMapper = new ObjectMapper();
-        service = new AdminResourceServiceImpl(
-                transactionRepository,
-                documentRequestRepository,
-                timelineEntryRepository,
-                auditRepository,
-                s3StorageService,
-                objectMapper,
-                userAccountRepository
-        );
-    }
-
-    // ========== listResources Tests ==========
-
-    @Test
-    void listResources_WithTransactions_ReturnsResourceList() {
-        UUID txId = UUID.randomUUID();
-        Transaction tx = createTestTransaction(txId);
-
-        when(transactionRepository.findAll()).thenReturn(List.of(tx));
-
-        ResourceListResponse result = service.listResources(
-                AdminDeletionAuditLog.ResourceType.TRANSACTION, false);
-
-        assertThat(result.getResourceType()).isEqualTo("TRANSACTION");
-        assertThat(result.getTotalCount()).isEqualTo(1);
-        assertThat(result.getDeletedCount()).isEqualTo(0);
-        assertThat(result.getItems()).hasSize(1);
-        assertThat(result.getItems().get(0).getId()).isEqualTo(txId);
-    }
-
-    @Test
-    void listResources_IncludingDeleted_UsesIncludingDeletedQuery() {
-        when(transactionRepository.findAllIncludingDeleted()).thenReturn(List.of());
-
-        service.listResources(AdminDeletionAuditLog.ResourceType.TRANSACTION, true);
-
-        verify(transactionRepository).findAllIncludingDeleted();
-        verify(transactionRepository, never()).findAll();
-    }
-
-    @Test
-    void listResources_WithDocumentRequests_ReturnsResourceList() {
-        UUID reqId = UUID.randomUUID();
-        DocumentRequest doc = createTestDocumentRequest(reqId);
-
-        when(documentRequestRepository.findAll()).thenReturn(List.of(doc));
-
-        ResourceListResponse result = service.listResources(
-                AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, false);
-
-        assertThat(result.getResourceType()).isEqualTo("DOCUMENT_REQUEST");
-        assertThat(result.getTotalCount()).isEqualTo(1);
-        assertThat(result.getItems().get(0).getId()).isEqualTo(reqId);
-    }
-
-    @Test
-    void listResources_WithNullFields_HandlesGracefully() {
-        // Transaction with null fields
-        Transaction tx = new Transaction();
-        tx.setTransactionId(UUID.randomUUID());
-        tx.setOpenedAt(LocalDateTime.now());
-        // null client, broker, address, status, side
-
-        // DocumentRequest with null fields
-        DocumentRequest doc = new DocumentRequest();
-        doc.setRequestId(UUID.randomUUID());
-        doc.setLastUpdatedAt(LocalDateTime.now());
-        // null transaction ref, doc type, custom title, status
-
-        when(transactionRepository.findAll()).thenReturn(List.of(tx));
-        when(documentRequestRepository.findAll()).thenReturn(List.of(doc));
-
-        // Test Transaction mapping
-        ResourceListResponse txResult = service.listResources(
-                AdminDeletionAuditLog.ResourceType.TRANSACTION, false);
-        ResourceListResponse.ResourceItem txItem = txResult.getItems().get(0);
-        assertThat(txItem.getClientEmail()).isNull();
-        assertThat(txItem.getBrokerEmail()).isNull();
-        assertThat(txItem.getAddress()).isNull();
-        assertThat(txItem.getStatus()).isNull();
-        assertThat(txItem.getSide()).isNull();
-
-        // Test DocumentRequest mapping
-        ResourceListResponse docResult = service.listResources(
-                AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, false);
-        ResourceListResponse.ResourceItem docItem = docResult.getItems().get(0);
-        assertThat(docItem.getTransactionId()).isNull();
-        assertThat(docItem.getDocType()).isNull(); // Falls back to title which is null
-        assertThat(docItem.getSubmittedDocCount()).isEqualTo(0);
-    }
-
-    // ========== previewDeletion Tests ==========
-
-    @Test
-    void previewDeletion_ForTransaction_ReturnsLinkedResources() {
-        UUID txId = UUID.randomUUID();
-        UUID docReqId = UUID.randomUUID();
-        UUID submittedDocId = UUID.randomUUID();
-
-        Transaction tx = createTestTransaction(txId);
-
-
-        DocumentRequest docReq = createTestDocumentRequest(docReqId);
-        docReq.setSubmittedDocuments(List.of(createTestSubmittedDocument(submittedDocId)));
-
-        when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
-                .thenReturn(Optional.of(tx));
-        when(documentRequestRepository.findByTransactionIdIncludingDeleted(txId))
-                .thenReturn(List.of(docReq));
-
-        DeletionPreviewResponse result = service.previewDeletion(
-                AdminDeletionAuditLog.ResourceType.TRANSACTION, txId);
-
-        assertThat(result.getResourceId()).isEqualTo(txId);
-        assertThat(result.getResourceType()).isEqualTo("TRANSACTION");
-        assertThat(result.getLinkedResources()).hasSizeGreaterThan(0);
-        assertThat(result.getS3FilesToDelete()).hasSize(1);
-    }
-
-    @Test
-    void previewDeletion_ForNonExistentTransaction_ThrowsNotFoundException() {
-        UUID txId = UUID.randomUUID();
-        when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
-                .thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> service.previewDeletion(
-                AdminDeletionAuditLog.ResourceType.TRANSACTION, txId))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Transaction not found");
-    }
-
-    @Test
-    void previewDeletion_ForDocumentRequest_ReturnsLinkedResources() {
-        UUID reqId = UUID.randomUUID();
-        UUID submittedDocId = UUID.randomUUID();
-
-        DocumentRequest docReq = createTestDocumentRequest(reqId);
-        docReq.setSubmittedDocuments(List.of(createTestSubmittedDocument(submittedDocId)));
-
-        when(documentRequestRepository.findByRequestIdIncludingDeleted(reqId))
-                .thenReturn(Optional.of(docReq));
-
-        DeletionPreviewResponse result = service.previewDeletion(
-                AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId);
-
-        assertThat(result.getResourceId()).isEqualTo(reqId);
-        assertThat(result.getResourceType()).isEqualTo("DOCUMENT_REQUEST");
-        assertThat(result.getLinkedResources()).hasSize(1);
-    }
-
-    @Test
-    void previewDeletion_WithNullFields_HandlesGracefully() {
-        UUID txId = UUID.randomUUID();
-        Transaction tx = createTestTransaction(txId);
-        
-        // Add timeline entry with null type (fallback)
-        TimelineEntry entry = new TimelineEntry();
-        entry.setId(UUID.randomUUID());
-        // type is null
-        
-        // Add document request with minimal fields
-        DocumentRequest docReq = new DocumentRequest();
-        docReq.setRequestId(UUID.randomUUID());
-        
-        // Add submitted document with null storage object
-        SubmittedDocument subDoc = new SubmittedDocument();
-        subDoc.setDocumentId(UUID.randomUUID());
-        docReq.setSubmittedDocuments(List.of(subDoc));
-
-        when(transactionRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(Optional.of(tx));
-        when(timelineEntryRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(List.of(entry));
-        when(documentRequestRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(List.of(docReq));
-
-        DeletionPreviewResponse result = service.previewDeletion(
-                AdminDeletionAuditLog.ResourceType.TRANSACTION, txId);
-
-        assertThat(result.getLinkedResources()).extracting("summary")
-                .contains("Unknown Timeline Entry", "Unknown (UNKNOWN)", "Unknown file");
-    }
-
-    // ========== deleteResource Tests ==========
-
-    @Test
-    void deleteResource_DocumentRequest_S3DeletionFailure_LogsErrorAndContinues() {
-        UUID reqId = UUID.randomUUID();
-        UUID adminId = UUID.randomUUID();
-        UUID submittedDocId = UUID.randomUUID();
-
-        DocumentRequest docReq = createTestDocumentRequest(reqId);
-        SubmittedDocument submittedDoc = createTestSubmittedDocument(submittedDocId);
-        docReq.setSubmittedDocuments(new ArrayList<>(List.of(submittedDoc)));
-
-        when(documentRequestRepository.findByRequestIdIncludingDeleted(reqId)).thenReturn(Optional.of(docReq));
-        when(documentRequestRepository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
-        
-        doThrow(new RuntimeException("S3 Error")).when(s3StorageService).deleteFile(anyString());
-
-        service.deleteResource(AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId, adminId);
-
-        assertThat(docReq.getDeletedAt()).isNotNull();
-        assertThat(submittedDoc.getDeletedAt()).isNotNull();
-        verify(auditRepository).save(any(AdminDeletionAuditLog.class));
-    }
-
-    @Test
-    void deleteResource_ForTransaction_SoftDeletesAndCreatesAuditLog() {
-        UUID txId = UUID.randomUUID();
-        UUID adminId = UUID.randomUUID();
-
-        Transaction tx = createTestTransaction(txId);
-
-
-        when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
-                .thenReturn(Optional.of(tx));
-        when(documentRequestRepository.findByTransactionIdIncludingDeleted(txId))
-                .thenReturn(List.of());
-        when(transactionRepository.save(any(Transaction.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
-
-        service.deleteResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId);
-
-        assertThat(tx.getDeletedAt()).isNotNull();
-        assertThat(tx.getDeletedBy()).isEqualTo(adminId);
-        verify(auditRepository).save(any(AdminDeletionAuditLog.class));
-    }
-
-    @Test
-    void deleteResource_ForAlreadyDeletedTransaction_ThrowsBadRequestException() {
-        UUID txId = UUID.randomUUID();
-        UUID adminId = UUID.randomUUID();
-
-        Transaction tx = createTestTransaction(txId);
-        tx.setDeletedAt(LocalDateTime.now());
-
-        when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
-                .thenReturn(Optional.of(tx));
-
-        assertThatThrownBy(() -> service.deleteResource(
-                AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("already deleted");
-    }
-
-    @Test
-    void deleteResource_WithS3Files_HardDeletesFiles() {
-        UUID txId = UUID.randomUUID();
-        UUID adminId = UUID.randomUUID();
-        UUID docReqId = UUID.randomUUID();
-        UUID submittedDocId = UUID.randomUUID();
-
-        Transaction tx = createTestTransaction(txId);
-
-
-        DocumentRequest docReq = createTestDocumentRequest(docReqId);
-        SubmittedDocument submittedDoc = createTestSubmittedDocument(submittedDocId);
-        docReq.setSubmittedDocuments(new ArrayList<>(List.of(submittedDoc)));
-
-        when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
-                .thenReturn(Optional.of(tx));
-        when(documentRequestRepository.findByTransactionIdIncludingDeleted(txId))
-                .thenReturn(List.of(docReq));
-        when(transactionRepository.save(any(Transaction.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
-
-        service.deleteResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId);
-
-        verify(s3StorageService).deleteFile("path/to/file.pdf");
-        assertThat(submittedDoc.getDeletedAt()).isNotNull();
-        assertThat(docReq.getDeletedAt()).isNotNull();
-    }
-
-    @Test
-    void deleteResource_S3DeletionFailure_LogsErrorAndContinues() {
-        UUID txId = UUID.randomUUID();
-        UUID adminId = UUID.randomUUID();
-        UUID docReqId = UUID.randomUUID();
-        UUID submittedDocId = UUID.randomUUID();
-
-        Transaction tx = createTestTransaction(txId);
-        DocumentRequest docReq = createTestDocumentRequest(docReqId);
-        SubmittedDocument submittedDoc = createTestSubmittedDocument(submittedDocId);
-        docReq.setSubmittedDocuments(new ArrayList<>(List.of(submittedDoc)));
-
-        when(transactionRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(Optional.of(tx));
-        when(documentRequestRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(List.of(docReq));
-        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
-        
-        // Simulate S3 exception
-        doThrow(new RuntimeException("S3 Error")).when(s3StorageService).deleteFile(anyString());
-
-        service.deleteResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId);
-
-        // Verification: Should still create audit log and soft delete despite S3 error
-        assertThat(tx.getDeletedAt()).isNotNull();
-        assertThat(submittedDoc.getDeletedAt()).isNotNull();
-        verify(auditRepository).save(any(AdminDeletionAuditLog.class));
-    }
-
-    @Test
-    void deleteResource_ForDocumentRequest_SoftDeletesWithCascade() {
-        UUID reqId = UUID.randomUUID();
-        UUID adminId = UUID.randomUUID();
-        UUID submittedDocId = UUID.randomUUID();
-
-        DocumentRequest docReq = createTestDocumentRequest(reqId);
-        SubmittedDocument submittedDoc = createTestSubmittedDocument(submittedDocId);
-        docReq.setSubmittedDocuments(new ArrayList<>(List.of(submittedDoc)));
-
-        when(documentRequestRepository.findByRequestIdIncludingDeleted(reqId))
-                .thenReturn(Optional.of(docReq));
-        when(documentRequestRepository.save(any(DocumentRequest.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
-
-        service.deleteResource(AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId, adminId);
-
-        assertThat(docReq.getDeletedAt()).isNotNull();
-        assertThat(docReq.getDeletedBy()).isEqualTo(adminId);
-        assertThat(submittedDoc.getDeletedAt()).isNotNull();
-        verify(s3StorageService).deleteFile("path/to/file.pdf");
-        verify(auditRepository).save(any(AdminDeletionAuditLog.class));
-    }
-
-    // ========== restoreResource Tests ==========
-
-    @Test
-    void restoreResource_ForDeletedTransaction_RestoresWithCascade() {
-        UUID txId = UUID.randomUUID();
-        UUID adminId = UUID.randomUUID();
-
-        Transaction tx = createTestTransaction(txId);
-        tx.setDeletedAt(LocalDateTime.now());
-        tx.setDeletedBy(adminId);
-
-
-        when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
-                .thenReturn(Optional.of(tx));
-        when(documentRequestRepository.findByTransactionIdIncludingDeleted(txId))
-                .thenReturn(List.of());
-        when(transactionRepository.save(any(Transaction.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
-
-        service.restoreResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId);
-
-        assertThat(tx.getDeletedAt()).isNull();
-        assertThat(tx.getDeletedBy()).isNull();
-    }
-
-    @Test
-    void restoreResource_ForNonDeletedTransaction_ThrowsBadRequestException() {
-        UUID txId = UUID.randomUUID();
-        UUID adminId = UUID.randomUUID();
-
-        Transaction tx = createTestTransaction(txId);
-        // Not deleted - deletedAt is null
-
-        when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
-                .thenReturn(Optional.of(tx));
-
-        assertThatThrownBy(() -> service.restoreResource(
-                AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("not deleted");
-    }
-
-    @Test
-    void restoreResource_ForDocumentRequest_RestoresMetadata() {
-        UUID reqId = UUID.randomUUID();
-        UUID adminId = UUID.randomUUID();
-        UUID submittedDocId = UUID.randomUUID();
-
-        DocumentRequest docReq = createTestDocumentRequest(reqId);
-        docReq.setDeletedAt(LocalDateTime.now());
-        docReq.setDeletedBy(adminId);
-
-        SubmittedDocument submittedDoc = createTestSubmittedDocument(submittedDocId);
-        submittedDoc.setDeletedAt(LocalDateTime.now());
-        submittedDoc.setDeletedBy(adminId);
-        docReq.setSubmittedDocuments(List.of(submittedDoc));
-
-        when(documentRequestRepository.findByRequestIdIncludingDeleted(reqId))
-                .thenReturn(Optional.of(docReq));
-        when(documentRequestRepository.save(any(DocumentRequest.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
-
-        service.restoreResource(AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId, adminId);
-
-        assertThat(docReq.getDeletedAt()).isNull();
-        assertThat(docReq.getDeletedBy()).isNull();
-        assertThat(submittedDoc.getDeletedAt()).isNull();
-    }
-
-    @Test
-    void restoreResource_ParentTransactionDeleted_ThrowsBadRequest() {
-        UUID reqId = UUID.randomUUID();
-        UUID adminId = UUID.randomUUID();
-        UUID txId = UUID.randomUUID();
-
-        DocumentRequest docReq = createTestDocumentRequest(reqId);
-        docReq.setTransactionRef(new TransactionRef(txId, UUID.randomUUID(), TransactionSide.BUY_SIDE));
-        docReq.setDeletedAt(LocalDateTime.now()); // It is deleted
-
-        Transaction parentTx = createTestTransaction(txId);
-        parentTx.setDeletedAt(LocalDateTime.now()); // Parent is ALSO deleted
-
-        when(documentRequestRepository.findByRequestIdIncludingDeleted(reqId)).thenReturn(Optional.of(docReq));
-        when(transactionRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(Optional.of(parentTx));
-
-        assertThatThrownBy(() -> service.restoreResource(
-                AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId, adminId))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("parent transaction");
-    }
-
-    @Test
-    void restoreResource_WithNonDeletedTimelineEntries_SkipsRestoration() {
-        UUID txId = UUID.randomUUID();
-        UUID adminId = UUID.randomUUID();
-        Transaction tx = createTestTransaction(txId);
-        tx.setDeletedAt(LocalDateTime.now());
-
-        TimelineEntry activeEntry = createTestTimelineEntry();
-        // deletedAt is null by default
-
-        when(transactionRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(Optional.of(tx));
-        when(timelineEntryRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(List.of(activeEntry));
-        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        service.restoreResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId);
-        
-        // Active entry should remain untouched (checking verification effectively, though no save needed)
-        assertThat(activeEntry.getDeletedAt()).isNull();
-        verify(timelineEntryRepository, never()).save(activeEntry);
-    }
-
-    // ========== getAuditHistory Tests ==========
-
-    @Test
-    void getAuditHistory_ReturnsOrderedList() {
-        AdminDeletionAuditLog log1 = AdminDeletionAuditLog.builder()
-                .id(1L)
-                .action(AdminDeletionAuditLog.ActionType.DELETE)
-                .timestamp(LocalDateTime.now().minusDays(1))
-                .adminId(UUID.randomUUID())
-                .resourceType(AdminDeletionAuditLog.ResourceType.TRANSACTION)
-                .resourceId(UUID.randomUUID())
-                .build();
-
-        AdminDeletionAuditLog log2 = AdminDeletionAuditLog.builder()
-                .id(2L)
-                .action(AdminDeletionAuditLog.ActionType.RESTORE)
-                .timestamp(LocalDateTime.now())
-                .adminId(UUID.randomUUID())
-                .resourceType(AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST)
-                .resourceId(UUID.randomUUID())
-                .build();
-
-        when(auditRepository.findAllByOrderByTimestampDesc()).thenReturn(List.of(log2, log1));
-
-        List<AdminDeletionAuditLog> result = service.getAuditHistory();
-
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).getId()).isEqualTo(2L);
-    }
-
-    // ========== Helper Methods ==========
-
-    private Transaction createTestTransaction(UUID transactionId) {
-        Transaction tx = new Transaction();
-        tx.setTransactionId(transactionId);
-        tx.setClientId(UUID.randomUUID());
-        tx.setBrokerId(UUID.randomUUID());
-        tx.setPropertyAddress(new PropertyAddress("123 Main St", "Montreal", "QC", "H2X1A1"));
-        tx.setStatus(TransactionStatus.ACTIVE);
-        tx.setOpenedAt(LocalDateTime.now());
-        return tx;
-    }
-
-    private DocumentRequest createTestDocumentRequest(UUID requestId) {
-        DocumentRequest doc = new DocumentRequest();
-        doc.setRequestId(requestId);
-        doc.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
-        doc.setDocType(DocumentTypeEnum.BANK_STATEMENT);
-        doc.setCustomTitle("Bank Statement");
-        doc.setStatus(DocumentStatusEnum.REQUESTED);
-        doc.setLastUpdatedAt(LocalDateTime.now());
-        doc.setSubmittedDocuments(new ArrayList<>());
-        return doc;
-    }
-
-    private SubmittedDocument createTestSubmittedDocument(UUID documentId) {
-        return SubmittedDocument.builder()
-                .documentId(documentId)
-                .storageObject(StorageObject.builder()
-                        .s3Key("path/to/file.pdf")
-                        .fileName("document.pdf")
-                        .mimeType("application/pdf")
-                        .sizeBytes(1024L)
-                        .build())
-                .uploadedAt(LocalDateTime.now())
-                .build();
-    }
-
-    private TimelineEntry createTestTimelineEntry() {
-        TimelineEntry entry = new TimelineEntry();
-        entry.setId(UUID.randomUUID());
-        entry.setType(com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType.STAGE_CHANGE);
-        return entry;
-    }
-    // ========== Unsupported Type Tests ==========
-
-    @Test
-    void listResources_WithUnsupportedType_ThrowsBadRequest() {
-        assertThatThrownBy(() -> service.listResources(AdminDeletionAuditLog.ResourceType.SUBMITTED_DOCUMENT, false))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("not supported");
-    }
-
-    @Test
-    void previewDeletion_WithUnsupportedType_ThrowsBadRequest() {
-        UUID id = UUID.randomUUID();
-        assertThatThrownBy(() -> service.previewDeletion(AdminDeletionAuditLog.ResourceType.SUBMITTED_DOCUMENT, id))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("not supported");
-    }
-
-    @Test
-    void deleteResource_WithUnsupportedType_ThrowsBadRequest() {
-        UUID id = UUID.randomUUID();
-        UUID adminId = UUID.randomUUID();
-        assertThatThrownBy(() -> service.deleteResource(AdminDeletionAuditLog.ResourceType.SUBMITTED_DOCUMENT, id, adminId))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("not supported");
-    }
-
-    @Test
-    void restoreResource_WithUnsupportedType_ThrowsBadRequest() {
-        UUID id = UUID.randomUUID();
-        UUID adminId = UUID.randomUUID();
-        assertThatThrownBy(() -> service.restoreResource(AdminDeletionAuditLog.ResourceType.SUBMITTED_DOCUMENT, id, adminId))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("not supported");
-    }
-
-    // ========== Serialization Failure Tests ==========
-
-    @Test
-    void createAuditLog_JsonProcessingException_LogsError() throws com.fasterxml.jackson.core.JsonProcessingException {
-        // Mock ObjectMapper to throw exception
-        ObjectMapper mockMapper = mock(ObjectMapper.class);
-        AdminResourceServiceImpl errorService = new AdminResourceServiceImpl(
-                transactionRepository,
-                documentRequestRepository,
-                timelineEntryRepository,
-                auditRepository,
-                s3StorageService,
-                mockMapper,
-                userAccountRepository
-        );
-
-        when(mockMapper.writeValueAsString(any())).thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("Fail") {});
-
-        // Trigger an audit log creation via deleteTransaction
-        UUID txId = UUID.randomUUID();
-        Transaction tx = createTestTransaction(txId);
-        when(transactionRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(Optional.of(tx));
-        when(transactionRepository.save(any())).thenReturn(tx);
-
-        // Should not throw, just log error
-        errorService.deleteResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, UUID.randomUUID());
-        
-        // Verify save was NOT called because createAuditLog catches exception before saving? 
-        // Wait, looking at code: catch is around auditRepository.save(log) OR around construction?
-        // Code:
-        // try {
-        //    AdminDeletionAuditLog log = ... .cascadedDeletions(mapper.write...) ...
-        //    auditRepository.save(log);
-        // } catch (JsonProcessingException e) { log.error }
-        // So auditRepository.save will NOT be called.
-        
-        verify(auditRepository, never()).save(any());
-    }
-
-    @Test
-    void buildTransactionSnapshot_JsonProcessingException_ReturnsEmptyJson() throws com.fasterxml.jackson.core.JsonProcessingException {
-        ObjectMapper mockMapper = mock(ObjectMapper.class);
-        AdminResourceServiceImpl errorService = new AdminResourceServiceImpl(
-                transactionRepository,
-                documentRequestRepository,
-                timelineEntryRepository,
-                auditRepository,
-                s3StorageService,
-                mockMapper,
-                userAccountRepository
-        );
-
-        // Use doAnswer to conditionally fail only for the Map (snapshot) and succeed for List (cascaded)
-        when(mockMapper.writeValueAsString(any())).thenAnswer(invocation -> {
-            Object arg = invocation.getArgument(0);
-            if (arg instanceof java.util.Map) {
-                throw new com.fasterxml.jackson.core.JsonProcessingException("Fail") {};
-            }
-            if (arg instanceof java.util.List) {
-                return "[]";
-            }
-            return "{}";
-        });
-
-        UUID txId = UUID.randomUUID();
-        Transaction tx = createTestTransaction(txId);
-        when(transactionRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(Optional.of(tx));
-        when(transactionRepository.save(any())).thenReturn(tx);
-
-        errorService.deleteResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, UUID.randomUUID());
-
-        // Verify audit log IS saved, and snapshot is "{}"
-        org.mockito.ArgumentCaptor<AdminDeletionAuditLog> captor = org.mockito.ArgumentCaptor.forClass(AdminDeletionAuditLog.class);
-        verify(auditRepository).save(captor.capture());
-        assertThat(captor.getValue().getResourceSnapshot()).isEqualTo("{}");
-    }
-
-    @Test
-    void listResources_CalculatesDeletedCount_Correctly() {
-        Transaction t1 = createTestTransaction(UUID.randomUUID());
-        Transaction t2 = createTestTransaction(UUID.randomUUID());
-        t2.setDeletedAt(LocalDateTime.now());
-        
-        when(transactionRepository.findAllIncludingDeleted()).thenReturn(List.of(t1, t2));
-        
-        ResourceListResponse response = service.listResources(AdminDeletionAuditLog.ResourceType.TRANSACTION, true);
-        
-        assertThat(response.getTotalCount()).isEqualTo(2);
-        assertThat(response.getDeletedCount()).isEqualTo(1);
-    }
+        @Mock
+        private TransactionRepository transactionRepository;
+        @Mock
+        private DocumentRequestRepository documentRequestRepository;
+        @Mock
+        private AdminDeletionAuditRepository auditRepository;
+        @Mock
+        private S3StorageService s3StorageService;
+        @Mock
+        private UserAccountRepository userAccountRepository;
+        @Mock
+        private TimelineEntryRepository timelineEntryRepository;
+        @Mock
+        private com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
+
+        private AdminResourceServiceImpl service;
+        private ObjectMapper objectMapper;
+
+        @BeforeEach
+        void setUp() {
+                objectMapper = new ObjectMapper();
+                service = new AdminResourceServiceImpl(
+                                transactionRepository,
+                                documentRequestRepository,
+                                timelineEntryRepository,
+                                auditRepository,
+                                s3StorageService,
+                                objectMapper,
+                                userAccountRepository,
+                                notificationService);
+        }
+
+        // ========== listResources Tests ==========
+
+        @Test
+        void listResources_WithTransactions_ReturnsResourceList() {
+                UUID txId = UUID.randomUUID();
+                Transaction tx = createTestTransaction(txId);
+
+                when(transactionRepository.findAll()).thenReturn(List.of(tx));
+
+                ResourceListResponse result = service.listResources(
+                                AdminDeletionAuditLog.ResourceType.TRANSACTION, false);
+
+                assertThat(result.getResourceType()).isEqualTo("TRANSACTION");
+                assertThat(result.getTotalCount()).isEqualTo(1);
+                assertThat(result.getDeletedCount()).isEqualTo(0);
+                assertThat(result.getItems()).hasSize(1);
+                assertThat(result.getItems().get(0).getId()).isEqualTo(txId);
+        }
+
+        @Test
+        void listResources_IncludingDeleted_UsesIncludingDeletedQuery() {
+                when(transactionRepository.findAllIncludingDeleted()).thenReturn(List.of());
+
+                service.listResources(AdminDeletionAuditLog.ResourceType.TRANSACTION, true);
+
+                verify(transactionRepository).findAllIncludingDeleted();
+                verify(transactionRepository, never()).findAll();
+        }
+
+        @Test
+        void listResources_WithDocumentRequests_ReturnsResourceList() {
+                UUID reqId = UUID.randomUUID();
+                DocumentRequest doc = createTestDocumentRequest(reqId);
+
+                when(documentRequestRepository.findAll()).thenReturn(List.of(doc));
+
+                ResourceListResponse result = service.listResources(
+                                AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, false);
+
+                assertThat(result.getResourceType()).isEqualTo("DOCUMENT_REQUEST");
+                assertThat(result.getTotalCount()).isEqualTo(1);
+                assertThat(result.getItems().get(0).getId()).isEqualTo(reqId);
+        }
+
+        @Test
+        void listResources_WithNullFields_HandlesGracefully() {
+                // Transaction with null fields
+                Transaction tx = new Transaction();
+                tx.setTransactionId(UUID.randomUUID());
+                tx.setOpenedAt(LocalDateTime.now());
+                // null client, broker, address, status, side
+
+                // DocumentRequest with null fields
+                DocumentRequest doc = new DocumentRequest();
+                doc.setRequestId(UUID.randomUUID());
+                doc.setLastUpdatedAt(LocalDateTime.now());
+                // null transaction ref, doc type, custom title, status
+
+                when(transactionRepository.findAll()).thenReturn(List.of(tx));
+                when(documentRequestRepository.findAll()).thenReturn(List.of(doc));
+
+                // Test Transaction mapping
+                ResourceListResponse txResult = service.listResources(
+                                AdminDeletionAuditLog.ResourceType.TRANSACTION, false);
+                ResourceListResponse.ResourceItem txItem = txResult.getItems().get(0);
+                assertThat(txItem.getClientEmail()).isNull();
+                assertThat(txItem.getBrokerEmail()).isNull();
+                assertThat(txItem.getAddress()).isNull();
+                assertThat(txItem.getStatus()).isNull();
+                assertThat(txItem.getSide()).isNull();
+
+                // Test DocumentRequest mapping
+                ResourceListResponse docResult = service.listResources(
+                                AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, false);
+                ResourceListResponse.ResourceItem docItem = docResult.getItems().get(0);
+                assertThat(docItem.getTransactionId()).isNull();
+                assertThat(docItem.getDocType()).isNull(); // Falls back to title which is null
+                assertThat(docItem.getSubmittedDocCount()).isEqualTo(0);
+        }
+
+        // ========== previewDeletion Tests ==========
+
+        @Test
+        void previewDeletion_ForTransaction_ReturnsLinkedResources() {
+                UUID txId = UUID.randomUUID();
+                UUID docReqId = UUID.randomUUID();
+                UUID submittedDocId = UUID.randomUUID();
+
+                Transaction tx = createTestTransaction(txId);
+
+                DocumentRequest docReq = createTestDocumentRequest(docReqId);
+                docReq.setSubmittedDocuments(List.of(createTestSubmittedDocument(submittedDocId)));
+
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(Optional.of(tx));
+                when(documentRequestRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(List.of(docReq));
+
+                DeletionPreviewResponse result = service.previewDeletion(
+                                AdminDeletionAuditLog.ResourceType.TRANSACTION, txId);
+
+                assertThat(result.getResourceId()).isEqualTo(txId);
+                assertThat(result.getResourceType()).isEqualTo("TRANSACTION");
+                assertThat(result.getLinkedResources()).hasSizeGreaterThan(0);
+                assertThat(result.getS3FilesToDelete()).hasSize(1);
+        }
+
+        @Test
+        void previewDeletion_ForNonExistentTransaction_ThrowsNotFoundException() {
+                UUID txId = UUID.randomUUID();
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> service.previewDeletion(
+                                AdminDeletionAuditLog.ResourceType.TRANSACTION, txId))
+                                .isInstanceOf(NotFoundException.class)
+                                .hasMessageContaining("Transaction not found");
+        }
+
+        @Test
+        void previewDeletion_ForDocumentRequest_ReturnsLinkedResources() {
+                UUID reqId = UUID.randomUUID();
+                UUID submittedDocId = UUID.randomUUID();
+
+                DocumentRequest docReq = createTestDocumentRequest(reqId);
+                docReq.setSubmittedDocuments(List.of(createTestSubmittedDocument(submittedDocId)));
+
+                when(documentRequestRepository.findByRequestIdIncludingDeleted(reqId))
+                                .thenReturn(Optional.of(docReq));
+
+                DeletionPreviewResponse result = service.previewDeletion(
+                                AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId);
+
+                assertThat(result.getResourceId()).isEqualTo(reqId);
+                assertThat(result.getResourceType()).isEqualTo("DOCUMENT_REQUEST");
+                assertThat(result.getLinkedResources()).hasSize(1);
+        }
+
+        @Test
+        void previewDeletion_WithNullFields_HandlesGracefully() {
+                UUID txId = UUID.randomUUID();
+                Transaction tx = createTestTransaction(txId);
+
+                // Add timeline entry with null type (fallback)
+                TimelineEntry entry = new TimelineEntry();
+                entry.setId(UUID.randomUUID());
+                // type is null
+
+                // Add document request with minimal fields
+                DocumentRequest docReq = new DocumentRequest();
+                docReq.setRequestId(UUID.randomUUID());
+
+                // Add submitted document with null storage object
+                SubmittedDocument subDoc = new SubmittedDocument();
+                subDoc.setDocumentId(UUID.randomUUID());
+                docReq.setSubmittedDocuments(List.of(subDoc));
+
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(Optional.of(tx));
+                when(timelineEntryRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(List.of(entry));
+                when(documentRequestRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(List.of(docReq));
+
+                DeletionPreviewResponse result = service.previewDeletion(
+                                AdminDeletionAuditLog.ResourceType.TRANSACTION, txId);
+
+                assertThat(result.getLinkedResources()).extracting("summary")
+                                .contains("Unknown Timeline Entry", "Unknown (UNKNOWN)", "Unknown file");
+        }
+
+        // ========== deleteResource Tests ==========
+
+        @Test
+        void deleteResource_DocumentRequest_S3DeletionFailure_LogsErrorAndContinues() {
+                UUID reqId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+                UUID submittedDocId = UUID.randomUUID();
+
+                DocumentRequest docReq = createTestDocumentRequest(reqId);
+                SubmittedDocument submittedDoc = createTestSubmittedDocument(submittedDocId);
+                docReq.setSubmittedDocuments(new ArrayList<>(List.of(submittedDoc)));
+
+                when(documentRequestRepository.findByRequestIdIncludingDeleted(reqId)).thenReturn(Optional.of(docReq));
+                when(documentRequestRepository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+                doThrow(new RuntimeException("S3 Error")).when(s3StorageService).deleteFile(anyString());
+
+                service.deleteResource(AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId, adminId);
+
+                assertThat(docReq.getDeletedAt()).isNotNull();
+                assertThat(submittedDoc.getDeletedAt()).isNotNull();
+                verify(auditRepository).save(any(AdminDeletionAuditLog.class));
+        }
+
+        @Test
+        void deleteResource_ForTransaction_SoftDeletesAndCreatesAuditLog() {
+                UUID txId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+
+                Transaction tx = createTestTransaction(txId);
+
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(Optional.of(tx));
+                when(documentRequestRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(List.of());
+                when(transactionRepository.save(any(Transaction.class)))
+                                .thenAnswer(inv -> inv.getArgument(0));
+
+                service.deleteResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId);
+
+                assertThat(tx.getDeletedAt()).isNotNull();
+                assertThat(tx.getDeletedBy()).isEqualTo(adminId);
+                verify(auditRepository).save(any(AdminDeletionAuditLog.class));
+                // Verify notifications sent to both Broker and Client
+                verify(notificationService).createNotification(
+                                eq(tx.getBrokerId().toString()),
+                                anyString(),
+                                anyString(),
+                                eq(txId.toString()));
+                verify(notificationService).createNotification(
+                                eq(tx.getClientId().toString()),
+                                anyString(),
+                                anyString(),
+                                eq(txId.toString()));
+        }
+
+        @Test
+        void deleteResource_ForAlreadyDeletedTransaction_ThrowsBadRequestException() {
+                UUID txId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+
+                Transaction tx = createTestTransaction(txId);
+                tx.setDeletedAt(LocalDateTime.now());
+
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(Optional.of(tx));
+
+                assertThatThrownBy(() -> service.deleteResource(
+                                AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("already deleted");
+        }
+
+        @Test
+        void deleteResource_WithS3Files_HardDeletesFiles() {
+                UUID txId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+                UUID docReqId = UUID.randomUUID();
+                UUID submittedDocId = UUID.randomUUID();
+
+                Transaction tx = createTestTransaction(txId);
+
+                DocumentRequest docReq = createTestDocumentRequest(docReqId);
+                SubmittedDocument submittedDoc = createTestSubmittedDocument(submittedDocId);
+                docReq.setSubmittedDocuments(new ArrayList<>(List.of(submittedDoc)));
+
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(Optional.of(tx));
+                when(documentRequestRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(List.of(docReq));
+                when(transactionRepository.save(any(Transaction.class)))
+                                .thenAnswer(inv -> inv.getArgument(0));
+
+                service.deleteResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId);
+
+                verify(s3StorageService).deleteFile("path/to/file.pdf");
+                assertThat(submittedDoc.getDeletedAt()).isNotNull();
+                assertThat(docReq.getDeletedAt()).isNotNull();
+        }
+
+        @Test
+        void deleteResource_S3DeletionFailure_LogsErrorAndContinues() {
+                UUID txId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+                UUID docReqId = UUID.randomUUID();
+                UUID submittedDocId = UUID.randomUUID();
+
+                Transaction tx = createTestTransaction(txId);
+                DocumentRequest docReq = createTestDocumentRequest(docReqId);
+                SubmittedDocument submittedDoc = createTestSubmittedDocument(submittedDocId);
+                docReq.setSubmittedDocuments(new ArrayList<>(List.of(submittedDoc)));
+
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(Optional.of(tx));
+                when(documentRequestRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(List.of(docReq));
+                when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+                // Simulate S3 exception
+                doThrow(new RuntimeException("S3 Error")).when(s3StorageService).deleteFile(anyString());
+
+                service.deleteResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId);
+
+                // Verification: Should still create audit log and soft delete despite S3 error
+                assertThat(tx.getDeletedAt()).isNotNull();
+                assertThat(submittedDoc.getDeletedAt()).isNotNull();
+                verify(auditRepository).save(any(AdminDeletionAuditLog.class));
+        }
+
+        @Test
+        void deleteResource_ForDocumentRequest_SoftDeletesWithCascade() {
+                UUID reqId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+                UUID submittedDocId = UUID.randomUUID();
+
+                DocumentRequest docReq = createTestDocumentRequest(reqId);
+                SubmittedDocument submittedDoc = createTestSubmittedDocument(submittedDocId);
+                docReq.setSubmittedDocuments(new ArrayList<>(List.of(submittedDoc)));
+
+                when(documentRequestRepository.findByRequestIdIncludingDeleted(reqId))
+                                .thenReturn(Optional.of(docReq));
+                when(documentRequestRepository.save(any(DocumentRequest.class)))
+                                .thenAnswer(inv -> inv.getArgument(0));
+
+                service.deleteResource(AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId, adminId);
+
+                assertThat(docReq.getDeletedAt()).isNotNull();
+                assertThat(docReq.getDeletedBy()).isEqualTo(adminId);
+                assertThat(submittedDoc.getDeletedAt()).isNotNull();
+                verify(s3StorageService).deleteFile("path/to/file.pdf");
+                verify(auditRepository).save(any(AdminDeletionAuditLog.class));
+        }
+
+        // ========== restoreResource Tests ==========
+
+        @Test
+        void restoreResource_ForDeletedTransaction_RestoresWithCascade() {
+                UUID txId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+
+                Transaction tx = createTestTransaction(txId);
+                tx.setDeletedAt(LocalDateTime.now());
+                tx.setDeletedBy(adminId);
+
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(Optional.of(tx));
+                when(documentRequestRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(List.of());
+                when(transactionRepository.save(any(Transaction.class)))
+                                .thenAnswer(inv -> inv.getArgument(0));
+
+                service.restoreResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId);
+
+                assertThat(tx.getDeletedAt()).isNull();
+                assertThat(tx.getDeletedBy()).isNull();
+        }
+
+        @Test
+        void restoreResource_ForNonDeletedTransaction_ThrowsBadRequestException() {
+                UUID txId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+
+                Transaction tx = createTestTransaction(txId);
+                // Not deleted - deletedAt is null
+
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(Optional.of(tx));
+
+                assertThatThrownBy(() -> service.restoreResource(
+                                AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("not deleted");
+        }
+
+        @Test
+        void restoreResource_ForDocumentRequest_RestoresMetadata() {
+                UUID reqId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+                UUID submittedDocId = UUID.randomUUID();
+
+                DocumentRequest docReq = createTestDocumentRequest(reqId);
+                docReq.setDeletedAt(LocalDateTime.now());
+                docReq.setDeletedBy(adminId);
+
+                SubmittedDocument submittedDoc = createTestSubmittedDocument(submittedDocId);
+                submittedDoc.setDeletedAt(LocalDateTime.now());
+                submittedDoc.setDeletedBy(adminId);
+                docReq.setSubmittedDocuments(List.of(submittedDoc));
+
+                when(documentRequestRepository.findByRequestIdIncludingDeleted(reqId))
+                                .thenReturn(Optional.of(docReq));
+                when(documentRequestRepository.save(any(DocumentRequest.class)))
+                                .thenAnswer(inv -> inv.getArgument(0));
+
+                service.restoreResource(AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId, adminId);
+
+                assertThat(docReq.getDeletedAt()).isNull();
+                assertThat(docReq.getDeletedBy()).isNull();
+                assertThat(submittedDoc.getDeletedAt()).isNull();
+        }
+
+        @Test
+        void restoreResource_ParentTransactionDeleted_ThrowsBadRequest() {
+                UUID reqId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+                UUID txId = UUID.randomUUID();
+
+                DocumentRequest docReq = createTestDocumentRequest(reqId);
+                docReq.setTransactionRef(new TransactionRef(txId, UUID.randomUUID(), TransactionSide.BUY_SIDE));
+                docReq.setDeletedAt(LocalDateTime.now()); // It is deleted
+
+                Transaction parentTx = createTestTransaction(txId);
+                parentTx.setDeletedAt(LocalDateTime.now()); // Parent is ALSO deleted
+
+                when(documentRequestRepository.findByRequestIdIncludingDeleted(reqId)).thenReturn(Optional.of(docReq));
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(Optional.of(parentTx));
+
+                assertThatThrownBy(() -> service.restoreResource(
+                                AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId, adminId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("parent transaction");
+        }
+
+        @Test
+        void restoreResource_WithNonDeletedTimelineEntries_SkipsRestoration() {
+                UUID txId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+                Transaction tx = createTestTransaction(txId);
+                tx.setDeletedAt(LocalDateTime.now());
+
+                TimelineEntry activeEntry = createTestTimelineEntry();
+                // deletedAt is null by default
+
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(Optional.of(tx));
+                when(timelineEntryRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(List.of(activeEntry));
+                when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+                service.restoreResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId);
+
+                // Active entry should remain untouched (checking verification effectively,
+                // though no save needed)
+                assertThat(activeEntry.getDeletedAt()).isNull();
+                verify(timelineEntryRepository, never()).save(activeEntry);
+        }
+
+        // ========== getAuditHistory Tests ==========
+
+        @Test
+        void getAuditHistory_ReturnsOrderedList() {
+                AdminDeletionAuditLog log1 = AdminDeletionAuditLog.builder()
+                                .id(1L)
+                                .action(AdminDeletionAuditLog.ActionType.DELETE)
+                                .timestamp(LocalDateTime.now().minusDays(1))
+                                .adminId(UUID.randomUUID())
+                                .resourceType(AdminDeletionAuditLog.ResourceType.TRANSACTION)
+                                .resourceId(UUID.randomUUID())
+                                .build();
+
+                AdminDeletionAuditLog log2 = AdminDeletionAuditLog.builder()
+                                .id(2L)
+                                .action(AdminDeletionAuditLog.ActionType.RESTORE)
+                                .timestamp(LocalDateTime.now())
+                                .adminId(UUID.randomUUID())
+                                .resourceType(AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST)
+                                .resourceId(UUID.randomUUID())
+                                .build();
+
+                when(auditRepository.findAllByOrderByTimestampDesc()).thenReturn(List.of(log2, log1));
+
+                List<AdminDeletionAuditLog> result = service.getAuditHistory();
+
+                assertThat(result).hasSize(2);
+                assertThat(result.get(0).getId()).isEqualTo(2L);
+        }
+
+        // ========== Helper Methods ==========
+
+        private Transaction createTestTransaction(UUID transactionId) {
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setClientId(UUID.randomUUID());
+                tx.setBrokerId(UUID.randomUUID());
+                tx.setPropertyAddress(new PropertyAddress("123 Main St", "Montreal", "QC", "H2X1A1"));
+                tx.setStatus(TransactionStatus.ACTIVE);
+                tx.setOpenedAt(LocalDateTime.now());
+                return tx;
+        }
+
+        private DocumentRequest createTestDocumentRequest(UUID requestId) {
+                DocumentRequest doc = new DocumentRequest();
+                doc.setRequestId(requestId);
+                doc.setTransactionRef(
+                                new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+                doc.setDocType(DocumentTypeEnum.BANK_STATEMENT);
+                doc.setCustomTitle("Bank Statement");
+                doc.setStatus(DocumentStatusEnum.REQUESTED);
+                doc.setLastUpdatedAt(LocalDateTime.now());
+                doc.setSubmittedDocuments(new ArrayList<>());
+                return doc;
+        }
+
+        private SubmittedDocument createTestSubmittedDocument(UUID documentId) {
+                return SubmittedDocument.builder()
+                                .documentId(documentId)
+                                .storageObject(StorageObject.builder()
+                                                .s3Key("path/to/file.pdf")
+                                                .fileName("document.pdf")
+                                                .mimeType("application/pdf")
+                                                .sizeBytes(1024L)
+                                                .build())
+                                .uploadedAt(LocalDateTime.now())
+                                .build();
+        }
+
+        private TimelineEntry createTestTimelineEntry() {
+                TimelineEntry entry = new TimelineEntry();
+                entry.setId(UUID.randomUUID());
+                entry.setType(com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType.STAGE_CHANGE);
+                return entry;
+        }
+        // ========== Unsupported Type Tests ==========
+
+        @Test
+        void listResources_WithUnsupportedType_ThrowsBadRequest() {
+                assertThatThrownBy(() -> service.listResources(AdminDeletionAuditLog.ResourceType.SUBMITTED_DOCUMENT,
+                                false))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("not supported");
+        }
+
+        @Test
+        void previewDeletion_WithUnsupportedType_ThrowsBadRequest() {
+                UUID id = UUID.randomUUID();
+                assertThatThrownBy(() -> service.previewDeletion(AdminDeletionAuditLog.ResourceType.SUBMITTED_DOCUMENT,
+                                id))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("not supported");
+        }
+
+        @Test
+        void deleteResource_WithUnsupportedType_ThrowsBadRequest() {
+                UUID id = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+                assertThatThrownBy(() -> service.deleteResource(AdminDeletionAuditLog.ResourceType.SUBMITTED_DOCUMENT,
+                                id, adminId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("not supported");
+        }
+
+        @Test
+        void restoreResource_WithUnsupportedType_ThrowsBadRequest() {
+                UUID id = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+                assertThatThrownBy(() -> service.restoreResource(AdminDeletionAuditLog.ResourceType.SUBMITTED_DOCUMENT,
+                                id, adminId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("not supported");
+        }
+
+        // ========== Serialization Failure Tests ==========
+
+        @Test
+        void createAuditLog_JsonProcessingException_LogsError()
+                        throws com.fasterxml.jackson.core.JsonProcessingException {
+                // Mock ObjectMapper to throw exception
+                ObjectMapper mockMapper = mock(ObjectMapper.class);
+                AdminResourceServiceImpl errorService = new AdminResourceServiceImpl(
+                                transactionRepository,
+                                documentRequestRepository,
+                                timelineEntryRepository,
+                                auditRepository,
+                                s3StorageService,
+                                mockMapper,
+                                userAccountRepository,
+                                notificationService);
+
+                when(mockMapper.writeValueAsString(any()))
+                                .thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("Fail") {
+                                });
+
+                // Trigger an audit log creation via deleteTransaction
+                UUID txId = UUID.randomUUID();
+                Transaction tx = createTestTransaction(txId);
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(Optional.of(tx));
+                when(transactionRepository.save(any())).thenReturn(tx);
+
+                // Should not throw, just log error
+                errorService.deleteResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, UUID.randomUUID());
+
+                // Verify save was NOT called because createAuditLog catches exception before
+                // saving?
+                // Wait, looking at code: catch is around auditRepository.save(log) OR around
+                // construction?
+                // Code:
+                // try {
+                // AdminDeletionAuditLog log = ... .cascadedDeletions(mapper.write...) ...
+                // auditRepository.save(log);
+                // } catch (JsonProcessingException e) { log.error }
+                // So auditRepository.save will NOT be called.
+
+                verify(auditRepository, never()).save(any());
+        }
+
+        @Test
+        void buildTransactionSnapshot_JsonProcessingException_ReturnsEmptyJson()
+                        throws com.fasterxml.jackson.core.JsonProcessingException {
+                ObjectMapper mockMapper = mock(ObjectMapper.class);
+                AdminResourceServiceImpl errorService = new AdminResourceServiceImpl(
+                                transactionRepository,
+                                documentRequestRepository,
+                                timelineEntryRepository,
+                                auditRepository,
+                                s3StorageService,
+                                mockMapper,
+                                userAccountRepository,
+                                notificationService);
+
+                // Use doAnswer to conditionally fail only for the Map (snapshot) and succeed
+                // for List (cascaded)
+                when(mockMapper.writeValueAsString(any())).thenAnswer(invocation -> {
+                        Object arg = invocation.getArgument(0);
+                        if (arg instanceof java.util.Map) {
+                                throw new com.fasterxml.jackson.core.JsonProcessingException("Fail") {
+                                };
+                        }
+                        if (arg instanceof java.util.List) {
+                                return "[]";
+                        }
+                        return "{}";
+                });
+
+                UUID txId = UUID.randomUUID();
+                Transaction tx = createTestTransaction(txId);
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(Optional.of(tx));
+                when(transactionRepository.save(any())).thenReturn(tx);
+
+                errorService.deleteResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, UUID.randomUUID());
+
+                // Verify audit log IS saved, and snapshot is "{}"
+                org.mockito.ArgumentCaptor<AdminDeletionAuditLog> captor = org.mockito.ArgumentCaptor
+                                .forClass(AdminDeletionAuditLog.class);
+                verify(auditRepository).save(captor.capture());
+                assertThat(captor.getValue().getResourceSnapshot()).isEqualTo("{}");
+        }
+
+        @Test
+        void listResources_CalculatesDeletedCount_Correctly() {
+                Transaction t1 = createTestTransaction(UUID.randomUUID());
+                Transaction t2 = createTestTransaction(UUID.randomUUID());
+                t2.setDeletedAt(LocalDateTime.now());
+
+                when(transactionRepository.findAllIncludingDeleted()).thenReturn(List.of(t1, t2));
+
+                ResourceListResponse response = service.listResources(AdminDeletionAuditLog.ResourceType.TRANSACTION,
+                                true);
+
+                assertThat(response.getTotalCount()).isEqualTo(2);
+                assertThat(response.getDeletedCount()).isEqualTo(1);
+        }
 }

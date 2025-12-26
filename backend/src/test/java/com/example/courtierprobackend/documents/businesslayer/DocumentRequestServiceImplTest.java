@@ -58,6 +58,8 @@ class DocumentRequestServiceImplTest {
     private TransactionRepository transactionRepository;
     @Mock
     private UserAccountRepository userAccountRepository;
+    @Mock
+    private com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
 
     @Mock
     TimelineService timelineService;
@@ -66,7 +68,8 @@ class DocumentRequestServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new DocumentRequestServiceImpl(repository, storageService, emailService, transactionRepository, userAccountRepository,timelineService);
+        service = new DocumentRequestServiceImpl(repository, storageService, emailService, notificationService,
+                transactionRepository, userAccountRepository, timelineService);
     }
 
     // ========== getDocumentsForTransaction Tests ==========
@@ -76,12 +79,12 @@ class DocumentRequestServiceImplTest {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        
+
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(userId);
         tx.setClientId(UUID.randomUUID());
-        
+
         UUID requestId = UUID.randomUUID();
         DocumentRequest doc = new DocumentRequest();
         doc.setRequestId(requestId);
@@ -106,12 +109,12 @@ class DocumentRequestServiceImplTest {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        
+
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(UUID.randomUUID());
         tx.setClientId(UUID.randomUUID());
-        
+
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
 
         // Act & Assert
@@ -126,7 +129,7 @@ class DocumentRequestServiceImplTest {
     void createDocumentRequest_WithValidData_CreatesRequest() {
         // Arrange
         UUID transactionId = UUID.randomUUID();
-        
+
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         UUID brokerId = UUID.randomUUID();
@@ -134,17 +137,19 @@ class DocumentRequestServiceImplTest {
         tx.setBrokerId(brokerId);
         tx.setClientId(clientId);
         tx.setSide(TransactionSide.BUY_SIDE);
-        
+
         DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
         dto.setDocType(DocumentTypeEnum.BANK_STATEMENT);
         dto.setCustomTitle("Bank Statement Q1");
         dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
-        
+
         String clientAuth0Id = UUID.randomUUID().toString();
         String brokerAuth0Id = UUID.randomUUID().toString();
 
         UserAccount client = new UserAccount(clientAuth0Id, "client@test.com", "John", "Doe", UserRole.CLIENT, "en");
+        client.setId(clientId);
         UserAccount broker = new UserAccount(brokerAuth0Id, "broker@test.com", "Jane", "Smith", UserRole.BROKER, "en");
+        broker.setId(brokerId);
 
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
         when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
@@ -157,7 +162,13 @@ class DocumentRequestServiceImplTest {
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getDocType()).isEqualTo(DocumentTypeEnum.BANK_STATEMENT);
-        verify(emailService).sendDocumentRequestedNotification(anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(emailService).sendDocumentRequestedNotification(anyString(), anyString(), anyString(), anyString(),
+                anyString(), anyString());
+        verify(notificationService).createNotification(
+                eq(clientId.toString()),
+                anyString(),
+                anyString(),
+                eq(transactionId.toString()));
     }
 
     // ========== submitDocument Tests ==========
@@ -169,14 +180,14 @@ class DocumentRequestServiceImplTest {
         UUID requestId = UUID.randomUUID();
         UUID clientId = UUID.randomUUID();
         UUID uploaderId = clientId;
-        
+
         UUID brokerId = UUID.randomUUID();
-        
+
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(brokerId);
         tx.setClientId(clientId);
-        
+
         DocumentRequest request = new DocumentRequest();
         request.setRequestId(requestId);
         request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
@@ -184,13 +195,15 @@ class DocumentRequestServiceImplTest {
         request.setCustomTitle("Pay Stub");
         request.setStatus(DocumentStatusEnum.REQUESTED);
         request.setSubmittedDocuments(new ArrayList<>());
-        
+
         String brokerAuth0Id = UUID.randomUUID().toString();
         String clientAuth0Id = UUID.randomUUID().toString();
 
         UserAccount broker = new UserAccount(brokerAuth0Id, "broker@test.com", "Jane", "Smith", UserRole.BROKER, "en");
+        broker.setId(brokerId);
         UserAccount client = new UserAccount(clientAuth0Id, "client@test.com", "John", "Doe", UserRole.CLIENT, "en");
-        
+        client.setId(clientId);
+
         MockMultipartFile file = new MockMultipartFile("file", "paystub.pdf", "application/pdf", "content".getBytes());
         StorageObject storageObject = StorageObject.builder().s3Key("key").fileName("test.pdf").build();
 
@@ -202,12 +215,19 @@ class DocumentRequestServiceImplTest {
         when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // Act
-        DocumentRequestResponseDTO result = service.submitDocument(transactionId, requestId, file, uploaderId, UploadedByRefEnum.CLIENT);
+        DocumentRequestResponseDTO result = service.submitDocument(transactionId, requestId, file, uploaderId,
+                UploadedByRefEnum.CLIENT);
 
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.SUBMITTED);
-        verify(emailService).sendDocumentSubmittedNotification(any(), eq("broker@test.com"), eq("John Doe"), anyString(), anyString(), anyString());
+        verify(emailService).sendDocumentSubmittedNotification(any(), eq("broker@test.com"), eq("John Doe"),
+                anyString(), anyString(), anyString());
+        verify(notificationService).createNotification(
+                eq(broker.getId().toString()),
+                anyString(),
+                anyString(),
+                eq(transactionId.toString()));
     }
 
     @Test
@@ -215,17 +235,18 @@ class DocumentRequestServiceImplTest {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID requestId = UUID.randomUUID();
-        
+
         DocumentRequest request = new DocumentRequest();
         request.setRequestId(requestId);
         request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
-        
+
         MockMultipartFile file = new MockMultipartFile("file", "test.pdf", "application/pdf", "content".getBytes());
 
         when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
 
         // Act & Assert
-        assertThatThrownBy(() -> service.submitDocument(transactionId, requestId, file, UUID.randomUUID(), UploadedByRefEnum.CLIENT))
+        assertThatThrownBy(() -> service.submitDocument(transactionId, requestId, file, UUID.randomUUID(),
+                UploadedByRefEnum.CLIENT))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("does not belong to transaction");
     }
@@ -252,9 +273,11 @@ class DocumentRequestServiceImplTest {
         request.setCustomTitle("Bank Statement");
         request.setStatus(DocumentStatusEnum.SUBMITTED);
 
-        UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Jane", "Broker", UserRole.BROKER, "en");
+        UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Jane", "Broker", UserRole.BROKER,
+                "en");
         broker.setId(brokerId);
-        UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "John", "Client", UserRole.CLIENT, "en");
+        UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "John", "Client", UserRole.CLIENT,
+                "en");
         client.setId(clientId);
 
         DocumentReviewRequestDTO reviewDTO = new DocumentReviewRequestDTO();
@@ -271,7 +294,13 @@ class DocumentRequestServiceImplTest {
 
         assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.APPROVED);
         assertThat(result.getBrokerNotes()).isNull();
-        verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class), eq("client@test.com"), eq("Jane Broker"), eq("Bank Statement"), anyString(), anyString());
+        verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class), eq("client@test.com"),
+                eq("Jane Broker"), eq("Bank Statement"), anyString(), anyString());
+        verify(notificationService).createNotification(
+                eq(clientId.toString()),
+                anyString(),
+                anyString(),
+                eq(transactionId.toString()));
     }
 
     @Test
@@ -293,9 +322,11 @@ class DocumentRequestServiceImplTest {
         request.setDocType(DocumentTypeEnum.PAY_STUBS);
         request.setStatus(DocumentStatusEnum.SUBMITTED);
 
-        UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Jane", "Broker", UserRole.BROKER, "en");
+        UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Jane", "Broker", UserRole.BROKER,
+                "en");
         broker.setId(brokerId);
-        UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "John", "Client", UserRole.CLIENT, "en");
+        UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "John", "Client", UserRole.CLIENT,
+                "en");
         client.setId(clientId);
 
         DocumentReviewRequestDTO reviewDTO = new DocumentReviewRequestDTO();
@@ -312,7 +343,13 @@ class DocumentRequestServiceImplTest {
 
         assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.NEEDS_REVISION);
         assertThat(result.getBrokerNotes()).isEqualTo("Please update dates");
-        verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class), eq("client@test.com"), eq("Jane Broker"), eq("PAY_STUBS"), anyString(), anyString());
+        verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class), eq("client@test.com"),
+                eq("Jane Broker"), eq("PAY_STUBS"), anyString(), anyString());
+        verify(notificationService).createNotification(
+                eq(clientId.toString()),
+                anyString(),
+                anyString(),
+                eq(transactionId.toString()));
     }
 
     // ========== getDocumentDownloadUrl Tests ==========
@@ -325,17 +362,17 @@ class DocumentRequestServiceImplTest {
         UUID userId = UUID.randomUUID();
         UUID transactionId = UUID.randomUUID();
         UUID clientId = UUID.randomUUID();
-        
+
         SubmittedDocument submittedDoc = SubmittedDocument.builder()
                 .documentId(documentId)
                 .storageObject(StorageObject.builder().s3Key("path/to/file.pdf").build())
                 .build();
-        
+
         DocumentRequest request = new DocumentRequest();
         request.setRequestId(requestId);
         request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
         request.setSubmittedDocuments(List.of(submittedDoc));
-        
+
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(userId);
@@ -357,11 +394,11 @@ class DocumentRequestServiceImplTest {
         // Arrange
         UUID requestId = UUID.randomUUID();
         UUID transactionId = UUID.randomUUID();
-        
+
         DocumentRequest request = new DocumentRequest();
         request.setRequestId(requestId);
         request.setTransactionRef(new TransactionRef(transactionId, UUID.randomUUID(), TransactionSide.BUY_SIDE));
-        
+
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(UUID.randomUUID());
@@ -391,7 +428,7 @@ class DocumentRequestServiceImplTest {
         doc1.setDocType(DocumentTypeEnum.ID_VERIFICATION);
         doc1.setStatus(DocumentStatusEnum.REQUESTED);
         doc1.setSubmittedDocuments(new ArrayList<>());
-        
+
         DocumentRequest doc2 = new DocumentRequest();
         doc2.setRequestId(reqId2);
         doc2.setTransactionRef(new TransactionRef(UUID.randomUUID(), userId, TransactionSide.SELL_SIDE));
@@ -432,14 +469,14 @@ class DocumentRequestServiceImplTest {
         UUID userId = UUID.randomUUID();
         UUID transactionId = UUID.randomUUID();
         UUID clientId = UUID.randomUUID();
-        
+
         DocumentRequest request = new DocumentRequest();
         request.setRequestId(requestId);
         request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
         request.setDocType(DocumentTypeEnum.PAY_STUBS);
         request.setStatus(DocumentStatusEnum.REQUESTED);
         request.setSubmittedDocuments(new ArrayList<>());
-        
+
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(userId);
@@ -463,14 +500,14 @@ class DocumentRequestServiceImplTest {
         UUID requestId = UUID.randomUUID();
         UUID clientId = UUID.randomUUID();
         UUID transactionId = UUID.randomUUID();
-        
+
         DocumentRequest request = new DocumentRequest();
         request.setRequestId(requestId);
         request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
         request.setDocType(DocumentTypeEnum.EMPLOYMENT_LETTER);
         request.setStatus(DocumentStatusEnum.REQUESTED);
         request.setSubmittedDocuments(new ArrayList<>());
-        
+
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(UUID.randomUUID());
@@ -505,11 +542,11 @@ class DocumentRequestServiceImplTest {
         UUID requestId = UUID.randomUUID();
         UUID transactionId = UUID.randomUUID();
         UUID clientId = UUID.randomUUID();
-        
+
         DocumentRequest request = new DocumentRequest();
         request.setRequestId(requestId);
         request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
-        
+
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(UUID.randomUUID());
@@ -530,13 +567,13 @@ class DocumentRequestServiceImplTest {
     void updateDocumentRequest_WithValidData_UpdatesRequest() {
         // Arrange
         UUID requestId = UUID.randomUUID();
-        
+
         DocumentRequest existingRequest = new DocumentRequest();
         existingRequest.setRequestId(requestId);
         existingRequest.setDocType(DocumentTypeEnum.ID_VERIFICATION);
         existingRequest.setCustomTitle("Old Title");
         existingRequest.setSubmittedDocuments(new ArrayList<>());
-        
+
         DocumentRequestRequestDTO updateDTO = new DocumentRequestRequestDTO();
         updateDTO.setCustomTitle("New Title");
         updateDTO.setBrokerNotes("Updated notes");
@@ -558,7 +595,7 @@ class DocumentRequestServiceImplTest {
         // Arrange
         UUID requestId = UUID.randomUUID();
         DocumentRequestRequestDTO updateDTO = new DocumentRequestRequestDTO();
-        
+
         when(repository.findByRequestId(requestId)).thenReturn(Optional.empty());
 
         // Act & Assert
@@ -571,7 +608,7 @@ class DocumentRequestServiceImplTest {
     void updateDocumentRequest_WithPartialData_OnlyUpdatesProvidedFields() {
         // Arrange
         UUID requestId = UUID.randomUUID();
-        
+
         DocumentRequest existingRequest = new DocumentRequest();
         existingRequest.setRequestId(requestId);
         existingRequest.setDocType(DocumentTypeEnum.BANK_STATEMENT);
@@ -579,7 +616,7 @@ class DocumentRequestServiceImplTest {
         existingRequest.setBrokerNotes("Original Notes");
         existingRequest.setVisibleToClient(true);
         existingRequest.setSubmittedDocuments(new ArrayList<>());
-        
+
         DocumentRequestRequestDTO updateDTO = new DocumentRequestRequestDTO();
         updateDTO.setCustomTitle("Updated Title");
         // Other fields are null - should not be updated
@@ -635,17 +672,17 @@ class DocumentRequestServiceImplTest {
         UUID userId = UUID.randomUUID();
         UUID transactionId = UUID.randomUUID();
         UUID clientId = UUID.randomUUID();
-        
+
         SubmittedDocument submittedDoc = SubmittedDocument.builder()
                 .documentId(UUID.randomUUID())
                 .storageObject(StorageObject.builder().s3Key("path/to/other.pdf").build())
                 .build();
-        
+
         DocumentRequest request = new DocumentRequest();
         request.setRequestId(requestId);
         request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
         request.setSubmittedDocuments(List.of(submittedDoc));
-        
+
         Transaction tx = new Transaction();
         tx.setTransactionId(transactionId);
         tx.setBrokerId(userId);
@@ -660,4 +697,3 @@ class DocumentRequestServiceImplTest {
                 .hasMessageContaining("Submitted document not found");
     }
 }
-
