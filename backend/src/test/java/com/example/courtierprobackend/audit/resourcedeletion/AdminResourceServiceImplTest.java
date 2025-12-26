@@ -749,4 +749,31 @@ class AdminResourceServiceImplTest {
                 assertThat(response.getTotalCount()).isEqualTo(2);
                 assertThat(response.getDeletedCount()).isEqualTo(1);
         }
+
+        @Test
+        void deleteResource_WithMissingUsers_SkipsNotification() {
+                UUID txId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+
+                Transaction tx = createTestTransaction(txId);
+                tx.setClientId(null);
+                tx.setBrokerId(null);
+
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(Optional.of(tx));
+                when(documentRequestRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(List.of());
+                when(transactionRepository.save(any(Transaction.class)))
+                                .thenAnswer(inv -> inv.getArgument(0));
+
+                service.deleteResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId);
+
+                // Assert
+                assertThat(tx.getDeletedAt()).isNotNull();
+                verify(auditRepository).save(any(AdminDeletionAuditLog.class));
+                // Verify NO notifications sent
+                verify(notificationService, never()).createNotification(anyString(), anyString(), anyString(),
+                                anyString(),
+                                any());
+        }
 }

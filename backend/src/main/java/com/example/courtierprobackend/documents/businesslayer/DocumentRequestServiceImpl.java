@@ -439,33 +439,9 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                                 message = messageSource.getMessage(messageKey,
                                                                 new Object[] { displayDocName, brokerName }, locale);
                                         } else {
-                                                message = messageSource.getMessage(
-                                                                "notification.document.reviewed.message",
-                                                                new Object[] { displayDocName, messageSource.getMessage(
-                                                                                "document.status."
-                                                                                                + updated.getStatus(),
-                                                                                null, locale) },
-                                                                locale);
-                                                // Wait, the properties structure I set up for reviewed messages was:
-                                                // reviewed.approved=Your broker {0} approved the following document:
-                                                // reviewed.message=Your document {0} has been marked as {1}.
-                                                // I should use specific messages if available or construct generic one.
-                                                // Let's use generic "reviewed.message" for Approved/NeedsRevision to
-                                                // match previous pattern but allow specific ones if I wanted to change
-                                                // later.
-                                                // Actually, I'll stick to the approved/needs_revision keys I defined?
-                                                // Wait, I defined:
-                                                // notification.document.reviewed.message=Your document {0} has been
-                                                // marked as {1}.
-                                                // document.status.APPROVED=Approved
+                                                message = messageSource.getMessage(messageKey,
+                                                                new Object[] { displayDocName }, locale);
 
-                                                // Let's us the generic message pattern for consistency
-                                                String statusLabel = messageSource.getMessage(
-                                                                "document.status." + updated.getStatus(), null,
-                                                                updated.getStatus().name(), locale);
-                                                message = messageSource.getMessage(
-                                                                "notification.document.reviewed.message",
-                                                                new Object[] { displayDocName, statusLabel }, locale);
                                         }
 
                                         notificationService.createNotification(
