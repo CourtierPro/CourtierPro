@@ -3,9 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/sha
 import { Badge } from '@/shared/components/ui/badge';
 import { formatDateTime } from '@/shared/utils/date';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Bell, AlertCircle, CheckCircle, Info, Archive, XCircle } from 'lucide-react';
+import { FileText, Bell, AlertCircle, CheckCircle, Info, Sparkles, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { NotificationType, type NotificationResponseDTO } from '../api/notificationsApi';
+import { NotificationType, NotificationCategory, type NotificationResponseDTO } from '../api/notificationsApi';
 import { cn } from '@/shared/utils/utils';
 
 interface NotificationItemProps {
@@ -22,21 +22,26 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
             return <AlertCircle className="w-4 h-4 text-orange-600" />;
         }
 
-        const titleLower = notification.title.toLowerCase();
-
-        if (titleLower.includes('document')) {
-            return <FileText className="w-4 h-4 text-primary" />;
-        } else if (titleLower.includes('welcome') || titleLower.includes('created')) {
-            return <Archive className="w-4 h-4 text-green-600" />;
-        } else if (titleLower.includes('stage')) {
-            return <Info className="w-4 h-4 text-blue-500" />;
-        } else if (titleLower.includes('approved')) {
-            return <CheckCircle className="w-4 h-4 text-green-600" />;
-        } else if (titleLower.includes('cancelled') || titleLower.includes('deleted')) {
-            return <XCircle className="w-4 h-4 text-destructive" />;
+        switch (notification.category) {
+            case NotificationCategory.BROADCAST:
+                return <AlertCircle className="w-4 h-4 text-orange-600" />;
+            case NotificationCategory.WELCOME:
+                return <Sparkles className="w-4 h-4 text-amber-500" />;
+            case NotificationCategory.DOCUMENT_REQUEST:
+            case NotificationCategory.DOCUMENT_SUBMITTED:
+            case NotificationCategory.DOCUMENT_REVISION:
+                return <FileText className="w-4 h-4 text-primary" />;
+            case NotificationCategory.DOCUMENT_APPROVED:
+                return <CheckCircle className="w-4 h-4 text-green-600" />;
+            case NotificationCategory.DOCUMENT_REJECTED:
+                return <XCircle className="w-4 h-4 text-destructive" />;
+            case NotificationCategory.STAGE_UPDATE:
+                return <Info className="w-4 h-4 text-blue-500" />;
+            case NotificationCategory.TRANSACTION_CANCELLED:
+                return <XCircle className="w-4 h-4 text-destructive" />;
+            default:
+                return <Bell className="w-4 h-4 text-foreground/60" />;
         }
-
-        return <Bell className="w-4 h-4 text-foreground/60" />;
     };
 
     const handleClick = () => {
@@ -49,15 +54,21 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
         }
 
         if (notification.relatedTransactionId) {
-            const titleLower = notification.title.toLowerCase();
-
-            // Prevent navigation for deleted/cancelled transactions
-            if (titleLower.includes('cancelled') || titleLower.includes('deleted')) {
+            // Prevent navigation for cancelled transactions
+            if (notification.category === NotificationCategory.TRANSACTION_CANCELLED) {
                 toast.info(t('transactionDeletedMessage', 'This transaction has been cancelled or deleted.'));
                 return;
             }
 
-            const isDocumentRelated = titleLower.includes('document') || titleLower.includes('review');
+            const isDocumentRelated = (
+                [
+                    NotificationCategory.DOCUMENT_REQUEST,
+                    NotificationCategory.DOCUMENT_SUBMITTED,
+                    NotificationCategory.DOCUMENT_APPROVED,
+                    NotificationCategory.DOCUMENT_REJECTED,
+                    NotificationCategory.DOCUMENT_REVISION,
+                ] as NotificationCategory[]
+            ).includes(notification.category);
 
             const targetUrl = isDocumentRelated
                 ? `/transactions/${notification.relatedTransactionId}?tab=documents`

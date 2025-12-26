@@ -13,6 +13,7 @@ import com.example.courtierprobackend.transactions.datalayer.dto.ParticipantResp
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
 import com.example.courtierprobackend.transactions.datalayer.TransactionParticipant;
+import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import com.example.courtierprobackend.transactions.datalayer.repositories.PinnedTransactionRepository;
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
@@ -131,6 +132,42 @@ class TransactionServiceImplTest {
         // Assert
         assertThat(result).isNotNull();
         verify(transactionRepository).save(any(Transaction.class));
+        verify(notificationService).createNotification(
+                eq(dto.getClientId().toString()),
+                eq("Welcome to CourtierPro!"),
+                anyString(),
+                anyString(),
+                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME));
+    }
+
+    @Test
+    void createTransaction_NotificationFailure_LogsAndProceeds() {
+        // Arrange
+        TransactionRequestDTO dto = createValidBuyerTransactionDTO();
+        when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
+                any(UUID.class), anyString(), any())).thenReturn(Optional.empty());
+
+        Transaction expectedTx = new Transaction();
+        expectedTx.setTransactionId(UUID.randomUUID());
+        expectedTx.setClientId(dto.getClientId());
+        expectedTx.setBrokerId(dto.getBrokerId());
+        expectedTx.setPropertyAddress(
+                new PropertyAddress(dto.getPropertyAddress().getStreet(), dto.getPropertyAddress().getCity(),
+                        dto.getPropertyAddress().getProvince(), dto.getPropertyAddress().getPostalCode()));
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(expectedTx);
+
+        // Simulate Notification exception
+        doThrow(new RuntimeException("Notification Error")).when(notificationService)
+                .createNotification(anyString(), anyString(), anyString(), anyString(), any());
+
+        // Act
+        TransactionResponseDTO result = transactionService.createTransaction(dto);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(transactionRepository).save(any(Transaction.class));
+        // Verify notification service WAS called (but failed)
+        verify(notificationService).createNotification(anyString(), anyString(), anyString(), anyString(), any());
     }
 
     @Test
@@ -705,7 +742,8 @@ class TransactionServiceImplTest {
                 eq(clientId.toString()), // Internal UUID
                 eq("Stage Update"),
                 eq("Stage updated to Buyer Offer Accepted by Broker Agent for 123 Test St"),
-                eq(transactionId.toString()));
+                eq(transactionId.toString()),
+                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE));
     }
 
     @Test
@@ -772,7 +810,8 @@ class TransactionServiceImplTest {
                 eq(clientId.toString()),
                 eq("Stage Update"),
                 eq("Le stade a été mis à jour à Offre Acceptée par Courtier Pro pour 123 Rue Test"),
-                eq(transactionId.toString()));
+                eq(transactionId.toString()),
+                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE));
     }
 
     @Test
@@ -827,7 +866,8 @@ class TransactionServiceImplTest {
                 eq(clientId.toString()),
                 eq("Stage Update"),
                 contains("for Unknown Address"),
-                eq(transactionId.toString()));
+                eq(transactionId.toString()),
+                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE));
     }
 
     @Test

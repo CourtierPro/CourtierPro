@@ -248,24 +248,31 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         // Notify users before deletion (Best effort)
         try {
             String title = "Transaction Cancelled";
-            String message = String.format("Transaction %s (for %s) has been cancelled by an administrator.",
-                    transactionId,
-                    transaction.getPropertyAddress() != null ? transaction.getPropertyAddress().getStreet()
-                            : "Unknown Address");
+            String propertyRef = transaction.getPropertyAddress() != null
+                    ? transaction.getPropertyAddress().getStreet()
+                    : "ID: " + transactionId.toString();
+
+            String message = String.format("Transaction for %s has been cancelled by an administrator.", propertyRef);
 
             // Notify Broker
-            notificationService.createNotification(
-                    transaction.getBrokerId().toString(),
-                    title,
-                    message,
-                    transactionId.toString());
+            if (transaction.getBrokerId() != null) {
+                notificationService.createNotification(
+                        transaction.getBrokerId().toString(),
+                        title,
+                        message,
+                        transactionId.toString(),
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.TRANSACTION_CANCELLED);
+            }
 
             // Notify Client
-            notificationService.createNotification(
-                    transaction.getClientId().toString(),
-                    title,
-                    message,
-                    transactionId.toString());
+            if (transaction.getClientId() != null) {
+                notificationService.createNotification(
+                        transaction.getClientId().toString(),
+                        title,
+                        message,
+                        transactionId.toString(),
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.TRANSACTION_CANCELLED);
+            }
         } catch (Exception e) {
             log.error("Failed to send deletion notifications for transaction {}", transactionId, e);
             // Proceed with deletion even if notification fails

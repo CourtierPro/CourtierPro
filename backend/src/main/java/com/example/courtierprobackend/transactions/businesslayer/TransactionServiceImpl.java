@@ -187,7 +187,8 @@ public class TransactionServiceImpl implements TransactionService {
                     clientId.toString(),
                     title,
                     message,
-                    saved.getTransactionId().toString());
+                    saved.getTransactionId().toString(),
+                    com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME);
         } catch (Exception e) {
             log.error("Failed to send welcome notification for transaction {}", saved.getTransactionId(), e);
         }
@@ -460,7 +461,8 @@ public class TransactionServiceImpl implements TransactionService {
                         client.getId().toString(), // Internal UUID
                         notifTitle,
                         notifMessage,
-                        saved.getTransactionId().toString());
+                        saved.getTransactionId().toString(),
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE);
 
             } else {
                 log.warn("Could not send notifications for transaction {}: Client or Broker not found",

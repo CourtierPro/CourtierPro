@@ -287,16 +287,19 @@ class AdminResourceServiceImplTest {
                 assertThat(tx.getDeletedBy()).isEqualTo(adminId);
                 verify(auditRepository).save(any(AdminDeletionAuditLog.class));
                 // Verify notifications sent to both Broker and Client
+                String expectedMessage = "Transaction for 123 Main St has been cancelled by an administrator.";
                 verify(notificationService).createNotification(
                                 eq(tx.getBrokerId().toString()),
-                                anyString(),
-                                anyString(),
-                                eq(txId.toString()));
+                                eq("Transaction Cancelled"),
+                                eq(expectedMessage),
+                                eq(txId.toString()),
+                                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.TRANSACTION_CANCELLED));
                 verify(notificationService).createNotification(
                                 eq(tx.getClientId().toString()),
-                                anyString(),
-                                anyString(),
-                                eq(txId.toString()));
+                                eq("Transaction Cancelled"),
+                                eq(expectedMessage),
+                                eq(txId.toString()),
+                                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.TRANSACTION_CANCELLED));
         }
 
         @Test
@@ -341,6 +344,31 @@ class AdminResourceServiceImplTest {
                 verify(s3StorageService).deleteFile("path/to/file.pdf");
                 assertThat(submittedDoc.getDeletedAt()).isNotNull();
                 assertThat(docReq.getDeletedAt()).isNotNull();
+        }
+
+        @Test
+        void deleteResource_Transaction_NotificationFailure_LogsErrorAndContinues() {
+                UUID txId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+
+                Transaction tx = createTestTransaction(txId);
+                tx.setClientId(UUID.randomUUID());
+                tx.setBrokerId(UUID.randomUUID());
+
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(Optional.of(tx));
+                when(documentRequestRepository.findByTransactionIdIncludingDeleted(txId))
+                                .thenReturn(List.of());
+                when(transactionRepository.save(any(Transaction.class)))
+                                .thenAnswer(inv -> inv.getArgument(0));
+
+                doThrow(new RuntimeException("Notification Error")).when(notificationService)
+                                .createNotification(anyString(), anyString(), anyString(), anyString(), any());
+
+                service.deleteResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId);
+
+                assertThat(tx.getDeletedAt()).isNotNull();
+                verify(auditRepository).save(any(AdminDeletionAuditLog.class));
         }
 
         @Test

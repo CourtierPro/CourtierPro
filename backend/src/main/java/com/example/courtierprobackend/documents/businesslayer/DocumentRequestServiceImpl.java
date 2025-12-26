@@ -37,6 +37,8 @@ import java.util.stream.Collectors;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionAccessUtils;
 import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
+import org.springframework.context.MessageSource;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +52,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         private final TransactionRepository transactionRepository;
         private final UserAccountRepository userAccountRepository;
         private final TimelineService timelineService;
+        private final MessageSource messageSource;
 
         /**
          * Helper to find a UserAccount by internal UUID.
@@ -145,18 +148,25 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
 
                         // In-app Notification for Client
                         try {
-                                String title = "Document Requested";
-                                String message = String.format("Broker %s requested document: %s", brokerName,
-                                                documentName);
-                                // Translate or adjust based on language if needed, effectively basic en/fr
-                                // support could be done here or in util
-                                // For now sticking to English default as per current pattern or simple
-                                // formatting
+                                Locale locale = isFrench(clientLanguage) ? Locale.FRENCH : Locale.ENGLISH;
+                                String localizedDocType = messageSource.getMessage(
+                                                "document.type." + requestDTO.getDocType(), null,
+                                                requestDTO.getDocType().name(), locale);
+                                String displayDocName = requestDTO.getCustomTitle() != null
+                                                ? requestDTO.getCustomTitle()
+                                                : localizedDocType;
+
+                                String title = messageSource.getMessage("notification.document.requested.title", null,
+                                                locale);
+                                String message = messageSource.getMessage("notification.document.requested.message",
+                                                new Object[] { brokerName, displayDocName }, locale);
+
                                 notificationService.createNotification(
                                                 client.getId().toString(),
                                                 title,
                                                 message,
-                                                transactionId.toString());
+                                                transactionId.toString(),
+                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REQUEST);
                         } catch (Exception e) {
                                 logger.error("Failed to send in-app notification for document request", e);
                         }
@@ -271,7 +281,8 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                         broker.getId().toString(),
                                         title,
                                         message,
-                                        transactionId.toString());
+                                        transactionId.toString(),
+                                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_SUBMITTED);
                 } catch (Exception e) {
                         logger.error("Failed to send in-app notification for document submission", e);
                 }
@@ -389,24 +400,80 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                         clientLanguage);
 
                         // In-app Notification for Client
+                        // Trigger for APPROVED, NEEDS_REVISION, or REJECTED
                         if (updated.getStatus() == DocumentStatusEnum.APPROVED
-                                        || updated.getStatus() == DocumentStatusEnum.NEEDS_REVISION) {
+                                        || updated.getStatus() == DocumentStatusEnum.NEEDS_REVISION
+                                        || updated.getStatus() == DocumentStatusEnum.REJECTED) {
                                 try {
-                                        String title = "Document Status Update";
-                                        String statusMsg = updated.getStatus() == DocumentStatusEnum.APPROVED
-                                                        ? "was Approved"
-                                                        : "Needs Revision";
-                                        if (updated.getStatus() == DocumentStatusEnum.NEEDS_REVISION) {
-                                                title = "Action Required: Document Needs Revision";
+                                        Locale locale = isFrench(clientLanguage) ? Locale.FRENCH : Locale.ENGLISH;
+                                        String localizedDocType = messageSource.getMessage(
+                                                        "document.type." + updated.getDocType(), null,
+                                                        updated.getDocType().name(), locale);
+                                        String displayDocName = updated.getCustomTitle() != null
+                                                        ? updated.getCustomTitle()
+                                                        : localizedDocType;
+
+                                        String titleKey;
+                                        String messageKey;
+                                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory category;
+
+                                        if (updated.getStatus() == DocumentStatusEnum.APPROVED) {
+                                                titleKey = "notification.document.reviewed.title";
+                                                messageKey = "notification.document.reviewed.approved";
+                                                category = com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_APPROVED;
+                                        } else if (updated.getStatus() == DocumentStatusEnum.NEEDS_REVISION) {
+                                                titleKey = "notification.document.reviewed.title";
+                                                messageKey = "notification.document.reviewed.needs_revision";
+                                                category = com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REVISION;
+                                        } else { // REJECTED
+                                                titleKey = "notification.document.rejected.title";
+                                                messageKey = "notification.document.rejected.message";
+                                                category = com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REJECTED;
                                         }
-                                        String message = String.format("Your document '%s' %s.", documentName,
-                                                        statusMsg);
+
+                                        String title = messageSource.getMessage(titleKey,
+                                                        new Object[] { displayDocName }, locale);
+                                        String message;
+
+                                        if (updated.getStatus() == DocumentStatusEnum.REJECTED) {
+                                                message = messageSource.getMessage(messageKey,
+                                                                new Object[] { displayDocName, brokerName }, locale);
+                                        } else {
+                                                message = messageSource.getMessage(
+                                                                "notification.document.reviewed.message",
+                                                                new Object[] { displayDocName, messageSource.getMessage(
+                                                                                "document.status."
+                                                                                                + updated.getStatus(),
+                                                                                null, locale) },
+                                                                locale);
+                                                // Wait, the properties structure I set up for reviewed messages was:
+                                                // reviewed.approved=Your broker {0} approved the following document:
+                                                // reviewed.message=Your document {0} has been marked as {1}.
+                                                // I should use specific messages if available or construct generic one.
+                                                // Let's use generic "reviewed.message" for Approved/NeedsRevision to
+                                                // match previous pattern but allow specific ones if I wanted to change
+                                                // later.
+                                                // Actually, I'll stick to the approved/needs_revision keys I defined?
+                                                // Wait, I defined:
+                                                // notification.document.reviewed.message=Your document {0} has been
+                                                // marked as {1}.
+                                                // document.status.APPROVED=Approved
+
+                                                // Let's us the generic message pattern for consistency
+                                                String statusLabel = messageSource.getMessage(
+                                                                "document.status." + updated.getStatus(), null,
+                                                                updated.getStatus().name(), locale);
+                                                message = messageSource.getMessage(
+                                                                "notification.document.reviewed.message",
+                                                                new Object[] { displayDocName, statusLabel }, locale);
+                                        }
 
                                         notificationService.createNotification(
                                                         client.getId().toString(),
                                                         title,
                                                         message,
-                                                        transactionId.toString());
+                                                        transactionId.toString(),
+                                                        category);
                                 } catch (Exception e) {
                                         logger.error("Failed to send in-app notification for document review", e);
                                 }
@@ -417,5 +484,9 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 }
 
                 return mapToResponseDTO(updated);
+        }
+
+        private boolean isFrench(String lang) {
+                return lang != null && lang.equalsIgnoreCase("fr");
         }
 }
