@@ -7,6 +7,8 @@ import com.example.courtierprobackend.audit.timeline_audit.businesslayer.Timelin
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.value_object.TransactionInfo;
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
+import com.example.courtierprobackend.common.exceptions.ConflictException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import com.example.courtierprobackend.shared.utils.StageTranslationUtil;
 import com.example.courtierprobackend.transactions.datalayer.PinnedTransaction;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
@@ -297,6 +299,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @Transactional
     public TransactionResponseDTO updateTransactionStage(UUID transactionId, StageUpdateRequestDTO dto, UUID brokerId) {
 
         if (dto == null) {
@@ -307,6 +310,13 @@ public class TransactionServiceImpl implements TransactionService {
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
         TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        // Guard Clause: Cannot update stage if transaction is already closed or
+        // terminated
+        if (tx.getStatus() == TransactionStatus.CLOSED_SUCCESSFULLY ||
+                tx.getStatus() == TransactionStatus.TERMINATED_EARLY) {
+            throw new BadRequestException("Cannot update stage of a closed or terminated transaction.");
+        }
 
         String stageStr = dto.getStage();
         if (stageStr == null || stageStr.isBlank()) {
@@ -344,6 +354,36 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BadRequestException("Unsupported transaction side: " + tx.getSide());
         }
 
+        // Auto-Closing Logic
+        if (tx.getSide() == TransactionSide.BUY_SIDE) {
+            if (tx.getBuyerStage() == BuyerStage.BUYER_OCCUPANCY) {
+                tx.setStatus(TransactionStatus.CLOSED_SUCCESSFULLY);
+                tx.setClosedAt(LocalDateTime.now());
+            } else if (tx.getBuyerStage() == BuyerStage.BUYER_TERMINATED) {
+                tx.setStatus(TransactionStatus.TERMINATED_EARLY);
+                tx.setClosedAt(LocalDateTime.now());
+            }
+        } else if (tx.getSide() == TransactionSide.SELL_SIDE) {
+            if (tx.getSellerStage() == SellerStage.SELLER_HANDOVER_KEYS) {
+                tx.setStatus(TransactionStatus.CLOSED_SUCCESSFULLY);
+                tx.setClosedAt(LocalDateTime.now());
+            } else if (tx.getSellerStage() == SellerStage.SELLER_TERMINATED) {
+                tx.setStatus(TransactionStatus.TERMINATED_EARLY);
+                tx.setClosedAt(LocalDateTime.now());
+            }
+        }
+
+        // Log explicit status change if it happened
+        if (tx.getStatus() == TransactionStatus.CLOSED_SUCCESSFULLY ||
+                tx.getStatus() == TransactionStatus.TERMINATED_EARLY) {
+            timelineService.addEntry(
+                    transactionId,
+                    brokerId,
+                    TimelineEntryType.STATUS_CHANGE,
+                    "Transaction automatically updated to " + tx.getStatus(),
+                    null);
+        }
+
         String stageChangeActorName = lookupClientName(tx.getBrokerId());
         TransactionInfo stageChangeInfo = TransactionInfo.builder()
                 .previousStage(previousStage)
@@ -359,7 +399,13 @@ public class TransactionServiceImpl implements TransactionService {
                 null,
                 stageChangeInfo);
 
-        Transaction saved = repo.save(tx);
+        Transaction saved;
+        try {
+            saved = repo.save(tx);
+        } catch (OptimisticLockingFailureException e) {
+            throw new ConflictException("The transaction was updated by another user. Please refresh and try again.",
+                    e);
+        }
 
         // CP-48: Send Notifications and Emails
         try {

@@ -5,8 +5,9 @@ import { StageBadge } from "@/shared/components/branded/StageBadge";
 import { Button } from "@/shared/components/ui/button";
 import { getStagesForSide, resolveStageIndex } from '@/shared/utils/stages';
 import { type Transaction } from '@/features/transactions/api/queries';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Lock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
+import { Badge } from "@/shared/components/ui/badge";
 
 interface TransactionStageTrackerProps {
     transaction: Transaction;
@@ -39,10 +40,10 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
                 <div className="flex justify-between">
                     {stages.map((stage, index) => {
                         let status: "completed" | "current" | "upcoming" | "terminated" = "upcoming";
-                        if (transaction.status === 'terminated') status = "terminated";
+                        if (transaction.status === 'TERMINATED_EARLY') status = "terminated";
+                        else if (transaction.status === 'CLOSED_SUCCESSFULLY') status = "completed"; // When closed successfully, all stages are treated as completed.
                         else if (index < currentStageIndex) status = "completed";
                         else if (index === currentStageIndex) status = "current";
-
                         return (
                             <Tooltip key={stage}>
                                 <TooltipTrigger asChild>
@@ -67,7 +68,6 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
                     })}
                 </div>
             </div>
-
             {/* Mobile View (Vertical Collapsible) */}
             <div className="md:hidden space-y-0">
                 {stages.map((stage, index) => {
@@ -75,7 +75,8 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
                     if (!isExpanded && index !== currentStageIndex) return null;
 
                     let status: "completed" | "current" | "upcoming" | "terminated" = "upcoming";
-                    if (transaction.status === 'terminated') status = "terminated";
+                    if (transaction.status === 'TERMINATED_EARLY') status = "terminated";
+                    else if (transaction.status === 'CLOSED_SUCCESSFULLY') status = "completed";
                     else if (index < currentStageIndex) status = "completed";
                     else if (index === currentStageIndex) status = "current";
 
@@ -108,9 +109,21 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
 
             {!isReadOnly && (
                 <div className="mt-2 md:mt-6 flex justify-end">
-                    <Button onClick={onUpdateStage} className="w-full sm:w-auto">
-                        {t('updateStage')}
-                    </Button>
+                    {transaction.status === 'CLOSED_SUCCESSFULLY' ? (
+                        <Badge variant="success" className="px-3 py-1.5 min-h-[36px] flex gap-2">
+                            <Lock className="w-4 h-4" />
+                            {t('transactionClosed') || "Transaction Closed"}
+                        </Badge>
+                    ) : transaction.status === 'TERMINATED_EARLY' ? (
+                        <Badge variant="destructive" className="px-3 py-1.5 min-h-[36px] flex gap-2">
+                            <Lock className="w-4 h-4" />
+                            {t('transactionTerminated') || "Transaction Terminated"}
+                        </Badge>
+                    ) : (
+                        <Button onClick={onUpdateStage} className="w-full sm:w-auto">
+                            {t('updateStage')}
+                        </Button>
+                    )}
                 </div>
             )}
         </Section>

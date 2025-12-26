@@ -250,6 +250,55 @@ class TransactionServiceImplTest {
         assertThat(result.getTransactionId()).isNotNull();
     }
 
+    @Test
+    void createTransaction_whenClientNotFound_usesUnknownClientName() {
+        // Arrange
+        TransactionRequestDTO dto = createValidBuyerTransactionDTO();
+        when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
+                any(UUID.class), anyString(), any())).thenReturn(Optional.empty());
+
+        Transaction savedTx = new Transaction();
+        savedTx.setTransactionId(UUID.randomUUID());
+        savedTx.setClientId(dto.getClientId());
+        savedTx.setBrokerId(dto.getBrokerId());
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+
+        // Ensure user lookup returns empty
+        when(userAccountRepository.findById(dto.getClientId())).thenReturn(Optional.empty());
+
+        // Act
+        TransactionResponseDTO result = transactionService.createTransaction(dto);
+
+        // Assert
+        assertThat(result.getClientName()).isEqualTo("Unknown Client");
+    }
+
+    @Test
+    void createTransaction_whenClientNameIsEmpty_usesUnknownClientName() {
+        // Arrange
+        TransactionRequestDTO dto = createValidBuyerTransactionDTO();
+        when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
+                any(UUID.class), anyString(), any())).thenReturn(Optional.empty());
+
+        Transaction savedTx = new Transaction();
+        savedTx.setTransactionId(UUID.randomUUID());
+        savedTx.setClientId(dto.getClientId());
+        savedTx.setBrokerId(dto.getBrokerId());
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+
+        // Ensure user lookup returns user with null/empty names
+        var user = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+        user.setFirstName("");
+        user.setLastName(null);
+        when(userAccountRepository.findById(dto.getClientId())).thenReturn(Optional.of(user));
+
+        // Act
+        TransactionResponseDTO result = transactionService.createTransaction(dto);
+
+        // Assert
+        assertThat(result.getClientName()).isEqualTo("Unknown Client");
+    }
+
     // ========== getNotes Tests ==========
 
     @Test
@@ -529,6 +578,33 @@ class TransactionServiceImplTest {
     }
 
     // ========== updateTransactionStage Tests ==========
+
+    @Test
+    void updateTransactionStage_withNullDto_throwsBadRequestException() {
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(UUID.randomUUID(), null, UUID.randomUUID()))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("request body is required");
+    }
+
+    @Test
+    void updateTransactionStage_withNullStage_throwsBadRequestException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage(null);
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("stage is required");
+    }
 
     @Test
     void updateTransactionStage_BuySide_Success() {
@@ -920,6 +996,185 @@ class TransactionServiceImplTest {
                 isNull(), isNull(), any());
     }
 
+    @Test
+    void updateTransactionStage_AutoClose_BuyerOccupancy() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_SECOND_NOTARY_APPOINTMENT);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OCCUPANCY");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.CLOSED_SUCCESSFULLY);
+        assertThat(tx.getClosedAt()).isNotNull();
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
+                contains("CLOSED_SUCCESSFULLY"), isNull());
+    }
+
+    @Test
+    void updateTransactionStage_AutoTerminate_BuyerTerminated() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_TERMINATED");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.TERMINATED_EARLY);
+        assertThat(tx.getClosedAt()).isNotNull();
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
+                contains("TERMINATED_EARLY"), isNull());
+    }
+
+    @Test
+    void updateTransactionStage_AutoTerminate_SellerTerminated() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+        tx.setSellerStage(SellerStage.SELLER_LISTING_PUBLISHED);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("SELLER_TERMINATED");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.TERMINATED_EARLY);
+        assertThat(tx.getClosedAt()).isNotNull();
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
+                contains("TERMINATED_EARLY"), isNull());
+    }
+
+    @Test
+    void updateTransactionStage_AutoClose_SellerHandoverKeys() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+        tx.setSellerStage(SellerStage.SELLER_NOTARY_APPOINTMENT);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("SELLER_HANDOVER_KEYS");
+
+        // Act
+        transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.CLOSED_SUCCESSFULLY);
+        assertThat(tx.getClosedAt()).isNotNull();
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
+                contains("CLOSED_SUCCESSFULLY"), isNull());
+    }
+
+    @Test
+    void updateTransactionStage_ClosedTransaction_ThrowsException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setStatus(TransactionStatus.CLOSED_SUCCESSFULLY);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OCCUPANCY");
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Cannot update stage of a closed or terminated transaction");
+    }
+
+    @Test
+    void updateTransactionStage_TerminatedTransaction_ThrowsException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setStatus(TransactionStatus.TERMINATED_EARLY);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_OCCUPANCY");
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Cannot update stage of a closed or terminated transaction");
+    }
+
+    @Test
+    void updateTransactionStage_OptimisticLockingFailure_ThrowsConflictException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenThrow(new org.springframework.dao.OptimisticLockingFailureException("Optimistic lock failed"));
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_SHOP_FOR_PROPERTY");
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.ConflictException.class)
+                .hasMessageContaining("The transaction was updated by another user");
+    }
+
     // ========== pinTransaction Tests ==========
 
     @Test
@@ -1307,5 +1562,50 @@ class TransactionServiceImplTest {
         assertThatThrownBy(() -> transactionService.removeParticipant(transactionId, participantId, brokerId))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("does not belong");
+    }
+
+    @Test
+    void saveInternalNotes_withValidNotes_addsTimelineEntry() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        String notes = "Internal meeting notes";
+
+        // Act
+        transactionService.saveInternalNotes(transactionId, notes, brokerId);
+
+        // Assert
+        verify(timelineService).addEntry(
+                eq(transactionId),
+                eq(brokerId),
+                eq(TimelineEntryType.NOTE),
+                eq(notes),
+                isNull());
+    }
+
+    @Test
+    void saveInternalNotes_withNullNotes_doesNothing() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        // Act
+        transactionService.saveInternalNotes(transactionId, null, brokerId);
+
+        // Assert
+        verify(timelineService, never()).addEntry(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void saveInternalNotes_withBlankNotes_doesNothing() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        // Act
+        transactionService.saveInternalNotes(transactionId, "   ", brokerId);
+
+        // Assert
+        verify(timelineService, never()).addEntry(any(), any(), any(), any(), any());
     }
 }

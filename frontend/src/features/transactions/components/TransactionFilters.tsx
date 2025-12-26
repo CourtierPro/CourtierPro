@@ -13,11 +13,11 @@ import { getStagesForSide, enumToLabel } from '@/shared/utils/stages';
 
 interface TransactionFiltersProps {
     sideFilter: 'all' | 'buy' | 'sell';
-    statusFilter: 'all' | 'active' | 'closed' | 'terminated';
+    statusFilter: 'all' | 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY';
     stageFilter: string;
     sortBy: 'dateAsc' | 'dateDesc';
     onSideFilterChange: (value: 'all' | 'buy' | 'sell') => void;
-    onStatusFilterChange: (value: 'all' | 'active' | 'closed' | 'terminated') => void;
+    onStatusFilterChange: (value: 'all' | 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY') => void;
     onStageFilterChange: (value: string) => void;
     onSortByChange: (value: 'dateAsc' | 'dateDesc') => void;
     onResetFilters: () => void;
@@ -81,16 +81,16 @@ export function TransactionFilters({
                     </label>
                     <Select
                         value={statusFilter}
-                        onValueChange={(value) => onStatusFilterChange(value as 'all' | 'active' | 'closed' | 'terminated')}
+                        onValueChange={(value) => onStatusFilterChange(value as 'all' | 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY')}
                     >
                         <SelectTrigger id="status-filter" className="w-full">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">{t('all')}</SelectItem>
-                            <SelectItem value="active">{t('active')}</SelectItem>
-                            <SelectItem value="closed">{t('closed')}</SelectItem>
-                            <SelectItem value="terminated">{t('terminated')}</SelectItem>
+                            <SelectItem value="ACTIVE">{t('active')}</SelectItem>
+                            <SelectItem value="CLOSED_SUCCESSFULLY">{t('closed')}</SelectItem>
+                            <SelectItem value="TERMINATED_EARLY">{t('terminated')}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

@@ -23,7 +23,7 @@ interface ClientTransactionListProps {
 
 export function ClientTransactionList({ onNavigate }: ClientTransactionListProps) {
   const [sideFilter, setSideFilter] = useState<'all' | 'buy' | 'sell'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed' | 'terminated'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY'>('ACTIVE');
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc'>('dateDesc');
   const [currentPage, setCurrentPage] = useState(1);
