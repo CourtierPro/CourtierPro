@@ -1,6 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useRef, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { Send, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
@@ -18,11 +22,20 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/shared/components/ui/dialog';
-import { Label } from '@/shared/components/ui/label';
-import { DocumentTypeEnum } from '@/features/documents/types';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from '@/shared/components/ui/form';
 
+import { DocumentTypeEnum } from '@/features/documents/types';
 import { useTransactionStages } from '@/features/transactions/hooks/useTransactionStages';
 import { getStageLabel } from '@/shared/utils/stages';
+import { requestDocumentSchema, type RequestDocumentFormValues } from '@/shared/schemas';
 
 interface RequestDocumentModalProps {
   isOpen: boolean;
@@ -41,11 +54,6 @@ export function RequestDocumentModal({
 }: RequestDocumentModalProps) {
   const { t, i18n } = useTranslation('documents');
   const { t: tTx } = useTranslation('transactions');
-  const [selectedDocType, setSelectedDocType] = useState<DocumentTypeEnum | ''>('');
-  const [customTitle, setCustomTitle] = useState('');
-  const [instructions, setInstructions] = useState('');
-  const [selectedStage, setSelectedStage] = useState('');
-  const [errors, setErrors] = useState<{ docType?: string; customTitle?: string; stage?: string }>({});
 
   const customTitleInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,7 +61,7 @@ export function RequestDocumentModal({
   const side = transactionType === 'buy' ? 'BUY_SIDE' : 'SELL_SIDE';
   const { stages, isLoading: isLoadingStages } = useTransactionStages(side);
 
-  // Map stages to options (value = enum, label = formatted string)
+  // Map stages to options
   const stageOptions = stages.map(stage => ({
     value: stage,
     label: getStageLabel(stage, tTx, side)
@@ -84,27 +92,36 @@ export function RequestDocumentModal({
   ];
 
   const availableDocs = transactionType === 'buy' ? buySideDocs : sellSideDocs;
-
   const docTypeOptions = availableDocs;
 
-  // Track previous isOpen state to detect when modal opens
-  const prevIsOpenRef = useRef(false);
+  // Initialize form
+  const form = useForm<RequestDocumentFormValues>({
+    resolver: zodResolver(requestDocumentSchema),
+    defaultValues: {
+      docType: undefined,
+      customTitle: '',
+      instructions: '',
+      stage: currentStage,
+    },
+  });
 
-  // Reset form state when modal opens using useLayoutEffect (runs synchronously after DOM mutations)
-  // Using useLayoutEffect avoids the "setState in useEffect causes cascading renders" lint error
-  // because it's designed for synchronous updates
-  React.useLayoutEffect(() => {
-    if (isOpen && !prevIsOpenRef.current) {
-      // Modal just opened - reset all form state
-      setSelectedDocType('');
-      setCustomTitle('');
-      setInstructions('');
-      setSelectedStage(currentStage);
-      setErrors({});
+  const { reset, control } = form; // Removed unused imports
+  const selectedDocType = useWatch({ control, name: 'docType' });
+  const selectedStage = useWatch({ control, name: 'stage' });
+
+  // Reset form state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      reset({
+        docType: undefined,
+        customTitle: '',
+        instructions: '',
+        stage: currentStage,
+      });
     }
-    prevIsOpenRef.current = isOpen;
-  }, [isOpen, currentStage]);
+  }, [isOpen, currentStage, reset]);
 
+  // Focus custom title input when "Other" is selected
   useEffect(() => {
     if (selectedDocType === DocumentTypeEnum.OTHER) {
       setTimeout(() => {
@@ -113,43 +130,15 @@ export function RequestDocumentModal({
     }
   }, [selectedDocType]);
 
-  const validateForm = (): boolean => {
-    const newErrors: { docType?: string; customTitle?: string; stage?: string } = {};
-
-    if (!selectedDocType) {
-      newErrors.docType = t('documentTypeRequired');
-    }
-
-    if (selectedDocType === DocumentTypeEnum.OTHER && !customTitle.trim()) {
-      newErrors.customTitle = t('documentTitleRequired');
-    }
-
-    if (!selectedStage) {
-      newErrors.stage = t('stageRequired');
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const onFormSubmit = (data: RequestDocumentFormValues) => {
+    onSubmit(
+      data.docType,
+      data.docType === DocumentTypeEnum.OTHER ? (data.customTitle?.trim() || '') : '',
+      data.instructions?.trim() || '',
+      data.stage
+    );
+    onClose();
   };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (validateForm()) {
-      onSubmit(
-        selectedDocType as DocumentTypeEnum,
-        selectedDocType === DocumentTypeEnum.OTHER ? customTitle.trim() : '',
-        instructions.trim(),
-        selectedStage
-      );
-      onClose();
-    }
-  };
-
-  const isFormValid =
-    selectedDocType &&
-    (selectedDocType !== DocumentTypeEnum.OTHER || customTitle.trim().length > 0) &&
-    selectedStage.length > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -163,155 +152,146 @@ export function RequestDocumentModal({
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 py-4">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-6 py-4">
 
-          {/* Document Type Select */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="document-type" className="text-foreground">
-                {t('documentType')}
-              </Label>
-              <span className="text-destructive text-sm">{t('required')}</span>
-            </div>
-            <Select
-              value={selectedDocType}
-              onValueChange={(value) => {
-                setSelectedDocType(value as DocumentTypeEnum);
-                if (errors.docType) {
-                  setErrors({ ...errors, docType: undefined });
-                }
-              }}
-            >
-              <SelectTrigger
-                id="document-type"
-                className={errors.docType ? 'border-destructive' : ''}
-              >
-                <SelectValue placeholder={t('selectDocumentType')} />
-              </SelectTrigger>
-              <SelectContent>
-                {docTypeOptions.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {t(`types.${type}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.docType && (
-              <p className="text-destructive text-sm">{errors.docType}</p>
-            )}
-          </div>
-
-          {/* Custom Title Input (Conditional) */}
-          {selectedDocType === DocumentTypeEnum.OTHER && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="custom-title" className="text-foreground">
-                  {t('documentTitle')}
-                </Label>
-                <span className="text-destructive text-sm">{t('required')}</span>
-              </div>
-              <Input
-                ref={customTitleInputRef}
-                type="text"
-                id="custom-title"
-                value={customTitle}
-                onChange={(e) => {
-                  setCustomTitle(e.target.value);
-                  if (errors.customTitle) {
-                    setErrors({ ...errors, customTitle: undefined });
-                  }
-                }}
-                placeholder={t('documentTitlePlaceholder')}
-                className={errors.customTitle ? 'border-destructive' : ''}
-                aria-invalid={!!errors.customTitle}
-              />
-              {errors.customTitle && (
-                <p className="text-destructive text-sm">{errors.customTitle}</p>
+            {/* Document Type Select */}
+            <FormField
+              control={form.control}
+              name="docType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('documentType')}</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(value as DocumentTypeEnum)}
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('selectDocumentType')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {docTypeOptions.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {t(`types.${type}`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage>{t(form.formState.errors.docType?.message || '')}</FormMessage>
+                </FormItem>
               )}
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="instructions" className="text-foreground">
-                {t('instructions')}
-              </Label>
-              <span className="text-muted-foreground text-sm">{t('optional')}</span>
-            </div>
-            <Textarea
-              id="instructions"
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              placeholder={t('instructionsPlaceholder')}
-              rows={4}
             />
-            <p className="text-muted-foreground text-sm text-right">
-              {instructions.length} {i18n.language === 'en' ? 'characters' : 'caractères'}
-            </p>
-          </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="associated-stage" className="text-foreground">
-                {t('associatedStage')}
-              </Label>
-              <span className="text-destructive text-sm">{t('required')}</span>
-            </div>
-            <Select
-              value={selectedStage}
-              onValueChange={(value) => {
-                setSelectedStage(value);
-                if (errors.stage) {
-                  setErrors({ ...errors, stage: undefined });
-                }
-              }}
-            >
-              <SelectTrigger
-                id="associated-stage"
-                className={errors.stage ? 'border-destructive' : ''}
-              >
-                <SelectValue placeholder={t('selectStage')} />
-              </SelectTrigger>
-              <SelectContent>
-                {isLoadingStages ? (
-                  <div className="p-2 text-sm text-muted-foreground text-center">
-                    {t('loading')}...
-                  </div>
-                ) : (
-                  stageOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))
+            {/* Custom Title Input (Conditional) */}
+            {selectedDocType === DocumentTypeEnum.OTHER && (
+              <FormField
+                control={form.control}
+                name="customTitle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('documentTitle')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        ref={(e) => {
+                          field.ref(e);
+                          if (e) customTitleInputRef.current = e;
+                        }}
+                        placeholder={t('documentTitlePlaceholder')}
+                      />
+                    </FormControl>
+                    <FormMessage>{t(form.formState.errors.customTitle?.message || '')}</FormMessage>
+                  </FormItem>
                 )}
-              </SelectContent>
-            </Select>
-            {errors.stage && (
-              <p className="text-destructive text-sm">{errors.stage}</p>
+              />
             )}
-          </div>
 
-          <div className="p-4 rounded-lg border-2 border-border bg-muted/50">
-            <p
-              className="text-muted-foreground text-sm"
-              dangerouslySetInnerHTML={{
-                __html: t('infoText', {
-                  stage: selectedStage ? getStageLabel(selectedStage, tTx) : (i18n.language === 'en' ? 'selected stage' : 'sélectionnée'),
-                }),
-              }}
+            {/* Instructions */}
+            <FormField
+              control={form.control}
+              name="instructions"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>{t('instructions')}</FormLabel>
+                    <span className="text-muted-foreground text-sm">{t('optional')}</span>
+                  </div>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      placeholder={t('instructionsPlaceholder')}
+                      rows={4}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-right">
+                    {field.value?.length || 0} {i18n.language === 'en' ? 'characters' : 'caractères'}
+                  </FormDescription>
+                  <FormMessage>{t(form.formState.errors.instructions?.message || '')}</FormMessage>
+                </FormItem>
+              )}
             />
-          </div>
 
-          <DialogFooter className="gap-4 sm:gap-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              {t('cancel')}
-            </Button>
-            <Button type="submit" disabled={!isFormValid} className="gap-2">
-              <Send className="w-4 h-4" />
-              {t('sendRequest')}
-            </Button>
-          </DialogFooter>
-        </form>
+            {/* Stage */}
+            <FormField
+              control={form.control}
+              name="stage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('associatedStage')}</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('selectStage')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {isLoadingStages ? (
+                        <div className="p-2 text-sm text-muted-foreground text-center">
+                          {t('loading')}...
+                        </div>
+                      ) : (
+                        stageOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage>{t(form.formState.errors.stage?.message || '')}</FormMessage>
+                </FormItem>
+              )}
+            />
+
+            <div className="p-4 rounded-lg border-2 border-border bg-muted/50">
+              <p
+                className="text-muted-foreground text-sm"
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(t('infoText', {
+                    stage: selectedStage ? getStageLabel(selectedStage, tTx) : (i18n.language === 'en' ? 'selected stage' : 'sélectionnée'),
+                  })),
+                }}
+              />
+            </div>
+
+            <DialogFooter className="gap-4 sm:gap-4">
+              <Button type="button" variant="outline" onClick={onClose}>
+                {t('cancel')}
+              </Button>
+              <Button type="submit" disabled={!form.formState.isValid} className="gap-2">
+                <Send className="w-4 h-4" />
+                {t('sendRequest')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

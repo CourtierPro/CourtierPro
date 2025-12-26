@@ -26,6 +26,7 @@
   "inviteUser_sendInvite": "Send invite",
   "inviteUser_fillAllFields": "Please fill in all required fields.",
   "inviteUser_inviteSent": "Invitation sent.",
+  "inviteUser_emailInvalid": "Invalid email address.",
   "inviteUser_inviteError": "Could not send the invitation. Please try again.",
   "inviteUser_sending": "Sending…",
   "inviteUser_role_BROKER": "broker",

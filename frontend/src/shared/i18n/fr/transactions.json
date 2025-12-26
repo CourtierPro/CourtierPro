@@ -180,6 +180,7 @@
   "appointmentsPlaceholder": "Les rendez-vous seront affichés ici.",
   "createTransaction": "Créer une transaction",
   "errorRequired": "Ce champ est requis",
+  "errorInvalidPostalCode": "Format invalide (ex: A1A 1A1)",
   "errorLoadingTransaction": "Erreur lors du chargement de la transaction",
   "couldNotLoadTransaction": "Impossible de charger les détails de la transaction.",
   "errorLoadingTransactions": "Erreur lors du chargement des transactions",
