@@ -35,7 +35,8 @@ System_Boundary(cp, "CourtierPro System") {
     Component(UserAccountTables, "User Schema", "Tables", "user_accounts, organization_settings")
 
     ' Transaction schema
-    Component(TransactionTables, "Transaction Schema", "Tables", "transactions, timeline_entries, transaction_participants, pinned_transactions")
+    Component(TransactionTables, "Transaction Schema", "Tables", "transactions, timeline_entries, transaction_participants")
+    Component(PinnedTransaction, "Pinned Transactions", "Table", "pinned_transactions")
 
     ' Document schema
     Component(DocumentTables, "Document Schema", "Tables", "document_requests, submitted_documents")
@@ -47,7 +48,7 @@ System_Boundary(cp, "CourtierPro System") {
     Component(NotificationTables, "Notification Schema", "Tables", "notifications")
 
     ' Analytics schema
-    Component(AnalyticsTables, "Analytics Schema", "Tables", "broker_metrics_snapshots")
+    Component(AnalyticsTables, "Analytics Schema (Future)", "Tables", "broker_metrics_snapshots")
     
     ' Audit schema
     Component(AuditTables, "Audit Schema", "Tables", "login_audit_events, logout_audit_events, broadcast_audit, admin_deletion_audit_logs")
@@ -62,8 +63,10 @@ Rel(TransactionTables, UserAccountTables, "FK client_id/broker_id → user_accou
 Rel(DocumentTables, TransactionTables, "FK transaction_id → transactions")
 Rel(AppointmentTables, TransactionTables, "FK transaction_id → transactions")
 Rel(AppointmentTables, UserAccountTables, "FK participants → user_accounts")
+
 Rel(PinnedTransaction, TransactionTables, "FK transaction_id → transactions")
 Rel(PinnedTransaction, UserAccountTables, "FK broker_id → user_accounts")
+
 
 Rel(AnalyticsTables, UserAccountTables, "FK broker_id → user_accounts")
 

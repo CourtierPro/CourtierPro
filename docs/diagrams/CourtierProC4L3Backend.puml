@@ -44,7 +44,7 @@ System_Boundary(cp, "CourtierPro System") {
 
     ' ==== TRANSACTION MANAGEMENT ====
     Component(TransactionController, "TransactionController", "REST Controller", "/api/v1/transactions/** – general transaction APIs")
-    Component(ClientTransactionController, "ClientTransactionController", "REST Controller", "/api/v1/transactions/client/** – client specific views")
+    Component(ClientTransactionController, "ClientTransactionController", "REST Controller", "/api/v1/clients/{id}/transactions – client views")
     Component(TransactionService, "TransactionService", "Application Service", "Transaction lifecycle and queries")
     Component(TimelineService, "TimelineService", "Domain/Application Service", "Stage changes and timeline entries")
     Component(TransactionRepository, "TransactionRepository", "Spring Data Repository", "CRUD for Transaction aggregate")
@@ -78,6 +78,12 @@ System_Boundary(cp, "CourtierPro System") {
     ' ==== AUDIT & SEARCH ====
     Component(SearchController, "SearchController", "REST Controller", "/api/v1/search/**")
     Component(FeedbackController, "FeedbackController", "REST Controller", "/api/v1/feedback/**")
+    Component(AuditControllers, "AuditControllers", "REST Controllers", "AdminResourceController, LoginAuditController etc.\nExposes audit logs to Admin UI")
+    
+    Component(SearchService, "SearchService", "Application Service", "Search logic")
+    Component(FeedbackService, "FeedbackService", "Application Service", "Feedback submission")
+    Component(AuditService, "AuditService", "Application Service", "Unified audit logging & retrieval")
+    Component(AuditRepositories, "AuditRepositories", "Spring Data Repositories", "CRUD for audit tables")
 
     ' ==== CROSS-CUTTING ====
     Component(DomainEventPublisher, "DomainEventPublisher", "Infrastructure", "Publishes domain events in-process")
@@ -129,12 +135,23 @@ Rel(NotificationController, NotificationService, "calls")
 Rel(NotificationService, NotificationRepository, "persists")
 Rel(NotificationService, JavaMailSender, "uses")
 
+Rel(web_spa, SearchController, "Uses /api/search", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, FeedbackController, "Uses /api/v1/feedback", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, AuditControllers, "Uses (Admin)", "JSON/REST/HTTPS", $tags="purple-line")
+
+Rel(SearchController, SearchService, "calls") 
+Rel(FeedbackController, FeedbackService, "calls")
+Rel(AuditControllers, AuditService, "calls")
+Rel(AuditService, AuditRepositories, "uses")
+' Note: FeedbackService integrates with GitHub Issues (not shown in Db for now)
+
 Rel(UserAccountRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
 Rel(TransactionRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
 Rel(DocumentRequestRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
 Rel(AppointmentRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
 Rel(NotificationRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
 Rel(BrokerMetricsRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
+Rel(AuditRepositories, main_db, "Reads/Writes", "JDBC/R2DBC")
 
 SHOW_LEGEND()
 @enduml

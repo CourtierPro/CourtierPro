@@ -115,13 +115,13 @@ rectangle "CourtierPro Domain" as Domain {
     
     ENTITY(PinnedTransaction) #lightpink {
        pinnedId: UUID
-       brokerId: UUID
+       brokerRef: UserRef
        transactionId: UUID
        pinnedAt: DateTime
     }
 
     VALUE_OBJECT(UserRef) #Bisque {
-      userId: UUID
+      userId: UUID // (Internal UUID)
       snapshotName: String
       snapshotEmail: String
     }
@@ -176,7 +176,7 @@ rectangle "CourtierPro Domain" as Domain {
 
     ' Intra-context links
     Transaction "1" *-- "1" PropertyAddress
-    Transaction "1" *-- "1" UserRef
+    Transaction "1" *-- "2" UserRef
     Transaction "1" *-- "0..*" TimelineEntry
     Transaction "1" *-- "0..*" TransactionParticipant
     Transaction --> TransactionSideEnum
@@ -185,6 +185,7 @@ rectangle "CourtierPro Domain" as Domain {
     Transaction --> TransactionStatusEnum
     
     Transaction "1" -- "0..*" PinnedTransaction : has >
+    PinnedTransaction --> UserRef
 
     TimelineEntry --> TimelineEntryTypeEnum
     TimelineEntry --> BuyerTransactionStageEnum
@@ -367,7 +368,7 @@ rectangle "CourtierPro Domain" as Domain {
       type: NotificationType
       category: NotificationCategory
       isRead: Boolean
-      relatedTransactionId: String
+      relatedTransactionId: String // (Holds UUID)
       createdAt: DateTime
     }
 
@@ -389,8 +390,8 @@ rectangle "CourtierPro Domain" as Domain {
 
     note bottom of Notification
       Invariants:
-      • publicId corresponds to the client-facing UUID.
-      • recipientId links to UserAccount.auth0UserId or public ID.
+      • id is internal DB PK; publicId corresponds to the client-facing UUID.
+      • recipientId links to UserAccount.userId (Internal UUID).
     end note
   }
 
