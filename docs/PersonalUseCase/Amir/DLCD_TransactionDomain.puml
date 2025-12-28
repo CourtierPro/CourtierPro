@@ -1,0 +1,92 @@
+@startuml
+title Design Class Diagram - Transaction Domain
+
+package "Transaction Domain" {
+    
+    class TransactionController {
+        + createTransaction(request: TransactionRequestDTO): ResponseEntity
+        + getTransaction(id: UUID): ResponseEntity
+        + updateTransactionStage(id: UUID, request: StageUpdateRequestDTO): ResponseEntity
+    }
+
+    interface TransactionService {
+        + createTransaction(dto: TransactionRequestDTO): TransactionResponseDTO
+        + updateTransactionStage(id: UUID, dto: StageUpdateRequestDTO): TransactionResponseDTO
+    }
+
+    class TransactionServiceImpl {
+        - transactionRepository: TransactionRepository
+        - timelineService: TimelineService
+        - notificationService: NotificationService
+        - emailService: EmailService
+        - userAccountRepository: UserAccountRepository
+        + createTransaction(...)
+        + updateTransactionStage(...)
+    }
+
+    interface TransactionRepository {
+        + findByTransactionId(id: UUID): Optional<Transaction>
+        + findAllByFilters(...): List<Transaction>
+    }
+
+    class Transaction <<Aggregate Root>> {
+        - transactionId: UUID
+        - clientId: UUID
+        - brokerId: UUID
+        - propertyAddress: PropertyAddress
+        - side: TransactionSide
+        - buyerStage: BuyerStage
+        - sellerStage: SellerStage
+        - status: TransactionStatus
+        + setBuyerStage(newStage: BuyerStage)
+        + setSellerStage(newStage: SellerStage)
+    }
+
+    class PropertyAddress <<Value Object>> {
+        - street: String
+        - city: String
+        - province: String
+        - postalCode: String
+    }
+
+    enum TransactionSide {
+        BUY_SIDE
+        SELL_SIDE
+    }
+
+    enum BuyerStage {
+        BUYER_PREQUALIFY_FINANCIALLY
+        BUYER_SHOP_FOR_PROPERTY
+        BUYER_SUBMIT_OFFER
+        BUYER_OFFER_ACCEPTED
+        BUYER_HOME_INSPECTION
+        BUYER_FINANCING_FINALIZED
+        BUYER_OCCUPANCY
+        ...
+    }
+}
+
+package "External Services" {
+    class TimelineService {
+        + addEntry(transactionId, ...): void
+    }
+    class NotificationService {
+        + createNotification(...): void
+    }
+    class EmailService {
+        + sendStageUpdateEmail(...): void
+    }
+}
+
+TransactionController --> TransactionService
+TransactionServiceImpl ..|> TransactionService
+TransactionServiceImpl --> TransactionRepository
+TransactionServiceImpl --> TimelineService
+TransactionServiceImpl --> NotificationService
+TransactionServiceImpl --> EmailService
+TransactionRepository --> Transaction
+Transaction *-- PropertyAddress
+Transaction --> TransactionSide
+Transaction --> BuyerStage
+
+@enduml

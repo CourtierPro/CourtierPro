@@ -1,0 +1,33 @@
+@startuml
+title SSD - Manage Transaction Lifecycle (UC-T1)
+actor Broker
+participant "CourtierPro System" as System
+
+group Create Transaction [FDUC Steps 1-2]
+    Broker -> System: createTransaction(clientId, propertyAddress, side)
+    activate System
+    System --> Broker: transactionId, status: ACTIVE
+    deactivate System
+end
+
+group Monitor Progress [FDUC Step 3]
+    Broker -> System: getTransactionDetails(transactionId)
+    activate System
+    System --> Broker: Transaction Details (Stage, Participants, Timeline)
+    deactivate System
+end
+
+group Update Stage [FDUC Steps 4-7]
+    Broker -> System: updateTransactionStage(transactionId, newStage, note)
+    activate System
+    System --> Broker: updatedStage, successMessage
+    deactivate System
+end
+
+group Close Transaction [FDUC Step 8]
+    Broker -> System: updateStage(transactionId, "COMPLETED", closingNote)
+    activate System
+    System --> Broker: status: CLOSED, archiveConfirmation
+    deactivate System
+end
+@enduml

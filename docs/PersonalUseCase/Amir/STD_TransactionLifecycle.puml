@@ -1,0 +1,35 @@
+@startuml
+title State Transition Diagram - Transaction Lifecycle (Buyer Side)
+
+[*] --> BUYER_PREQUALIFY_FINANCIALLY : Create Transaction
+
+state "Active Transaction" as Active {
+    BUYER_PREQUALIFY_FINANCIALLY --> BUYER_SHOP_FOR_PROPERTY : Pre-approved
+    BUYER_SHOP_FOR_PROPERTY --> BUYER_SUBMIT_OFFER : Found Property
+    BUYER_SUBMIT_OFFER --> BUYER_OFFER_ACCEPTED : Offer Accepted
+    BUYER_SUBMIT_OFFER --> BUYER_TERMINATED : Offer Rejected/Withdrawn
+    
+    BUYER_OFFER_ACCEPTED --> BUYER_HOME_INSPECTION : Begin Inspection
+    BUYER_HOME_INSPECTION --> BUYER_FINANCING_FINALIZED : Conditions Met
+    
+    BUYER_FINANCING_FINALIZED --> BUYER_FIRST_NOTARY_APPOINTMENT : Loan Approved
+    BUYER_FIRST_NOTARY_APPOINTMENT --> BUYER_SECOND_NOTARY_APPOINTMENT : Signing
+    BUYER_SECOND_NOTARY_APPOINTMENT --> BUYER_OCCUPANCY : Keys Handover
+}
+
+state "Closed Transaction" as Closed {
+    state CLOSED_SUCCESSFULLY
+    state TERMINATED_EARLY
+}
+
+BUYER_OCCUPANCY --> CLOSED_SUCCESSFULLY : Auto-Close
+Active --> TERMINATED_EARLY : Client Withdraws/Terminated
+
+CLOSED_SUCCESSFULLY --> [*]
+TERMINATED_EARLY --> [*]
+
+note right of Active
+  Transitions enforced by
+  TransactionService logic
+end note
+@enduml

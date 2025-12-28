@@ -1,0 +1,58 @@
+@startuml
+title DLSD - Update Transaction Stage (CP-8)
+autonumber
+
+actor Broker
+participant ":TransactionController" as Controller
+participant ":TransactionServiceImpl" as Service
+participant ":TransactionRepository" as Repo
+participant "transaction:Transaction" as Entity
+participant ":TimelineService" as Timeline
+participant ":EmailService" as Email
+participant ":NotificationService" as Notify
+
+Broker -> Controller: updateTransactionStage(id, requestDTO)
+activate Controller
+
+Controller -> Service: updateTransactionStage(id, requestDTO)
+activate Service
+
+Service -> Repo: findByTransactionId(id)
+activate Repo
+Repo --> Service: transaction
+deactivate Repo
+
+Service -> Service: validate and map stage
+
+Service -> Entity: setBuyerStage/setSellerStage(newStage)
+activate Entity
+Entity --> Service
+deactivate Entity
+
+Service -> Timeline: addEntry(id, "STAGE_CHANGE", ...)
+activate Timeline
+Timeline --> Service
+deactivate Timeline
+
+Service -> Repo: save(transaction)
+activate Repo
+Repo --> Service: savedTransaction
+deactivate Repo
+
+Service -> Email: sendStageUpdateEmail(...)
+activate Email
+Email --> Service
+deactivate Email
+
+Service -> Notify: createNotification(...)
+activate Notify
+Notify --> Service
+deactivate Notify
+
+Service --> Controller: responseDTO
+deactivate Service
+
+Controller --> Broker: 200 OK
+deactivate Controller
+
+@enduml
