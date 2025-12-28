@@ -36,12 +36,14 @@ System_Boundary(cp, "CourtierPro System") {
   Container_Boundary(api_gw, "CourtierPro API Gateway (Spring Cloud Gateway)", $tags="microService-java") {
 
     ' ==== Route Groups ====
-    Component(UserRoutes, "UserRoutes", "Route Group", "Routes /api/v1/me/** to backend_api")
-    Component(AdminRoutes, "AdminRoutes", "Route Group", "Routes /api/v1/admin/** to backend_api")
+    Component(UserRoutes, "UserRoutes", "Route Group", "Routes /api/v1/users/** and /api/v1/me/** to backend_api")
     Component(TransactionRoutes, "TransactionRoutes", "Route Group", "Routes /api/v1/transactions/** to backend_api")
-    Component(DocumentRoutes, "DocumentRoutes", "Route Group", "Routes /api/v1/document-requests/** to backend_api")
+    Component(DocumentRoutes, "DocumentRoutes", "Route Group", "Routes /api/v1/document-requests/** and /api/v1/documents/**")
     Component(AppointmentRoutes, "AppointmentRoutes", "Route Group", "Routes /api/v1/appointments/** to backend_api")
-    Component(AnalyticsRoutes, "AnalyticsRoutes", "Route Group", "Routes /api/v1/analytics/** to backend_api")
+    Component(DashboardRoutes, "DashboardRoutes", "Route Group", "Routes /api/v1/dashboard/** to backend_api")
+    Component(AnalyticsRoutes, "AnalyticsRoutes", "Route Group", "Routes /api/v1/analytics/** (Future)")
+    Component(NotificationRoutes, "NotificationRoutes", "Route Group", "Routes /api/v1/notifications/** to backend_api")
+    Component(SearchRoutes, "SearchRoutes", "Route Group", "Routes /api/v1/search/** to backend_api")
     Component(HealthRoutes, "HealthRoutes", "Route Group", "Exposes /actuator/** for ops")
 
     ' ==== Grouped Filter Chain ====
@@ -57,26 +59,30 @@ Rel(boker, web_spa, "Uses", "HTTPS")
 Rel(client, web_spa, "Uses", "HTTPS")
 Rel(admin, web_spa, "Uses", "HTTPS")
 
-Rel(web_spa, UserRoutes, "Calls /api/v1/me/**", "JSON/REST/HTTPS", $tags="purple-line")
-Rel(web_spa, AdminRoutes, "Calls /api/v1/admin/**", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, UserRoutes, "Calls /api/v1/users/**", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, TransactionRoutes, "Calls /api/v1/transactions/**", "JSON/REST/HTTPS", $tags="purple-line")
-Rel(web_spa, DocumentRoutes, "Calls /api/v1/document-requests/**", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, DocumentRoutes, "Calls /api/v1/doc-requests/**", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, AppointmentRoutes, "Calls /api/v1/appointments/**", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, DashboardRoutes, "Calls /api/v1/dashboard/**", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, AnalyticsRoutes, "Calls /api/v1/analytics/**", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, NotificationRoutes, "Calls /api/v1/notifications/**", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, SearchRoutes, "Calls /api/v1/search/**", "JSON/REST/HTTPS", $tags="purple-line")
 
 ' === Group all filters into one chain ===
 Rel(UserRoutes, FilterChain, "passes through")
-Rel(AdminRoutes, FilterChain, "passes through")
 Rel(TransactionRoutes, FilterChain, "passes through")
 Rel(DocumentRoutes, FilterChain, "passes through")
 Rel(AppointmentRoutes, FilterChain, "passes through")
+Rel(DashboardRoutes, FilterChain, "passes through")
 Rel(AnalyticsRoutes, FilterChain, "passes through")
+Rel(NotificationRoutes, FilterChain, "passes through")
+Rel(SearchRoutes, FilterChain, "passes through")
 Rel(HealthRoutes, FilterChain, "passes through")
 
 Rel(FilterChain, backend_api, "Forwards to", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(FilterChain, auth0, "Validates JWTs via JWKS", "HTTPS", $tags="blue-line")
 
-Component(GatewayRoutes, "Public Gateway Route Patterns", "Reference Component", "<b>UserRoutes</b> – /api/v1/me/**\n<b>AdminRoutes</b> – /api/v1/admin/**\n<b>TransactionRoutes</b> – /api/v1/transactions/**\n<b>DocumentRoutes</b> – /api/v1/document-requests/**\n<b>AppointmentRoutes</b> – /api/v1/appointments/**\n<b>AnalyticsRoutes</b> – /api/v1/analytics/**\n<b>HealthRoutes</b> – /actuator/** (internal only)")
+Component(GatewayRoutes, "Public Gateway Route Patterns", "Reference Component", "<b>UserRoutes</b> – /api/v1/users/**\n<b>TransactionRoutes</b> – /api/v1/transactions/**\n<b>DocumentRoutes</b> – /api/v1/document-requests/**\n<b>DashboardRoutes</b> – /api/v1/dashboard/**\n<b>AnalyticsRoutes</b> – /api/v1/analytics/** (Future)\n<b>NotificationRoutes</b> – /api/v1/notifications/**\n<b>SearchRoutes</b> – /api/v1/search/**")
 
 SHOW_LEGEND()
 @enduml

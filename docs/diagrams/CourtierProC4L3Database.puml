@@ -31,25 +31,26 @@ System_Boundary(cp, "CourtierPro System") {
 
   Container_Boundary(main_db, "courtierpro-db (PostgreSQL 15)", $tags="storage-postgres") {
 
-    ' User Management schema
-    Component(ClientTables, "Client Schema", "Tables", "clients, client_communication_preferences")
-    Component(BrokerTables, "Broker Schema", "Tables", "brokers")
-    Component(AdminTables, "Admin Schema", "Tables", "admins, organization_settings")
+    ' User Management schema (Unified)
+    Component(UserAccountTables, "User Schema", "Tables", "user_accounts, organization_settings")
 
     ' Transaction schema
-    Component(TransactionTables, "Transaction Schema", "Tables", "transactions, timeline_entries")
+    Component(TransactionTables, "Transaction Schema", "Tables", "transactions, timeline_entries, transaction_participants, pinned_transactions")
 
     ' Document schema
     Component(DocumentTables, "Document Schema", "Tables", "document_requests, submitted_documents")
 
-    ' Appointment schema
-    Component(AppointmentTables, "Appointment Schema", "Tables", "appointments")
+    ' Appointment schema (Planned)
+    Component(AppointmentTables, "Appointment Schema (Future)", "Tables", "appointments")
 
     ' Notification schema
-    Component(NotificationTables, "Notification Schema", "Tables", "outbound_notifications")
+    Component(NotificationTables, "Notification Schema", "Tables", "notifications")
 
     ' Analytics schema
     Component(AnalyticsTables, "Analytics Schema", "Tables", "broker_metrics_snapshots")
+    
+    ' Audit schema
+    Component(AuditTables, "Audit Schema", "Tables", "login_audit_events, logout_audit_events, broadcast_audit, admin_deletion_audit_logs")
   }
 
   ' Key repository-facing container for context
@@ -57,26 +58,23 @@ System_Boundary(cp, "CourtierPro System") {
 }
 
 ' Logical FKs between schema components
-Rel(TransactionTables, ClientTables, "FK client_id → clients")
-Rel(TransactionTables, BrokerTables, "FK broker_id → brokers")
+Rel(TransactionTables, UserAccountTables, "FK client_id/broker_id → user_accounts")
 Rel(DocumentTables, TransactionTables, "FK transaction_id → transactions")
 Rel(AppointmentTables, TransactionTables, "FK transaction_id → transactions")
-Rel(AppointmentTables, ClientTables, "FK client_id → clients")
-Rel(AppointmentTables, BrokerTables, "FK broker_id → brokers")
-Rel(NotificationTables, TransactionTables, "entity_type=TRANSACTION, entity_id")
-Rel(NotificationTables, DocumentTables, "entity_type=DOCUMENT_REQUEST, entity_id")
-Rel(NotificationTables, AppointmentTables, "entity_type=APPOINTMENT, entity_id")
-Rel(AnalyticsTables, BrokerTables, "FK broker_id → brokers")
+Rel(AppointmentTables, UserAccountTables, "FK participants → user_accounts")
+Rel(PinnedTransaction, TransactionTables, "FK transaction_id → transactions")
+Rel(PinnedTransaction, UserAccountTables, "FK broker_id → user_accounts")
+
+Rel(AnalyticsTables, UserAccountTables, "FK broker_id → user_accounts")
 
 ' Backend API uses schemas via repositories (high level)
-Rel(backend_api, ClientTables, "Uses via ClientRepository", "JDBC/R2DBC")
-Rel(backend_api, BrokerTables, "Uses via BrokerRepository", "JDBC/R2DBC")
-Rel(backend_api, AdminTables, "Uses via AdminRepository", "JDBC/R2DBC")
+Rel(backend_api, UserAccountTables, "Uses via UserAccountRepository", "JDBC/R2DBC")
 Rel(backend_api, TransactionTables, "Uses via TransactionRepository", "JDBC/R2DBC")
 Rel(backend_api, DocumentTables, "Uses via DocumentRequestRepository & SubmittedDocument access", "JDBC/R2DBC")
 Rel(backend_api, AppointmentTables, "Uses via AppointmentRepository", "JDBC/R2DBC")
-Rel(backend_api, NotificationTables, "Uses via OutboundNotificationRepository", "JDBC/R2DBC")
+Rel(backend_api, NotificationTables, "Uses via NotificationRepository", "JDBC/R2DBC")
 Rel(backend_api, AnalyticsTables, "Uses via BrokerMetricsRepository", "JDBC/R2DBC")
+Rel(backend_api, AuditTables, "Uses via Audit Repositories", "JDBC/R2DBC")
 
 SHOW_LEGEND()
 @enduml

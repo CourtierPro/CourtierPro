@@ -36,129 +36,43 @@ rectangle "CourtierPro Domain" as Domain {
   '======================
   package "User Management" as UserBC <<Rectangle>> #LightBlue {
 
-    AGGREGATE_ROOT(Client) #lightblue {
-      clientId: UUID
-      auth0Sub: Auth0SubjectId
-      fullName: String
-      email: Email
-      phone: Phone
-      communicationPreferences: CommunicationPreferences
-      status: ClientStatusEnum
-    }
-
-    AGGREGATE_ROOT(Broker) #lightblue {
-      brokerId: UUID
-      auth0Sub: Auth0SubjectId
-      fullName: String
-      licenseNumber: String
-      email: Email
-      phone: Phone
+    AGGREGATE_ROOT(UserAccount) #lightblue {
+      userId: UUID
+      auth0UserId: String
+      email: String
+      firstName: String
+      lastName: String
+      role: UserRole
       active: Boolean
+      preferredLanguage: String
+      createdAt: DateTime
+      updatedAt: DateTime
     }
 
-    AGGREGATE_ROOT(Admin) #lightblue {
-      adminId: UUID
-      auth0Sub: Auth0SubjectId
-      fullName: String
-      email: Email
-      role: AdminRoleEnum
-      active: Boolean
-    }
-
-    AGGREGATE_ROOT(OrganizationSettings) #lightblue {
-      orgId: UUID
-      defaultLanguage: LanguageEnum
-    }
-
-    VALUE_OBJECT(ClientIdentifier) #Bisque {
-      clientId: UUID
-    }
-
-    VALUE_OBJECT(BrokerIdentifier) #Bisque {
-      brokerId: UUID
-    }
-
-    VALUE_OBJECT(AdminIdentifier) #Bisque {
-      adminId: UUID
-    }
-
-    VALUE_OBJECT(Auth0SubjectId) #Bisque {
-      value: String
-    }
-
-    VALUE_OBJECT(Email) #Bisque {
-      value: String
-    }
-
-    VALUE_OBJECT(Phone) #Bisque {
-      value: String
-    }
-
-    VALUE_OBJECT(CommunicationPreferences) #Bisque {
-      emailAllowed: Boolean
-      preferredLanguage: LanguageEnum
-    }
-
-    ENUM(LanguageEnum) {
-      EN
-      FR
-    }
-
-    ENUM(ClientStatusEnum) {
-      ACTIVE
-      INACTIVE
-      CLOSED
-    }
-
-    ENUM(AdminRoleEnum) {
-      SYSTEM_ADMIN
-      OFFICE_ADMIN
+    ENUM(UserRole) {
+      ADMIN
+      BROKER
+      CLIENT
     }
 
     ' Intra-context links
-    Client "1" *-- "1" ClientIdentifier
-    Client "1" *-- "1" Auth0SubjectId
-    Client "1" *-- "1" Email
-    Client "0..1" *-- "1" Phone
-    Client "0..1" *-- "1" CommunicationPreferences
-    Client --> ClientStatusEnum
+    UserAccount --> UserRole
 
-    Broker "1" *-- "1" BrokerIdentifier
-    Broker "1" *-- "1" Auth0SubjectId
-    Broker "1" *-- "1" Email
-    Broker "0..1" *-- "1" Phone
-
-    Admin "1" *-- "1" AdminIdentifier
-    Admin "1" *-- "1" Auth0SubjectId
-    Admin "1" *-- "1" Email
-    Admin --> AdminRoleEnum
-
-    CommunicationPreferences --> LanguageEnum
-    OrganizationSettings --> LanguageEnum
-
-    note bottom of Client
+    note bottom of UserAccount
       Invariants:
-      • email must be unique per Client.
-      • communicationPreferences.preferredLanguage ∈ {EN, FR} when present.
-      • status reflects the ongoing business relationship state.
+      • auth0UserId must be unique.
+      • email must be unique.
+      • Single entity for all system users (Unified Identity).
     end note
 
-    note bottom of Broker
-      Invariants:
-      • Each Broker must have a valid licenseNumber.
-      • active = false means they cannot open new Transactions.
-    end note
-
-    note bottom of Admin
-      Invariants:
-      • Admin manages system configuration and access control.
-      • Admin does NOT modify transaction stages on behalf of brokers.
-    end note
-
-    note bottom of OrganizationSettings
-      Represents system-wide configuration managed by
-      Admins (default language, templates).
-    end note
+    AGGREGATE_ROOT(OrganizationSettings) #lightblue {
+      orgId: UUID
+      defaultLanguage: String
+      inviteSubjectEn: String
+      inviteBodyEn: String
+      inviteSubjectFr: String
+      inviteBodyFr: String
+    }
   }
 
 
@@ -170,8 +84,8 @@ rectangle "CourtierPro Domain" as Domain {
     AGGREGATE_ROOT(Transaction) #lightyellow {
       transactionId: UUID
       propertyAddress: PropertyAddress
-      clientRef: ClientRef
-      brokerRef: BrokerRef
+      clientRef: UserRef
+      brokerRef: UserRef
       side: TransactionSideEnum
       buyerStage: BuyerTransactionStageEnum?
       sellerStage: SellerTransactionStageEnum?
@@ -186,25 +100,30 @@ rectangle "CourtierPro Domain" as Domain {
       type: TimelineEntryTypeEnum
       note: String
       occurredAt: DateTime
-      addedByBrokerId: UUID
+      addedByUserId: UUID
       buyerStage: BuyerTransactionStageEnum?
       sellerStage: SellerTransactionStageEnum?
     }
-
-    VALUE_OBJECT(TransactionIdentifier) #Bisque {
-      transactionId: UUID
+    
+    ENTITY(TransactionParticipant) #lightpink {
+      participantId: UUID
+      name: String
+      role: String
+      email: String
+      phone: String
+    }
+    
+    ENTITY(PinnedTransaction) #lightpink {
+       pinnedId: UUID
+       brokerId: UUID
+       transactionId: UUID
+       pinnedAt: DateTime
     }
 
-    VALUE_OBJECT(ClientRef) #Bisque {
-      clientId: UUID
+    VALUE_OBJECT(UserRef) #Bisque {
+      userId: UUID
       snapshotName: String
       snapshotEmail: String
-    }
-
-    VALUE_OBJECT(BrokerRef) #Bisque {
-      brokerId: UUID
-      snapshotName: String
-      snapshotLicenseNumber: String
     }
 
     VALUE_OBJECT(PropertyAddress) #Bisque {
@@ -256,15 +175,16 @@ rectangle "CourtierPro Domain" as Domain {
     }
 
     ' Intra-context links
-    Transaction "1" *-- "1" TransactionIdentifier
     Transaction "1" *-- "1" PropertyAddress
-    Transaction "1" *-- "1" ClientRef
-    Transaction "1" *-- "1" BrokerRef
+    Transaction "1" *-- "1" UserRef
     Transaction "1" *-- "0..*" TimelineEntry
+    Transaction "1" *-- "0..*" TransactionParticipant
     Transaction --> TransactionSideEnum
     Transaction --> BuyerTransactionStageEnum
     Transaction --> SellerTransactionStageEnum
     Transaction --> TransactionStatusEnum
+    
+    Transaction "1" -- "0..*" PinnedTransaction : has >
 
     TimelineEntry --> TimelineEntryTypeEnum
     TimelineEntry --> BuyerTransactionStageEnum
@@ -272,29 +192,9 @@ rectangle "CourtierPro Domain" as Domain {
 
     note bottom of Transaction
       Invariants:
-      • Each Transaction belongs to exactly one Client and is
-        primarily handled by exactly one Broker.
-      • side determines whether buyerStage or sellerStage is used:
-        - side = BUY_SIDE  → buyerStage must be non-null and define the current step.
-        - side = SELL_SIDE → sellerStage must be non-null and define the current step.
-      • At most one of buyerStage / sellerStage is non-null at any time.
-      • Stage progression must respect the ordered sequence defined by
-        the corresponding BuyerTransactionStageEnum or SellerTransactionStageEnum.
-      • closedAt is only set when status ∈ {CLOSED_SUCCESSFULLY, TERMINATED_EARLY}.
-      • When status = CLOSED_SUCCESSFULLY:
-        - BUY_SIDE  → buyerStage must be BUYER_OCCUPANCY.
-        - SELL_SIDE → sellerStage must be SELLER_HANDOVER_KEYS.
-    end note
-
-    note bottom of TimelineEntry
-      Invariants:
-      • occurredAt must be immutable once recorded.
-      • addedByBrokerId must refer to a valid, active Broker.
-      • When type = STAGE_CHANGE, exactly one of buyerStage / sellerStage
-        must be non-null and valid for the Transaction.side at the time
-        of the change.
-      • When type = NOTE, buyerStage and sellerStage may be null and
-        the entry represents a free-form note on the timeline.
+      • Each Transaction belongs to exactly one Client (UserAccount) and is
+        primarily handled by exactly one Broker (UserAccount).
+      • side determines stage usage.
     end note
   }
 
@@ -312,8 +212,6 @@ rectangle "CourtierPro Domain" as Domain {
       customTitle: String
       status: DocumentStatusEnum
       expectedFrom: DocumentPartyEnum
-      relatedBuyerStage: BuyerTransactionStageEnum?
-      relatedSellerStage: SellerTransactionStageEnum?
       submittedDocuments: List<SubmittedDocument>
       brokerNotes: String
       lastUpdatedAt: DateTime
@@ -344,8 +242,7 @@ rectangle "CourtierPro Domain" as Domain {
 
     VALUE_OBJECT(UploadedByRef) #Bisque {
       party: DocumentPartyEnum
-      clientId: UUID?
-      brokerId: UUID?
+      userId: UUID?
       externalName: String?
     }
 
@@ -357,43 +254,28 @@ rectangle "CourtierPro Domain" as Domain {
     }
 
     ENUM(DocumentTypeEnum) {
-      ' Buyer prequalification
       MORTGAGE_PRE_APPROVAL_LETTER
       BUYER_PROOF_OF_FUNDS
       BUYER_PROOF_OF_INCOME
       BUYER_ID_DOCUMENT
-
-      ' Shared / property docs
       CERTIFICATE_OF_LOCATION
       SELLER_DECLARATION
       MLS_LISTING
-
-      ' Offer and negotiation
       PROMISE_TO_PURCHASE
       OFFER_ANNEX
       ACKNOWLEDGED_SELLER_DECLARATION
-
-      ' Inspection
       INSPECTION_REPORT
-
-      ' Financing and insurance
       FINAL_MORTGAGE_APPROVAL_LETTER
       INSURANCE_CONFIRMATION_LETTER
-
-      ' Notary
       MORTGAGE_DEED
       DEED_OF_SALE
       ACCEPTED_OFFER_PACKAGE
       PRIOR_DEEDS
       CERTIFIED_COPY_OF_DEED
-
-      ' Seller-side supporting docs
       CMA_REPORT
       MUNICIPAL_TAX_BILL
       SCHOOL_TAX_BILL
       MORTGAGE_BALANCE_STATEMENT
-
-      ' Fallback
       OTHER
     }
 
@@ -412,35 +294,8 @@ rectangle "CourtierPro Domain" as Domain {
     DocumentRequest --> DocumentTypeEnum
     DocumentRequest --> DocumentStatusEnum
     DocumentRequest --> DocumentPartyEnum
-    DocumentRequest --> BuyerTransactionStageEnum
-    DocumentRequest --> SellerTransactionStageEnum
 
     SubmittedDocument --> DocumentPartyEnum
-
-    note bottom of DocumentRequest
-      Invariants:
-      • status transitions follow REQUESTED → SUBMITTED → (APPROVED | NEEDS_REVISION).
-      • Each DocumentRequest is tied to exactly one Transaction and must
-        share the same side as that Transaction.
-      • If status = APPROVED, brokerNotes should capture approval context.
-      • Each DocumentRequest may have multiple SubmittedDocuments
-        representing resubmissions (chain of custody); the latest
-        by uploadedAt is considered the current version.
-      • When side = BUY_SIDE and a stage link is needed, relatedBuyerStage
-        must be non-null and relatedSellerStage must be null.
-      • When side = SELL_SIDE and a stage link is needed, relatedSellerStage
-        must be non-null and relatedBuyerStage must be null.
-    end note
-
-    note bottom of SubmittedDocument
-      Invariants:
-      • storageObject.s3Key must exist in S3.
-      • uploadedBy.party identifies who actually uploaded the document
-        (e.g., buyer/seller client, broker, external notary or lender).
-      • When uploadedBy.party ∈ {BUYER, SELLER}, clientId must be non-null
-        and correspond to the Client bound to transactionRef.
-      • When uploadedBy.party = BROKER, brokerId must be non-null.
-    end note
   }
 
 
@@ -451,30 +306,18 @@ rectangle "CourtierPro Domain" as Domain {
 
     AGGREGATE_ROOT(Appointment) #lightsalmon {
       appointmentId: UUID
-      transactionRef: TransactionRef
-      clientRef: ClientRefSnapshot
-      brokerRef: BrokerRefSnapshot
+      transactionId: UUID
+      clientId: UUID
+      brokerId: UUID
       appointmentType: AppointmentTypeEnum
       scheduledStart: DateTime
       scheduledEnd: DateTime
       status: AppointmentStatusEnum
       details: String
-      lastModifiedByBrokerId: UUID
+      lastModifiedByUserId: UUID
       reminderPolicy: ReminderPolicy
     }
-
-    VALUE_OBJECT(ClientRefSnapshot) #Bisque {
-      clientId: UUID
-      clientName: String
-      clientEmail: String
-    }
-
-    VALUE_OBJECT(BrokerRefSnapshot) #Bisque {
-      brokerId: UUID
-      brokerName: String
-      brokerLicenseNumber: String
-    }
-
+    
     VALUE_OBJECT(ReminderPolicy) #Bisque {
       sendEmailReminder: Boolean
       minutesBefore: Integer
@@ -498,19 +341,14 @@ rectangle "CourtierPro Domain" as Domain {
     }
 
     ' Intra-context links
-    Appointment "1" *-- "1" TransactionRef
-    Appointment "1" *-- "1" ClientRefSnapshot
-    Appointment "1" *-- "1" BrokerRefSnapshot
-    Appointment "0..1" *-- "1" ReminderPolicy
     Appointment --> AppointmentTypeEnum
     Appointment --> AppointmentStatusEnum
 
     note bottom of Appointment
+      Future Feature.
       Invariants:
-      • Each Appointment is associated with exactly one Transaction.
       • scheduledStart must be in the future when status is
         PENDING_BROKER_CONFIRMATION or CONFIRMED.
-      • ReminderPolicy governs when email reminders are sent.
     end note
   }
 
@@ -520,51 +358,39 @@ rectangle "CourtierPro Domain" as Domain {
   '======================
   package "Notifications" as NotificationsBC <<Rectangle>> #Thistle {
 
-    AGGREGATE_ROOT(OutboundNotification) #Thistle {
-      notificationId: UUID
-      recipientEmail: String
-      subject: String
-      body: String
-      channel: NotificationChannelEnum
-      relatedEntity: RelatedEntityRef
-      sentAt: DateTime
-      status: NotificationStatusEnum
-      providerMessageId: String
+    AGGREGATE_ROOT(Notification) #Thistle {
+      id: Long
+      publicId: UUID
+      recipientId: String
+      title: String
+      message: String
+      type: NotificationType
+      category: NotificationCategory
+      isRead: Boolean
+      relatedTransactionId: String
+      createdAt: DateTime
     }
 
-    VALUE_OBJECT(RelatedEntityRef) #Bisque {
-      entityType: RelatedEntityTypeEnum
-      entityId: UUID
+    ENUM(NotificationType) {
+      GENERAL
+      BROADCAST
     }
-
-    ENUM(NotificationChannelEnum) {
-      EMAIL
-      SMS
-    }
-
-    ENUM(NotificationStatusEnum) {
-      PENDING
-      SENT
-      FAILED
-    }
-
-    ENUM(RelatedEntityTypeEnum) {
+    
+    ENUM(NotificationCategory) {
+      GENERAL
       TRANSACTION
-      DOCUMENT_REQUEST
+      DOCUMENT
       APPOINTMENT
     }
 
     ' Intra-context links
-    OutboundNotification "1" *-- "1" RelatedEntityRef
-    OutboundNotification --> NotificationChannelEnum
-    OutboundNotification --> NotificationStatusEnum
-    RelatedEntityRef --> RelatedEntityTypeEnum
+    Notification --> NotificationType
+    Notification --> NotificationCategory
 
-    note bottom of OutboundNotification
+    note bottom of Notification
       Invariants:
-      • channel = EMAIL is fulfilled via Amazon SES.
-      • Each notification references a meaningful business entity
-        (Transaction, DocumentRequest, Appointment).
+      • publicId corresponds to the client-facing UUID.
+      • recipientId links to UserAccount.auth0UserId or public ID.
     end note
   }
 
@@ -576,7 +402,7 @@ rectangle "CourtierPro Domain" as Domain {
 
     AGGREGATE_ROOT(BrokerMetricsSnapshot) #lightgray {
       snapshotId: UUID
-      brokerRef: BrokerRefForMetrics
+      brokerUserId: UUID
       capturedAt: DateTime
       activeTransactionsCount: Integer
       activeBuyerTransactionsCount: Integer
@@ -586,24 +412,9 @@ rectangle "CourtierPro Domain" as Domain {
       pendingAppointmentsCount: Integer
     }
 
-    VALUE_OBJECT(BrokerRefForMetrics) #Bisque {
-      brokerId: UUID
-      brokerName: String
-    }
-
     note bottom of BrokerMetricsSnapshot
-      Invariants:
-      • Represents a point-in-time view used by broker dashboards.
-      • activeTransactionsCount counts Transaction.status = ACTIVE.
-      • activeBuyerTransactionsCount counts ACTIVE Transactions
-        where side = BUY_SIDE.
-      • activeSellerTransactionsCount counts ACTIVE Transactions
-        where side = SELL_SIDE.
-      • avgTimeToCloseDays derived from Transaction.openedAt → closedAt.
-      • documentsAwaitingReviewCount counts DocumentRequests with
-        status ∈ {REQUESTED, SUBMITTED} awaiting broker action.
-      • pendingAppointmentsCount counts Appointment.status in
-        {PENDING_BROKER_CONFIRMATION, RESCHEDULE_PROPOSED}.
+      Future Feature.
+      Computed from live operational data.
     end note
   }
 
@@ -613,63 +424,26 @@ rectangle "CourtierPro Domain" as Domain {
   '======================
 
   ' TRANSACTION ↔ USER MANAGEMENT
-  TransactionBC.Transaction --> UserBC.ClientIdentifier
-  TransactionBC.Transaction --> UserBC.BrokerIdentifier
-  note on link
-    Transaction references the Client and Broker
-    responsible for that specific real estate case.
-    Snapshots are stored in ClientRef and BrokerRef
-    to preserve historical context.
-  end note
+  TransactionBC.Transaction --> UserBC.UserAccount : "Client (Buyer/Seller)"
+  TransactionBC.Transaction --> UserBC.UserAccount : "Broker"
+  TransactionBC.PinnedTransaction --> UserBC.UserAccount : "Broker"
 
   ' DOCUMENT MANAGEMENT ↔ TRANSACTION MANAGEMENT
-  DocumentBC.DocumentRequest --> TransactionBC.TransactionIdentifier
-  note on link
-    A DocumentRequest always belongs to exactly
-    one Transaction and is part of that transaction's
-    compliance and progress requirements.
-  end note
+  DocumentBC.DocumentRequest --> TransactionBC.Transaction
 
   ' APPOINTMENT MANAGEMENT ↔ TRANSACTION MANAGEMENT
-  AppointmentBC.Appointment --> TransactionBC.TransactionIdentifier
-  note on link
-    Appointments are always attached to a Transaction
-    and represent buyer/seller meetings, inspections,
-    notary visits, and other key events.
-  end note
-
-  ' APPOINTMENT MANAGEMENT ↔ USER MANAGEMENT (snapshots)
-  AppointmentBC.ClientRefSnapshot --> UserBC.ClientIdentifier
-  AppointmentBC.BrokerRefSnapshot --> UserBC.BrokerIdentifier
-  note on link
-    Appointments embed snapshot data (name, license)
-    so historical appointment records remain accurate
-    even if Client or Broker details change later.
-  end note
+  AppointmentBC.Appointment --> TransactionBC.Transaction
+  AppointmentBC.Appointment --> UserBC.UserAccount : "Participants"
 
   ' NOTIFICATIONS ↔ DOCUMENT / TRANSACTION / APPOINTMENT
-  NotificationsBC.OutboundNotification --> DocumentBC.DocumentRequest
-  NotificationsBC.OutboundNotification --> TransactionBC.Transaction
-  NotificationsBC.OutboundNotification --> AppointmentBC.Appointment
-  note on link
-    Notifications are triggered when meaningful
-    business actions occur, such as:
-    • stage change,
-    • document approved / needs revision,
-    • appointment confirmed / rescheduled.
-  end note
+  NotificationsBC.Notification ..> DocumentBC.DocumentRequest : "Refers to"
+  NotificationsBC.Notification ..> TransactionBC.Transaction : "Refers to"
+  NotificationsBC.Notification ..> AppointmentBC.Appointment : "Refers to"
+  NotificationsBC.Notification --> UserBC.UserAccount : "Recipient"
 
-  ' ANALYTICS ↔ TRANSACTION / DOCUMENT / APPOINTMENT
+  ' ANALYTICS ↔ TRANSACTION / DOCUMENT / APPOINTMENT / USER
   AnalyticsBC.BrokerMetricsSnapshot --> TransactionBC.Transaction
-  AnalyticsBC.BrokerMetricsSnapshot --> DocumentBC.DocumentRequest
-  AnalyticsBC.BrokerMetricsSnapshot --> AppointmentBC.Appointment
-  note on link
-    Metrics are computed from live operational data:
-    - activeTransactionsCount
-    - documentsAwaitingReviewCount
-    - pendingAppointmentsCount
-    These KPIs feed the broker dashboard.
-  end note
+  AnalyticsBC.BrokerMetricsSnapshot --> UserBC.UserAccount : "Broker"
 
 }
 

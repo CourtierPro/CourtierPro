@@ -36,52 +36,55 @@ System_Boundary(cp, "CourtierPro System") {
   Container_Boundary(backend_api, "CourtierPro Backend API (Spring Boot 3)", $tags="microService-java") {
 
     ' ==== USER MANAGEMENT ====
-    Component(UserContextController, "UserContextController", "REST Controller", "/api/v1/me/** – current user’s view")
-    Component(AdminController, "AdminController", "REST Controller", "/api/v1/admin/** – admin management APIs")
-    Component(UserManagementService, "UserManagementService", "Application Service", "Coordinates Client/Broker/Admin operations")
-    Component(ClientRepository, "ClientRepository", "Spring Data Repository", "CRUD for Client aggregate")
-    Component(BrokerRepository, "BrokerRepository", "Spring Data Repository", "CRUD for Broker aggregate")
-    Component(AdminRepository, "AdminRepository", "Spring Data Repository", "CRUD for Admin aggregate")
-    Component(Auth0Adapter, "Auth0Adapter", "Infrastructure Adapter", "Delegates identity operations to Auth0")
+    Component(CurrentUserController, "CurrentUserController", "REST Controller", "/api/v1/users/me/** – current user’s view")
+    Component(AdminUserController, "AdminUserController", "REST Controller", "/api/v1/users/** – admin management APIs")
+    Component(UserProvisioningService, "UserProvisioningService", "Application Service", "Syncs Auth0 users to DB")
+    Component(UserAccountRepository, "UserAccountRepository", "Spring Data Repository", "CRUD for UserAccount aggregate")
+    Component(Auth0ManagementClient, "Auth0ManagementClient", "Infrastructure Adapter", "Delegates identity operations to Auth0")
 
     ' ==== TRANSACTION MANAGEMENT ====
-    Component(TransactionController, "TransactionController", "REST Controller", "/api/v1/transactions/** – transaction APIs")
+    Component(TransactionController, "TransactionController", "REST Controller", "/api/v1/transactions/** – general transaction APIs")
+    Component(ClientTransactionController, "ClientTransactionController", "REST Controller", "/api/v1/transactions/client/** – client specific views")
     Component(TransactionService, "TransactionService", "Application Service", "Transaction lifecycle and queries")
     Component(TimelineService, "TimelineService", "Domain/Application Service", "Stage changes and timeline entries")
     Component(TransactionRepository, "TransactionRepository", "Spring Data Repository", "CRUD for Transaction aggregate")
 
     ' ==== DOCUMENT MANAGEMENT ====
     Component(DocumentRequestController, "DocumentRequestController", "REST Controller", "/api/v1/document-requests/** – broker & system")
-    Component(DocumentSubmissionController, "DocumentSubmissionController", "REST Controller", "/api/v1/document-requests/{id}/submitted-documents/** – client uploads & views")
+    Component(GlobalDocumentController, "GlobalDocumentController", "REST Controller", "/api/v1/documents/** - download/view access")
     Component(DocumentService, "DocumentService", "Application Service", "DocumentRequest & SubmittedDocument workflows")
     Component(DocumentRequestRepository, "DocumentRequestRepository", "Spring Data Repository", "CRUD for DocumentRequest aggregate")
-    Component(S3StorageAdapter, "S3StorageAdapter", "Infrastructure Adapter", "Pre-signed URLs and S3 interactions")
+    Component(S3StorageService, "S3StorageService", "Infrastructure Adapter", "Pre-signed URLs and S3 interactions")
 
-    ' ==== APPOINTMENTS ====
+    ' ==== APPOINTMENTS (Future) ====
     Component(AppointmentController, "AppointmentController", "REST Controller", "/api/v1/appointments/** – appointments")
     Component(AppointmentService, "AppointmentService", "Application Service", "Appointment lifecycle & status transitions")
     Component(AppointmentRepository, "AppointmentRepository", "Spring Data Repository", "CRUD for Appointment aggregate")
 
-    ' ==== ANALYTICS ====
-    Component(AnalyticsController, "AnalyticsController", "REST Controller", "/api/v1/analytics/** – broker analytics")
-    Component(AnalyticsService, "AnalyticsService", "Application Service", "Computes broker KPIs and snapshots")
+    ' ==== ANALYTICS / DASHBOARD ====
+    Component(DashboardController, "DashboardController", "REST Controller", "/api/v1/dashboard/** – consolidated views")
+    Component(DashboardService, "DashboardService", "Application Service", "Computes broker/client KPIs")
     Component(BrokerMetricsRepository, "BrokerMetricsRepository", "Spring Data Repository", "CRUD for BrokerMetricsSnapshot")
 
+    Component(AnalyticsController, "AnalyticsController", "REST Controller", "/api/v1/analytics/** (Future)")
+    Component(AnalyticsService, "AnalyticsService", "Application Service", "Future advanced analytics")
+
     ' ==== NOTIFICATIONS ====
-    Component(NotificationService, "NotificationService", "Application Service", "Composes and logs outbound notifications")
-    Component(OutboundNotificationRepository, "OutboundNotificationRepository", "Spring Data Repository", "OutboundNotification aggregate persistence")
-    Component(SesEmailAdapter, "SesEmailAdapter", "Infrastructure Adapter", "Sends email via Amazon SES")
+    Component(NotificationController, "NotificationController", "REST Controller", "/api/v1/notifications/**")
+    Component(NotificationService, "NotificationService", "Application Service", "Composes and logs notifications")
+    Component(NotificationRepository, "NotificationRepository", "Spring Data Repository", "Notification aggregate persistence")
+    Component(JavaMailSender, "JavaMailSender", "Infrastructure Adapter", "Sends email via Amazon SES/SMTP")
+
+    ' ==== AUDIT & SEARCH ====
+    Component(SearchController, "SearchController", "REST Controller", "/api/v1/search/**")
+    Component(FeedbackController, "FeedbackController", "REST Controller", "/api/v1/feedback/**")
 
     ' ==== CROSS-CUTTING ====
     Component(DomainEventPublisher, "DomainEventPublisher", "Infrastructure", "Publishes domain events in-process")
-    Component(SecurityContext, "SecurityContext", "Infrastructure", "Resolves current user & roles from Auth0 token")
   }
 }
 
 ' Relationships (high-level, internal wiring)
-' Security
-Rel(UserContextController, SecurityContext, "reads current user", $tags="blue-line")
-Rel(SecurityContext, Auth0Adapter, "validates tokens / loads roles", $tags="blue-line")
 
 ' Domain events
 Rel(TransactionService, DomainEventPublisher, "publishes TransactionStageChanged")
@@ -92,52 +95,46 @@ Rel(TransactionService, NotificationService, "publishes notifications on stage c
 Rel(DocumentService, NotificationService, "notifies brokers/clients of document updates")
 Rel(AppointmentService, NotificationService, "notifies participants of appointment status")
 
-Rel(web_spa, UserContextController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, CurrentUserController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, TransactionController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, DocumentRequestController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
-Rel(web_spa, DocumentSubmissionController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, AppointmentController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
-Rel(web_spa, AnalyticsController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
-Rel(web_spa, AdminController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, DashboardController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, AdminUserController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, NotificationController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
 
-Rel(UserContextController, UserManagementService, "calls")
-Rel(AdminController, UserManagementService, "calls")
-Rel(UserManagementService, ClientRepository, "uses")
-Rel(UserManagementService, BrokerRepository, "uses")
-Rel(UserManagementService, AdminRepository, "uses")
-Rel(UserManagementService, Auth0Adapter, "syncs identities")
+Rel(CurrentUserController, UserProvisioningService, "calls")
+Rel(AdminUserController, UserProvisioningService, "calls")
+Rel(UserProvisioningService, UserAccountRepository, "uses")
+Rel(UserProvisioningService, Auth0ManagementClient, "syncs identities")
 
 Rel(TransactionController, TransactionService, "calls")
+Rel(ClientTransactionController, TransactionService, "calls")
 Rel(TransactionService, TransactionRepository, "uses")
 Rel(TransactionService, TimelineService, "delegates stage changes")
 
 Rel(DocumentRequestController, DocumentService, "calls")
-Rel(DocumentSubmissionController, DocumentService, "calls")
+Rel(GlobalDocumentController, DocumentService, "calls")
 Rel(DocumentService, DocumentRequestRepository, "uses")
-Rel(DocumentService, S3StorageAdapter, "uses")
+Rel(DocumentService, S3StorageService, "uses")
 
 Rel(AppointmentController, AppointmentService, "calls")
 Rel(AppointmentService, AppointmentRepository, "uses")
 
-Rel(AnalyticsController, AnalyticsService, "calls")
-Rel(AnalyticsService, BrokerMetricsRepository, "reads")
-Rel(AnalyticsService, TransactionRepository, "reads")
-Rel(AnalyticsService, DocumentRequestRepository, "reads")
-Rel(AnalyticsService, AppointmentRepository, "reads")
+Rel(DashboardController, DashboardService, "calls")
+Rel(DashboardService, BrokerMetricsRepository, "reads")
+Rel(DashboardService, TransactionRepository, "reads")
 
-Rel(NotificationService, OutboundNotificationRepository, "persists")
-Rel(NotificationService, SesEmailAdapter, "uses")
+Rel(NotificationController, NotificationService, "calls")
+Rel(NotificationService, NotificationRepository, "persists")
+Rel(NotificationService, JavaMailSender, "uses")
 
-Rel(ClientRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
-Rel(BrokerRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
-Rel(AdminRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
+Rel(UserAccountRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
 Rel(TransactionRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
 Rel(DocumentRequestRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
 Rel(AppointmentRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
-Rel(OutboundNotificationRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
+Rel(NotificationRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
 Rel(BrokerMetricsRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
-
-Component(BackendEndpoints, "Backend API Endpoints", "Reference Component", "UserContextController: GET /api/v1/me, GET /api/v1/me/transactions, GET /api/v1/me/appointments | AdminController: GET /api/v1/admin/users, POST /api/v1/admin/users, PATCH /api/v1/admin/users/{id}, GET /api/v1/admin/org-settings, PUT /api/v1/admin/org-settings | TransactionController: GET /api/v1/transactions, POST /api/v1/transactions, GET /api/v1/transactions/{id}, PATCH /api/v1/transactions/{id}, GET /api/v1/transactions/{id}/timeline | DocumentRequestController: GET /api/v1/document-requests, POST /api/v1/document-requests, PATCH /api/v1/document-requests/{id} | AppointmentController: GET /api/v1/appointments, POST /api/v1/appointments, PATCH /api/v1/appointments/{id} | AnalyticsController: GET /api/v1/analytics/brokers/{brokerId}/summary, GET /api/v1/analytics/brokers/{brokerId}/history, GET /api/v1/analytics/brokers/{brokerId}/my-day | HealthRoutes (internal): GET /actuator/health, GET /actuator/metrics")
 
 SHOW_LEGEND()
 @enduml
