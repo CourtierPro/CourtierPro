@@ -51,7 +51,7 @@ System_Boundary(cp, "CourtierPro System") {
     Component(AnalyticsTables, "Analytics Schema (Future)", "Tables", "broker_metrics_snapshots")
     
     ' Audit schema
-    Component(AuditTables, "Audit Schema", "Tables", "login_audit_events, logout_audit_events, broadcast_audit, admin_deletion_audit_logs")
+    Component(AuditTables, "Audit Schema", "Tables", "login_audit_events, logout_audit_events, broadcast_audit, admin_deletion_audit_logs, organization_settings_audit, password_reset_events")
   }
 
   ' Key repository-facing container for context

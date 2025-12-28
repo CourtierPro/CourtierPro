@@ -37,7 +37,7 @@ rectangle "CourtierPro Domain" as Domain {
   package "User Management" as UserBC <<Rectangle>> #LightBlue {
 
     AGGREGATE_ROOT(UserAccount) #lightblue {
-      userId: UUID
+      id: UUID
       auth0UserId: String
       email: String
       firstName: String
@@ -99,7 +99,7 @@ rectangle "CourtierPro Domain" as Domain {
       timelineEntryId: UUID
       type: TimelineEntryTypeEnum
       note: String
-      occurredAt: DateTime
+      timestamp: Instant
       addedByUserId: UUID
       buyerStage: BuyerTransactionStageEnum?
       sellerStage: SellerTransactionStageEnum?
@@ -110,18 +110,18 @@ rectangle "CourtierPro Domain" as Domain {
       name: String
       role: String
       email: String
-      phone: String
+      phoneNumber: String
     }
     
     ENTITY(PinnedTransaction) #lightpink {
-       pinnedId: UUID
+       id: Long
        brokerRef: UserRef
        transactionId: UUID
        pinnedAt: DateTime
     }
 
     VALUE_OBJECT(UserRef) #Bisque {
-      userId: UUID // (Internal UUID)
+      userId: UUID // (Internal UserAccount.id)
       snapshotName: String
       snapshotEmail: String
     }
@@ -391,7 +391,7 @@ rectangle "CourtierPro Domain" as Domain {
     note bottom of Notification
       Invariants:
       • id is internal DB PK; publicId corresponds to the client-facing UUID.
-      • recipientId links to UserAccount.userId (Internal UUID).
+      • recipientId links to UserAccount.id (Internal UUID).
     end note
   }
 

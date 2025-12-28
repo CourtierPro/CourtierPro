@@ -36,22 +36,22 @@ System_Boundary(cp, "CourtierPro System") {
   Container_Boundary(backend_api, "CourtierPro Backend API (Spring Boot 3)", $tags="microService-java") {
 
     ' ==== USER MANAGEMENT ====
-    Component(CurrentUserController, "CurrentUserController", "REST Controller", "/api/v1/users/me/** – current user’s view")
-    Component(AdminUserController, "AdminUserController", "REST Controller", "/api/v1/users/** – admin management APIs")
+    Component(CurrentUserController, "CurrentUserController", "REST Controller", "/api/me – current user’s view")
+    Component(AdminUserController, "AdminUserController", "REST Controller", "/api/admin/users/** – admin management APIs")
     Component(UserProvisioningService, "UserProvisioningService", "Application Service", "Syncs Auth0 users to DB")
     Component(UserAccountRepository, "UserAccountRepository", "Spring Data Repository", "CRUD for UserAccount aggregate")
     Component(Auth0ManagementClient, "Auth0ManagementClient", "Infrastructure Adapter", "Delegates identity operations to Auth0")
 
     ' ==== TRANSACTION MANAGEMENT ====
     Component(TransactionController, "TransactionController", "REST Controller", "/api/v1/transactions/** – general transaction APIs")
-    Component(ClientTransactionController, "ClientTransactionController", "REST Controller", "/api/v1/clients/{id}/transactions – client views")
+    Component(ClientTransactionController, "ClientTransactionController", "REST Controller", "/clients/{clientId}/transactions – client views")
     Component(TransactionService, "TransactionService", "Application Service", "Transaction lifecycle and queries")
     Component(TimelineService, "TimelineService", "Domain/Application Service", "Stage changes and timeline entries")
     Component(TransactionRepository, "TransactionRepository", "Spring Data Repository", "CRUD for Transaction aggregate")
 
     ' ==== DOCUMENT MANAGEMENT ====
     Component(DocumentRequestController, "DocumentRequestController", "REST Controller", "/api/v1/document-requests/** – broker & system")
-    Component(GlobalDocumentController, "GlobalDocumentController", "REST Controller", "/api/v1/documents/** - download/view access")
+    Component(GlobalDocumentController, "GlobalDocumentController", "REST Controller", "/documents/** - download/view access")
     Component(DocumentService, "DocumentService", "Application Service", "DocumentRequest & SubmittedDocument workflows")
     Component(DocumentRequestRepository, "DocumentRequestRepository", "Spring Data Repository", "CRUD for DocumentRequest aggregate")
     Component(S3StorageService, "S3StorageService", "Infrastructure Adapter", "Pre-signed URLs and S3 interactions")
