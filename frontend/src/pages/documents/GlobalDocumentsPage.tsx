@@ -66,8 +66,6 @@ export function GlobalDocumentsPage() {
 
     // Debug: log document structure to find stage field
     if (documents.length > 0) {
-        // Log each document to console (once)
-        // eslint-disable-next-line no-console
         console.log('Document structure example:', documents[0]);
     }
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { getStageLabel } from '@/shared/utils/stages';
-import { FileText, MapPin, CheckCircle } from 'lucide-react';
+import { MapPin, CheckCircle } from 'lucide-react';
 
 export interface TransactionDocumentSelectorProps {
   transactions: Array<{
@@ -14,6 +14,7 @@ export interface TransactionDocumentSelectorProps {
     documentCount?: number;
     documentStatuses?: {
       pending: number;
+      submitted: number;
       approved: number;
       needsRevision: number;
     };

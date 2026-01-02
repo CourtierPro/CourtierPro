@@ -13,7 +13,6 @@ export function ClientDashboardPage() {
   const clientId = user?.sub || "";
   const {
     transactions,
-    selectedTransaction,
     setSelectedTransactionId,
     selectedTransactionId,
     kpis,

@@ -9,6 +9,7 @@ import { DocumentsPage } from './DocumentsPage';
 import { LoadingState } from '@/shared/components/branded/LoadingState';
 import { ErrorState } from '@/shared/components/branded/ErrorState';
 import axiosInstance from '@/shared/api/axiosInstance';
+import type { DocumentRequest } from '@/features/documents/types';
 
 
 
@@ -22,26 +23,25 @@ export const AllDocumentsPage: React.FC = () => {
 
   const role = currentUser?.role?.toLowerCase();
 
-  const {
-    data: transactions = [],
-    isLoading: isTxLoading,
-    error: txError
-  } = role === 'broker'
-    ? useTransactions()
-    : useClientTransactions(currentUser?.id ?? '');
+  const { data: brokerTransactions = [], isLoading: isBrokerLoading, error: brokerError } = useTransactions();
+  const { data: clientTransactions = [], isLoading: isClientLoading, error: clientError } = useClientTransactions(currentUser?.id ?? '');
+
+  const transactions = role === 'broker' ? brokerTransactions : clientTransactions;
+  const isTxLoading = role === 'broker' ? isBrokerLoading : isClientLoading;
+  const txError = role === 'broker' ? brokerError : clientError;
 
   // Load stats for all transactions using useQueries
   const documentStatsQueries = useQueries({
     queries: transactions.map(tx => ({
       queryKey: documentKeys.stat(tx.transactionId),
       queryFn: async () => {
-        const response = await axiosInstance.get(`/transactions/${tx.transactionId}/documents`);
+        const response = await axiosInstance.get<DocumentRequest[]>(`/transactions/${tx.transactionId}/documents`);
         const docs = response.data || [];
         
-        const pending = docs.filter((d: any) => d.status === 'REQUESTED').length;
-        const submitted = docs.filter((d: any) => d.status === 'SUBMITTED').length;
-        const approved = docs.filter((d: any) => d.status === 'APPROVED').length;
-        const needsRevision = docs.filter((d: any) => d.status === 'NEEDS_REVISION').length;
+        const pending = docs.filter((d) => d.status === 'REQUESTED').length;
+        const submitted = docs.filter((d) => d.status === 'SUBMITTED').length;
+        const approved = docs.filter((d) => d.status === 'APPROVED').length;
+        const needsRevision = docs.filter((d) => d.status === 'NEEDS_REVISION').length;
         
         return {
           count: docs.length,
@@ -54,7 +54,7 @@ export const AllDocumentsPage: React.FC = () => {
 
   const transactionOptions = useMemo(() => {
     if (role === 'broker') {
-      const grouped: Record<string, { clientName: string; transactions: any[] }> = {};
+      const grouped: Record<string, { clientName: string; transactions: Array<typeof transactions[number] & { documentCount?: number; documentStatuses?: { pending: number; submitted: number; approved: number; needsRevision: number } }> }> = {};
       transactions.forEach((tx, index) => {
         const statsData = documentStatsQueries[index]?.data;
         if (!grouped[tx.clientId]) {

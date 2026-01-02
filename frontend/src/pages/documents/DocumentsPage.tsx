@@ -5,7 +5,7 @@ import { Section } from "@/shared/components/branded/Section";
 import { EmptyState } from "@/shared/components/branded/EmptyState";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
-import { FileText, Plus, FolderOpen } from "lucide-react";
+import { Plus, FolderOpen } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 
 import { useDocumentsPageLogic } from "@/features/documents/hooks/useDocumentsPageLogic";
@@ -82,8 +82,6 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
 
   // Debug: log document structure to find stage field
   if (documents.length > 0) {
-    // Log each document to console (once)
-    // eslint-disable-next-line no-console
     console.log('Document structure example:', documents[0]);
   }
   // Filter documents by selected stage for all roles

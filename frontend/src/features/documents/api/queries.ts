@@ -25,13 +25,13 @@ export function useDocumentStats(transactionId: string) {
     return useQuery({
         queryKey: documentKeys.stat(transactionId),
         queryFn: async () => {
-            const response = await axiosInstance.get(`/transactions/${transactionId}/documents`);
+            const response = await axiosInstance.get<DocumentRequest[]>(`/transactions/${transactionId}/documents`);
             const docs = response.data || [];
             
-            const pending = docs.filter((d: any) => d.status === 'REQUESTED').length;
-            const submitted = docs.filter((d: any) => d.status === 'SUBMITTED').length;
-            const approved = docs.filter((d: any) => d.status === 'APPROVED').length;
-            const needsRevision = docs.filter((d: any) => d.status === 'NEEDS_REVISION').length;
+            const pending = docs.filter((d) => d.status === 'REQUESTED').length;
+            const submitted = docs.filter((d) => d.status === 'SUBMITTED').length;
+            const approved = docs.filter((d) => d.status === 'APPROVED').length;
+            const needsRevision = docs.filter((d) => d.status === 'NEEDS_REVISION').length;
             
             return {
                 count: docs.length,
