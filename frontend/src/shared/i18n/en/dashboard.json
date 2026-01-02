@@ -20,6 +20,7 @@
         "subtitle": "Track your property transactions.",
         "activeTransactions": "Active Transactions",
         "documentsNeeded": "Documents Needed",
+        "documentsSubmitted": "Documents Submitted",
         "myTransactions": "Transactions",
         "myTransactionsDesc": "Current status of your buying/selling process.",
         "transactionListPlaceholder": "Transaction list placeholder...",

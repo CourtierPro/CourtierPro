@@ -193,6 +193,7 @@
   "stepOf": "Step {{current}} of {{total}}",
   "transactionId": "Transaction ID",
   "quickActions": "Quick Actions",
+  "allStages": "All stages",
   "stages": {
     "buy": {
       "buyer_prequalify_financially": "Prequalify Financially",

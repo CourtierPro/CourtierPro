@@ -132,6 +132,7 @@ CREATE TABLE IF NOT EXISTS document_requests (
     broker_notes TEXT,
     last_updated_at TIMESTAMP,
     visible_to_client BOOLEAN DEFAULT true,
+    stage VARCHAR(64),
     -- Soft Delete Columns
     deleted_at TIMESTAMP,
     deleted_by UUID

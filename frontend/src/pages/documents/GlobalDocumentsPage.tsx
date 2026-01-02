@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { StageDropdownSelector } from '@/features/documents/components/StageDropdownSelector';
+import { useStageOptions } from '@/features/documents/hooks/useStageOptions';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth0 } from "@auth0/auth0-react";
 import { PageHeader } from "@/shared/components/branded/PageHeader";
@@ -17,21 +19,29 @@ import { toast } from "sonner";
 import { getRoleFromUser } from "@/features/auth/roleUtils";
 
 export function GlobalDocumentsPage() {
+
     const { t } = useTranslation('documents');
     const { user } = useAuth0();
     const role = getRoleFromUser(user);
     const canReview = role === "broker";
     const canUpload = role === "client";
     const queryClient = useQueryClient();
-    const [selectedDocument, setSelectedDocument] = useState<DocumentRequest | null>(null);
-    const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<DocumentRequest | null>(null);
-    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-
     const { data: documents = [], isLoading, error, refetch } = useQuery({
         queryKey: ['documents', 'all'],
         queryFn: fetchAllDocuments,
     });
+    // Determine transaction side for global dropdown (take first doc or default to BUY_SIDE)
+    const side = documents[0]?.transactionRef?.side === 'SELL_SIDE' ? 'SELL_SIDE' : 'BUY_SIDE';
+    // Add "All stages" option at top of selector
+    const stageOptionsRaw = useStageOptions(side);
+    const allStagesOption = { value: '', label: t('allStages', 'Toutes les étapes') };
+    const stageOptions = [allStagesOption, ...stageOptionsRaw];
+    const [selectedStage, setSelectedStage] = useState('');
+    // Restore missing hooks
+    const [selectedDocument, setSelectedDocument] = useState<DocumentRequest | null>(null);
+    const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<DocumentRequest | null>(null);
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
     const handleUploadSuccess = () => {
         toast.success(t('uploadSuccess', 'Document uploaded successfully'));
@@ -50,8 +60,22 @@ export function GlobalDocumentsPage() {
         setIsReviewModalOpen(true);
     };
 
+
     if (isLoading) return <LoadingState />;
     if (error) return <ErrorState message={(error as Error).message} onRetry={() => refetch()} />;
+
+    // Debug: log document structure to find stage field
+    if (documents.length > 0) {
+        // Log each document to console (once)
+        // eslint-disable-next-line no-console
+        console.log('Document structure example:', documents[0]);
+    }
+
+    // Filter documents by selected stage (for all roles)
+    let filteredDocuments = documents;
+    if (selectedStage) {
+        filteredDocuments = documents.filter(doc => doc.stage === selectedStage);
+    }
 
     return (
         <div className="space-y-6">
@@ -60,16 +84,25 @@ export function GlobalDocumentsPage() {
                 subtitle={t('globalSubtitle', 'View and manage all your documents across transactions.')}
             />
 
-            {documents.length === 0 ? (
+                        {/* Stage selector (dropdown) visible for broker AND client */}
+                        {(role === 'client' || role === 'broker') && (
+                            <StageDropdownSelector
+                                stages={stageOptions}
+                                selectedStage={selectedStage}
+                                onSelectStage={setSelectedStage}
+                            />
+                        )}
+
+            {filteredDocuments.length === 0 ? (
                 <Section>
                     <EmptyState
                         icon={<FileText />}
                         title={t('noDocumentsTitle', 'No documents found')}
-                        description={t('noDocumentsDesc', "You don't have any documents yet.")}
+                        description={t('noDocumentsForStage', "No documents requested for this stage.")}
                     />
                 </Section>
             ) : (
-                <DocumentList documents={documents} onUpload={canUpload ? handleUploadClick : undefined} onReview={canReview ? handleReviewClick : undefined} />
+                <DocumentList documents={filteredDocuments} onUpload={canUpload ? handleUploadClick : undefined} onReview={canReview ? handleReviewClick : undefined} />
             )}
 
             {selectedDocument && (

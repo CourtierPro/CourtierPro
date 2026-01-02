@@ -9,6 +9,7 @@
     "noDocuments": "Aucun document",
     "noDocumentsTitle": "Aucun document trouvé",
     "noDocumentsDesc": "Vous n'avez pas encore téléversé de documents. Commencez par créer une transaction.",
+    "noDocumentsForStage": "Aucun document demandé pour cette étape.",
     "transactionDocuments": "Documents de transaction",
     "transactionDocumentsSubtitle": "Cette page permet de consulter les documents associés à une transaction spécifique.",
     "instructions": "Instructions ou description",
@@ -22,6 +23,11 @@
     "documentTitleRequired": "Le titre du document est requis",
     "stageRequired": "Veuillez sélectionner une étape",
     "infoText": "Ce document sera ajouté à la liste de contrôle du client sous l'étape <strong>{{stage}}</strong> et marqué comme en attente.",
+    "selectTransaction": "Sélectionnez une transaction",
+    "buyerLabel": "Acheteur",
+    "sellerLabel": "Vendeur",
+    "showDocuments": "Afficher les documents",
+    "currentStage": "Étape actuelle",
     "stages": {
         "buy": {
             "offer": "Offre",
@@ -32,9 +38,9 @@
         },
         "sell": {
             "listing": "Inscription",
-            "marketing": "Marketing",
-            "offer": "Offre",
-            "inspection": "Inspection",
+            "documentTitlePlaceholder": "ex. : Preuve de revenu supplémentaire",
+            "transactionDocumentsPageTitle": "Documents",
+            "transactionDocumentsPageSubtitle": "Gérez tous vos documents de transaction en un seul endroit.",
             "closing": "Clôture"
         }
     },

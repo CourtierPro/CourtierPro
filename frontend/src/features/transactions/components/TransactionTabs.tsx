@@ -111,7 +111,12 @@ export function TransactionTabs({
       </TabsContent>
 
       <TabsContent value="documents" className="py-4">
-        <DocumentsPage transactionId={transaction.transactionId} focusDocumentId={focusDocumentId} isReadOnly={isReadOnly} />
+        <DocumentsPage 
+          transactionId={transaction.transactionId} 
+          focusDocumentId={focusDocumentId} 
+          isReadOnly={isReadOnly} 
+          transactionSide={transaction.side}
+        />
       </TabsContent>
 
       <TabsContent value="appointments" className="py-4">

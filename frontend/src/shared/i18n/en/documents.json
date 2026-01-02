@@ -5,6 +5,7 @@
     "noDocuments": "No documents",
     "noDocumentsTitle": "No documents found",
     "noDocumentsDesc": "You haven't uploaded any documents yet. Start by creating a transaction.",
+    "noDocumentsForStage": "No documents requested for this stage.",
     "transactionDocuments": "Transaction Documents",
     "transactionDocumentsSubtitle": "This is the page for viewing documents associated with a specific transaction.",
     "requestAdditionalDocumentTitle": "Request Additional Document",
@@ -21,6 +22,11 @@
     "documentTitleRequired": "Document title is required",
     "stageRequired": "Please select a stage",
     "infoText": "This document will be added to the client's checklist under the <strong>{{stage}}</strong> and marked as pending.",
+    "selectTransaction": "Select a transaction",
+    "buyerLabel": "Buyer",
+    "sellerLabel": "Seller",
+    "showDocuments": "Show documents",
+    "currentStage": "Current stage",
     "stages": {
         "buy": {
             "offer": "Offer",
@@ -31,9 +37,9 @@
         },
         "sell": {
             "listing": "Listing",
-            "marketing": "Marketing",
-            "offer": "Offer",
-            "inspection": "Inspection",
+            "requestDocument": "Request Document",
+            "noDocuments": "No documents",
+            "noDocumentsTitle": "No documents found",
             "closing": "Closing"
         }
     },

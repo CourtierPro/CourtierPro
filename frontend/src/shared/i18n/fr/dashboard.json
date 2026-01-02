@@ -20,6 +20,7 @@
         "subtitle": "Suivez vos transactions immobilières.",
         "activeTransactions": "Transactions actives",
         "documentsNeeded": "Documents requis",
+        "documentsSubmitted": "Documents soumis",
         "myTransactions": "Transactions",
         "myTransactionsDesc": "État actuel de votre processus d'achat/vente.",
         "transactionListPlaceholder": "Liste des transactions...",

@@ -53,6 +53,7 @@ export const useReviewDocument = () => {
         }) => reviewDocument(transactionId, requestId, decision, comments),
         onSuccess: (_, { transactionId }) => {
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
+            queryClient.invalidateQueries({ queryKey: documentKeys.stat(transactionId) });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
             queryClient.invalidateQueries({ queryKey: [
                 'transactions', 'detail', transactionId, 'timeline'

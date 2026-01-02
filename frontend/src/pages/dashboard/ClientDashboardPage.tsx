@@ -5,10 +5,20 @@ import { KpiCard } from "@/shared/components/branded/KpiCard";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { Home, FileCheck } from "lucide-react";
 import { useClientDashboardStats } from "@/features/dashboard/hooks/useDashboardStats";
+import { useAuth0 } from "@auth0/auth0-react";
 
 export function ClientDashboardPage() {
   const { t } = useTranslation("dashboard");
-  const { data: stats, isLoading } = useClientDashboardStats();
+  const { user } = useAuth0();
+  const clientId = user?.sub || "";
+  const {
+    transactions,
+    selectedTransaction,
+    setSelectedTransactionId,
+    selectedTransactionId,
+    kpis,
+    isLoading,
+  } = useClientDashboardStats(clientId);
 
   if (isLoading) {
     return <LoadingState message={t("loading")} />;
@@ -24,19 +34,36 @@ export function ClientDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
           title={t("client.activeTransactions")}
-          value={stats?.activeTransactions.toString() || "0"}
+          value={kpis.global.activeTransactions.toString()}
           icon={<Home className="w-4 h-4" />}
         />
         <KpiCard
           title={t("client.documentsNeeded")}
-          value={stats?.documentsNeeded.toString() || "0"}
+          value={kpis.selected.documentsNeeded.toString()}
           icon={<FileCheck className="w-4 h-4" />}
-          trend={stats?.documentsNeeded ? { value: stats.documentsNeeded, label: t("client.overdue"), direction: "down" } : undefined}
+        />
+        <KpiCard
+          title={t("client.documentsSubmitted")}
+          value={kpis.selected.documentsSubmitted.toString()}
+          icon={<FileCheck className="w-4 h-4" />}
         />
       </div>
 
       <Section title={t("client.myTransactions")} description={t("client.myTransactionsDesc")}>
-        <div className="text-sm text-muted-foreground">{t("client.transactionListPlaceholder")}</div>
+        {transactions.length === 0 && (
+          <div className="text-sm text-muted-foreground">{t("client.transactionListPlaceholder")}</div>
+        )}
+        <div className="flex flex-wrap gap-2 mt-2">
+          {transactions.map((transaction) => (
+            <button
+              key={transaction.transactionId}
+              className={`px-4 py-2 rounded border ${selectedTransactionId === transaction.transactionId ? 'bg-primary text-white' : 'bg-background text-foreground'}`}
+              onClick={() => setSelectedTransactionId(transaction.transactionId)}
+            >
+              {transaction.propertyAddress?.street || t('client.unknownAddress')}
+            </button>
+          ))}
+        </div>
       </Section>
     </div>
   );

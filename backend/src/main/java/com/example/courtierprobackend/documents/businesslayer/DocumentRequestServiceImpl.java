@@ -39,6 +39,7 @@ import com.example.courtierprobackend.audit.timeline_audit.businesslayer.Timelin
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
 import org.springframework.context.MessageSource;
 import java.util.Locale;
+import com.example.courtierprobackend.documents.datalayer.enums.StageEnum;
 
 @Service
 @RequiredArgsConstructor
@@ -115,6 +116,8 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                 requestDTO.getVisibleToClient() != null ? requestDTO.getVisibleToClient() : true);
                 request.setBrokerNotes(requestDTO.getBrokerNotes());
                 request.setLastUpdatedAt(LocalDateTime.now());
+                // Add stage mapping
+                request.setStage(requestDTO.getStage());
 
                 DocumentRequest savedRequest = repository.save(request);
                 // Add timeline entry for document requested
@@ -191,6 +194,9 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                         request.setVisibleToClient(requestDTO.getVisibleToClient());
                 if (requestDTO.getBrokerNotes() != null)
                         request.setBrokerNotes(requestDTO.getBrokerNotes());
+                // Add stage mapping for update
+                if (requestDTO.getStage() != null)
+                        request.setStage(requestDTO.getStage());
 
                 request.setLastUpdatedAt(LocalDateTime.now());
 
@@ -292,19 +298,19 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
 
         private DocumentRequestResponseDTO mapToResponseDTO(DocumentRequest request) {
                 return DocumentRequestResponseDTO.builder()
-                                .requestId(request.getRequestId())
-                                .transactionRef(request.getTransactionRef())
-                                .docType(request.getDocType())
-                                .customTitle(request.getCustomTitle())
-                                .status(request.getStatus())
-                                .expectedFrom(request.getExpectedFrom())
-                                .submittedDocuments(request.getSubmittedDocuments().stream()
-                                                .map(this::mapToSubmittedDocumentDTO)
-                                                .collect(Collectors.toList()))
-                                .brokerNotes(request.getBrokerNotes())
-                                .lastUpdatedAt(request.getLastUpdatedAt())
-                                .visibleToClient(request.isVisibleToClient())
-                                .build();
+                        .requestId(request.getRequestId())
+                        .transactionRef(request.getTransactionRef())
+                        .docType(request.getDocType())
+                        .customTitle(request.getCustomTitle())
+                        .status(request.getStatus())
+                        .expectedFrom(request.getExpectedFrom())
+                        .submittedDocuments(request.getSubmittedDocuments() != null ?
+                                request.getSubmittedDocuments().stream().map(this::mapToSubmittedDocumentDTO).collect(Collectors.toList()) : null)
+                        .brokerNotes(request.getBrokerNotes())
+                        .lastUpdatedAt(request.getLastUpdatedAt())
+                        .visibleToClient(request.isVisibleToClient())
+                        .stage(request.getStage()) // Add stage field to response
+                        .build();
         }
 
         private SubmittedDocumentResponseDTO mapToSubmittedDocumentDTO(SubmittedDocument submission) {
