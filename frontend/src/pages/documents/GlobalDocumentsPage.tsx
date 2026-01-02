@@ -31,7 +31,7 @@ export function GlobalDocumentsPage() {
         queryFn: fetchAllDocuments,
     });
     // Determine transaction side for global dropdown (find first doc with valid side or default to BUY_SIDE)
-    const side = documents.find(d => d.transactionRef?.side)?.transactionRef?.side ?? 'BUY_SIDE';
+    const side = (documents.find(d => d.transactionRef?.side)?.transactionRef?.side ?? 'BUY_SIDE') as 'BUY_SIDE' | 'SELL_SIDE';
     // Add "All stages" option at top of selector
     const stageOptionsRaw = useStageOptions(side);
     const allStagesOption = { value: '', label: t('allStages', 'Toutes les étapes') };
