@@ -23,8 +23,11 @@ export const AllDocumentsPage: React.FC = () => {
 
   const role = currentUser?.role?.toLowerCase();
 
+  // Conditionally call hooks based on role - pass empty string to disable client query for brokers
   const { data: brokerTransactions = [], isLoading: isBrokerLoading, error: brokerError } = useTransactions();
-  const { data: clientTransactions = [], isLoading: isClientLoading, error: clientError } = useClientTransactions(currentUser?.id ?? '');
+  const { data: clientTransactions = [], isLoading: isClientLoading, error: clientError } = useClientTransactions(
+    role === 'client' ? (currentUser?.id ?? '') : ''
+  );
 
   const transactions = role === 'broker' ? brokerTransactions : clientTransactions;
   const isTxLoading = role === 'broker' ? isBrokerLoading : isClientLoading;

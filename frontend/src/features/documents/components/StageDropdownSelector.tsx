@@ -19,7 +19,7 @@ export const StageDropdownSelector: React.FC<StageDropdownSelectorProps> = ({ st
           variant="outline"
           className="capitalize min-w-[220px] text-left border-2 border-orange-500 focus:ring-orange-500 focus:border-orange-600"
         >
-          {selected ? selected.label : t('selectStage', 'Sélectionner une étape')}
+          {selected ? selected.label : t('selectStage', 'Select a stage')}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">

@@ -110,7 +110,7 @@ export const TransactionDocumentSelector: React.FC<TransactionDocumentSelectorPr
               onClick={() => onSelect(tx.transactionId, tx.side)}
               className="mt-2"
             >
-              {tDocuments('showDocuments', 'Afficher les documents')}
+              {tDocuments('showDocuments', 'Show documents')}
             </Button>
           </div>
         ))}

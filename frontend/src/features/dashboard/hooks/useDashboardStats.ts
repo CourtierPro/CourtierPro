@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useClientTransactions } from '@/features/transactions/api/queries';
 import { fetchAllDocuments } from '@/features/documents/api/documentsApi';
 import type { DocumentRequest } from '@/features/documents/types';
+import { documentKeys } from '@/features/documents/api/queries';
 import { axiosInstance } from '@/shared/api/axiosInstance';
 
 export interface ClientDashboardStats {
@@ -29,11 +30,11 @@ export function useClientDashboardStats(clientId: string) {
     const { data: transactions = [], isLoading: isLoadingTransactions, error: errorTransactions } = useClientTransactions(clientId);
     // Tous les documents (filtrage côté client)
     const { data: allDocuments = [], isLoading: isLoadingDocuments, error: errorDocuments } = useQuery<DocumentRequest[]>({
-        queryKey: ['all-documents'],
+        queryKey: documentKeys.all,
         queryFn: fetchAllDocuments,
     });
     // Filtrer les documents pour ne garder que ceux du client connecté
-    const documents = allDocuments.filter(d => d.transactionRef?.clientId === clientId);
+    const clientDocuments = allDocuments.filter(d => d.transactionRef?.clientId === clientId);
 
     // Sélection de la transaction (par défaut la première active, sinon la première)
     const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
@@ -47,13 +48,13 @@ export function useClientDashboardStats(clientId: string) {
     // Documents de la transaction sélectionnée
     const selectedDocuments = useMemo(() => {
         if (!selectedTransaction) return [];
-        return documents.filter(d => d.transactionRef?.transactionId === selectedTransaction.transactionId);
-    }, [documents, selectedTransaction]);
+        return clientDocuments.filter(d => d.transactionRef?.transactionId === selectedTransaction.transactionId);
+    }, [clientDocuments, selectedTransaction]);
 
     // KPIs globaux (toutes transactions)
     const activeTransactions = transactions.filter(t => t.status === 'ACTIVE');
-    const documentsNeededGlobal = documents.filter(d => d.status === 'REQUESTED');
-    const documentsSubmittedGlobal = documents.filter(d => d.status === 'SUBMITTED');
+    const documentsNeededGlobal = clientDocuments.filter(d => d.status === 'REQUESTED');
+    const documentsSubmittedGlobal = clientDocuments.filter(d => d.status === 'SUBMITTED');
 
     // KPIs de la transaction sélectionnée
     const documentsNeeded = selectedDocuments.filter(d => d.status === 'REQUESTED');

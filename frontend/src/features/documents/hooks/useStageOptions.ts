@@ -1,4 +1,3 @@
-
 import { useTranslation } from 'react-i18next';
 import { BUYER_STAGES, SELLER_STAGES, getStageLabel } from '@/shared/utils/stages';
 
