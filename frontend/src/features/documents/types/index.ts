@@ -72,4 +72,5 @@ export interface DocumentRequest {
     brokerNotes?: string;
     lastUpdatedAt?: string;
     visibleToClient: boolean;
+    stage: string; // Added to match backend and fix filtering
 }

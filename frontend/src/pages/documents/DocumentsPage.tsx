@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { PageHeader } from "@/shared/components/branded/PageHeader";
@@ -6,7 +5,7 @@ import { Section } from "@/shared/components/branded/Section";
 import { EmptyState } from "@/shared/components/branded/EmptyState";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
-import { FileText, Plus } from "lucide-react";
+import { Plus, FolderOpen } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 
 import { useDocumentsPageLogic } from "@/features/documents/hooks/useDocumentsPageLogic";
@@ -15,6 +14,8 @@ import { UploadDocumentModal } from "@/features/documents/components/UploadDocum
 import { DocumentReviewModal } from "@/features/documents/components/DocumentReviewModal";
 import { DocumentList } from "@/features/documents/components/DocumentList";
 import { useTranslation } from "react-i18next";
+import { StageDropdownSelector } from '@/features/documents/components/StageDropdownSelector';
+import { useStageOptions } from '@/features/documents/hooks/useStageOptions';
 import { type DocumentRequest } from "@/features/documents/types";
 import { getRoleFromUser } from "@/features/auth/roleUtils";
 
@@ -22,10 +23,13 @@ interface DocumentsPageProps {
   transactionId: string;
   focusDocumentId?: string | null;
   isReadOnly?: boolean;
+  transactionSide?: 'BUY_SIDE' | 'SELL_SIDE'; // Optionally passed, fallback to BUY_SIDE
+  hideRequestButton?: boolean;
 }
 
-export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = false }: DocumentsPageProps) {
-  const { t } = useTranslation('documents');
+export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = false, transactionSide = 'BUY_SIDE', hideRequestButton = false }: DocumentsPageProps) {
+  const { t: tDocuments } = useTranslation('documents');
+  const { t: tTransactions } = useTranslation('transactions');
   const { user } = useAuth0();
   const role = getRoleFromUser(user);
   const canReview = role === "broker";
@@ -39,6 +43,12 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
     setIsModalOpen,
     handleRequestDocument
   } = useDocumentsPageLogic(transactionId);
+
+  // Determine stages based on transaction side
+  const rawStageOptions = useStageOptions(transactionSide);
+  const allStagesOption = { value: '', label: tTransactions('allStages') };
+  const stageOptions = [allStagesOption, ...rawStageOptions];
+  const [selectedStage, setSelectedStage] = useState('');
 
   const [selectedDocument, setSelectedDocument] = useState<DocumentRequest | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -70,37 +80,58 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState message={error.message} onRetry={() => refetch()} />;
 
+  // Debug: log document structure to find stage field
+  if (documents.length > 0) {
+    console.log('Document structure example:', documents[0]);
+  }
+  // Filter documents by selected stage for all roles
+  let filteredDocuments = documents;
+  if (selectedStage) {
+    filteredDocuments = documents.filter(doc => doc.stage === selectedStage);
+  }
+  // If selectedStage is empty ("All stages" option), keep all documents
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title={t('title', 'Documents')}
-        subtitle={t('subtitle', 'Manage all your transaction documents in one place.')}
+        title={tDocuments('title', 'Documents')}
+        subtitle={tDocuments('subtitle', 'Manage all your transaction documents in one place.')}
         actions={
-          !isReadOnly && documents.length > 0 && (
+          !isReadOnly && !hideRequestButton && documents.length > 0 && (
             <Button onClick={() => setIsModalOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              {t('requestDocument', 'Request Document')}
+              {tDocuments('requestDocument', 'Request Document')}
             </Button>
           )
         }
       />
 
-      {documents.length === 0 ? (
+      {/* Sélecteur d'étape (dropdown) visible pour tous les rôles */}
+      <StageDropdownSelector
+        stages={stageOptions}
+        selectedStage={selectedStage}
+        onSelectStage={setSelectedStage}
+      />
+
+      {filteredDocuments.length === 0 ? (
         <Section>
           <EmptyState
-            icon={<FileText />}
-            title={t('noDocumentsTitle', 'No documents found')}
-            description={t('noDocumentsDesc', "You haven't uploaded any documents yet. Start by creating a transaction.")}
+            icon={<FolderOpen className="w-12 h-12 text-muted-foreground" />}
+            title={tDocuments('noDocumentsTitle', 'No documents found')}
+            description={tDocuments('noDocumentsForStage', 'No documents requested for this stage.')}
             action={
-              !isReadOnly ? (
-                <Button onClick={() => setIsModalOpen(true)}>{t('requestDocument', 'Request Document')}</Button>
+              !isReadOnly && !hideRequestButton ? (
+                <Button onClick={() => setIsModalOpen(true)} className="mt-4">
+                  <Plus className="w-4 h-4 mr-2" />
+                  {tDocuments('requestDocument', 'Request Document')}
+                </Button>
               ) : undefined
             }
           />
         </Section>
       ) : (
         <DocumentList
-          documents={documents}
+          documents={filteredDocuments}
           onUpload={canUpload ? handleUploadClick : undefined}
           onReview={canReview ? handleReviewClick : undefined}
           focusDocumentId={focusDocumentId}
@@ -111,8 +142,8 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleRequestDocument}
-        transactionType="buy"
-        currentStage="offer"
+        transactionType={transactionSide === 'BUY_SIDE' ? 'buy' : 'sell'}
+        currentStage={selectedStage}
       />
 
       {selectedDocument && (
@@ -121,7 +152,7 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
           onClose={() => setIsUploadModalOpen(false)}
           requestId={selectedDocument.requestId}
           transactionId={transactionId}
-          documentTitle={selectedDocument.customTitle || t(`types.${selectedDocument.docType}`)}
+          documentTitle={selectedDocument.customTitle || tDocuments(`types.${selectedDocument.docType}`)}
           onSuccess={handleUploadSuccess}
         />
       )}

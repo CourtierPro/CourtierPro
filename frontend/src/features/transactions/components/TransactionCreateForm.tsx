@@ -59,7 +59,7 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
   // Initialize form
   const form = useForm<TransactionCreateFormValues>({
     resolver: zodResolver(transactionCreateSchema),
-    mode: 'onBlur',
+    mode: 'onChange',
     defaultValues: {
       transactionSide: undefined,
       clientId: '',
