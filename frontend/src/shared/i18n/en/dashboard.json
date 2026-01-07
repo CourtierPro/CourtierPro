@@ -1,4 +1,5 @@
 {
+    "loading": "Loading...",
     "broker": {
         "title": "Broker Dashboard",
         "subtitle": "Overview of your active transactions and performance.",
@@ -18,13 +19,29 @@
     "client": {
         "title": "Client Dashboard",
         "subtitle": "Track your property transactions.",
+        "welcome": "Welcome back, {{name}}!",
         "activeTransactions": "Active Transactions",
+        "activeTransactionsDesc": "The number of real estate transactions currently in progress.",
         "documentsNeeded": "Documents Needed",
         "documentsSubmitted": "Documents Submitted",
         "myTransactions": "Transactions",
         "myTransactionsDesc": "Current status of your buying/selling process.",
-        "transactionListPlaceholder": "Transaction list placeholder...",
+        "transactionListPlaceholder": "No transactions found.",
+        "noTransactionsTitle": "No transactions yet",
+        "noTransactionsDesc": "Your real estate transactions will appear here. Contact your broker to get started.",
+        "recentUpdates": "Recent Updates",
+        "recentUpdatesDesc": "Latest notifications and updates for your transactions.",
+        "noRecentUpdates": "No recent updates.",
+        "noNotificationsTitle": "All caught up!",
+        "noNotificationsDesc": "You have no new notifications. We'll notify you when there are updates on your transactions.",
+        "viewAllNotifications": "View all notifications",
+        "unknownAddress": "Unknown Address",
         "overdue": "overdue"
+    },
+    "appointments": {
+        "title": "Upcoming Appointments",
+        "description": "Your schedule for the next 7 days.",
+        "placeholder": "Calendar placeholder..."
     },
     "admin": {
         "title": "Admin Dashboard",
@@ -37,5 +54,41 @@
         "logsPlaceholder": "Logs placeholder...",
         "thisWeek": "this week",
         "stable": "stable"
+    },
+    "kpi": {
+        "activeTransactions": "Active Transactions",
+        "documentsNeeded": "Documents Needed",
+        "documentsSubmitted": "Documents Submitted"
+    },
+    "transaction": {
+        "id": "ID",
+        "noAddress": "No address",
+        "documents": "documents",
+        "approved": "approved",
+        "viewDetails": "View Details",
+        "buying": "Buying",
+        "selling": "Selling",
+        "opened": "Opened",
+        "progress": "Progress",
+        "stages": "stages",
+        "allDocumentsSubmitted": "All documents submitted",
+        "documentsRequired": "Documents Required",
+        "documentsReqDesc": "These are the documents your broker has requested for this transaction.",
+        "noDocumentsReq": "No documents required for this transaction.",
+        "submissionStatus": "Submission Status",
+        "submittedDesc": "Documents that have been approved and submitted to your broker."
+    },
+    "stage": {
+        "1": "Stage 1",
+        "2": "Stage 2",
+        "3": "Stage 3",
+        "4": "Stage 4",
+        "5": "Stage 5"
+    },
+    "notifications": {
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "thisWeek": "This week",
+        "older": "Older"
     }
 }

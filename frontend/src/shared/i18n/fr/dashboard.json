@@ -1,4 +1,5 @@
 {
+    "loading": "Chargement...",
     "broker": {
         "title": "Tableau de bord Courtier",
         "subtitle": "Aperçu de vos transactions actives et de vos performances.",
@@ -18,15 +19,29 @@
     "client": {
         "title": "Tableau de bord Client",
         "subtitle": "Suivez vos transactions immobilières.",
+        "welcome": "Bienvenue, {{name}}!",
         "activeTransactions": "Transactions actives",
+        "activeTransactionsDesc": "Le nombre de transactions immobilières actuellement en cours.",
         "documentsNeeded": "Documents requis",
         "documentsSubmitted": "Documents soumis",
         "myTransactions": "Transactions",
         "myTransactionsDesc": "État actuel de votre processus d'achat/vente.",
-        "transactionListPlaceholder": "Liste des transactions...",
+        "transactionListPlaceholder": "Aucune transaction trouvée.",
+        "noTransactionsTitle": "Aucune transaction pour le moment",
+        "noTransactionsDesc": "Vos transactions immobilières apparaîtront ici. Contactez votre courtier pour commencer.",
+        "recentUpdates": "Mises à jour récentes",
+        "recentUpdatesDesc": "Dernières notifications et mises à jour pour vos transactions.",
+        "noRecentUpdates": "Aucune mise à jour récente.",
+        "noNotificationsTitle": "Tout est à jour!",
+        "noNotificationsDesc": "Vous n'avez aucune nouvelle notification. Nous vous informerons lors de mises à jour de vos transactions.",
+        "viewAllNotifications": "Voir toutes les notifications",
+        "unknownAddress": "Adresse inconnue",
         "overdue": "en retard"
-    },
-    "admin": {
+    },    "appointments": {
+        "title": "Rendez-vous à venir",
+        "description": "Votre calendrier pour les 7 prochains jours.",
+        "placeholder": "Calendrier (aucune donnée)..."
+    },    "admin": {
         "title": "Tableau de bord Admin",
         "subtitle": "Aperçu du système et gestion des utilisateurs.",
         "totalUsers": "Utilisateurs totaux",
@@ -37,5 +52,41 @@
         "logsPlaceholder": "Journaux...",
         "thisWeek": "cette semaine",
         "stable": "stable"
+    },
+    "kpi": {
+        "activeTransactions": "Transactions actives",
+        "documentsNeeded": "Documents requis",
+        "documentsSubmitted": "Documents soumis"
+    },
+    "transaction": {
+        "id": "ID",
+        "noAddress": "Aucune adresse",
+        "documents": "documents",
+        "approved": "approuvé",
+        "viewDetails": "Voir les détails",
+        "buying": "Achat",
+        "selling": "Vente",
+        "opened": "Ouvert",
+        "progress": "Progrès",
+        "stages": "étapes",
+        "allDocumentsSubmitted": "Tous les documents soumis",
+        "documentsRequired": "Documents requis",
+        "documentsReqDesc": "Ce sont les documents que votre courtier a demandés pour cette transaction.",
+        "noDocumentsReq": "Aucun document requis pour cette transaction.",
+        "submissionStatus": "État de la soumission",
+        "submittedDesc": "Documents qui ont été approuvés et soumis à votre courtier."
+    },
+    "stage": {
+        "1": "Étape 1",
+        "2": "Étape 2",
+        "3": "Étape 3",
+        "4": "Étape 4",
+        "5": "Étape 5"
+    },
+    "notifications": {
+        "today": "Aujourd'hui",
+        "yesterday": "Hier",
+        "thisWeek": "Cette semaine",
+        "older": "Plus ancien"
     }
 }

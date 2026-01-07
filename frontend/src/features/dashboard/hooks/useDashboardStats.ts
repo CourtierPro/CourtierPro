@@ -26,17 +26,13 @@ export interface AdminDashboardStats {
 import { useState, useMemo } from 'react';
 
 export function useClientDashboardStats(clientId: string) {
-    // Transactions du client
     const { data: transactions = [], isLoading: isLoadingTransactions, error: errorTransactions } = useClientTransactions(clientId);
-    // Tous les documents (filtrage côté client)
     const { data: allDocuments = [], isLoading: isLoadingDocuments, error: errorDocuments } = useQuery<DocumentRequest[]>({
         queryKey: documentKeys.all,
         queryFn: fetchAllDocuments,
     });
-    // Filtrer les documents pour ne garder que ceux du client connecté
     const clientDocuments = allDocuments.filter(d => d.transactionRef?.clientId === clientId);
 
-    // Sélection de la transaction (par défaut la première active, sinon la première)
     const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
     const selectedTransaction = useMemo(() => {
         if (!transactions.length) return null;
@@ -45,18 +41,15 @@ export function useClientDashboardStats(clientId: string) {
         return transactions.find(t => t.status === 'ACTIVE') || transactions[0];
     }, [transactions, selectedTransactionId]);
 
-    // Documents de la transaction sélectionnée
     const selectedDocuments = useMemo(() => {
         if (!selectedTransaction) return [];
         return clientDocuments.filter(d => d.transactionRef?.transactionId === selectedTransaction.transactionId);
     }, [clientDocuments, selectedTransaction]);
 
-    // KPIs globaux (toutes transactions)
     const activeTransactions = transactions.filter(t => t.status === 'ACTIVE');
     const documentsNeededGlobal = clientDocuments.filter(d => d.status === 'REQUESTED');
     const documentsSubmittedGlobal = clientDocuments.filter(d => d.status === 'SUBMITTED');
 
-    // KPIs de la transaction sélectionnée
     const documentsNeeded = selectedDocuments.filter(d => d.status === 'REQUESTED');
     const documentsSubmitted = selectedDocuments.filter(d => d.status === 'SUBMITTED');
 
@@ -65,6 +58,7 @@ export function useClientDashboardStats(clientId: string) {
         selectedTransaction,
         setSelectedTransactionId,
         selectedTransactionId,
+        clientDocuments,
         kpis: {
             global: {
                 activeTransactions: activeTransactions.length,

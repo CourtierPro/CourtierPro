@@ -6,6 +6,7 @@ interface KpiCardProps {
     title: string;
     value: string | number;
     icon: ReactNode;
+    infoButton?: ReactNode;
     trend?: {
         value: number;
         label: string;
@@ -14,12 +15,15 @@ interface KpiCardProps {
     className?: string;
 }
 
-export function KpiCard({ title, value, icon, trend, className }: KpiCardProps) {
+export function KpiCard({ title, value, icon, infoButton, trend, className }: KpiCardProps) {
     return (
         <Card className={cn("overflow-hidden", className)}>
             <CardContent className="p-6">
                 <div className="flex items-center justify-between space-y-0 pb-2">
-                    <p className="text-sm font-medium text-muted-foreground">{title}</p>
+                    <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+                        {infoButton}
+                    </div>
                     <div className="text-muted-foreground">{icon}</div>
                 </div>
                 <div className="flex items-baseline justify-between">
