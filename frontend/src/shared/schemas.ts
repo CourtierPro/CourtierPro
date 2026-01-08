@@ -5,12 +5,24 @@ import { DocumentTypeEnum } from "@/features/documents/types";
 export const transactionCreateSchema = z.object({
     transactionSide: z.enum(["buy", "sell"]),
     clientId: z.string().min(1, "errorSelectClient"),
-    streetNumber: z.string().trim().min(1, "errorRequired"),
-    streetName: z.string().trim().min(1, "errorRequired"),
-    city: z.string().trim().min(1, "errorRequired"),
-    province: z.string().trim().min(1, "errorRequired"),
-    postalCode: z.string().trim().regex(/^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/, "errorInvalidPostalCode").transform((val) => val.toUpperCase()),
+    streetNumber: z.string().optional(),
+    streetName: z.string().optional(),
+    city: z.string().optional(),
+    province: z.string().optional(),
+    postalCode: z.string().optional(),
     initialStage: z.string().min(1, "errorSelectStage"),
+}).superRefine((data, ctx) => {
+    if (data.transactionSide === 'sell') {
+        if (!data.streetNumber?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "errorRequired", path: ["streetNumber"] });
+        if (!data.streetName?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "errorRequired", path: ["streetName"] });
+        if (!data.city?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "errorRequired", path: ["city"] });
+        if (!data.province?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "errorRequired", path: ["province"] });
+        if (!data.postalCode?.trim()) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "errorRequired", path: ["postalCode"] });
+        } else if (!/^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/.test(data.postalCode)) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "errorInvalidPostalCode", path: ["postalCode"] });
+        }
+    }
 });
 
 export type TransactionCreateFormValues = z.infer<typeof transactionCreateSchema>;

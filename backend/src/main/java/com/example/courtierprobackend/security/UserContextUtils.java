@@ -42,4 +42,19 @@ public class UserContextUtils {
     public static UUID resolveUserId(HttpServletRequest request) {
         return resolveUserId(request, null);
     }
+
+    /**
+     * Checks if the current user has BROKER role based on the request attribute.
+     * Falls back to false if role cannot be determined.
+     */
+    public static boolean isBroker(HttpServletRequest request) {
+        if (request == null) {
+            return false;
+        }
+        Object role = request.getAttribute(UserContextFilter.USER_ROLE_ATTR);
+        if (role == null) {
+            return false;
+        }
+        return "BROKER".equalsIgnoreCase(role.toString());
+    }
 }

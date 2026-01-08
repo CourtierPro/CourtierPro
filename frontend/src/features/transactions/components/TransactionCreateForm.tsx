@@ -103,10 +103,10 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
         side: data.transactionSide === "buy" ? "BUY_SIDE" : "SELL_SIDE",
         initialStage: data.initialStage,
         propertyAddress: {
-          street: `${data.streetNumber.trim()} ${data.streetName.trim()}`,
-          city: data.city.trim(),
-          province: data.province.trim(),
-          postalCode: data.postalCode.trim(),
+          street: (data.streetNumber && data.streetName) ? `${data.streetNumber.trim()} ${data.streetName.trim()}` : "",
+          city: data.city?.trim() || "",
+          province: data.province?.trim() || "",
+          postalCode: data.postalCode?.trim() || "",
         },
       };
 
@@ -288,87 +288,90 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
             </div>
           </div>
 
-          {/* Section 2: Property Address */}
-          <div className={`space-y-6 ${isModal ? '' : 'bg-card p-6 rounded-xl border border-border shadow-sm'}`}>
-            <h2 className="text-lg font-semibold text-foreground border-b border-border pb-2">
-              {t('propertyAddress')}
-            </h2>
+          {/* Section 2: Property Address (Only for Sell Side) */}
+          {transactionSide === 'sell' && (
+            <div className={`space-y-6 ${isModal ? '' : 'bg-card p-6 rounded-xl border border-border shadow-sm'}`}>
+              <h2 className="text-lg font-semibold text-foreground border-b border-border pb-2">
+                {t('propertyAddress')}
+              </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="md:col-span-1">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="md:col-span-1">
+                  <FormField
+                    control={form.control}
+                    name="streetNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('streetNumber')} <span className="text-destructive">*</span></FormLabel>
+                        <FormControl>
+                          <Input {...field} className="bg-background" />
+                        </FormControl>
+                        <FormMessage>{form.formState.errors.streetNumber?.message && t(form.formState.errors.streetNumber?.message)}</FormMessage>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="md:col-span-3">
+                  <FormField
+                    control={form.control}
+                    name="streetName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('streetName')} <span className="text-destructive">*</span></FormLabel>
+                        <FormControl>
+                          <Input {...field} className="bg-background" />
+                        </FormControl>
+                        <FormMessage>{form.formState.errors.streetName?.message && t(form.formState.errors.streetName?.message)}</FormMessage>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
-                  name="streetNumber"
+                  name="city"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('streetNumber')} <span className="text-destructive">*</span></FormLabel>
+                      <FormLabel>{t('city')} <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input {...field} className="bg-background" />
                       </FormControl>
-                      <FormMessage>{form.formState.errors.streetNumber?.message && t(form.formState.errors.streetNumber?.message)}</FormMessage>
+                      <FormMessage>{form.formState.errors.city?.message && t(form.formState.errors.city?.message)}</FormMessage>
                     </FormItem>
                   )}
                 />
-              </div>
-              <div className="md:col-span-3">
                 <FormField
                   control={form.control}
-                  name="streetName"
+                  name="province"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('streetName')} <span className="text-destructive">*</span></FormLabel>
+                      <FormLabel>{t('province')} <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input {...field} className="bg-background" />
                       </FormControl>
-                      <FormMessage>{form.formState.errors.streetName?.message && t(form.formState.errors.streetName?.message)}</FormMessage>
+                      <FormMessage>{form.formState.errors.province?.message && t(form.formState.errors.province?.message)}</FormMessage>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="postalCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('postalCode')} <span className="text-destructive">*</span></FormLabel>
+                      <FormControl>
+                        <Input {...field} className="bg-background" />
+                      </FormControl>
+                      <FormMessage>{form.formState.errors.postalCode?.message && t(form.formState.errors.postalCode?.message)}</FormMessage>
                     </FormItem>
                   )}
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('city')} <span className="text-destructive">*</span></FormLabel>
-                    <FormControl>
-                      <Input {...field} className="bg-background" />
-                    </FormControl>
-                    <FormMessage>{form.formState.errors.city?.message && t(form.formState.errors.city?.message)}</FormMessage>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="province"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('province')} <span className="text-destructive">*</span></FormLabel>
-                    <FormControl>
-                      <Input {...field} className="bg-background" />
-                    </FormControl>
-                    <FormMessage>{form.formState.errors.province?.message && t(form.formState.errors.province?.message)}</FormMessage>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="postalCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('postalCode')} <span className="text-destructive">*</span></FormLabel>
-                    <FormControl>
-                      <Input {...field} className="bg-background" />
-                    </FormControl>
-                    <FormMessage>{form.formState.errors.postalCode?.message && t(form.formState.errors.postalCode?.message)}</FormMessage>
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
+          )}
 
           {/* Section 3: Initial Stage */}
           <div className={`space-y-6 ${isModal ? '' : 'bg-card p-6 rounded-xl border border-border shadow-sm'}`}>

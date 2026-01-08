@@ -93,6 +93,12 @@ export function TransactionTimeline({ transactionId }: TransactionTimelineProps)
                                                                 {t('timeline.by', { name: entry.transactionInfo.actorName })}
                                                             </span>
                                                         );
+                                                    } else if (entry.type.startsWith('PROPERTY_') && entry.transactionInfo?.actorName) {
+                                                        return (
+                                                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground ml-2">
+                                                                {t('timeline.by', { name: entry.transactionInfo.actorName })}
+                                                            </span>
+                                                        );
                                                     }
                                                     return null;
                                                 })()}
@@ -136,6 +142,18 @@ export function TransactionTimeline({ transactionId }: TransactionTimelineProps)
                                                     </p>
                                                 );
                                             })()}
+                                            {/* Show info for PROPERTY events */}
+                                            {entry.type.startsWith('PROPERTY_') && entry.transactionInfo && (
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    {(() => {
+                                                        const address = entry.transactionInfo.address || 'Unknown Address';
+                                                        if (entry.type === 'PROPERTY_ADDED') return t('timeline.propertyAdded', { address });
+                                                        if (entry.type === 'PROPERTY_UPDATED') return t('timeline.propertyUpdated', { address });
+                                                        if (entry.type === 'PROPERTY_REMOVED') return t('timeline.propertyRemoved', { address });
+                                                        return '';
+                                                    })()}
+                                                </p>
+                                            )}
                                         </div>
                                         {entry.occurredAt && (
                                             <div className="text-right">

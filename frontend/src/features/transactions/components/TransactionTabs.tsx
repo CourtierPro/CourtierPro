@@ -10,6 +10,7 @@ import { type Transaction } from '@/features/transactions/api/queries';
 import { DocumentsPage } from '@/pages/documents/DocumentsPage';
 import { Calendar } from 'lucide-react';
 import { TransactionTimeline } from './TransactionTimeline';
+import { PropertyList } from './PropertyList';
 
 interface TransactionTabsProps {
   transaction: Transaction;
@@ -19,6 +20,7 @@ interface TransactionTabsProps {
   isSavingNotes: boolean;
   isReadOnly?: boolean;
   TimelineComponent?: React.ComponentType<{ transactionId: string }>;
+  onTransactionUpdate?: () => void;
 }
 
 export function TransactionTabs({
@@ -29,9 +31,13 @@ export function TransactionTabs({
   isSavingNotes,
   isReadOnly = false,
   TimelineComponent = TransactionTimeline,
+  onTransactionUpdate,
 }: TransactionTabsProps) {
   const { t } = useTranslation('transactions');
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Properties tab only for buyer-side transactions
+  const isBuyerTransaction = transaction.side === 'BUY_SIDE';
 
   // Get tab from URL or default to 'details' (or 'timeline' if read-only)
   const defaultTab = isReadOnly ? 'timeline' : 'details';
@@ -67,6 +73,15 @@ export function TransactionTabs({
         >
           {t('timeline')}
         </TabsTrigger>
+        {/* Properties tab - only for buyer-side transactions */}
+        {isBuyerTransaction && (
+          <TabsTrigger
+            value="properties"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
+          >
+            {t('properties')}
+          </TabsTrigger>
+        )}
         <TabsTrigger
           value="documents"
           className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
@@ -110,11 +125,23 @@ export function TransactionTabs({
         <TimelineComponent transactionId={transaction.transactionId} />
       </TabsContent>
 
+      {/* Properties Tab Content - only for buyer-side transactions */}
+      {isBuyerTransaction && (
+        <TabsContent value="properties" className="py-4">
+          <PropertyList
+            transactionId={transaction.transactionId}
+            isReadOnly={isReadOnly}
+            onTransactionUpdate={onTransactionUpdate}
+            currentTransactionAddress={transaction.propertyAddress}
+          />
+        </TabsContent>
+      )}
+
       <TabsContent value="documents" className="py-4">
-        <DocumentsPage 
-          transactionId={transaction.transactionId} 
-          focusDocumentId={focusDocumentId} 
-          isReadOnly={isReadOnly} 
+        <DocumentsPage
+          transactionId={transaction.transactionId}
+          focusDocumentId={focusDocumentId}
+          isReadOnly={isReadOnly}
           transactionSide={transaction.side}
         />
       </TabsContent>
@@ -132,3 +159,4 @@ export function TransactionTabs({
     </Tabs>
   );
 }
+

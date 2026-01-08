@@ -330,3 +330,40 @@ CREATE INDEX IF NOT EXISTS idx_admin_deletion_audit_timestamp ON admin_deletion_
 CREATE INDEX IF NOT EXISTS idx_admin_deletion_audit_admin_id ON admin_deletion_audit_logs(admin_id);
 CREATE INDEX IF NOT EXISTS idx_admin_deletion_audit_resource_type ON admin_deletion_audit_logs(resource_type);
 CREATE INDEX IF NOT EXISTS idx_admin_deletion_audit_action ON admin_deletion_audit_logs(action);
+
+-- =============================================================================
+-- PROPERTIES (for buyer transactions - tracking multiple properties)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS properties (
+    id BIGSERIAL PRIMARY KEY,
+    property_id UUID NOT NULL UNIQUE,
+    transaction_id UUID NOT NULL,
+    -- Embedded PropertyAddress
+    street VARCHAR(255),
+    city VARCHAR(255),
+    province VARCHAR(255),
+    postal_code VARCHAR(20),
+    -- Pricing
+    asking_price DECIMAL(15,2),
+    offer_amount DECIMAL(15,2),
+    centris_number VARCHAR(50),
+    -- Status tracking
+    offer_status VARCHAR(50) NOT NULL DEFAULT 'OFFER_TO_BE_MADE',
+    -- Broker notes (not visible to clients)
+    notes TEXT,
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    
+    CONSTRAINT fk_properties_transaction 
+        FOREIGN KEY (transaction_id) 
+        REFERENCES transactions(transaction_id)
+        ON DELETE CASCADE,
+    CONSTRAINT chk_offer_status 
+        CHECK (offer_status IN ('OFFER_TO_BE_MADE', 'OFFER_MADE', 'COUNTERED', 'ACCEPTED', 'DECLINED'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_properties_transaction_id ON properties(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_properties_property_id ON properties(property_id);
+CREATE INDEX IF NOT EXISTS idx_properties_offer_status ON properties(offer_status);
+CREATE INDEX IF NOT EXISTS idx_properties_centris_number ON properties(centris_number);
