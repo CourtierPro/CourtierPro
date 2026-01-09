@@ -10,6 +10,7 @@ import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.common.exceptions.ConflictException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import com.example.courtierprobackend.shared.utils.StageTranslationUtil;
+import com.example.courtierprobackend.shared.utils.PostalCodeUtil;
 import com.example.courtierprobackend.transactions.datalayer.PinnedTransaction;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
@@ -74,24 +75,24 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionParticipantRepository participantRepository;
     private final PropertyRepository propertyRepository;
 
-    private String lookupClientName(UUID clientId) {
-        if (clientId == null) {
-            return "Unknown Client";
+    private String lookupUserName(UUID userId) {
+        if (userId == null) {
+            return "Unknown User";
         }
-        var byId = userAccountRepository.findById(clientId);
+        var byId = userAccountRepository.findById(userId);
         if (byId.isPresent()) {
             UserAccount u = byId.get();
             String f = u.getFirstName();
             String l = u.getLastName();
-            log.debug("lookupClientName: found UserAccount for clientId={} firstName='{}' lastName='{}'", clientId, f,
+            log.debug("lookupUserName: found UserAccount for userId={} firstName='{}' lastName='{}'", userId, f,
                     l);
             String name = ((f == null ? "" : f) + " " + (l == null ? "" : l)).trim();
             if (name.isEmpty())
-                name = "Unknown Client";
-            log.debug("lookupClientName: returning '{}' for clientId={}", name, clientId);
+                name = "Unknown User";
+            log.debug("lookupUserName: returning '{}' for userId={}", name, userId);
             return name;
         }
-        return "Unknown Client";
+        return "Unknown User";
     }
 
     @Override
@@ -167,14 +168,20 @@ public class TransactionServiceImpl implements TransactionService {
         }
         tx.setStatus(TransactionStatus.ACTIVE);
         tx.setOpenedAt(LocalDateTime.now());
-        tx.setPropertyAddress(dto.getPropertyAddress());
+        
+        // Normalize postal code before saving
+        var address = dto.getPropertyAddress();
+        if (address != null && address.getPostalCode() != null) {
+            address.setPostalCode(PostalCodeUtil.normalize(address.getPostalCode()));
+        }
+        tx.setPropertyAddress(address);
 
         Transaction saved = repo.save(tx);
 
         // Create timeline entry for transaction creation
-        String clientName = lookupClientName(saved.getClientId());
+        String clientName = lookupUserName(saved.getClientId());
         String property = saved.getPropertyAddress() != null ? saved.getPropertyAddress().getStreet() : "";
-        String actorName = lookupClientName(saved.getBrokerId());
+        String actorName = lookupUserName(saved.getBrokerId());
         TransactionInfo info = TransactionInfo.builder()
                 .clientName(clientName)
                 .address(property)
@@ -203,7 +210,7 @@ public class TransactionServiceImpl implements TransactionService {
             log.error("Failed to send welcome notification for transaction {}", saved.getTransactionId(), e);
         }
 
-        return EntityDtoUtil.toResponse(saved, lookupClientName(saved.getClientId()));
+        return EntityDtoUtil.toResponse(saved, lookupUserName(saved.getClientId()));
     }
 
     @Override
@@ -297,7 +304,7 @@ public class TransactionServiceImpl implements TransactionService {
         List<Transaction> transactions = repo.findAllByFilters(brokerId, status, side, stage);
 
         return transactions.stream()
-                .map(tx -> EntityDtoUtil.toResponse(tx, lookupClientName(tx.getClientId())))
+                .map(tx -> EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId())))
                 .toList();
     }
 
@@ -307,7 +314,7 @@ public class TransactionServiceImpl implements TransactionService {
         List<Transaction> transactions = repo.findAllByClientId(clientId);
 
         return transactions.stream()
-                .map(tx -> EntityDtoUtil.toResponse(tx, lookupClientName(tx.getClientId())))
+                .map(tx -> EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId())))
                 .toList();
     }
 
@@ -320,7 +327,7 @@ public class TransactionServiceImpl implements TransactionService {
         // Allow access if the user is the broker OR the client
         TransactionAccessUtils.verifyTransactionAccess(tx, userId);
 
-        return EntityDtoUtil.toResponse(tx, lookupClientName(tx.getClientId()));
+        return EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId()));
     }
 
     @Override
@@ -409,7 +416,7 @@ public class TransactionServiceImpl implements TransactionService {
                     null);
         }
 
-        String stageChangeActorName = lookupClientName(tx.getBrokerId());
+        String stageChangeActorName = lookupUserName(tx.getBrokerId());
         TransactionInfo stageChangeInfo = TransactionInfo.builder()
                 .previousStage(previousStage)
                 .newStage(stageStr)
@@ -484,7 +491,7 @@ public class TransactionServiceImpl implements TransactionService {
             // Do not rethrow, transaction is already saved
         }
 
-        return EntityDtoUtil.toResponse(saved, lookupClientName(saved.getClientId()));
+        return EntityDtoUtil.toResponse(saved, lookupUserName(saved.getClientId()));
     }
 
     @Override
@@ -624,10 +631,16 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BadRequestException("Properties can only be added to buyer-side transactions");
         }
 
+        // Normalize postal code in address before saving
+        var propertyAddress = dto.getAddress();
+        if (propertyAddress != null && propertyAddress.getPostalCode() != null) {
+            propertyAddress.setPostalCode(PostalCodeUtil.normalize(propertyAddress.getPostalCode()));
+        }
+        
         Property property = Property.builder()
                 .propertyId(UUID.randomUUID())
                 .transactionId(transactionId)
-                .address(dto.getAddress())
+                .address(propertyAddress)
                 .askingPrice(dto.getAskingPrice())
                 .offerStatus(dto.getOfferStatus() != null ? dto.getOfferStatus() : OfferStatus.OFFER_TO_BE_MADE)
                 .offerAmount(dto.getOfferAmount())
@@ -641,7 +654,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         // Add timeline entry for property addition
         String address = saved.getAddress() != null ? saved.getAddress().getStreet() : "Unknown";
-        String actorName = lookupClientName(brokerId);
+        String actorName = lookupUserName(brokerId);
         TransactionInfo info = TransactionInfo.builder()
                 .actorName(actorName)
                 .address(address)
@@ -678,7 +691,12 @@ public class TransactionServiceImpl implements TransactionService {
 
         // Update fields
         if (dto.getAddress() != null) {
-            property.setAddress(dto.getAddress());
+            var updatedAddress = dto.getAddress();
+            // Normalize postal code
+            if (updatedAddress.getPostalCode() != null) {
+                updatedAddress.setPostalCode(PostalCodeUtil.normalize(updatedAddress.getPostalCode()));
+            }
+            property.setAddress(updatedAddress);
         }
         if (dto.getAskingPrice() != null) {
             property.setAskingPrice(dto.getAskingPrice());
@@ -697,7 +715,7 @@ public class TransactionServiceImpl implements TransactionService {
         // Add timeline entry for status changes
         if (statusChanged) {
             String address = saved.getAddress() != null ? saved.getAddress().getStreet() : "Unknown";
-            String actorName = lookupClientName(brokerId);
+            String actorName = lookupUserName(brokerId);
             TransactionInfo info = TransactionInfo.builder()
                     .actorName(actorName)
                     .address(address)
@@ -734,7 +752,7 @@ public class TransactionServiceImpl implements TransactionService {
         propertyRepository.delete(property);
 
         // Add timeline entry for property removal
-        String actorName = lookupClientName(brokerId);
+        String actorName = lookupUserName(brokerId);
         TransactionInfo info = TransactionInfo.builder()
                 .actorName(actorName)
                 .address(address)

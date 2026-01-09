@@ -313,6 +313,9 @@
   "deleting": "Deleting...",
   "edit": "Edit",
   "saveChanges": "Save Changes",
+  "streetRequired": "Street address is required",
+  "cityRequired": "City is required",
+  "provinceRequired": "Province is required",
   "offerStatus": {
     "OFFER_TO_BE_MADE": "Offer To Be Made",
     "OFFER_MADE": "Offer Made",

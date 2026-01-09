@@ -310,7 +310,7 @@ class TransactionServiceImplTest {
         TransactionResponseDTO result = transactionService.createTransaction(dto);
 
         // Assert
-        assertThat(result.getClientName()).isEqualTo("Unknown Client");
+        assertThat(result.getClientName()).isEqualTo("Unknown User");
     }
 
     @Test
@@ -336,7 +336,7 @@ class TransactionServiceImplTest {
         TransactionResponseDTO result = transactionService.createTransaction(dto);
 
         // Assert
-        assertThat(result.getClientName()).isEqualTo("Unknown Client");
+        assertThat(result.getClientName()).isEqualTo("Unknown User");
     }
 
     // ========== getNotes Tests ==========

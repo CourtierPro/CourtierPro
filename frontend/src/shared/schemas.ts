@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DocumentTypeEnum } from "@/features/documents/types";
+import { isValidPostalCode, normalizePostalCode } from "@/shared/utils/postal-code";
 
 // Transaction Schemas
 export const transactionCreateSchema = z.object({
@@ -19,13 +20,23 @@ export const transactionCreateSchema = z.object({
         if (!data.province?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "errorRequired", path: ["province"] });
         if (!data.postalCode?.trim()) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: "errorRequired", path: ["postalCode"] });
-        } else if (!/^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/.test(data.postalCode)) {
+        } else if (!isValidPostalCode(data.postalCode)) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: "errorInvalidPostalCode", path: ["postalCode"] });
         }
     }
 });
 
-export type TransactionCreateFormValues = z.infer<typeof transactionCreateSchema>;
+// Use z.input to get the input type (what the form tracks)
+export type TransactionCreateFormValues = z.input<typeof transactionCreateSchema>;
+
+// Helper function to normalize postal code before submission
+export function normalizeTransactionFormData(data: TransactionCreateFormValues) {
+    return {
+        ...data,
+        postalCode: data.postalCode ? normalizePostalCode(data.postalCode) : undefined,
+    };
+}
+
 
 export const stageUpdateSchema = z.object({
     stage: z.string().min(1, "selectStageFirst"),

@@ -59,4 +59,68 @@ class UserContextUtilsTest {
                 .isInstanceOf(ForbiddenException.class)
                 .hasMessage("Unable to resolve user id from security context");
     }
+
+    // ==================== isBroker Tests ====================
+
+    @Test
+    void isBroker_WithNullRequest_ReturnsFalse() {
+        boolean result = UserContextUtils.isBroker(null);
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void isBroker_WithNullRoleAttribute_ReturnsFalse() {
+        when(request.getAttribute(UserContextFilter.USER_ROLE_ATTR)).thenReturn(null);
+
+        boolean result = UserContextUtils.isBroker(request);
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void isBroker_WithBrokerRole_ReturnsTrue() {
+        when(request.getAttribute(UserContextFilter.USER_ROLE_ATTR)).thenReturn("BROKER");
+
+        boolean result = UserContextUtils.isBroker(request);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void isBroker_WithBrokerRoleLowercase_ReturnsTrue() {
+        when(request.getAttribute(UserContextFilter.USER_ROLE_ATTR)).thenReturn("broker");
+
+        boolean result = UserContextUtils.isBroker(request);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void isBroker_WithBrokerRoleMixedCase_ReturnsTrue() {
+        when(request.getAttribute(UserContextFilter.USER_ROLE_ATTR)).thenReturn("Broker");
+
+        boolean result = UserContextUtils.isBroker(request);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void isBroker_WithClientRole_ReturnsFalse() {
+        when(request.getAttribute(UserContextFilter.USER_ROLE_ATTR)).thenReturn("CLIENT");
+
+        boolean result = UserContextUtils.isBroker(request);
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void isBroker_WithEmptyRole_ReturnsFalse() {
+        when(request.getAttribute(UserContextFilter.USER_ROLE_ATTR)).thenReturn("");
+
+        boolean result = UserContextUtils.isBroker(request);
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void isBroker_WithUnexpectedRoleValue_ReturnsFalse() {
+        when(request.getAttribute(UserContextFilter.USER_ROLE_ATTR)).thenReturn("ADMIN");
+
+        boolean result = UserContextUtils.isBroker(request);
+        assertThat(result).isFalse();
+    }
 }

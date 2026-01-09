@@ -25,7 +25,6 @@ public class PropertyRequestDTO {
     @PositiveOrZero(message = "Asking price must be zero or positive")
     private BigDecimal askingPrice;
 
-    @NotNull(message = "Offer status is required")
     private OfferStatus offerStatus;
 
     @PositiveOrZero(message = "Offer amount must be zero or positive")

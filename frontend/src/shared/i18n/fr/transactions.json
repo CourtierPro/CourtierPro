@@ -282,6 +282,8 @@
   "address": "Adresse",
   "askingPrice": "Prix demandé",
   "offerAmount": "Montant de l'offre",
+  "centrisNumber": "Numéro Centris",
+  "centrisNumberPlaceholder": "ex. 12345678",
   "offerStatusLabel": "Statut de l'offre",
   "selectOfferStatus": "Sélectionner le statut de l'offre",
   "pricingAndOffer": "Prix et offre",
@@ -307,6 +309,9 @@
   "edit": "Modifier",
   "saveChanges": "Enregistrer les modifications",
   "scheduleAppointment": "Planifier un rendez-vous",
+  "streetRequired": "L'adresse est requise",
+  "cityRequired": "La ville est requise",
+  "provinceRequired": "La province est requise",
   "offerStatus": {
     "OFFER_TO_BE_MADE": "Offre à faire",
     "OFFER_MADE": "Offre soumise",

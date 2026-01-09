@@ -29,7 +29,8 @@ import type { TransactionRequestDTO } from '@/shared/api/types';
 import { getStagesForSide, getStageLabel } from '@/shared/utils/stages';
 import { logError, getErrorMessage } from '@/shared/utils/error-utils';
 import { useClientsForDisplay } from '@/features/clients';
-import { transactionCreateSchema, type TransactionCreateFormValues } from '@/shared/schemas';
+import { transactionCreateSchema, type TransactionCreateFormValues, normalizeTransactionFormData } from '@/shared/schemas';
+import { formatPostalCode } from '@/shared/utils/postal-code';
 
 interface TransactionCreateFormProps {
   onNavigate: (route: string) => void;
@@ -98,15 +99,18 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
 
   const onSubmit = async (data: TransactionCreateFormValues) => {
     try {
+      // Normalize postal code before submission
+      const normalized = normalizeTransactionFormData(data);
+
       const payload: TransactionRequestDTO = {
-        clientId: data.clientId,
-        side: data.transactionSide === "buy" ? "BUY_SIDE" : "SELL_SIDE",
-        initialStage: data.initialStage,
+        clientId: normalized.clientId,
+        side: normalized.transactionSide === "buy" ? "BUY_SIDE" : "SELL_SIDE",
+        initialStage: normalized.initialStage,
         propertyAddress: {
-          street: (data.streetNumber && data.streetName) ? `${data.streetNumber.trim()} ${data.streetName.trim()}` : "",
-          city: data.city?.trim() || "",
-          province: data.province?.trim() || "",
-          postalCode: data.postalCode?.trim() || "",
+          street: (normalized.streetNumber && normalized.streetName) ? `${normalized.streetNumber.trim()} ${normalized.streetName.trim()}` : "",
+          city: normalized.city?.trim() || "",
+          province: normalized.province?.trim() || "",
+          postalCode: normalized.postalCode || "",
         },
       };
 
@@ -362,7 +366,13 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                     <FormItem>
                       <FormLabel>{t('postalCode')} <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
-                        <Input {...field} className="bg-background" />
+                        <Input
+                          {...field}
+                          className="bg-background"
+                          maxLength={7}
+                          placeholder="H1A 1A1"
+                          onChange={(e) => field.onChange(formatPostalCode(e.target.value))}
+                        />
                       </FormControl>
                       <FormMessage>{form.formState.errors.postalCode?.message && t(form.formState.errors.postalCode?.message)}</FormMessage>
                     </FormItem>

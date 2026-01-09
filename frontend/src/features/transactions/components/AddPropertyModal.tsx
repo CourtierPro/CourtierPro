@@ -31,6 +31,7 @@ import {
 } from '@/shared/components/ui/select';
 import { useAddProperty, useUpdateProperty } from '@/features/transactions/api/mutations';
 import type { Property, OfferStatus, PropertyRequestDTO } from '@/shared/api/types';
+import { formatPostalCode, normalizePostalCode } from '@/shared/utils/postal-code';
 
 interface AddPropertyModalProps {
     isOpen: boolean;
@@ -126,7 +127,7 @@ export function AddPropertyModal({
                 street: data.street,
                 city: data.city,
                 province: data.province,
-                postalCode: data.postalCode,
+                postalCode: normalizePostalCode(data.postalCode),
             },
             askingPrice: data.askingPrice ? parseFloat(data.askingPrice) : undefined,
             offerStatus: data.offerStatus,
@@ -229,7 +230,12 @@ export function AddPropertyModal({
                                     <FormItem>
                                         <FormLabel>{t('postalCode')}</FormLabel>
                                         <FormControl>
-                                            <Input {...field} placeholder={t('postalCodePlaceholder')} />
+                                            <Input
+                                                {...field}
+                                                placeholder={t('postalCodePlaceholder')}
+                                                maxLength={7}
+                                                onChange={(e) => field.onChange(formatPostalCode(e.target.value))}
+                                            />
                                         </FormControl>
                                     </FormItem>
                                 )}

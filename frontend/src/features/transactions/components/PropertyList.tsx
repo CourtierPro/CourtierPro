@@ -39,10 +39,18 @@ export function PropertyList({ transactionId, isReadOnly = false, onTransactionU
         setSelectedProperty(null);
     };
 
-    // Sort properties by creation date (newest first)
-    const sortedProperties = properties ? [...properties].sort((a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    ) : [];
+    // Sort properties: active property first, then by creation date (newest first)
+    const sortedProperties = properties ? [...properties].sort((a, b) => {
+        const aIsActive = currentTransactionAddress?.street === a.address?.street;
+        const bIsActive = currentTransactionAddress?.street === b.address?.street;
+
+        // Active property comes first
+        if (aIsActive && !bIsActive) return -1;
+        if (!aIsActive && bIsActive) return 1;
+
+        // Then sort by creation date (newest first)
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }) : [];
 
     if (isLoading) {
         return <LoadingState message={t('loadingProperties')} />;
