@@ -126,3 +126,35 @@ export function useTransactionParticipants(transactionId: string) {
         enabled: !!transactionId,
     });
 }
+
+// ==================== PROPERTY QUERIES ====================
+
+import type { Property } from '@/shared/api/types';
+
+export const propertyKeys = {
+    all: (transactionId: string) => [...transactionKeys.detail(transactionId), 'properties'] as const,
+    detail: (transactionId: string, propertyId: string) => [...propertyKeys.all(transactionId), propertyId] as const,
+};
+
+export function useTransactionProperties(transactionId: string) {
+    return useQuery({
+        queryKey: propertyKeys.all(transactionId),
+        queryFn: async () => {
+            // Backend now handles both broker and client access with role-based response
+            const res = await axiosInstance.get<Property[]>(`/transactions/${transactionId}/properties`);
+            return res.data;
+        },
+        enabled: !!transactionId,
+    });
+}
+
+export function useProperty(transactionId: string, propertyId: string) {
+    return useQuery({
+        queryKey: propertyKeys.detail(transactionId, propertyId),
+        queryFn: async () => {
+            const res = await axiosInstance.get<Property>(`/transactions/${transactionId}/properties/${propertyId}`);
+            return res.data;
+        },
+        enabled: !!transactionId && !!propertyId,
+    });
+}

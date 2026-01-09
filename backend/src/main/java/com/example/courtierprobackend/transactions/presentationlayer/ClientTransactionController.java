@@ -5,6 +5,7 @@ import com.example.courtierprobackend.security.UserContextUtils;
 import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -56,4 +57,36 @@ public class ClientTransactionController {
         UUID validatedClientId = resolveAndValidateClientId(request, clientId);
         return ResponseEntity.ok(service.getClientTransactions(validatedClientId));
     }
+
+    // ==================== PROPERTY ENDPOINTS (CLIENT - READ ONLY) ====================
+
+    /**
+     * Get all properties for a transaction (read-only, no broker notes).
+     */
+    @GetMapping("/{clientId}/transactions/{transactionId}/properties")
+    public ResponseEntity<List<PropertyResponseDTO>> getTransactionProperties(
+            @PathVariable UUID clientId,
+            @PathVariable UUID transactionId,
+            HttpServletRequest request
+    ) {
+        UUID validatedClientId = resolveAndValidateClientId(request, clientId);
+        // isBroker = false means broker notes will be stripped
+        return ResponseEntity.ok(service.getProperties(transactionId, validatedClientId, false));
+    }
+
+    /**
+     * Get a single property by ID (read-only, no broker notes).
+     */
+    @GetMapping("/{clientId}/transactions/{transactionId}/properties/{propertyId}")
+    public ResponseEntity<PropertyResponseDTO> getPropertyById(
+            @PathVariable UUID clientId,
+            @PathVariable UUID transactionId,
+            @PathVariable UUID propertyId,
+            HttpServletRequest request
+    ) {
+        UUID validatedClientId = resolveAndValidateClientId(request, clientId);
+        // isBroker = false means broker notes will be stripped
+        return ResponseEntity.ok(service.getPropertyById(propertyId, validatedClientId, false));
+    }
 }
+

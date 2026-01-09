@@ -42,4 +42,17 @@ public interface TransactionService {
     void removeParticipant(UUID transactionId, UUID participantId, UUID brokerId);
 
     List<ParticipantResponseDTO> getParticipants(UUID transactionId, UUID userId);
+
+    // Properties (for buyer transactions)
+    List<PropertyResponseDTO> getProperties(UUID transactionId, UUID userId, boolean isBroker);
+
+    PropertyResponseDTO addProperty(UUID transactionId, PropertyRequestDTO dto, UUID brokerId);
+
+    PropertyResponseDTO updateProperty(UUID transactionId, UUID propertyId, PropertyRequestDTO dto, UUID brokerId);
+
+    void removeProperty(UUID transactionId, UUID propertyId, UUID brokerId);
+
+    PropertyResponseDTO getPropertyById(UUID propertyId, UUID userId, boolean isBroker);
+    
+    void setActiveProperty(UUID transactionId, UUID propertyId, UUID brokerId);
 }

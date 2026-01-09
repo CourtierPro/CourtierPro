@@ -31,6 +31,7 @@ public class UserContextFilter extends OncePerRequestFilter {
 
     public static final String INTERNAL_USER_ID_ATTR = "internalUserId";
     public static final String AUTH0_USER_ID_ATTR = "auth0UserId";
+    public static final String USER_ROLE_ATTR = "userRole";
 
     private final UserAccountRepository userAccountRepository;
 
@@ -57,8 +58,10 @@ public class UserContextFilter extends OncePerRequestFilter {
                 Optional<UserAccount> userOpt = userAccountRepository.findByAuth0UserId(auth0UserId);
 
                 if (userOpt.isPresent()) {
-                    UUID internalId = userOpt.get().getId();
+                    UserAccount user = userOpt.get();
+                    UUID internalId = user.getId();
                     request.setAttribute(INTERNAL_USER_ID_ATTR, internalId);
+                    request.setAttribute(USER_ROLE_ATTR, user.getRole());
                     logger.debug("Resolved internal user ID {} for Auth0 ID {}", internalId, auth0UserId);
                 } else {
                     logger.warn("No UserAccount found for Auth0 ID: {}. User may not be provisioned.", auth0UserId);
@@ -72,3 +75,4 @@ public class UserContextFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
+

@@ -12,7 +12,7 @@ interface TransactionInfoProps {
 function formatAddress(address: Transaction['propertyAddress']) {
     const street = address.street.trim();
     if (!street) {
-        return "Address not available";
+        return "No property selected";
     }
     // If street is just a number (e.g. "1"), treat it as needing a label
     if (/^\d+$/.test(street)) {

@@ -74,6 +74,8 @@ public class SecurityConfig {
 
                         // Transaction APIs
                         .requestMatchers(HttpMethod.GET, "/transactions/*/participants").hasAnyRole("BROKER", "CLIENT")
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/properties").hasAnyRole("BROKER", "CLIENT")
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/properties/*").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers(HttpMethod.GET, "/transactions/*").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers("/transactions/**").hasRole("BROKER")
 

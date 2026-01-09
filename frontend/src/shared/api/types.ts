@@ -34,7 +34,10 @@ export type TimelineEventType =
   | 'DOCUMENT_REQUESTED'
   | 'DOCUMENT_SUBMITTED'
   | 'DOCUMENT_APPROVED'
-  | 'DOCUMENT_NEEDS_REVISION';
+  | 'DOCUMENT_NEEDS_REVISION'
+  | 'PROPERTY_ADDED'
+  | 'PROPERTY_UPDATED'
+  | 'PROPERTY_REMOVED';
 
 export interface TransactionInfo {
   clientName?: string;
@@ -70,4 +73,35 @@ export interface NoteCreateRequest {
 export interface StageUpdateRequestDTO {
   stage: string;
   note?: string;
+}
+
+// ==================== PROPERTY TYPES ====================
+
+export type OfferStatus =
+  | 'OFFER_TO_BE_MADE'
+  | 'OFFER_MADE'
+  | 'COUNTERED'
+  | 'ACCEPTED'
+  | 'DECLINED';
+
+export interface Property {
+  propertyId: string;
+  transactionId: string;
+  address: PropertyAddress;
+  askingPrice?: number;
+  offerStatus: OfferStatus;
+  offerAmount?: number;
+  centrisNumber?: string;
+  notes?: string; // Only present for brokers
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PropertyRequestDTO {
+  address: PropertyAddress;
+  askingPrice?: number;
+  offerStatus: OfferStatus;
+  offerAmount?: number;
+  centrisNumber?: string;
+  notes?: string;
 }

@@ -38,7 +38,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             "(t.brokerId = :userId OR t.clientId = :userId) AND " +
             "(LOWER(COALESCE(t.propertyAddress.street, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(COALESCE(t.propertyAddress.city, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(COALESCE(t.propertyAddress.postalCode, '')) LIKE LOWER(CONCAT('%', :query, '%')))")
+            "LOWER(COALESCE(t.propertyAddress.postalCode, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "EXISTS (SELECT p FROM Property p WHERE p.transactionId = t.transactionId AND p.centrisNumber LIKE CONCAT('%', :query, '%')))")
     List<Transaction> searchTransactions(@Param("userId") UUID userId,
                                          @Param("query") String query);
     List<Transaction> findByClientIdIn(java.util.List<UUID> clientIds);

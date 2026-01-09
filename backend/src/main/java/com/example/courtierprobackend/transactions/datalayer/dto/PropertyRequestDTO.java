@@ -1,0 +1,36 @@
+package com.example.courtierprobackend.transactions.datalayer.dto;
+
+import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
+import com.example.courtierprobackend.transactions.datalayer.enums.OfferStatus;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class PropertyRequestDTO {
+
+    @NotNull(message = "Address is required")
+    @Valid
+    private PropertyAddress address;
+
+    @PositiveOrZero(message = "Asking price must be zero or positive")
+    private BigDecimal askingPrice;
+
+    private OfferStatus offerStatus;
+
+    @PositiveOrZero(message = "Offer amount must be zero or positive")
+    private BigDecimal offerAmount;
+
+    private String centrisNumber;
+
+    private String notes;
+}

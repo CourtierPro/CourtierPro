@@ -74,11 +74,14 @@ class TransactionServiceImplTest {
     @Mock
     private TransactionParticipantRepository participantRepository;
 
+    @Mock
+    private com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository propertyRepository;
+
     @BeforeEach
     void setup() {
         transactionService = new TransactionServiceImpl(transactionRepository, pinnedTransactionRepository,
                 userAccountRepository, emailService,
-                notificationService, timelineService, participantRepository);
+                notificationService, timelineService, participantRepository, propertyRepository);
         lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
     }
 
@@ -208,8 +211,8 @@ class TransactionServiceImplTest {
 
     @Test
     void createTransaction_withMissingPropertyStreet_throwsBadRequestException() {
-        // Arrange
-        TransactionRequestDTO dto = createValidBuyerTransactionDTO();
+        // Arrange - use SELL_SIDE since BUY_SIDE no longer requires property street
+        TransactionRequestDTO dto = createValidSellerTransactionDTO();
         dto.getPropertyAddress().setStreet(null);
 
         // Act & Assert
@@ -307,7 +310,7 @@ class TransactionServiceImplTest {
         TransactionResponseDTO result = transactionService.createTransaction(dto);
 
         // Assert
-        assertThat(result.getClientName()).isEqualTo("Unknown Client");
+        assertThat(result.getClientName()).isEqualTo("Unknown User");
     }
 
     @Test
@@ -333,7 +336,7 @@ class TransactionServiceImplTest {
         TransactionResponseDTO result = transactionService.createTransaction(dto);
 
         // Assert
-        assertThat(result.getClientName()).isEqualTo("Unknown Client");
+        assertThat(result.getClientName()).isEqualTo("Unknown User");
     }
 
     // ========== getNotes Tests ==========

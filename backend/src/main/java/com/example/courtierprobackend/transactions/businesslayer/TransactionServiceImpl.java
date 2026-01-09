@@ -10,6 +10,7 @@ import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.common.exceptions.ConflictException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import com.example.courtierprobackend.shared.utils.StageTranslationUtil;
+import com.example.courtierprobackend.shared.utils.PostalCodeUtil;
 import com.example.courtierprobackend.transactions.datalayer.PinnedTransaction;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
@@ -38,7 +39,11 @@ import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequ
 import com.example.courtierprobackend.transactions.datalayer.dto.AddParticipantRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.ParticipantResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository;
+import com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository;
 import com.example.courtierprobackend.transactions.datalayer.TransactionParticipant;
+import com.example.courtierprobackend.transactions.datalayer.Property;
+import com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
 
 @Service
 @RequiredArgsConstructor
@@ -68,25 +73,26 @@ public class TransactionServiceImpl implements TransactionService {
     private final NotificationService notificationService;
     private final TimelineService timelineService;
     private final TransactionParticipantRepository participantRepository;
+    private final PropertyRepository propertyRepository;
 
-    private String lookupClientName(UUID clientId) {
-        if (clientId == null) {
-            return "Unknown Client";
+    private String lookupUserName(UUID userId) {
+        if (userId == null) {
+            return "Unknown User";
         }
-        var byId = userAccountRepository.findById(clientId);
+        var byId = userAccountRepository.findById(userId);
         if (byId.isPresent()) {
             UserAccount u = byId.get();
             String f = u.getFirstName();
             String l = u.getLastName();
-            log.debug("lookupClientName: found UserAccount for clientId={} firstName='{}' lastName='{}'", clientId, f,
+            log.debug("lookupUserName: found UserAccount for userId={} firstName='{}' lastName='{}'", userId, f,
                     l);
             String name = ((f == null ? "" : f) + " " + (l == null ? "" : l)).trim();
             if (name.isEmpty())
-                name = "Unknown Client";
-            log.debug("lookupClientName: returning '{}' for clientId={}", name, clientId);
+                name = "Unknown User";
+            log.debug("lookupUserName: returning '{}' for userId={}", name, userId);
             return name;
         }
-        return "Unknown Client";
+        return "Unknown User";
     }
 
     @Override
@@ -102,11 +108,13 @@ public class TransactionServiceImpl implements TransactionService {
         if (dto.getSide() == null) {
             throw new BadRequestException("side is required");
         }
-        if (dto.getPropertyAddress() == null ||
-                dto.getPropertyAddress().getStreet() == null ||
-                dto.getPropertyAddress().getStreet().isBlank()) {
-
-            throw new BadRequestException("propertyAddress.street is required");
+        // Validate property address (required for SELL_SIDE, optional for BUY_SIDE)
+        if (dto.getSide() == TransactionSide.SELL_SIDE) {
+            if (dto.getPropertyAddress() == null ||
+                    dto.getPropertyAddress().getStreet() == null ||
+                    dto.getPropertyAddress().getStreet().isBlank()) {
+                throw new BadRequestException("propertyAddress.street is required for SELL_SIDE transactions");
+            }
         }
 
         UUID clientId = dto.getClientId();
@@ -114,13 +122,16 @@ public class TransactionServiceImpl implements TransactionService {
         String street = dto.getPropertyAddress().getStreet();
 
         // 2) Prevent duplicate ACTIVE transactions
-        repo.findByClientIdAndPropertyAddress_StreetAndStatus(
-                clientId,
-                street,
-                TransactionStatus.ACTIVE).ifPresent(t -> {
-                    throw new BadRequestException(
-                            "duplicate: Client already has an active transaction for this property");
-                });
+        // 2) Prevent duplicate ACTIVE transactions (only if address is provided)
+        if (street != null && !street.isBlank()) {
+            repo.findByClientIdAndPropertyAddress_StreetAndStatus(
+                    clientId,
+                    street,
+                    TransactionStatus.ACTIVE).ifPresent(t -> {
+                        throw new BadRequestException(
+                                "duplicate: Client already has an active transaction for this property");
+                    });
+        }
 
         // 3) Create Transaction entity
         Transaction tx = new Transaction();
@@ -157,14 +168,20 @@ public class TransactionServiceImpl implements TransactionService {
         }
         tx.setStatus(TransactionStatus.ACTIVE);
         tx.setOpenedAt(LocalDateTime.now());
-        tx.setPropertyAddress(dto.getPropertyAddress());
+        
+        // Normalize postal code before saving
+        var address = dto.getPropertyAddress();
+        if (address != null && address.getPostalCode() != null) {
+            address.setPostalCode(PostalCodeUtil.normalize(address.getPostalCode()));
+        }
+        tx.setPropertyAddress(address);
 
         Transaction saved = repo.save(tx);
 
         // Create timeline entry for transaction creation
-        String clientName = lookupClientName(saved.getClientId());
+        String clientName = lookupUserName(saved.getClientId());
         String property = saved.getPropertyAddress() != null ? saved.getPropertyAddress().getStreet() : "";
-        String actorName = lookupClientName(saved.getBrokerId());
+        String actorName = lookupUserName(saved.getBrokerId());
         TransactionInfo info = TransactionInfo.builder()
                 .clientName(clientName)
                 .address(property)
@@ -193,7 +210,7 @@ public class TransactionServiceImpl implements TransactionService {
             log.error("Failed to send welcome notification for transaction {}", saved.getTransactionId(), e);
         }
 
-        return EntityDtoUtil.toResponse(saved, lookupClientName(saved.getClientId()));
+        return EntityDtoUtil.toResponse(saved, lookupUserName(saved.getClientId()));
     }
 
     @Override
@@ -287,7 +304,7 @@ public class TransactionServiceImpl implements TransactionService {
         List<Transaction> transactions = repo.findAllByFilters(brokerId, status, side, stage);
 
         return transactions.stream()
-                .map(tx -> EntityDtoUtil.toResponse(tx, lookupClientName(tx.getClientId())))
+                .map(tx -> EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId())))
                 .toList();
     }
 
@@ -297,7 +314,7 @@ public class TransactionServiceImpl implements TransactionService {
         List<Transaction> transactions = repo.findAllByClientId(clientId);
 
         return transactions.stream()
-                .map(tx -> EntityDtoUtil.toResponse(tx, lookupClientName(tx.getClientId())))
+                .map(tx -> EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId())))
                 .toList();
     }
 
@@ -310,7 +327,7 @@ public class TransactionServiceImpl implements TransactionService {
         // Allow access if the user is the broker OR the client
         TransactionAccessUtils.verifyTransactionAccess(tx, userId);
 
-        return EntityDtoUtil.toResponse(tx, lookupClientName(tx.getClientId()));
+        return EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId()));
     }
 
     @Override
@@ -399,7 +416,7 @@ public class TransactionServiceImpl implements TransactionService {
                     null);
         }
 
-        String stageChangeActorName = lookupClientName(tx.getBrokerId());
+        String stageChangeActorName = lookupUserName(tx.getBrokerId());
         TransactionInfo stageChangeInfo = TransactionInfo.builder()
                 .previousStage(previousStage)
                 .newStage(stageStr)
@@ -474,7 +491,7 @@ public class TransactionServiceImpl implements TransactionService {
             // Do not rethrow, transaction is already saved
         }
 
-        return EntityDtoUtil.toResponse(saved, lookupClientName(saved.getClientId()));
+        return EntityDtoUtil.toResponse(saved, lookupUserName(saved.getClientId()));
     }
 
     @Override
@@ -578,5 +595,227 @@ public class TransactionServiceImpl implements TransactionService {
                         .phoneNumber(p.getPhoneNumber())
                         .build())
                 .toList();
+    }
+
+    // ==================== PROPERTY METHODS ====================
+
+    @Override
+    public List<PropertyResponseDTO> getProperties(UUID transactionId, UUID userId, boolean isBroker) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
+
+        // Only BUY_SIDE transactions can have multiple properties
+        if (tx.getSide() != TransactionSide.BUY_SIDE) {
+            return List.of();
+        }
+
+        List<Property> properties = propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId);
+
+        return properties.stream()
+                .map(p -> toPropertyResponseDTO(p, isBroker))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public PropertyResponseDTO addProperty(UUID transactionId, PropertyRequestDTO dto, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        // Only BUY_SIDE transactions can have multiple properties
+        if (tx.getSide() != TransactionSide.BUY_SIDE) {
+            throw new BadRequestException("Properties can only be added to buyer-side transactions");
+        }
+
+        // Normalize postal code in address before saving
+        var propertyAddress = dto.getAddress();
+        if (propertyAddress != null && propertyAddress.getPostalCode() != null) {
+            propertyAddress.setPostalCode(PostalCodeUtil.normalize(propertyAddress.getPostalCode()));
+        }
+        
+        Property property = Property.builder()
+                .propertyId(UUID.randomUUID())
+                .transactionId(transactionId)
+                .address(propertyAddress)
+                .askingPrice(dto.getAskingPrice())
+                .offerStatus(dto.getOfferStatus() != null ? dto.getOfferStatus() : OfferStatus.OFFER_TO_BE_MADE)
+                .offerAmount(dto.getOfferAmount())
+                .centrisNumber(dto.getCentrisNumber())
+                .notes(dto.getNotes())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        Property saved = propertyRepository.save(property);
+
+        // Add timeline entry for property addition
+        String address = saved.getAddress() != null ? saved.getAddress().getStreet() : "Unknown";
+        String actorName = lookupUserName(brokerId);
+        TransactionInfo info = TransactionInfo.builder()
+                .actorName(actorName)
+                .address(address)
+                .build();
+        timelineService.addEntry(
+                transactionId,
+                brokerId,
+                TimelineEntryType.PROPERTY_ADDED,
+                "Property added: " + address,
+                null,
+                info);
+
+        return toPropertyResponseDTO(saved, true);
+    }
+
+    @Override
+    @Transactional
+    public PropertyResponseDTO updateProperty(UUID transactionId, UUID propertyId, PropertyRequestDTO dto, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        Property property = propertyRepository.findByPropertyId(propertyId)
+                .orElseThrow(() -> new NotFoundException("Property not found"));
+
+        if (!property.getTransactionId().equals(transactionId)) {
+            throw new BadRequestException("Property does not belong to this transaction");
+        }
+
+        // Track if offer status changed for timeline
+        OfferStatus previousStatus = property.getOfferStatus();
+        boolean statusChanged = dto.getOfferStatus() != null && dto.getOfferStatus() != previousStatus;
+
+        // Update fields
+        if (dto.getAddress() != null) {
+            var updatedAddress = dto.getAddress();
+            // Normalize postal code
+            if (updatedAddress.getPostalCode() != null) {
+                updatedAddress.setPostalCode(PostalCodeUtil.normalize(updatedAddress.getPostalCode()));
+            }
+            property.setAddress(updatedAddress);
+        }
+        if (dto.getAskingPrice() != null) {
+            property.setAskingPrice(dto.getAskingPrice());
+        }
+        if (dto.getOfferStatus() != null) {
+            property.setOfferStatus(dto.getOfferStatus());
+        }
+        // offerAmount can be null (to clear it)
+        property.setOfferAmount(dto.getOfferAmount());
+        property.setCentrisNumber(dto.getCentrisNumber());
+        property.setNotes(dto.getNotes());
+        property.setUpdatedAt(LocalDateTime.now());
+
+        Property saved = propertyRepository.save(property);
+
+        // Add timeline entry for status changes
+        if (statusChanged) {
+            String address = saved.getAddress() != null ? saved.getAddress().getStreet() : "Unknown";
+            String actorName = lookupUserName(brokerId);
+            TransactionInfo info = TransactionInfo.builder()
+                    .actorName(actorName)
+                    .address(address)
+                    .build();
+            timelineService.addEntry(
+                    transactionId,
+                    brokerId,
+                    TimelineEntryType.PROPERTY_UPDATED,
+                    "Property " + address + " offer status changed to " + dto.getOfferStatus(),
+                    null,
+                    info);
+        }
+
+        return toPropertyResponseDTO(saved, true);
+    }
+
+    @Override
+    @Transactional
+    public void removeProperty(UUID transactionId, UUID propertyId, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        Property property = propertyRepository.findByPropertyId(propertyId)
+                .orElseThrow(() -> new NotFoundException("Property not found"));
+
+        if (!property.getTransactionId().equals(transactionId)) {
+            throw new BadRequestException("Property does not belong to this transaction");
+        }
+
+        String address = property.getAddress() != null ? property.getAddress().getStreet() : "Unknown";
+
+        propertyRepository.delete(property);
+
+        // Add timeline entry for property removal
+        String actorName = lookupUserName(brokerId);
+        TransactionInfo info = TransactionInfo.builder()
+                .actorName(actorName)
+                .address(address)
+                .build();
+        timelineService.addEntry(
+                transactionId,
+                brokerId,
+                TimelineEntryType.PROPERTY_REMOVED,
+                "Property removed: " + address,
+                null,
+                info);
+    }
+
+    @Override
+    public PropertyResponseDTO getPropertyById(UUID propertyId, UUID userId, boolean isBroker) {
+        Property property = propertyRepository.findByPropertyId(propertyId)
+                .orElseThrow(() -> new NotFoundException("Property not found"));
+
+        Transaction tx = repo.findByTransactionId(property.getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
+
+        return toPropertyResponseDTO(property, isBroker);
+    }
+
+    private PropertyResponseDTO toPropertyResponseDTO(Property property, boolean includeBrokerNotes) {
+        return PropertyResponseDTO.builder()
+                .propertyId(property.getPropertyId())
+                .transactionId(property.getTransactionId())
+                .address(property.getAddress())
+                .askingPrice(property.getAskingPrice())
+                .offerStatus(property.getOfferStatus())
+                .offerAmount(property.getOfferAmount())
+                .centrisNumber(property.getCentrisNumber())
+                .notes(includeBrokerNotes ? property.getNotes() : null)
+                .createdAt(property.getCreatedAt())
+                .updatedAt(property.getUpdatedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void setActiveProperty(UUID transactionId, UUID propertyId, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        Property property = propertyRepository.findByPropertyId(propertyId)
+                .orElseThrow(() -> new NotFoundException("Property not found"));
+
+        if (!property.getTransactionId().equals(transactionId)) {
+            throw new BadRequestException("Property does not belong to this transaction");
+        }
+
+        if (property.getAddress() == null) {
+            throw new BadRequestException("Property must have an address to be set as active");
+        }
+
+        // Update transaction address
+        tx.setPropertyAddress(property.getAddress());
+        repo.save(tx);
+        // No timeline entry for active property change on buy-side
     }
 }

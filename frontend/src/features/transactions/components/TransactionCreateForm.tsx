@@ -29,7 +29,8 @@ import type { TransactionRequestDTO } from '@/shared/api/types';
 import { getStagesForSide, getStageLabel } from '@/shared/utils/stages';
 import { logError, getErrorMessage } from '@/shared/utils/error-utils';
 import { useClientsForDisplay } from '@/features/clients';
-import { transactionCreateSchema, type TransactionCreateFormValues } from '@/shared/schemas';
+import { transactionCreateSchema, type TransactionCreateFormValues, normalizeTransactionFormData } from '@/shared/schemas';
+import { formatPostalCode } from '@/shared/utils/postal-code';
 
 interface TransactionCreateFormProps {
   onNavigate: (route: string) => void;
@@ -98,15 +99,18 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
 
   const onSubmit = async (data: TransactionCreateFormValues) => {
     try {
+      // Normalize postal code before submission
+      const normalized = normalizeTransactionFormData(data);
+
       const payload: TransactionRequestDTO = {
-        clientId: data.clientId,
-        side: data.transactionSide === "buy" ? "BUY_SIDE" : "SELL_SIDE",
-        initialStage: data.initialStage,
+        clientId: normalized.clientId,
+        side: normalized.transactionSide === "buy" ? "BUY_SIDE" : "SELL_SIDE",
+        initialStage: normalized.initialStage,
         propertyAddress: {
-          street: `${data.streetNumber.trim()} ${data.streetName.trim()}`,
-          city: data.city.trim(),
-          province: data.province.trim(),
-          postalCode: data.postalCode.trim(),
+          street: (normalized.streetNumber && normalized.streetName) ? `${normalized.streetNumber.trim()} ${normalized.streetName.trim()}` : "",
+          city: normalized.city?.trim() || "",
+          province: normalized.province?.trim() || "",
+          postalCode: normalized.postalCode || "",
         },
       };
 
@@ -288,87 +292,96 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
             </div>
           </div>
 
-          {/* Section 2: Property Address */}
-          <div className={`space-y-6 ${isModal ? '' : 'bg-card p-6 rounded-xl border border-border shadow-sm'}`}>
-            <h2 className="text-lg font-semibold text-foreground border-b border-border pb-2">
-              {t('propertyAddress')}
-            </h2>
+          {/* Section 2: Property Address (Only for Sell Side) */}
+          {transactionSide === 'sell' && (
+            <div className={`space-y-6 ${isModal ? '' : 'bg-card p-6 rounded-xl border border-border shadow-sm'}`}>
+              <h2 className="text-lg font-semibold text-foreground border-b border-border pb-2">
+                {t('propertyAddress')}
+              </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="md:col-span-1">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="md:col-span-1">
+                  <FormField
+                    control={form.control}
+                    name="streetNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('streetNumber')} <span className="text-destructive">*</span></FormLabel>
+                        <FormControl>
+                          <Input {...field} className="bg-background" />
+                        </FormControl>
+                        <FormMessage>{form.formState.errors.streetNumber?.message && t(form.formState.errors.streetNumber?.message)}</FormMessage>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="md:col-span-3">
+                  <FormField
+                    control={form.control}
+                    name="streetName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('streetName')} <span className="text-destructive">*</span></FormLabel>
+                        <FormControl>
+                          <Input {...field} className="bg-background" />
+                        </FormControl>
+                        <FormMessage>{form.formState.errors.streetName?.message && t(form.formState.errors.streetName?.message)}</FormMessage>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
-                  name="streetNumber"
+                  name="city"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('streetNumber')} <span className="text-destructive">*</span></FormLabel>
+                      <FormLabel>{t('city')} <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input {...field} className="bg-background" />
                       </FormControl>
-                      <FormMessage>{form.formState.errors.streetNumber?.message && t(form.formState.errors.streetNumber?.message)}</FormMessage>
+                      <FormMessage>{form.formState.errors.city?.message && t(form.formState.errors.city?.message)}</FormMessage>
                     </FormItem>
                   )}
                 />
-              </div>
-              <div className="md:col-span-3">
                 <FormField
                   control={form.control}
-                  name="streetName"
+                  name="province"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('streetName')} <span className="text-destructive">*</span></FormLabel>
+                      <FormLabel>{t('province')} <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input {...field} className="bg-background" />
                       </FormControl>
-                      <FormMessage>{form.formState.errors.streetName?.message && t(form.formState.errors.streetName?.message)}</FormMessage>
+                      <FormMessage>{form.formState.errors.province?.message && t(form.formState.errors.province?.message)}</FormMessage>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="postalCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('postalCode')} <span className="text-destructive">*</span></FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          className="bg-background"
+                          maxLength={7}
+                          placeholder="H1A 1A1"
+                          onChange={(e) => field.onChange(formatPostalCode(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage>{form.formState.errors.postalCode?.message && t(form.formState.errors.postalCode?.message)}</FormMessage>
                     </FormItem>
                   )}
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('city')} <span className="text-destructive">*</span></FormLabel>
-                    <FormControl>
-                      <Input {...field} className="bg-background" />
-                    </FormControl>
-                    <FormMessage>{form.formState.errors.city?.message && t(form.formState.errors.city?.message)}</FormMessage>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="province"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('province')} <span className="text-destructive">*</span></FormLabel>
-                    <FormControl>
-                      <Input {...field} className="bg-background" />
-                    </FormControl>
-                    <FormMessage>{form.formState.errors.province?.message && t(form.formState.errors.province?.message)}</FormMessage>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="postalCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('postalCode')} <span className="text-destructive">*</span></FormLabel>
-                    <FormControl>
-                      <Input {...field} className="bg-background" />
-                    </FormControl>
-                    <FormMessage>{form.formState.errors.postalCode?.message && t(form.formState.errors.postalCode?.message)}</FormMessage>
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
+          )}
 
           {/* Section 3: Initial Stage */}
           <div className={`space-y-6 ${isModal ? '' : 'bg-card p-6 rounded-xl border border-border shadow-sm'}`}>

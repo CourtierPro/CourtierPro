@@ -108,3 +108,68 @@ export function useRemoveParticipant() {
         },
     });
 }
+
+// ==================== PROPERTY MUTATIONS ====================
+
+import { propertyKeys } from '@/features/transactions/api/queries';
+import type { PropertyRequestDTO, Property } from '@/shared/api/types';
+
+export function useAddProperty() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, data }: { transactionId: string; data: PropertyRequestDTO }) => {
+            const res = await axiosInstance.post<Property>(`/transactions/${transactionId}/properties`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: propertyKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+export function useUpdateProperty() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, propertyId, data }: { transactionId: string; propertyId: string; data: PropertyRequestDTO }) => {
+            const res = await axiosInstance.put<Property>(`/transactions/${transactionId}/properties/${propertyId}`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: propertyKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: propertyKeys.detail(variables.transactionId, variables.propertyId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+export function useRemoveProperty() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, propertyId }: { transactionId: string; propertyId: string }) => {
+            await axiosInstance.delete(`/transactions/${transactionId}/properties/${propertyId}`);
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: propertyKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+export function useSetActiveProperty() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, propertyId }: { transactionId: string; propertyId: string }) => {
+            await axiosInstance.put(`/transactions/${transactionId}/active-property/${propertyId}`);
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
