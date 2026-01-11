@@ -622,6 +622,102 @@ class TransactionServiceImplTest {
                 .hasMessageContaining("You do not have access");
     }
 
+    @Test
+    void getByTransactionId_buySide_usesCentrisFromAcceptedProperty() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerUuid);
+        tx.setClientId(UUID.randomUUID());
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+        tx.setStatus(TransactionStatus.ACTIVE);
+        tx.setCentrisNumber("TX-CENTRIS"); // Transaction's own centris
+
+        // Create accepted property with different centris
+        com.example.courtierprobackend.transactions.datalayer.Property acceptedProperty = 
+            com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(UUID.randomUUID())
+                .transactionId(transactionId)
+                .offerStatus(com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus.ACCEPTED)
+                .centrisNumber("PROPERTY-CENTRIS")
+                .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId))
+                .thenReturn(List.of(acceptedProperty));
+
+        // Act
+        TransactionResponseDTO result = transactionService.getByTransactionId(transactionId, brokerUuid);
+
+        // Assert - Should use centris from accepted property, not from transaction
+        assertThat(result.getCentrisNumber()).isEqualTo("PROPERTY-CENTRIS");
+    }
+
+    @Test
+    void getByTransactionId_buySide_noAcceptedProperty_usesTransactionCentris() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerUuid);
+        tx.setClientId(UUID.randomUUID());
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+        tx.setStatus(TransactionStatus.ACTIVE);
+        tx.setCentrisNumber("TX-CENTRIS");
+
+        // Create property that is NOT accepted
+        com.example.courtierprobackend.transactions.datalayer.Property pendingProperty = 
+            com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(UUID.randomUUID())
+                .transactionId(transactionId)
+                .offerStatus(com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus.OFFER_MADE)
+                .centrisNumber("PROPERTY-CENTRIS")
+                .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId))
+                .thenReturn(List.of(pendingProperty));
+
+        // Act
+        TransactionResponseDTO result = transactionService.getByTransactionId(transactionId, brokerUuid);
+
+        // Assert - Should use transaction's centris since no accepted property
+        assertThat(result.getCentrisNumber()).isEqualTo("TX-CENTRIS");
+    }
+
+    @Test
+    void getByTransactionId_sellSide_usesTransactionCentris() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerUuid);
+        tx.setClientId(UUID.randomUUID());
+        tx.setSide(TransactionSide.SELL_SIDE);
+        tx.setSellerStage(SellerStage.SELLER_LISTING_PUBLISHED);
+        tx.setStatus(TransactionStatus.ACTIVE);
+        tx.setCentrisNumber("SELL-CENTRIS");
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act
+        TransactionResponseDTO result = transactionService.getByTransactionId(transactionId, brokerUuid);
+
+        // Assert - Should use transaction's centris for sell-side (not property lookup)
+        assertThat(result.getCentrisNumber()).isEqualTo("SELL-CENTRIS");
+        // Verify property lookup was NOT called for sell-side
+        verify(propertyRepository, never()).findByTransactionIdOrderByCreatedAtDesc(any());
+    }
+
     // ========== updateTransactionStage Tests ==========
 
     @Test

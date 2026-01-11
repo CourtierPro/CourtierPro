@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -64,6 +65,99 @@ class NotificationServiceImplTest {
                 verify(notificationRepository).save(notificationCaptor.capture());
                 assertThat(notificationCaptor.getValue().getType())
                                 .isEqualTo(com.example.courtierprobackend.notifications.datalayer.enums.NotificationType.GENERAL);
+        }
+
+        @Test
+        void createNotification_withI18nKeys_shouldSaveNotificationWithKeys() throws Exception {
+                // Arrange
+                String recipientId = UUID.randomUUID().toString();
+                String titleKey = "notifications.welcome.title";
+                String messageKey = "notifications.welcome.message";
+                Map<String, Object> params = Map.of("firstName", "John");
+                String relatedTransactionId = null;
+
+                when(objectMapper.writeValueAsString(params)).thenReturn("{\"firstName\":\"John\"}");
+
+                // Act
+                notificationService.createNotification(recipientId, titleKey, messageKey, params, relatedTransactionId,
+                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME);
+
+                // Assert
+                org.mockito.ArgumentCaptor<Notification> notificationCaptor = org.mockito.ArgumentCaptor
+                                .forClass(Notification.class);
+                verify(notificationRepository).save(notificationCaptor.capture());
+
+                Notification saved = notificationCaptor.getValue();
+                assertThat(saved.getTitleKey()).isEqualTo(titleKey);
+                assertThat(saved.getMessageKey()).isEqualTo(messageKey);
+                assertThat(saved.getParams()).isEqualTo("{\"firstName\":\"John\"}");
+                assertThat(saved.getCategory())
+                                .isEqualTo(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME);
+        }
+
+        @Test
+        void createNotification_withI18nKeysNullParams_shouldSaveWithoutParams() {
+                // Arrange
+                String recipientId = UUID.randomUUID().toString();
+                String titleKey = "notifications.welcome.title";
+                String messageKey = "notifications.welcome.message";
+
+                // Act - null params
+                notificationService.createNotification(recipientId, titleKey, messageKey, null, null,
+                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
+
+                // Assert
+                org.mockito.ArgumentCaptor<Notification> notificationCaptor = org.mockito.ArgumentCaptor
+                                .forClass(Notification.class);
+                verify(notificationRepository).save(notificationCaptor.capture());
+
+                Notification saved = notificationCaptor.getValue();
+                assertThat(saved.getTitleKey()).isEqualTo(titleKey);
+                assertThat(saved.getParams()).isNull();
+        }
+
+        @Test
+        void createNotification_withI18nKeysEmptyParams_shouldSaveWithoutParams() {
+                // Arrange
+                String recipientId = UUID.randomUUID().toString();
+                String titleKey = "notifications.test.title";
+                String messageKey = "notifications.test.message";
+
+                // Act - empty params map
+                notificationService.createNotification(recipientId, titleKey, messageKey, Map.of(), null,
+                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
+
+                // Assert
+                org.mockito.ArgumentCaptor<Notification> notificationCaptor = org.mockito.ArgumentCaptor
+                                .forClass(Notification.class);
+                verify(notificationRepository).save(notificationCaptor.capture());
+
+                Notification saved = notificationCaptor.getValue();
+                assertThat(saved.getParams()).isNull();
+        }
+
+        @Test
+        void createNotification_withI18nKeysJsonException_shouldSaveWithoutParams() throws Exception {
+                // Arrange
+                String recipientId = UUID.randomUUID().toString();
+                String titleKey = "notifications.test.title";
+                String messageKey = "notifications.test.message";
+                Map<String, Object> params = Map.of("key", "value");
+
+                when(objectMapper.writeValueAsString(params))
+                                .thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("Test error") {});
+
+                // Act - should not throw, just continue without params
+                notificationService.createNotification(recipientId, titleKey, messageKey, params, null,
+                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
+
+                // Assert
+                org.mockito.ArgumentCaptor<Notification> notificationCaptor = org.mockito.ArgumentCaptor
+                                .forClass(Notification.class);
+                verify(notificationRepository).save(notificationCaptor.capture());
+
+                Notification saved = notificationCaptor.getValue();
+                assertThat(saved.getParams()).isNull(); // Should be null due to exception
         }
 
         @Test
