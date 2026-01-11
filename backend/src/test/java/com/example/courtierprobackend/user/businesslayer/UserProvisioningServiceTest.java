@@ -421,11 +421,11 @@ class UserProvisioningServiceTest {
 
         // Assert - Verify welcome notification was sent for CLIENT
         verify(notificationService).createNotification(
-                eq(savedUser.getId()),
-                isNull(),
+                eq(savedUser.getId().toString()),
                 eq("notifications.welcome.title"),
                 eq("notifications.welcome.message"),
                 anyMap(),
+                isNull(),
                 eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME)
         );
     }
