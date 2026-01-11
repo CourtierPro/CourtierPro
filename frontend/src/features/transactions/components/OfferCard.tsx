@@ -7,7 +7,6 @@ import type { Offer, ReceivedOfferStatus } from '@/shared/api/types';
 interface OfferCardProps {
     offer: Offer;
     onClick?: () => void;
-    isReadOnly?: boolean;
 }
 
 const statusVariantMap: Record<ReceivedOfferStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {

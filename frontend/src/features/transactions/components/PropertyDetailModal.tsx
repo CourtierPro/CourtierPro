@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapPin, DollarSign, Tag, Pencil, Trash2 } from 'lucide-react';
+import { MapPin, Tag, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     Dialog,
@@ -116,25 +116,17 @@ export function PropertyDetailModal({
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <h4 className="text-sm font-medium text-muted-foreground">{t('askingPrice')}</h4>
-                                <div className="flex items-center gap-2">
-                                    <DollarSign className="w-4 h-4 text-muted-foreground" />
-                                    <span className="text-lg font-semibold text-foreground">
-                                        {formatCurrency(property.askingPrice)}
-                                    </span>
-                                </div>
+                                <span className="text-lg font-semibold text-foreground">
+                                    {formatCurrency(property.askingPrice)}
+                                </span>
                             </div>
 
-                            {property.offerAmount && (
-                                <div className="space-y-1">
-                                    <h4 className="text-sm font-medium text-muted-foreground">{t('offerAmount')}</h4>
-                                    <div className="flex items-center gap-2">
-                                        <DollarSign className="w-4 h-4 text-muted-foreground" />
-                                        <span className="text-lg font-semibold text-foreground">
-                                            {formatCurrency(property.offerAmount)}
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
+                            <div className="space-y-1">
+                                <h4 className="text-sm font-medium text-muted-foreground">{t('offerAmount')}</h4>
+                                <span className="text-lg font-semibold text-foreground">
+                                    {property.offerAmount ? formatCurrency(property.offerAmount) : t('pending')}
+                                </span>
+                            </div>
                         </div>
 
                         <Separator />

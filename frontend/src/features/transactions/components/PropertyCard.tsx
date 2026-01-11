@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { MapPin, DollarSign, Tag } from 'lucide-react';
+import { MapPin, Tag } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { Section } from '@/shared/components/branded/Section';
 import type { Property, PropertyOfferStatus } from '@/shared/api/types';
@@ -74,13 +74,10 @@ export function PropertyCard({ property, onClick, isActive }: PropertyCardProps)
                 {/* Price and Status Row */}
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 text-sm">
-                        <DollarSign className="w-4 h-4 text-muted-foreground" />
                         <span className="text-foreground font-semibold">{formatCurrency(property.askingPrice)}</span>
-                        {property.offerAmount && (
-                            <span className="text-muted-foreground">
-                                ({t('offerAmount')}: {formatCurrency(property.offerAmount)})
-                            </span>
-                        )}
+                        <span className="text-muted-foreground">
+                            {property.offerAmount ? formatCurrency(property.offerAmount) : 0}
+                        </span>
                     </div>
 
                     <Badge variant={statusConfig.variant} className={statusConfig.className}>

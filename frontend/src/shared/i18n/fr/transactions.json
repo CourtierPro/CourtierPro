@@ -361,5 +361,7 @@
   "timeline.offerRemovedDetail": "Offre retirée de {{buyerName}}",
   "timeline.propertyAdded": "Propriété ajoutée: {{address}}",
   "timeline.propertyUpdated": "Propriété mise à jour: {{address}}",
-  "timeline.propertyRemoved": "Propriété retirée: {{address}}"
+  "timeline.propertyRemoved": "Propriété retirée: {{address}}",
+  "setActive": "Définir actif",
+  "clearActiveProperty": "Effacer la sélection"
 }

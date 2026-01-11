@@ -231,6 +231,7 @@
   "timeline.propertyUpdated": "Property updated: {{address}}",
   "timeline.propertyRemoved": "Property removed: {{address}}",
   "setActive": "Set Active",
+  "clearActiveProperty": "Clear Selection",
   "add": "Add",
   "participantAdded": "Participant added successfully",
   "errorAddingParticipant": "Error adding participant",

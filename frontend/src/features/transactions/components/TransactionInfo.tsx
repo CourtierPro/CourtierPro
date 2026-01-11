@@ -9,7 +9,10 @@ interface TransactionInfoProps {
     hideClientLabel?: boolean;
 }
 
-function formatAddress(address: Transaction['propertyAddress']) {
+function formatAddress(address: Transaction['propertyAddress'] | null) {
+    if (!address || !address.street) {
+        return "No property selected";
+    }
     const street = address.street.trim();
     if (!street) {
         return "No property selected";
@@ -31,7 +34,7 @@ export function TransactionInfo({ transaction, hideClientLabel = false }: Transa
                     <h2 className="text-lg md:text-2xl font-bold text-foreground mb-1 md:mb-2 line-clamp-1">
                         {formatAddress(transaction.propertyAddress)}
                     </h2>
-                    {transaction.propertyAddress.street?.trim() && (
+                    {transaction.propertyAddress?.street?.trim() && (
                         <p className="text-sm md:text-base text-muted-foreground">
                             {transaction.propertyAddress.city}, {transaction.propertyAddress.province}{' '}
                             {transaction.propertyAddress.postalCode}

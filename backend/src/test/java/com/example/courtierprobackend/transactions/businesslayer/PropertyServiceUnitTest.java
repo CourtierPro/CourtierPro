@@ -576,5 +576,30 @@ class PropertyServiceUnitTest {
             assertThatThrownBy(() -> service.setActiveProperty(transactionId, propertyId, differentBrokerId))
                     .isInstanceOf(ForbiddenException.class);
         }
+
+        @Test
+        @DisplayName("should clear active property when propertyId is null")
+        void setActiveProperty_nullPropertyId_clearsActiveProperty() {
+            UUID transactionId = UUID.randomUUID();
+
+            Transaction tx = new Transaction();
+            tx.setTransactionId(transactionId);
+            tx.setBrokerId(brokerId);
+            tx.setSide(TransactionSide.BUY_SIDE);
+            tx.setPropertyAddress(new PropertyAddress("123 Main St", "Montreal", "QC", "H1A 1A1"));
+            tx.setStatus(TransactionStatus.ACTIVE);
+
+            when(transactionRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.of(tx));
+            when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // Act - pass null propertyId
+            service.setActiveProperty(transactionId, null, brokerId);
+
+            // Assert
+            ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+            verify(transactionRepository).save(captor.capture());
+            assertThat(captor.getValue().getPropertyAddress()).isNull();
+        }
     }
 }

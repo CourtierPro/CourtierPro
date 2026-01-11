@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Home } from 'lucide-react';
+import { Plus, Home, X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { LoadingState } from '@/shared/components/branded/LoadingState';
 import { ErrorState } from '@/shared/components/branded/ErrorState';
@@ -10,7 +10,7 @@ import { PropertyCard } from './PropertyCard';
 import { PropertyDetailModal } from './PropertyDetailModal';
 import { AddPropertyModal } from './AddPropertyModal';
 import { useTransactionProperties } from '@/features/transactions/api/queries';
-import { useSetActiveProperty } from '@/features/transactions/api/mutations';
+import { useSetActiveProperty, useClearActiveProperty } from '@/features/transactions/api/mutations';
 import type { Property } from '@/shared/api/types';
 
 interface PropertyListProps {
@@ -24,6 +24,7 @@ export function PropertyList({ transactionId, isReadOnly = false, onTransactionU
     const { t } = useTranslation('transactions');
     const { data: properties, isLoading, error, refetch } = useTransactionProperties(transactionId);
     const { mutate: setActiveProperty } = useSetActiveProperty();
+    const { mutate: clearActiveProperty } = useClearActiveProperty();
 
     const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -97,12 +98,28 @@ export function PropertyList({ transactionId, isReadOnly = false, onTransactionU
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">{t('properties')}</h3>
-                {!isReadOnly && (
-                    <Button onClick={() => setIsAddModalOpen(true)} size="sm" className="gap-2">
-                        <Plus className="w-4 h-4" />
-                        {t('addProperty')}
-                    </Button>
-                )}
+                <div className="flex gap-2">
+                    {!isReadOnly && currentTransactionAddress?.street && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => {
+                                clearActiveProperty({ transactionId });
+                                onTransactionUpdate?.();
+                            }}
+                        >
+                            <X className="w-4 h-4" />
+                            {t('clearActiveProperty')}
+                        </Button>
+                    )}
+                    {!isReadOnly && (
+                        <Button onClick={() => setIsAddModalOpen(true)} size="sm" className="gap-2">
+                            <Plus className="w-4 h-4" />
+                            {t('addProperty')}
+                        </Button>
+                    )}
+                </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

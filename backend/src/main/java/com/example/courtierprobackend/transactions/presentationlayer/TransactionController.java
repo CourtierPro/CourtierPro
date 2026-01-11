@@ -295,6 +295,17 @@ public class TransactionController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/{transactionId}/active-property")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<Void> clearActiveProperty(
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        service.setActiveProperty(transactionId, null, brokerId);
+        return ResponseEntity.noContent().build();
+    }
+
     // ==================== OFFER ENDPOINTS ====================
 
     @GetMapping("/{transactionId}/offers")

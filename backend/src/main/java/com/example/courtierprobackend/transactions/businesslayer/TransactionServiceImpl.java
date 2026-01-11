@@ -846,6 +846,13 @@ public class TransactionServiceImpl implements TransactionService {
 
         TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
 
+        // If propertyId is null, clear the active property
+        if (propertyId == null) {
+            tx.setPropertyAddress(null);
+            repo.save(tx);
+            return;
+        }
+
         Property property = propertyRepository.findByPropertyId(propertyId)
                 .orElseThrow(() -> new NotFoundException("Property not found"));
 

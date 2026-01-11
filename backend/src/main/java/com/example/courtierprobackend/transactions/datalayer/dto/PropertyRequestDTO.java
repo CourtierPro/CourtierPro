@@ -30,6 +30,7 @@ public class PropertyRequestDTO {
     @PositiveOrZero(message = "Offer amount must be zero or positive")
     private BigDecimal offerAmount;
 
+    @jakarta.validation.constraints.Pattern(regexp = "^[0-9]{8}$", message = "Centris number must be exactly 8 digits")
     private String centrisNumber;
 
     private String notes;

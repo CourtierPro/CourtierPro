@@ -174,6 +174,21 @@ export function useSetActiveProperty() {
     });
 }
 
+export function useClearActiveProperty() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId }: { transactionId: string }) => {
+            await axiosInstance.delete(`/transactions/${transactionId}/active-property`);
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
 // ==================== OFFER MUTATIONS ====================
 
 import { offerKeys } from '@/features/transactions/api/queries';
