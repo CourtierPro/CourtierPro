@@ -23,6 +23,10 @@ public class TransactionRequestDTO {
     // Optional for now — per your DDD, address may be filled later
     private PropertyAddress propertyAddress;
 
+    // Centris Number for sell-side transactions
+    private String centrisNumber;
+
     @NotBlank(message = "initialStage is required")
     private String initialStage;
 }
+

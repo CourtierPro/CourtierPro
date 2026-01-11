@@ -104,7 +104,9 @@ export function TransactionTable({ transactions, onNavigate, pinnedIds }: Transa
                                     <td className="p-4 text-foreground">
                                         <div className="flex items-center gap-2">
                                             <Home className="w-4 h-4 text-muted-foreground/50" />
-                                            {transaction.propertyAddress?.street}
+                                            {transaction.propertyAddress?.street || (
+                                                <span className="text-muted-foreground italic">{t('noPropertySelected')}</span>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="p-4">

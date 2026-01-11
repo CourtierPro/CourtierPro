@@ -77,11 +77,15 @@ class TransactionServiceImplTest {
     @Mock
     private com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository propertyRepository;
 
+    @Mock
+    private com.example.courtierprobackend.transactions.datalayer.repositories.OfferRepository offerRepository;
+
+
     @BeforeEach
     void setup() {
         transactionService = new TransactionServiceImpl(transactionRepository, pinnedTransactionRepository,
                 userAccountRepository, emailService,
-                notificationService, timelineService, participantRepository, propertyRepository);
+                notificationService, timelineService, participantRepository, propertyRepository, offerRepository);
         lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
     }
 
@@ -137,10 +141,11 @@ class TransactionServiceImplTest {
         verify(transactionRepository).save(any(Transaction.class));
         verify(notificationService).createNotification(
                 eq(dto.getClientId().toString()),
-                eq("Welcome to CourtierPro!"),
+                eq("notifications.transactionCreated.title"),
+                eq("notifications.transactionCreated.message"),
+                any(java.util.Map.class),
                 anyString(),
-                anyString(),
-                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME));
+                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL));
     }
 
     @Test
@@ -159,9 +164,9 @@ class TransactionServiceImplTest {
                         dto.getPropertyAddress().getProvince(), dto.getPropertyAddress().getPostalCode()));
         when(transactionRepository.save(any(Transaction.class))).thenReturn(expectedTx);
 
-        // Simulate Notification exception
+        // Simulate Notification exception - use the i18n version with Map
         doThrow(new RuntimeException("Notification Error")).when(notificationService)
-                .createNotification(anyString(), anyString(), anyString(), anyString(), any());
+                .createNotification(anyString(), anyString(), anyString(), any(java.util.Map.class), anyString(), any());
 
         // Act
         TransactionResponseDTO result = transactionService.createTransaction(dto);
@@ -170,7 +175,7 @@ class TransactionServiceImplTest {
         assertThat(result).isNotNull();
         verify(transactionRepository).save(any(Transaction.class));
         // Verify notification service WAS called (but failed)
-        verify(notificationService).createNotification(anyString(), anyString(), anyString(), anyString(), any());
+        verify(notificationService).createNotification(anyString(), anyString(), anyString(), any(java.util.Map.class), anyString(), any());
     }
 
     @Test
@@ -615,6 +620,102 @@ class TransactionServiceImplTest {
         assertThatThrownBy(() -> transactionService.getByTransactionId(UUID.randomUUID(), UUID.randomUUID()))
                 .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("You do not have access");
+    }
+
+    @Test
+    void getByTransactionId_buySide_usesCentrisFromAcceptedProperty() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerUuid);
+        tx.setClientId(UUID.randomUUID());
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+        tx.setStatus(TransactionStatus.ACTIVE);
+        tx.setCentrisNumber("TX-CENTRIS"); // Transaction's own centris
+
+        // Create accepted property with different centris
+        com.example.courtierprobackend.transactions.datalayer.Property acceptedProperty = 
+            com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(UUID.randomUUID())
+                .transactionId(transactionId)
+                .offerStatus(com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus.ACCEPTED)
+                .centrisNumber("PROPERTY-CENTRIS")
+                .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId))
+                .thenReturn(List.of(acceptedProperty));
+
+        // Act
+        TransactionResponseDTO result = transactionService.getByTransactionId(transactionId, brokerUuid);
+
+        // Assert - Should use centris from accepted property, not from transaction
+        assertThat(result.getCentrisNumber()).isEqualTo("PROPERTY-CENTRIS");
+    }
+
+    @Test
+    void getByTransactionId_buySide_noAcceptedProperty_usesTransactionCentris() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerUuid);
+        tx.setClientId(UUID.randomUUID());
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+        tx.setStatus(TransactionStatus.ACTIVE);
+        tx.setCentrisNumber("TX-CENTRIS");
+
+        // Create property that is NOT accepted
+        com.example.courtierprobackend.transactions.datalayer.Property pendingProperty = 
+            com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(UUID.randomUUID())
+                .transactionId(transactionId)
+                .offerStatus(com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus.OFFER_MADE)
+                .centrisNumber("PROPERTY-CENTRIS")
+                .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId))
+                .thenReturn(List.of(pendingProperty));
+
+        // Act
+        TransactionResponseDTO result = transactionService.getByTransactionId(transactionId, brokerUuid);
+
+        // Assert - Should use transaction's centris since no accepted property
+        assertThat(result.getCentrisNumber()).isEqualTo("TX-CENTRIS");
+    }
+
+    @Test
+    void getByTransactionId_sellSide_usesTransactionCentris() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerUuid = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerUuid);
+        tx.setClientId(UUID.randomUUID());
+        tx.setSide(TransactionSide.SELL_SIDE);
+        tx.setSellerStage(SellerStage.SELLER_LISTING_PUBLISHED);
+        tx.setStatus(TransactionStatus.ACTIVE);
+        tx.setCentrisNumber("SELL-CENTRIS");
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act
+        TransactionResponseDTO result = transactionService.getByTransactionId(transactionId, brokerUuid);
+
+        // Assert - Should use transaction's centris for sell-side (not property lookup)
+        assertThat(result.getCentrisNumber()).isEqualTo("SELL-CENTRIS");
+        // Verify property lookup was NOT called for sell-side
+        verify(propertyRepository, never()).findByTransactionIdOrderByCreatedAtDesc(any());
     }
 
     // ========== updateTransactionStage Tests ==========

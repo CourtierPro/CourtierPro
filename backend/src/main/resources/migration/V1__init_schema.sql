@@ -56,6 +56,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     city VARCHAR(255),
     province VARCHAR(255),
     postal_code VARCHAR(20),
+    -- Centris Number (for sell-side transactions)
+    centris_number VARCHAR(50),
     -- Enums stored as strings
     side VARCHAR(50),
     buyer_stage VARCHAR(50),
@@ -102,6 +104,10 @@ CREATE TABLE IF NOT EXISTS timeline_entries (
     stage VARCHAR(100),
     previous_stage VARCHAR(100),
     new_stage VARCHAR(100),
+    -- Offer-related TransactionInfo fields
+    buyer_name VARCHAR(255),
+    offer_amount NUMERIC(12, 2),
+    offer_status VARCHAR(50),
     -- Soft Delete Columns
     deleted_at TIMESTAMP,
     deleted_by UUID,
@@ -186,6 +192,9 @@ CREATE TABLE notifications (
     recipient_id VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
+    title_key VARCHAR(255),
+    message_key VARCHAR(255),
+    params TEXT,
     is_read BOOLEAN DEFAULT FALSE NOT NULL,
     related_transaction_id VARCHAR(255),
     type VARCHAR(50) NOT NULL DEFAULT 'GENERAL',
@@ -367,3 +376,29 @@ CREATE INDEX IF NOT EXISTS idx_properties_transaction_id ON properties(transacti
 CREATE INDEX IF NOT EXISTS idx_properties_property_id ON properties(property_id);
 CREATE INDEX IF NOT EXISTS idx_properties_offer_status ON properties(offer_status);
 CREATE INDEX IF NOT EXISTS idx_properties_centris_number ON properties(centris_number);
+
+-- =============================================================================
+-- OFFERS (for seller transactions - tracking offers from potential buyers)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS offers (
+    id BIGSERIAL PRIMARY KEY,
+    offer_id UUID NOT NULL UNIQUE,
+    transaction_id UUID NOT NULL,
+    buyer_name VARCHAR(255) NOT NULL,
+    offer_amount DECIMAL(15,2),
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    notes TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    
+    CONSTRAINT fk_offers_transaction 
+        FOREIGN KEY (transaction_id) 
+        REFERENCES transactions(transaction_id)
+        ON DELETE CASCADE,
+    CONSTRAINT chk_sell_offer_status 
+        CHECK (status IN ('PENDING', 'UNDER_REVIEW', 'COUNTERED', 'ACCEPTED', 'DECLINED'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_offers_transaction_id ON offers(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_offers_offer_id ON offers(offer_id);
+CREATE INDEX IF NOT EXISTS idx_offers_status ON offers(status);

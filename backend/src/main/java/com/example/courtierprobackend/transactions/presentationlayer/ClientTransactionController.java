@@ -6,6 +6,7 @@ import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -87,6 +88,38 @@ public class ClientTransactionController {
         UUID validatedClientId = resolveAndValidateClientId(request, clientId);
         // isBroker = false means broker notes will be stripped
         return ResponseEntity.ok(service.getPropertyById(propertyId, validatedClientId, false));
+    }
+
+    // ==================== OFFER ENDPOINTS (CLIENT - READ ONLY) ====================
+
+    /**
+     * Get all offers for a transaction (read-only, no broker notes).
+     * Only applicable for sell-side transactions.
+     */
+    @GetMapping("/{clientId}/transactions/{transactionId}/offers")
+    public ResponseEntity<List<OfferResponseDTO>> getTransactionOffers(
+            @PathVariable UUID clientId,
+            @PathVariable UUID transactionId,
+            HttpServletRequest request
+    ) {
+        UUID validatedClientId = resolveAndValidateClientId(request, clientId);
+        // isBroker = false means broker notes will be stripped
+        return ResponseEntity.ok(service.getOffers(transactionId, validatedClientId, false));
+    }
+
+    /**
+     * Get a single offer by ID (read-only, no broker notes).
+     */
+    @GetMapping("/{clientId}/transactions/{transactionId}/offers/{offerId}")
+    public ResponseEntity<OfferResponseDTO> getOfferById(
+            @PathVariable UUID clientId,
+            @PathVariable UUID transactionId,
+            @PathVariable UUID offerId,
+            HttpServletRequest request
+    ) {
+        UUID validatedClientId = resolveAndValidateClientId(request, clientId);
+        // isBroker = false means broker notes will be stripped
+        return ResponseEntity.ok(service.getOfferById(offerId, validatedClientId, false));
     }
 }
 

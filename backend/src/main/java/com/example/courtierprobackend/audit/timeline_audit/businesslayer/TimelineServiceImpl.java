@@ -33,7 +33,9 @@ public class TimelineServiceImpl implements TimelineService {
     @Override
     public void addEntry(UUID transactionId, UUID actorId, TimelineEntryType type, String note, String docType, TransactionInfo transactionInfo) {
         boolean visibleToClient = switch (type) {
-            case CREATED, DOCUMENT_REQUESTED, DOCUMENT_SUBMITTED, DOCUMENT_APPROVED, DOCUMENT_NEEDS_REVISION, STAGE_CHANGE -> true;
+            case CREATED, DOCUMENT_REQUESTED, DOCUMENT_SUBMITTED, DOCUMENT_APPROVED, DOCUMENT_NEEDS_REVISION, STAGE_CHANGE,
+                 PROPERTY_ADDED, PROPERTY_UPDATED, PROPERTY_REMOVED,
+                 OFFER_RECEIVED, OFFER_UPDATED, OFFER_REMOVED -> true;
             default -> false;
         };
         TimelineEntry entry = TimelineEntry.builder()

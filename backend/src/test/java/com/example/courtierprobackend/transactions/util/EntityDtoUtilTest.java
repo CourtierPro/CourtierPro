@@ -60,6 +60,44 @@ class EntityDtoUtilTest {
     }
 
     @Test
+    void toResponse_withCentrisNumberOverride_useOverride() {
+        // Arrange
+        Transaction tx = new Transaction();
+        tx.setTransactionId(UUID.randomUUID());
+        tx.setClientId(UUID.randomUUID());
+        tx.setBrokerId(UUID.randomUUID());
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+        tx.setStatus(TransactionStatus.ACTIVE);
+        tx.setCentrisNumber("12345678"); // Transaction's own centris
+
+        // Act - Use overloaded method with a different centris number
+        TransactionResponseDTO result = EntityDtoUtil.toResponse(tx, "Test Client", "87654321");
+
+        // Assert - Should use the override, not the transaction's centris
+        assertThat(result.getCentrisNumber()).isEqualTo("87654321");
+    }
+
+    @Test
+    void toResponse_withCentrisNumberOverrideNull_usesNull() {
+        // Arrange
+        Transaction tx = new Transaction();
+        tx.setTransactionId(UUID.randomUUID());
+        tx.setClientId(UUID.randomUUID());
+        tx.setBrokerId(UUID.randomUUID());
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+        tx.setStatus(TransactionStatus.ACTIVE);
+        tx.setCentrisNumber("12345678");
+
+        // Act - Pass null as override
+        TransactionResponseDTO result = EntityDtoUtil.toResponse(tx, "Test Client", null);
+
+        // Assert - Should use null when override is null
+        assertThat(result.getCentrisNumber()).isNull();
+    }
+
+    @Test
     void toResponse_withSellerSideTransaction_mapsCorrectly() {
         // Arrange
         Transaction tx = new Transaction();

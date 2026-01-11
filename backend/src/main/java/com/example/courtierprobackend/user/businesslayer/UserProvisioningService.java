@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -31,17 +32,20 @@ public class UserProvisioningService {
     private final UserMapper userMapper;
     private final OrganizationSettingsService organizationSettingsService;
     private final EmailService emailService;
+    private final com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
 
     public UserProvisioningService(UserAccountRepository userAccountRepository,
                                    Auth0ManagementClient auth0ManagementClient,
                                    UserMapper userMapper,
                                    OrganizationSettingsService organizationSettingsService,
-                                   EmailService emailService) {
+                                   EmailService emailService,
+                                   com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService) {
         this.userAccountRepository = userAccountRepository;
         this.auth0ManagementClient = auth0ManagementClient;
         this.userMapper = userMapper;
         this.organizationSettingsService = organizationSettingsService;
         this.emailService = emailService;
+        this.notificationService = notificationService;
     }
 
 
@@ -108,6 +112,22 @@ public class UserProvisioningService {
             // The admin can resend the invite later if needed
             logger.warn("User created (Auth0 id: {}) but password setup email could not be sent to {}: {}",
                     auth0UserId, request.getEmail(), e.getMessage());
+        }
+
+        // Send welcome notification for CLIENT users
+        if (role == UserRole.CLIENT) {
+            try {
+                notificationService.createNotification(
+                        saved.getId().toString(),
+                        "notifications.welcome.title",
+                        "notifications.welcome.message",
+                        Map.of(),
+                        null,
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME
+                );
+            } catch (Exception e) {
+                logger.warn("Failed to send welcome notification for new client {}: {}", saved.getId(), e.getMessage());
+            }
         }
 
         return userMapper.toResponse(saved);

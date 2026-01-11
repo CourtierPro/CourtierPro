@@ -17,6 +17,8 @@ export const NotificationCategory = {
     DOCUMENT_REJECTED: 'DOCUMENT_REJECTED',
     STAGE_UPDATE: 'STAGE_UPDATE',
     TRANSACTION_CANCELLED: 'TRANSACTION_CANCELLED',
+    PROPERTY_ADDED: 'PROPERTY_ADDED',
+    OFFER_RECEIVED: 'OFFER_RECEIVED',
     BROADCAST: 'BROADCAST',
     GENERAL: 'GENERAL',
 } as const;
@@ -27,6 +29,9 @@ export interface NotificationResponseDTO {
     publicId: string;
     title: string;
     message: string;
+    titleKey?: string;
+    messageKey?: string;
+    params?: string; // JSON string with parameters
     read: boolean;
     relatedTransactionId: string | null;
     type: NotificationType;

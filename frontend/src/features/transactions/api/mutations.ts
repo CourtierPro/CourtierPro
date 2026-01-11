@@ -173,3 +173,68 @@ export function useSetActiveProperty() {
         },
     });
 }
+
+export function useClearActiveProperty() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId }: { transactionId: string }) => {
+            await axiosInstance.delete(`/transactions/${transactionId}/active-property`);
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+// ==================== OFFER MUTATIONS ====================
+
+import { offerKeys } from '@/features/transactions/api/queries';
+import type { OfferRequestDTO, Offer } from '@/shared/api/types';
+
+export function useAddOffer() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, data }: { transactionId: string; data: OfferRequestDTO }) => {
+            const res = await axiosInstance.post<Offer>(`/transactions/${transactionId}/offers`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: offerKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+export function useUpdateOffer() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, offerId, data }: { transactionId: string; offerId: string; data: OfferRequestDTO }) => {
+            const res = await axiosInstance.put<Offer>(`/transactions/${transactionId}/offers/${offerId}`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: offerKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: offerKeys.detail(variables.transactionId, variables.offerId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+export function useRemoveOffer() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, offerId }: { transactionId: string; offerId: string }) => {
+            await axiosInstance.delete(`/transactions/${transactionId}/offers/${offerId}`);
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: offerKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}

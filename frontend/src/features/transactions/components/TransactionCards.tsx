@@ -80,7 +80,9 @@ export function TransactionCards({ transactions, onNavigate, pinnedIds }: Transa
                                 <div className="flex items-start gap-2">
                                     <Home className="w-4 h-4 flex-shrink-0 mt-1 text-muted-foreground/50" />
                                     <p className="text-sm text-muted-foreground">
-                                        {transaction.propertyAddress?.street}
+                                        {transaction.propertyAddress?.street || (
+                                            <span className="italic">{t('noPropertySelected')}</span>
+                                        )}
                                     </p>
                                 </div>
 

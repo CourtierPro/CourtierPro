@@ -51,6 +51,9 @@ class UserProvisioningServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
+
     @InjectMocks
     private UserProvisioningService service;
 
@@ -376,5 +379,98 @@ class UserProvisioningServiceTest {
                 .hasMessageContaining("User has no Auth0 ID");
                 
         verify(emailService, never()).sendPasswordSetupEmail(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void createUser_ClientRole_SendsWelcomeNotification() {
+        // Arrange
+        CreateUserRequest request = CreateUserRequest.builder()
+                .email("client@test.com")
+                .firstName("Client")
+                .lastName("User")
+                .role("CLIENT")
+                .preferredLanguage("en")
+                .build();
+
+        OrganizationSettingsResponseModel orgSettings = OrganizationSettingsResponseModel.builder()
+                .defaultLanguage("en")
+                .build();
+
+        UserAccount savedUser = new UserAccount("auth0|client", "client@test.com", "Client", "User", UserRole.CLIENT, "en");
+
+        UserResponse userResponse = UserResponse.builder()
+                .id(savedUser.getId().toString())
+                .email("client@test.com")
+                .firstName("Client")
+                .lastName("User")
+                .role("CLIENT")
+                .active(true)
+                .build();
+
+        when(organizationSettingsService.getSettings()).thenReturn(orgSettings);
+        when(auth0ManagementClient.createUser(anyString(), anyString(), anyString(), any(UserRole.class), anyString()))
+                .thenReturn("auth0|client");
+        when(auth0ManagementClient.createPasswordChangeTicket(anyString())).thenReturn("https://password-url.com");
+        when(emailService.sendPasswordSetupEmail(anyString(), anyString(), anyString())).thenReturn(true);
+        when(userMapper.toNewUserEntity(any(CreateUserRequest.class), anyString())).thenReturn(savedUser);
+        when(userAccountRepository.save(any(UserAccount.class))).thenReturn(savedUser);
+        when(userMapper.toResponse(savedUser)).thenReturn(userResponse);
+
+        // Act
+        service.createUser(request);
+
+        // Assert - Verify welcome notification was sent for CLIENT
+        verify(notificationService).createNotification(
+                eq(savedUser.getId().toString()),
+                eq("notifications.welcome.title"),
+                eq("notifications.welcome.message"),
+                anyMap(),
+                isNull(),
+                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME)
+        );
+    }
+
+    @Test
+    void createUser_BrokerRole_DoesNotSendWelcomeNotification() {
+        // Arrange
+        CreateUserRequest request = CreateUserRequest.builder()
+                .email("broker@test.com")
+                .firstName("Broker")
+                .lastName("User")
+                .role("BROKER")
+                .preferredLanguage("en")
+                .build();
+
+        OrganizationSettingsResponseModel orgSettings = OrganizationSettingsResponseModel.builder()
+                .defaultLanguage("en")
+                .build();
+
+        UserAccount savedUser = new UserAccount("auth0|broker", "broker@test.com", "Broker", "User", UserRole.BROKER, "en");
+
+        UserResponse userResponse = UserResponse.builder()
+                .id(savedUser.getId().toString())
+                .email("broker@test.com")
+                .firstName("Broker")
+                .lastName("User")
+                .role("BROKER")
+                .active(true)
+                .build();
+
+        when(organizationSettingsService.getSettings()).thenReturn(orgSettings);
+        when(auth0ManagementClient.createUser(anyString(), anyString(), anyString(), any(UserRole.class), anyString()))
+                .thenReturn("auth0|broker");
+        when(auth0ManagementClient.createPasswordChangeTicket(anyString())).thenReturn("https://password-url.com");
+        when(emailService.sendPasswordSetupEmail(anyString(), anyString(), anyString())).thenReturn(true);
+        when(userMapper.toNewUserEntity(any(CreateUserRequest.class), anyString())).thenReturn(savedUser);
+        when(userAccountRepository.save(any(UserAccount.class))).thenReturn(savedUser);
+        when(userMapper.toResponse(savedUser)).thenReturn(userResponse);
+
+        // Act
+        service.createUser(request);
+
+        // Assert - Verify NO welcome notification was sent for BROKER
+        verify(notificationService, never()).createNotification(
+                any(), any(), any(), any(), any(), any()
+        );
     }
 }

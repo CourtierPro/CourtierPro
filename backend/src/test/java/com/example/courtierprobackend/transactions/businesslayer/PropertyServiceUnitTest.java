@@ -9,11 +9,12 @@ import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
-import com.example.courtierprobackend.transactions.datalayer.enums.OfferStatus;
+import com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus;
 import com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
+import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,6 +37,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.*;
 
 /**
@@ -58,6 +60,9 @@ class PropertyServiceUnitTest {
 
     @Mock
     private UserAccountRepository userAccountRepository;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private TransactionServiceImpl service;
@@ -100,7 +105,7 @@ class PropertyServiceUnitTest {
                 .transactionId(transactionId)
                 .address(new PropertyAddress("789 Pine St", "Laval", "QC", "H3C 3C3"))
                 .askingPrice(BigDecimal.valueOf(500000))
-                .offerStatus(OfferStatus.OFFER_TO_BE_MADE)
+                .offerStatus(PropertyOfferStatus.OFFER_TO_BE_MADE)
                 .offerAmount(null)
                 .centrisNumber("12345678")
                 .notes("Test notes")
@@ -111,7 +116,7 @@ class PropertyServiceUnitTest {
         validPropertyRequest = PropertyRequestDTO.builder()
                 .address(new PropertyAddress("789 Pine St", "Laval", "QC", "H3C 3C3"))
                 .askingPrice(BigDecimal.valueOf(500000))
-                .offerStatus(OfferStatus.OFFER_TO_BE_MADE)
+                .offerStatus(PropertyOfferStatus.OFFER_TO_BE_MADE)
                 .centrisNumber("12345678")
                 .notes("Test notes")
                 .build();
@@ -139,8 +144,8 @@ class PropertyServiceUnitTest {
         }
 
         @Test
-        @DisplayName("should return properties without notes for client")
-        void getProperties_asClient_returnsPropertiesWithoutNotes() {
+        @DisplayName("should return properties with notes for client")
+        void getProperties_asClient_returnsPropertiesWithNotes() {
             when(transactionRepository.findByTransactionId(transactionId))
                     .thenReturn(Optional.of(buySideTransaction));
             when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId))
@@ -149,7 +154,7 @@ class PropertyServiceUnitTest {
             List<PropertyResponseDTO> result = service.getProperties(transactionId, clientId, false);
 
             assertThat(result).hasSize(1);
-            assertThat(result.get(0).getNotes()).isNull();
+            assertThat(result.get(0).getNotes()).isEqualTo(testProperty.getNotes());
             assertThat(result.get(0).getPropertyId()).isEqualTo(propertyId);
         }
 
@@ -211,11 +216,19 @@ class PropertyServiceUnitTest {
             assertThat(result).isNotNull();
             assertThat(result.getAddress().getStreet()).isEqualTo("789 Pine St");
             assertThat(result.getAskingPrice()).isEqualByComparingTo(BigDecimal.valueOf(500000));
-            assertThat(result.getOfferStatus()).isEqualTo(OfferStatus.OFFER_TO_BE_MADE);
+            assertThat(result.getOfferStatus()).isEqualTo(PropertyOfferStatus.OFFER_TO_BE_MADE);
             assertThat(result.getNotes()).isEqualTo("Test notes");
 
             verify(propertyRepository).save(any(Property.class));
             verify(timelineService).addEntry(any(), any(), any(), any(), any(), any());
+            verify(notificationService).createNotification(
+                    eq(clientId.toString()),
+                    eq("notifications.propertyAdded.title"),
+                    eq("notifications.propertyAdded.message"),
+                    any(java.util.Map.class),
+                    eq(transactionId.toString()),
+                    any()
+            );
         }
 
         @Test
@@ -267,7 +280,7 @@ class PropertyServiceUnitTest {
 
             PropertyResponseDTO result = service.addProperty(transactionId, requestWithoutStatus, brokerId);
 
-            assertThat(result.getOfferStatus()).isEqualTo(OfferStatus.OFFER_TO_BE_MADE);
+            assertThat(result.getOfferStatus()).isEqualTo(PropertyOfferStatus.OFFER_TO_BE_MADE);
         }
     }
 
@@ -283,7 +296,7 @@ class PropertyServiceUnitTest {
             PropertyRequestDTO updateRequest = PropertyRequestDTO.builder()
                     .address(new PropertyAddress("Updated Street", "Montreal", "QC", "H4D 4D4"))
                     .askingPrice(BigDecimal.valueOf(550000))
-                    .offerStatus(OfferStatus.OFFER_MADE)
+                    .offerStatus(PropertyOfferStatus.OFFER_MADE)
                     .offerAmount(BigDecimal.valueOf(525000))
                     .build();
 
@@ -298,7 +311,7 @@ class PropertyServiceUnitTest {
 
             assertThat(result.getAddress().getStreet()).isEqualTo("Updated Street");
             assertThat(result.getAskingPrice()).isEqualByComparingTo(BigDecimal.valueOf(550000));
-            assertThat(result.getOfferStatus()).isEqualTo(OfferStatus.OFFER_MADE);
+            assertThat(result.getOfferStatus()).isEqualTo(PropertyOfferStatus.OFFER_MADE);
             assertThat(result.getOfferAmount()).isEqualByComparingTo(BigDecimal.valueOf(525000));
 
             verify(timelineService).addEntry(any(), any(), any(), any(), any(), any());
@@ -350,7 +363,7 @@ class PropertyServiceUnitTest {
             PropertyRequestDTO sameStatusRequest = PropertyRequestDTO.builder()
                     .address(new PropertyAddress("Updated Street", "Montreal", "QC", "H4D 4D4"))
                     .askingPrice(BigDecimal.valueOf(550000))
-                    .offerStatus(OfferStatus.OFFER_TO_BE_MADE) // Same as current
+                    .offerStatus(PropertyOfferStatus.OFFER_TO_BE_MADE) // Same as current
                     .build();
 
             when(transactionRepository.findByTransactionId(transactionId))
@@ -448,8 +461,8 @@ class PropertyServiceUnitTest {
         }
 
         @Test
-        @DisplayName("should return property without notes for client")
-        void getPropertyById_asClient_returnsPropertyWithoutNotes() {
+        @DisplayName("should return property with notes for client")
+        void getPropertyById_asClient_returnsPropertyWithNotes() {
             when(propertyRepository.findByPropertyId(propertyId))
                     .thenReturn(Optional.of(testProperty));
             when(transactionRepository.findByTransactionId(transactionId))
@@ -458,7 +471,7 @@ class PropertyServiceUnitTest {
             PropertyResponseDTO result = service.getPropertyById(propertyId, clientId, false);
 
             assertThat(result).isNotNull();
-            assertThat(result.getNotes()).isNull();
+            assertThat(result.getNotes()).isEqualTo(testProperty.getNotes());
         }
 
         @Test
@@ -562,6 +575,31 @@ class PropertyServiceUnitTest {
 
             assertThatThrownBy(() -> service.setActiveProperty(transactionId, propertyId, differentBrokerId))
                     .isInstanceOf(ForbiddenException.class);
+        }
+
+        @Test
+        @DisplayName("should clear active property when propertyId is null")
+        void setActiveProperty_nullPropertyId_clearsActiveProperty() {
+            UUID transactionId = UUID.randomUUID();
+
+            Transaction tx = new Transaction();
+            tx.setTransactionId(transactionId);
+            tx.setBrokerId(brokerId);
+            tx.setSide(TransactionSide.BUY_SIDE);
+            tx.setPropertyAddress(new PropertyAddress("123 Main St", "Montreal", "QC", "H1A 1A1"));
+            tx.setStatus(TransactionStatus.ACTIVE);
+
+            when(transactionRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.of(tx));
+            when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // Act - pass null propertyId
+            service.setActiveProperty(transactionId, null, brokerId);
+
+            // Assert
+            ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+            verify(transactionRepository).save(captor.capture());
+            assertThat(captor.getValue().getPropertyAddress()).isNull();
         }
     }
 }

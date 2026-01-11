@@ -11,6 +11,7 @@ import { DocumentsPage } from '@/pages/documents/DocumentsPage';
 import { Calendar } from 'lucide-react';
 import { TransactionTimeline } from './TransactionTimeline';
 import { PropertyList } from './PropertyList';
+import { OfferList } from './OfferList';
 
 interface TransactionTabsProps {
   transaction: Transaction;
@@ -38,6 +39,8 @@ export function TransactionTabs({
 
   // Properties tab only for buyer-side transactions
   const isBuyerTransaction = transaction.side === 'BUY_SIDE';
+  // Offers tab only for seller-side transactions
+  const isSellerTransaction = transaction.side === 'SELL_SIDE';
 
   // Get tab from URL or default to 'details' (or 'timeline' if read-only)
   const defaultTab = isReadOnly ? 'timeline' : 'details';
@@ -80,6 +83,15 @@ export function TransactionTabs({
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
           >
             {t('properties')}
+          </TabsTrigger>
+        )}
+        {/* Offers tab - only for seller-side transactions */}
+        {isSellerTransaction && (
+          <TabsTrigger
+            value="offers"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
+          >
+            {t('offers')}
           </TabsTrigger>
         )}
         <TabsTrigger
@@ -133,6 +145,17 @@ export function TransactionTabs({
             isReadOnly={isReadOnly}
             onTransactionUpdate={onTransactionUpdate}
             currentTransactionAddress={transaction.propertyAddress}
+          />
+        </TabsContent>
+      )}
+
+      {/* Offers Tab Content - only for seller-side transactions */}
+      {isSellerTransaction && (
+        <TabsContent value="offers" className="py-4">
+          <OfferList
+            transactionId={transaction.transactionId}
+            isReadOnly={isReadOnly}
+            clientId={isReadOnly ? transaction.clientId : undefined}
           />
         </TabsContent>
       )}

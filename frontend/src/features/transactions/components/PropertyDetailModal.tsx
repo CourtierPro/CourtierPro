@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapPin, DollarSign, Tag, Pencil, Trash2 } from 'lucide-react';
+import { MapPin, Tag, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     Dialog,
@@ -14,7 +14,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Separator } from '@/shared/components/ui/separator';
 import { AddPropertyModal } from './AddPropertyModal';
 import { useRemoveProperty } from '@/features/transactions/api/mutations';
-import type { Property, OfferStatus } from '@/shared/api/types';
+import type { Property, PropertyOfferStatus } from '@/shared/api/types';
 
 interface PropertyDetailModalProps {
     isOpen: boolean;
@@ -24,7 +24,7 @@ interface PropertyDetailModalProps {
     isReadOnly?: boolean;
 }
 
-const offerStatusConfig: Record<OfferStatus, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; className: string }> = {
+const offerStatusConfig: Record<PropertyOfferStatus, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; className: string }> = {
     OFFER_TO_BE_MADE: { variant: 'outline', className: 'border-muted-foreground text-muted-foreground' },
     OFFER_MADE: { variant: 'secondary', className: 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30' },
     COUNTERED: { variant: 'secondary', className: 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30' },
@@ -116,25 +116,17 @@ export function PropertyDetailModal({
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <h4 className="text-sm font-medium text-muted-foreground">{t('askingPrice')}</h4>
-                                <div className="flex items-center gap-2">
-                                    <DollarSign className="w-4 h-4 text-muted-foreground" />
-                                    <span className="text-lg font-semibold text-foreground">
-                                        {formatCurrency(property.askingPrice)}
-                                    </span>
-                                </div>
+                                <span className="text-lg font-semibold text-foreground">
+                                    {formatCurrency(property.askingPrice)}
+                                </span>
                             </div>
 
-                            {property.offerAmount && (
-                                <div className="space-y-1">
-                                    <h4 className="text-sm font-medium text-muted-foreground">{t('offerAmount')}</h4>
-                                    <div className="flex items-center gap-2">
-                                        <DollarSign className="w-4 h-4 text-muted-foreground" />
-                                        <span className="text-lg font-semibold text-foreground">
-                                            {formatCurrency(property.offerAmount)}
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
+                            <div className="space-y-1">
+                                <h4 className="text-sm font-medium text-muted-foreground">{t('offerAmount')}</h4>
+                                <span className="text-lg font-semibold text-foreground">
+                                    {property.offerAmount ? formatCurrency(property.offerAmount) : t('pending')}
+                                </span>
+                            </div>
                         </div>
 
                         <Separator />
@@ -144,16 +136,18 @@ export function PropertyDetailModal({
                             <h4 className="text-sm font-medium text-muted-foreground">{t('offerStatusLabel')}</h4>
                             <Badge variant={statusConfig.variant} className={`${statusConfig.className} text-sm px-3 py-1`}>
                                 <Tag className="w-3 h-3 mr-1" />
-                                {t(`offerStatus.${property.offerStatus}`)}
+                                {t(`propertyOfferStatuses.${property.offerStatus}`)}
                             </Badge>
                         </div>
 
-                        {/* Broker Notes (only shown to brokers) */}
-                        {!isReadOnly && property.notes && (
+                        {/* Notes (visible to all) */}
+                        {property.notes && (
                             <>
                                 <Separator />
                                 <div className="space-y-2">
-                                    <h4 className="text-sm font-medium text-muted-foreground">{t('brokerNotes')}</h4>
+                                    <h4 className="text-sm font-medium text-muted-foreground">
+                                        {isReadOnly ? t('notes') : t('brokerNotes')}
+                                    </h4>
                                     <p className="text-foreground text-sm bg-muted/50 p-3 rounded-md">
                                         {property.notes}
                                     </p>

@@ -31,6 +31,10 @@ public class Transaction {
     @Embedded
     private PropertyAddress propertyAddress;
 
+    // Centris Number for sell-side transactions (the property being sold)
+    @Column(name = "centris_number")
+    private String centrisNumber;
+
     @Enumerated(EnumType.STRING)
     private TransactionSide side;
 
@@ -56,3 +60,4 @@ public class Transaction {
     private LocalDateTime deletedAt;
     private UUID deletedBy;
 }
+

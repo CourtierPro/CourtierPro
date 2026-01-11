@@ -6,5 +6,13 @@
     "markAsRead": "Marquer comme lu",
     "viewAll": "Voir toutes les notifications",
     "close": "Fermer",
-    "noNotifications": "Aucune notification"
+    "noNotifications": "Aucune notification",
+    "notifications.welcome.title": "Bienvenue sur CourtierPro!",
+    "notifications.welcome.message": "Nous sommes ravis de vous accueillir. Votre courtier est prêt à vous accompagner dans votre parcours immobilier.",
+    "notifications.transactionCreated.title": "Transaction créée",
+    "notifications.transactionCreated.message": "Une nouvelle transaction a été créée pour vous par {{brokerName}}.",
+    "notifications.propertyAdded.title": "Nouvelle propriété ajoutée",
+    "notifications.propertyAdded.message": "Une nouvelle propriété au {{address}} a été ajoutée à votre transaction.",
+    "notifications.offerReceived.title": "Nouvelle offre reçue",
+    "notifications.offerReceived.message": "Une offre de {{offerAmount}} a été reçue de {{buyerName}}."
 }

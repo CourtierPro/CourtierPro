@@ -30,7 +30,7 @@ import {
     SelectValue,
 } from '@/shared/components/ui/select';
 import { useAddProperty, useUpdateProperty } from '@/features/transactions/api/mutations';
-import type { Property, OfferStatus, PropertyRequestDTO } from '@/shared/api/types';
+import type { Property, PropertyOfferStatus, PropertyRequestDTO } from '@/shared/api/types';
 import { formatPostalCode, normalizePostalCode } from '@/shared/utils/postal-code';
 
 interface AddPropertyModalProps {
@@ -41,7 +41,7 @@ interface AddPropertyModalProps {
     onSuccess?: () => void;
 }
 
-const offerStatusOptions: OfferStatus[] = [
+const offerStatusOptions: PropertyOfferStatus[] = [
     'OFFER_TO_BE_MADE',
     'OFFER_MADE',
     'COUNTERED',
@@ -303,7 +303,7 @@ export function AddPropertyModal({
                                             <SelectContent>
                                                 {offerStatusOptions.map((status) => (
                                                     <SelectItem key={status} value={status}>
-                                                        {t(`offerStatus.${status}`)}
+                                                        {t(`propertyOfferStatuses.${status}`)}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>

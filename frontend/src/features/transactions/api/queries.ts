@@ -34,6 +34,7 @@ export interface Transaction {
         province: string;
         postalCode: string;
     };
+    centrisNumber?: string;
     side: 'BUY_SIDE' | 'SELL_SIDE';
     currentStage: number;
     totalStages: number;
@@ -156,5 +157,42 @@ export function useProperty(transactionId: string, propertyId: string) {
             return res.data;
         },
         enabled: !!transactionId && !!propertyId,
+    });
+}
+
+// ==================== OFFER QUERIES ====================
+
+import type { Offer } from '@/shared/api/types';
+
+export const offerKeys = {
+    all: (transactionId: string) => [...transactionKeys.detail(transactionId), 'offers'] as const,
+    detail: (transactionId: string, offerId: string) => [...offerKeys.all(transactionId), offerId] as const,
+};
+
+export function useTransactionOffers(transactionId: string, clientId?: string) {
+    return useQuery({
+        queryKey: clientId
+            ? [...offerKeys.all(transactionId), 'client', clientId] as const
+            : offerKeys.all(transactionId),
+        queryFn: async () => {
+            // Use client-specific endpoint if clientId is provided
+            const url = clientId
+                ? `/clients/${clientId}/transactions/${transactionId}/offers`
+                : `/transactions/${transactionId}/offers`;
+            const res = await axiosInstance.get<Offer[]>(url);
+            return res.data;
+        },
+        enabled: !!transactionId,
+    });
+}
+
+export function useOffer(transactionId: string, offerId: string) {
+    return useQuery({
+        queryKey: offerKeys.detail(transactionId, offerId),
+        queryFn: async () => {
+            const res = await axiosInstance.get<Offer>(`/transactions/${transactionId}/offers/${offerId}`);
+            return res.data;
+        },
+        enabled: !!transactionId && !!offerId,
     });
 }

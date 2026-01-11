@@ -1,11 +1,8 @@
 package com.example.courtierprobackend.transactions.datalayer.dto;
 
 import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
-import com.example.courtierprobackend.transactions.datalayer.enums.OfferStatus;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -19,9 +16,9 @@ public class PropertyResponseDTO {
 
     private UUID propertyId;
     private UUID transactionId;
-    private PropertyAddress address;
+    private PropertyAddressDTO address;
     private BigDecimal askingPrice;
-    private OfferStatus offerStatus;
+    private PropertyOfferStatus offerStatus;
     private BigDecimal offerAmount;
     private String centrisNumber;
     private String notes;
