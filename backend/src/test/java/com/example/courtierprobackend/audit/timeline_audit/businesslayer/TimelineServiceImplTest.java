@@ -86,7 +86,9 @@ class TimelineServiceImplTest {
     @ParameterizedTest
     @EnumSource(value = TimelineEntryType.class, names = {
             "CREATED", "DOCUMENT_REQUESTED", "DOCUMENT_SUBMITTED", 
-            "DOCUMENT_APPROVED", "DOCUMENT_NEEDS_REVISION", "STAGE_CHANGE"
+            "DOCUMENT_APPROVED", "DOCUMENT_NEEDS_REVISION", "STAGE_CHANGE",
+            "PROPERTY_ADDED", "PROPERTY_UPDATED", "PROPERTY_REMOVED",
+            "OFFER_RECEIVED", "OFFER_UPDATED", "OFFER_REMOVED"
     })
     void addEntry_VisibleTypes_SetsSpecificVisibilityTrue(TimelineEntryType type) {
         service.addEntry(UUID.randomUUID(), UUID.randomUUID(), type, "note", null);
@@ -98,7 +100,7 @@ class TimelineServiceImplTest {
 
     @ParameterizedTest
     @EnumSource(value = TimelineEntryType.class, names = {
-            "NOTE", "TRANSACTION_NOTE"
+            "NOTE", "TRANSACTION_NOTE", "STATUS_CHANGE"
     })
     void addEntry_HiddenTypes_SetsVisibilityFalse(TimelineEntryType type) {
         service.addEntry(UUID.randomUUID(), UUID.randomUUID(), type, "note", null);

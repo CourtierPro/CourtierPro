@@ -1,6 +1,6 @@
 package com.example.courtierprobackend.transactions.datalayer;
 
-import com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus;
+import com.example.courtierprobackend.transactions.datalayer.enums.ReceivedOfferStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -9,41 +9,36 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Represents a property that a buyer is interested in (for buy-side transactions).
+ * Represents an offer received on a sell-side transaction.
+ * Sellers can receive multiple offers from potential buyers.
  */
 @Entity
-@Table(name = "properties")
+@Table(name = "offers")
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Property {
+public class Offer {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "property_id", nullable = false, unique = true)
-    private UUID propertyId;
+    @Column(name = "offer_id", nullable = false, unique = true)
+    private UUID offerId;
 
     @Column(name = "transaction_id", nullable = false)
     private UUID transactionId;
 
-    @Embedded
-    private PropertyAddress address;
-
-    @Column(name = "asking_price", precision = 15, scale = 2)
-    private BigDecimal askingPrice;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "offer_status", nullable = false)
-    private PropertyOfferStatus offerStatus;
+    @Column(name = "buyer_name", nullable = false)
+    private String buyerName;
 
     @Column(name = "offer_amount", precision = 15, scale = 2)
     private BigDecimal offerAmount;
 
-    @Column(name = "centris_number")
-    private String centrisNumber;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private ReceivedOfferStatus status;
 
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
@@ -56,8 +51,8 @@ public class Property {
 
     @PrePersist
     protected void onCreate() {
-        if (propertyId == null) {
-            propertyId = UUID.randomUUID();
+        if (offerId == null) {
+            offerId = UUID.randomUUID();
         }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
@@ -65,8 +60,8 @@ public class Property {
         if (updatedAt == null) {
             updatedAt = LocalDateTime.now();
         }
-        if (offerStatus == null) {
-            offerStatus = PropertyOfferStatus.OFFER_TO_BE_MADE;
+        if (status == null) {
+            status = ReceivedOfferStatus.PENDING;
         }
     }
 
@@ -75,3 +70,4 @@ public class Property {
         updatedAt = LocalDateTime.now();
     }
 }
+

@@ -10,9 +10,12 @@ import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.notifications.datalayer.BroadcastAudit;
 import com.example.courtierprobackend.notifications.datalayer.BroadcastAuditRepository;
 import com.example.courtierprobackend.notifications.presentationlayer.BroadcastRequestDTO;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 import java.util.List;
@@ -25,6 +28,7 @@ public class NotificationServiceImpl implements NotificationService {
         private final NotificationMapper notificationMapper;
         private final com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
         private final BroadcastAuditRepository broadcastAuditRepository;
+        private final ObjectMapper objectMapper;
 
         @Override
         @org.springframework.transaction.annotation.Transactional
@@ -34,6 +38,36 @@ public class NotificationServiceImpl implements NotificationService {
                                 .recipientId(recipientId) // Expecting internal UUID here
                                 .title(title)
                                 .message(message)
+                                .type(com.example.courtierprobackend.notifications.datalayer.enums.NotificationType.GENERAL)
+                                .category(category)
+                                .isRead(false)
+                                .relatedTransactionId(relatedTransactionId)
+                                .build();
+
+                notificationRepository.save(notification);
+        }
+
+        @Override
+        @org.springframework.transaction.annotation.Transactional
+        public void createNotification(String recipientId, String titleKey, String messageKey,
+                        Map<String, Object> params, String relatedTransactionId,
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory category) {
+                String paramsJson = null;
+                if (params != null && !params.isEmpty()) {
+                        try {
+                                paramsJson = objectMapper.writeValueAsString(params);
+                        } catch (JsonProcessingException e) {
+                                // Log and continue without params
+                        }
+                }
+
+                Notification notification = Notification.builder()
+                                .recipientId(recipientId)
+                                .title(titleKey) // Use key as fallback title
+                                .message(messageKey) // Use key as fallback message
+                                .titleKey(titleKey)
+                                .messageKey(messageKey)
+                                .params(paramsJson)
                                 .type(com.example.courtierprobackend.notifications.datalayer.enums.NotificationType.GENERAL)
                                 .category(category)
                                 .isRead(false)

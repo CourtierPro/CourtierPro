@@ -31,6 +31,13 @@ public class Notification {
     @Column(nullable = false)
     private String message;
 
+    // Translation keys for i18n support (optional - frontend uses these if present)
+    private String titleKey;
+    private String messageKey;
+    
+    @Column(columnDefinition = "TEXT")
+    private String params; // JSON string with parameters for translation interpolation
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private com.example.courtierprobackend.notifications.datalayer.enums.NotificationType type; // GENERAL, BROADCAST

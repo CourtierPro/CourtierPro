@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -19,4 +21,9 @@ public class TransactionInfo {
 
     private String previousStage;
     private String newStage;
+
+    // Offer-related fields
+    private String buyerName;
+    private BigDecimal offerAmount;
+    private String offerStatus;
 }

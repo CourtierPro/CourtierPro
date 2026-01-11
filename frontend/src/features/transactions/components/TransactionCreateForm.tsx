@@ -69,6 +69,7 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
       city: '',
       province: '',
       postalCode: '',
+      centrisNumber: '',
       initialStage: '',
     },
   });
@@ -112,6 +113,7 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
           province: normalized.province?.trim() || "",
           postalCode: normalized.postalCode || "",
         },
+        centrisNumber: normalized.centrisNumber,
       };
 
       const response = await createTransaction.mutateAsync(payload);
@@ -182,7 +184,12 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                       <RadioGroup
                         onValueChange={(val) => {
                           field.onChange(val);
-                          setValue('initialStage', ''); // Reset stage on side change
+                          // Set initial stage to first stage for the selected side
+                          const sideEnum = val === 'buy' ? 'BUY_SIDE' : 'SELL_SIDE';
+                          const stages = getStagesForSide(sideEnum);
+                          if (stages.length > 0) {
+                            setValue('initialStage', stages[0], { shouldValidate: true });
+                          }
                         }}
                         defaultValue={field.value}
                         className="grid grid-cols-1 sm:grid-cols-2 gap-4"
@@ -379,6 +386,22 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                   )}
                 />
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="centrisNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('centrisNumber')} <span className="text-destructive">*</span></FormLabel>
+                      <FormControl>
+                        <Input {...field} className="bg-background" placeholder="12345678" />
+                      </FormControl>
+                      <FormMessage>{form.formState.errors.centrisNumber?.message && t(form.formState.errors.centrisNumber?.message)}</FormMessage>
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
           )}
@@ -395,10 +418,10 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                 <FormItem>
                   <FormLabel>{t('selectInitialStage')} <span className="text-destructive">*</span></FormLabel>
                   <Select
+                    key={transactionSide || 'no-side'}
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={!transactionSide}
                     value={field.value}
+                    disabled={!transactionSide}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full md:w-1/2 bg-background">

@@ -11,6 +11,7 @@ export const transactionCreateSchema = z.object({
     city: z.string().optional(),
     province: z.string().optional(),
     postalCode: z.string().optional(),
+    centrisNumber: z.string().optional(),
     initialStage: z.string().min(1, "errorSelectStage"),
 }).superRefine((data, ctx) => {
     if (data.transactionSide === 'sell') {
@@ -23,6 +24,9 @@ export const transactionCreateSchema = z.object({
         } else if (!isValidPostalCode(data.postalCode)) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: "errorInvalidPostalCode", path: ["postalCode"] });
         }
+        if (!data.centrisNumber?.trim()) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "errorRequired", path: ["centrisNumber"] });
+        }
     }
 });
 
@@ -34,6 +38,7 @@ export function normalizeTransactionFormData(data: TransactionCreateFormValues) 
     return {
         ...data,
         postalCode: data.postalCode ? normalizePostalCode(data.postalCode) : undefined,
+        centrisNumber: data.centrisNumber?.trim() || undefined,
     };
 }
 

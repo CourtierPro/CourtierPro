@@ -35,12 +35,15 @@ class NotificationServiceImplTest {
         @Mock
         private com.example.courtierprobackend.notifications.datalayer.BroadcastAuditRepository broadcastAuditRepository;
 
+        @Mock
+        private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
         private NotificationService notificationService;
 
         @BeforeEach
         void setup() {
                 notificationService = new NotificationServiceImpl(notificationRepository, notificationMapper,
-                                userAccountRepository, broadcastAuditRepository);
+                                userAccountRepository, broadcastAuditRepository, objectMapper);
         }
 
         @Test

@@ -13,6 +13,7 @@ export interface TransactionRequestDTO {
   side: TransactionSideEnum;
   initialStage: string;
   propertyAddress: PropertyAddress;
+  centrisNumber?: string;
 }
 
 export interface TransactionResponseDTO {
@@ -24,6 +25,7 @@ export interface TransactionResponseDTO {
   currentStage: string;
   status: string;
   openedDate?: string;
+  centrisNumber?: string;
 }
 
 export type TimelineEventType =
@@ -35,9 +37,13 @@ export type TimelineEventType =
   | 'DOCUMENT_SUBMITTED'
   | 'DOCUMENT_APPROVED'
   | 'DOCUMENT_NEEDS_REVISION'
+  | 'STATUS_CHANGE'
   | 'PROPERTY_ADDED'
   | 'PROPERTY_UPDATED'
-  | 'PROPERTY_REMOVED';
+  | 'PROPERTY_REMOVED'
+  | 'OFFER_RECEIVED'
+  | 'OFFER_UPDATED'
+  | 'OFFER_REMOVED';
 
 export interface TransactionInfo {
   clientName?: string;
@@ -46,6 +52,10 @@ export interface TransactionInfo {
   stage?: string;
   previousStage?: string;
   newStage?: string;
+  // Offer-related fields
+  buyerName?: string;
+  offerAmount?: number;
+  offerStatus?: string;
 }
 
 export interface TimelineEntryDTO {
@@ -77,7 +87,7 @@ export interface StageUpdateRequestDTO {
 
 // ==================== PROPERTY TYPES ====================
 
-export type OfferStatus =
+export type PropertyOfferStatus =
   | 'OFFER_TO_BE_MADE'
   | 'OFFER_MADE'
   | 'COUNTERED'
@@ -89,7 +99,7 @@ export interface Property {
   transactionId: string;
   address: PropertyAddress;
   askingPrice?: number;
-  offerStatus: OfferStatus;
+  offerStatus: PropertyOfferStatus;
   offerAmount?: number;
   centrisNumber?: string;
   notes?: string; // Only present for brokers
@@ -100,8 +110,35 @@ export interface Property {
 export interface PropertyRequestDTO {
   address: PropertyAddress;
   askingPrice?: number;
-  offerStatus: OfferStatus;
+  offerStatus: PropertyOfferStatus;
   offerAmount?: number;
   centrisNumber?: string;
+  notes?: string;
+}
+
+// ==================== OFFER TYPES (for seller transactions) ====================
+
+export type ReceivedOfferStatus =
+  | 'PENDING'
+  | 'UNDER_REVIEW'
+  | 'COUNTERED'
+  | 'ACCEPTED'
+  | 'DECLINED';
+
+export interface Offer {
+  offerId: string;
+  transactionId: string;
+  buyerName: string;
+  offerAmount?: number;
+  status: ReceivedOfferStatus;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OfferRequestDTO {
+  buyerName: string;
+  offerAmount?: number;
+  status: ReceivedOfferStatus;
   notes?: string;
 }

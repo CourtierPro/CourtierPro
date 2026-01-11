@@ -8,9 +8,10 @@ import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
+import com.example.courtierprobackend.transactions.datalayer.dto.PropertyAddressDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
-import com.example.courtierprobackend.transactions.datalayer.enums.OfferStatus;
+import com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus;
 import com.example.courtierprobackend.transactions.presentationlayer.TransactionController;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -234,11 +235,11 @@ class PropertyControllerIntegrationTest {
             UUID brokerId = UUID.randomUUID();
 
             PropertyRequestDTO request = createSamplePropertyRequest();
-            request.setOfferStatus(OfferStatus.OFFER_MADE);
+            request.setOfferStatus(PropertyOfferStatus.OFFER_MADE);
             request.setOfferAmount(BigDecimal.valueOf(475000));
 
             PropertyResponseDTO response = createSamplePropertyResponse();
-            response.setOfferStatus(OfferStatus.OFFER_MADE);
+            response.setOfferStatus(PropertyOfferStatus.OFFER_MADE);
             response.setOfferAmount(BigDecimal.valueOf(475000));
 
             when(service.updateProperty(eq(transactionId), eq(propertyId), any(PropertyRequestDTO.class), eq(brokerId)))
@@ -533,7 +534,7 @@ class PropertyControllerIntegrationTest {
         return PropertyRequestDTO.builder()
                 .address(new PropertyAddress("123 Test St", "Montreal", "QC", "H1A 1A1"))
                 .askingPrice(BigDecimal.valueOf(500000))
-                .offerStatus(OfferStatus.OFFER_TO_BE_MADE)
+                .offerStatus(PropertyOfferStatus.OFFER_TO_BE_MADE)
                 .centrisNumber("12345678")
                 .notes("Test notes")
                 .build();
@@ -543,9 +544,9 @@ class PropertyControllerIntegrationTest {
         return PropertyResponseDTO.builder()
                 .propertyId(UUID.randomUUID())
                 .transactionId(UUID.randomUUID())
-                .address(new PropertyAddress("123 Test St", "Montreal", "QC", "H1A 1A1"))
+                .address(new PropertyAddressDTO("123 Test St", "Montreal", "QC", "H1A 1A1"))
                 .askingPrice(BigDecimal.valueOf(500000))
-                .offerStatus(OfferStatus.OFFER_TO_BE_MADE)
+                .offerStatus(PropertyOfferStatus.OFFER_TO_BE_MADE)
                 .centrisNumber("12345678")
                 .notes("Test notes")
                 .createdAt(LocalDateTime.now())

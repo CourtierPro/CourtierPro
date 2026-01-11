@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { MapPin, DollarSign, Tag } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { Section } from '@/shared/components/branded/Section';
-import type { Property, OfferStatus } from '@/shared/api/types';
+import type { Property, PropertyOfferStatus } from '@/shared/api/types';
 
 interface PropertyCardProps {
     property: Property;
@@ -11,7 +11,7 @@ interface PropertyCardProps {
     isActive?: boolean;
 }
 
-const offerStatusConfig: Record<OfferStatus, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; className: string }> = {
+const offerStatusConfig: Record<PropertyOfferStatus, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; className: string }> = {
     OFFER_TO_BE_MADE: { variant: 'outline', className: 'border-muted-foreground text-muted-foreground' },
     OFFER_MADE: { variant: 'secondary', className: 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30' },
     COUNTERED: { variant: 'secondary', className: 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30' },
@@ -85,7 +85,7 @@ export function PropertyCard({ property, onClick, isActive }: PropertyCardProps)
 
                     <Badge variant={statusConfig.variant} className={statusConfig.className}>
                         <Tag className="w-3 h-3 mr-1" />
-                        {t(`offerStatus.${property.offerStatus}`)}
+                        {t(`propertyOfferStatuses.${property.offerStatus}`)}
                     </Badge>
                 </div>
 

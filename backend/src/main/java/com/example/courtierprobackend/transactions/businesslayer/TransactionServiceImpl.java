@@ -15,9 +15,16 @@ import com.example.courtierprobackend.transactions.datalayer.PinnedTransaction;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
-import com.example.courtierprobackend.transactions.datalayer.enums.*;
+import com.example.courtierprobackend.transactions.datalayer.enums.BuyerStage;
+import com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus;
+import com.example.courtierprobackend.transactions.datalayer.enums.ReceivedOfferStatus;
+import com.example.courtierprobackend.transactions.datalayer.enums.SellerStage;
+import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
+import com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus;
 import com.example.courtierprobackend.transactions.datalayer.repositories.PinnedTransactionRepository;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
+import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
+import com.example.courtierprobackend.transactions.datalayer.dto.PropertyAddressDTO;
 import com.example.courtierprobackend.transactions.util.EntityDtoUtil;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
@@ -40,10 +47,14 @@ import com.example.courtierprobackend.transactions.datalayer.dto.AddParticipantR
 import com.example.courtierprobackend.transactions.datalayer.dto.ParticipantResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository;
 import com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository;
+import com.example.courtierprobackend.transactions.datalayer.repositories.OfferRepository;
 import com.example.courtierprobackend.transactions.datalayer.TransactionParticipant;
 import com.example.courtierprobackend.transactions.datalayer.Property;
+import com.example.courtierprobackend.transactions.datalayer.Offer;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO;
 
 @Service
 @RequiredArgsConstructor
@@ -74,6 +85,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final TimelineService timelineService;
     private final TransactionParticipantRepository participantRepository;
     private final PropertyRepository propertyRepository;
+    private final OfferRepository offerRepository;
 
     private String lookupUserName(UUID userId) {
         if (userId == null) {
@@ -195,19 +207,17 @@ public class TransactionServiceImpl implements TransactionService {
                 null,
                 info);
 
-        // CP-48: Send Welcome Notification to Client
+        // CP-48: Send Transaction Created Notification to Client
         try {
-            String title = "Welcome to CourtierPro!";
-            String message = String.format("A new transaction for %s has been created for you by %s.",
-                    street, actorName);
             notificationService.createNotification(
                     clientId.toString(),
-                    title,
-                    message,
+                    "notifications.transactionCreated.title",
+                    "notifications.transactionCreated.message",
+                    java.util.Map.of("brokerName", actorName),
                     saved.getTransactionId().toString(),
-                    com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME);
+                    com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
         } catch (Exception e) {
-            log.error("Failed to send welcome notification for transaction {}", saved.getTransactionId(), e);
+            log.error("Failed to send transaction created notification for transaction {}", saved.getTransactionId(), e);
         }
 
         return EntityDtoUtil.toResponse(saved, lookupUserName(saved.getClientId()));
@@ -327,7 +337,18 @@ public class TransactionServiceImpl implements TransactionService {
         // Allow access if the user is the broker OR the client
         TransactionAccessUtils.verifyTransactionAccess(tx, userId);
 
-        return EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId()));
+        // For buy-side transactions, get centris number from accepted property
+        String centrisNumber = tx.getCentrisNumber();
+        if (tx.getSide() == com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE) {
+            var acceptedProperty = propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId).stream()
+                    .filter(p -> p.getOfferStatus() == com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus.ACCEPTED)
+                    .findFirst();
+            if (acceptedProperty.isPresent() && acceptedProperty.get().getCentrisNumber() != null) {
+                centrisNumber = acceptedProperty.get().getCentrisNumber();
+            }
+        }
+
+        return EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId()), centrisNumber);
     }
 
     @Override
@@ -642,7 +663,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .transactionId(transactionId)
                 .address(propertyAddress)
                 .askingPrice(dto.getAskingPrice())
-                .offerStatus(dto.getOfferStatus() != null ? dto.getOfferStatus() : OfferStatus.OFFER_TO_BE_MADE)
+                .offerStatus(dto.getOfferStatus() != null ? dto.getOfferStatus() : PropertyOfferStatus.OFFER_TO_BE_MADE)
                 .offerAmount(dto.getOfferAmount())
                 .centrisNumber(dto.getCentrisNumber())
                 .notes(dto.getNotes())
@@ -667,6 +688,19 @@ public class TransactionServiceImpl implements TransactionService {
                 null,
                 info);
 
+        // Notify client about new property
+        try {
+            notificationService.createNotification(
+                    tx.getClientId().toString(),
+                    "notifications.propertyAdded.title",
+                    "notifications.propertyAdded.message",
+                    java.util.Map.of("address", address),
+                    transactionId.toString(),
+                    com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.PROPERTY_ADDED);
+        } catch (Exception e) {
+            log.error("Failed to send property notification for transaction {}", transactionId, e);
+        }
+
         return toPropertyResponseDTO(saved, true);
     }
 
@@ -686,7 +720,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // Track if offer status changed for timeline
-        OfferStatus previousStatus = property.getOfferStatus();
+        PropertyOfferStatus previousStatus = property.getOfferStatus();
         boolean statusChanged = dto.getOfferStatus() != null && dto.getOfferStatus() != previousStatus;
 
         // Update fields
@@ -783,14 +817,24 @@ public class TransactionServiceImpl implements TransactionService {
         return PropertyResponseDTO.builder()
                 .propertyId(property.getPropertyId())
                 .transactionId(property.getTransactionId())
-                .address(property.getAddress())
+                .address(toAddressDTO(property.getAddress()))
                 .askingPrice(property.getAskingPrice())
                 .offerStatus(property.getOfferStatus())
                 .offerAmount(property.getOfferAmount())
                 .centrisNumber(property.getCentrisNumber())
-                .notes(includeBrokerNotes ? property.getNotes() : null)
+                .notes(property.getNotes())
                 .createdAt(property.getCreatedAt())
                 .updatedAt(property.getUpdatedAt())
+                .build();
+    }
+    
+    private PropertyAddressDTO toAddressDTO(PropertyAddress address) {
+        if (address == null) return null;
+        return PropertyAddressDTO.builder()
+                .street(address.getStreet())
+                .city(address.getCity())
+                .province(address.getProvince())
+                .postalCode(address.getPostalCode())
                 .build();
     }
 
@@ -817,5 +861,200 @@ public class TransactionServiceImpl implements TransactionService {
         tx.setPropertyAddress(property.getAddress());
         repo.save(tx);
         // No timeline entry for active property change on buy-side
+    }
+
+    // ==================== OFFER METHODS ====================
+
+    @Override
+    public List<OfferResponseDTO> getOffers(UUID transactionId, UUID userId, boolean isBroker) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
+
+        // Only SELL_SIDE transactions can have offers
+        if (tx.getSide() != TransactionSide.SELL_SIDE) {
+            return List.of();
+        }
+
+        List<Offer> offers = offerRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId);
+
+        return offers.stream()
+                .map(o -> toOfferResponseDTO(o, isBroker))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public OfferResponseDTO addOffer(UUID transactionId, OfferRequestDTO dto, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        // Only SELL_SIDE transactions can have offers
+        if (tx.getSide() != TransactionSide.SELL_SIDE) {
+            throw new BadRequestException("Offers can only be added to seller-side transactions");
+        }
+
+        Offer offer = Offer.builder()
+                .offerId(UUID.randomUUID())
+                .transactionId(transactionId)
+                .buyerName(dto.getBuyerName())
+                .offerAmount(dto.getOfferAmount())
+                .status(dto.getStatus() != null ? dto.getStatus() : ReceivedOfferStatus.PENDING)
+                .notes(dto.getNotes())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        Offer saved = offerRepository.save(offer);
+
+        // Add timeline entry for offer received
+        String actorName = lookupUserName(brokerId);
+        TransactionInfo info = TransactionInfo.builder()
+                .actorName(actorName)
+                .buyerName(saved.getBuyerName())
+                .offerAmount(saved.getOfferAmount())
+                .offerStatus(saved.getStatus().name())
+                .build();
+        timelineService.addEntry(
+                transactionId,
+                brokerId,
+                TimelineEntryType.OFFER_RECEIVED,
+                null,
+                null,
+                info);
+
+        // Notify client about new offer
+        try {
+            notificationService.createNotification(
+                    tx.getClientId().toString(),
+                    "notifications.offerReceived.title",
+                    "notifications.offerReceived.message",
+                    java.util.Map.of(
+                            "buyerName", saved.getBuyerName(),
+                            "offerAmount", String.format("$%,.0f", saved.getOfferAmount())
+                    ),
+                    transactionId.toString(),
+                    com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.OFFER_RECEIVED);
+        } catch (Exception e) {
+            log.error("Failed to send offer notification for transaction {}", transactionId, e);
+        }
+
+        return toOfferResponseDTO(saved, true);
+    }
+
+    @Override
+    @Transactional
+    public OfferResponseDTO updateOffer(UUID transactionId, UUID offerId, OfferRequestDTO dto, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        Offer offer = offerRepository.findByOfferId(offerId)
+                .orElseThrow(() -> new NotFoundException("Offer not found"));
+
+        if (!offer.getTransactionId().equals(transactionId)) {
+            throw new BadRequestException("Offer does not belong to this transaction");
+        }
+
+        // Track if status changed for timeline
+        ReceivedOfferStatus previousStatus = offer.getStatus();
+        boolean statusChanged = dto.getStatus() != null && dto.getStatus() != previousStatus;
+
+        // Update fields
+        if (dto.getBuyerName() != null) {
+            offer.setBuyerName(dto.getBuyerName());
+        }
+        offer.setOfferAmount(dto.getOfferAmount());
+        if (dto.getStatus() != null) {
+            offer.setStatus(dto.getStatus());
+        }
+        offer.setNotes(dto.getNotes());
+        offer.setUpdatedAt(LocalDateTime.now());
+
+        Offer saved = offerRepository.save(offer);
+
+        // Add timeline entry for status changes
+        if (statusChanged) {
+            String actorName = lookupUserName(brokerId);
+            TransactionInfo info = TransactionInfo.builder()
+                    .actorName(actorName)
+                    .buyerName(saved.getBuyerName())
+                    .offerAmount(saved.getOfferAmount())
+                    .offerStatus(dto.getStatus().name())
+                    .build();
+            timelineService.addEntry(
+                    transactionId,
+                    brokerId,
+                    TimelineEntryType.OFFER_UPDATED,
+                    null,
+                    null,
+                    info);
+        }
+
+        return toOfferResponseDTO(saved, true);
+    }
+
+    @Override
+    @Transactional
+    public void removeOffer(UUID transactionId, UUID offerId, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        Offer offer = offerRepository.findByOfferId(offerId)
+                .orElseThrow(() -> new NotFoundException("Offer not found"));
+
+        if (!offer.getTransactionId().equals(transactionId)) {
+            throw new BadRequestException("Offer does not belong to this transaction");
+        }
+
+        String buyerName = offer.getBuyerName();
+
+        offerRepository.delete(offer);
+
+        // Add timeline entry for offer removal
+        String actorName = lookupUserName(brokerId);
+        TransactionInfo info = TransactionInfo.builder()
+                .actorName(actorName)
+                .buyerName(buyerName)
+                .build();
+        timelineService.addEntry(
+                transactionId,
+                brokerId,
+                TimelineEntryType.OFFER_REMOVED,
+                null,
+                null,
+                info);
+    }
+
+    @Override
+    public OfferResponseDTO getOfferById(UUID offerId, UUID userId, boolean isBroker) {
+        Offer offer = offerRepository.findByOfferId(offerId)
+                .orElseThrow(() -> new NotFoundException("Offer not found"));
+
+        Transaction tx = repo.findByTransactionId(offer.getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
+
+        return toOfferResponseDTO(offer, isBroker);
+    }
+
+    private OfferResponseDTO toOfferResponseDTO(Offer offer, boolean includeBrokerNotes) {
+        return OfferResponseDTO.builder()
+                .offerId(offer.getOfferId())
+                .transactionId(offer.getTransactionId())
+                .buyerName(offer.getBuyerName())
+                .offerAmount(offer.getOfferAmount())
+                .status(offer.getStatus())
+                .notes(offer.getNotes())
+                .createdAt(offer.getCreatedAt())
+                .updatedAt(offer.getUpdatedAt())
+                .build();
     }
 }

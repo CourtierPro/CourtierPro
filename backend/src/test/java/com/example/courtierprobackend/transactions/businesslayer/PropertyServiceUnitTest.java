@@ -9,11 +9,13 @@ import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
-import com.example.courtierprobackend.transactions.datalayer.enums.OfferStatus;
+import com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus;
+;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus;
 import com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
+import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,6 +38,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.*;
 
 /**
@@ -58,6 +61,9 @@ class PropertyServiceUnitTest {
 
     @Mock
     private UserAccountRepository userAccountRepository;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private TransactionServiceImpl service;
@@ -100,7 +106,7 @@ class PropertyServiceUnitTest {
                 .transactionId(transactionId)
                 .address(new PropertyAddress("789 Pine St", "Laval", "QC", "H3C 3C3"))
                 .askingPrice(BigDecimal.valueOf(500000))
-                .offerStatus(OfferStatus.OFFER_TO_BE_MADE)
+                .offerStatus(PropertyOfferStatus.OFFER_TO_BE_MADE)
                 .offerAmount(null)
                 .centrisNumber("12345678")
                 .notes("Test notes")
@@ -111,7 +117,7 @@ class PropertyServiceUnitTest {
         validPropertyRequest = PropertyRequestDTO.builder()
                 .address(new PropertyAddress("789 Pine St", "Laval", "QC", "H3C 3C3"))
                 .askingPrice(BigDecimal.valueOf(500000))
-                .offerStatus(OfferStatus.OFFER_TO_BE_MADE)
+                .offerStatus(PropertyOfferStatus.OFFER_TO_BE_MADE)
                 .centrisNumber("12345678")
                 .notes("Test notes")
                 .build();
@@ -211,11 +217,19 @@ class PropertyServiceUnitTest {
             assertThat(result).isNotNull();
             assertThat(result.getAddress().getStreet()).isEqualTo("789 Pine St");
             assertThat(result.getAskingPrice()).isEqualByComparingTo(BigDecimal.valueOf(500000));
-            assertThat(result.getOfferStatus()).isEqualTo(OfferStatus.OFFER_TO_BE_MADE);
+            assertThat(result.getOfferStatus()).isEqualTo(PropertyOfferStatus.OFFER_TO_BE_MADE);
             assertThat(result.getNotes()).isEqualTo("Test notes");
 
             verify(propertyRepository).save(any(Property.class));
             verify(timelineService).addEntry(any(), any(), any(), any(), any(), any());
+            verify(notificationService).createNotification(
+                    eq(clientId.toString()),
+                    eq("notifications.propertyAdded.title"),
+                    eq("notifications.propertyAdded.message"),
+                    any(java.util.Map.class),
+                    eq(transactionId.toString()),
+                    any()
+            );
         }
 
         @Test
@@ -267,7 +281,7 @@ class PropertyServiceUnitTest {
 
             PropertyResponseDTO result = service.addProperty(transactionId, requestWithoutStatus, brokerId);
 
-            assertThat(result.getOfferStatus()).isEqualTo(OfferStatus.OFFER_TO_BE_MADE);
+            assertThat(result.getOfferStatus()).isEqualTo(PropertyOfferStatus.OFFER_TO_BE_MADE);
         }
     }
 
@@ -283,7 +297,7 @@ class PropertyServiceUnitTest {
             PropertyRequestDTO updateRequest = PropertyRequestDTO.builder()
                     .address(new PropertyAddress("Updated Street", "Montreal", "QC", "H4D 4D4"))
                     .askingPrice(BigDecimal.valueOf(550000))
-                    .offerStatus(OfferStatus.OFFER_MADE)
+                    .offerStatus(PropertyOfferStatus.OFFER_MADE)
                     .offerAmount(BigDecimal.valueOf(525000))
                     .build();
 
@@ -298,7 +312,7 @@ class PropertyServiceUnitTest {
 
             assertThat(result.getAddress().getStreet()).isEqualTo("Updated Street");
             assertThat(result.getAskingPrice()).isEqualByComparingTo(BigDecimal.valueOf(550000));
-            assertThat(result.getOfferStatus()).isEqualTo(OfferStatus.OFFER_MADE);
+            assertThat(result.getOfferStatus()).isEqualTo(PropertyOfferStatus.OFFER_MADE);
             assertThat(result.getOfferAmount()).isEqualByComparingTo(BigDecimal.valueOf(525000));
 
             verify(timelineService).addEntry(any(), any(), any(), any(), any(), any());
@@ -350,7 +364,7 @@ class PropertyServiceUnitTest {
             PropertyRequestDTO sameStatusRequest = PropertyRequestDTO.builder()
                     .address(new PropertyAddress("Updated Street", "Montreal", "QC", "H4D 4D4"))
                     .askingPrice(BigDecimal.valueOf(550000))
-                    .offerStatus(OfferStatus.OFFER_TO_BE_MADE) // Same as current
+                    .offerStatus(PropertyOfferStatus.OFFER_TO_BE_MADE) // Same as current
                     .build();
 
             when(transactionRepository.findByTransactionId(transactionId))

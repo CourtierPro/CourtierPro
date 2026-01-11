@@ -99,6 +99,12 @@ export function TransactionTimeline({ transactionId }: TransactionTimelineProps)
                                                                 {t('timeline.by', { name: entry.transactionInfo.actorName })}
                                                             </span>
                                                         );
+                                                    } else if (entry.type.startsWith('OFFER_') && entry.transactionInfo?.actorName) {
+                                                        return (
+                                                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground ml-2">
+                                                                {t('timeline.by', { name: entry.transactionInfo.actorName })}
+                                                            </span>
+                                                        );
                                                     }
                                                     return null;
                                                 })()}
@@ -150,6 +156,39 @@ export function TransactionTimeline({ transactionId }: TransactionTimelineProps)
                                                         if (entry.type === 'PROPERTY_ADDED') return t('timeline.propertyAdded', { address });
                                                         if (entry.type === 'PROPERTY_UPDATED') return t('timeline.propertyUpdated', { address });
                                                         if (entry.type === 'PROPERTY_REMOVED') return t('timeline.propertyRemoved', { address });
+                                                        return '';
+                                                    })()}
+                                                </p>
+                                            )}
+                                            {/* Show note for OFFER events - use transactionInfo for translation */}
+                                            {entry.type.startsWith('OFFER_') && entry.transactionInfo && (
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    {(() => {
+                                                        const { buyerName, offerAmount, offerStatus } = entry.transactionInfo;
+                                                        const formatCurrency = (amount?: number) => {
+                                                            if (!amount) return '';
+                                                            return new Intl.NumberFormat('en-CA', {
+                                                                style: 'currency',
+                                                                currency: 'CAD',
+                                                                maximumFractionDigits: 0,
+                                                            }).format(amount);
+                                                        };
+                                                        if (entry.type === 'OFFER_RECEIVED') {
+                                                            return t('timeline.offerReceivedDetail', {
+                                                                buyerName: buyerName || '',
+                                                                amount: formatCurrency(offerAmount),
+                                                            });
+                                                        }
+                                                        if (entry.type === 'OFFER_UPDATED') {
+                                                            const translatedStatus = offerStatus ? t(`receivedOfferStatuses.${offerStatus}`) : '';
+                                                            return t('timeline.offerUpdatedDetail', {
+                                                                buyerName: buyerName || '',
+                                                                status: translatedStatus,
+                                                            });
+                                                        }
+                                                        if (entry.type === 'OFFER_REMOVED') {
+                                                            return t('timeline.offerRemovedDetail', { buyerName: buyerName || '' });
+                                                        }
                                                         return '';
                                                     })()}
                                                 </p>

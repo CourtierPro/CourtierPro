@@ -10,5 +10,7 @@ public enum NotificationCategory {
     STAGE_UPDATE,
     TRANSACTION_CANCELLED,
     BROADCAST,
-    GENERAL
+    GENERAL,
+    OFFER_RECEIVED,
+    PROPERTY_ADDED
 }

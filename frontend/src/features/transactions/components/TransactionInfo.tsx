@@ -31,10 +31,17 @@ export function TransactionInfo({ transaction, hideClientLabel = false }: Transa
                     <h2 className="text-lg md:text-2xl font-bold text-foreground mb-1 md:mb-2 line-clamp-1">
                         {formatAddress(transaction.propertyAddress)}
                     </h2>
-                    <p className="text-sm md:text-base text-muted-foreground">
-                        {transaction.propertyAddress.city}, {transaction.propertyAddress.province}{' '}
-                        {transaction.propertyAddress.postalCode}
-                    </p>
+                    {transaction.propertyAddress.street?.trim() && (
+                        <p className="text-sm md:text-base text-muted-foreground">
+                            {transaction.propertyAddress.city}, {transaction.propertyAddress.province}{' '}
+                            {transaction.propertyAddress.postalCode}
+                        </p>
+                    )}
+                    {transaction.centrisNumber && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                            {t('centrisNumber')}: {transaction.centrisNumber}
+                        </p>
+                    )}
                     <div className="flex items-center gap-2 md:gap-4 mt-2 md:mt-4">
                         <Badge variant={transaction.side === 'BUY_SIDE' ? 'info' : 'warning'}>
                             {transaction.side === 'BUY_SIDE' ? t('buySide') : t('sellSide')}

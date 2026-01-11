@@ -18,8 +18,10 @@ public class TransactionResponseDTO {
     private UUID brokerId;
     private TransactionSide side;
     private PropertyAddress propertyAddress;
+    private String centrisNumber;
     private String currentStage;
     private TransactionStatus status;
     private String openedDate;
 }
+
 

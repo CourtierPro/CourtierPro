@@ -77,11 +77,15 @@ class TransactionServiceImplTest {
     @Mock
     private com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository propertyRepository;
 
+    @Mock
+    private com.example.courtierprobackend.transactions.datalayer.repositories.OfferRepository offerRepository;
+
+
     @BeforeEach
     void setup() {
         transactionService = new TransactionServiceImpl(transactionRepository, pinnedTransactionRepository,
                 userAccountRepository, emailService,
-                notificationService, timelineService, participantRepository, propertyRepository);
+                notificationService, timelineService, participantRepository, propertyRepository, offerRepository);
         lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
     }
 
@@ -137,10 +141,11 @@ class TransactionServiceImplTest {
         verify(transactionRepository).save(any(Transaction.class));
         verify(notificationService).createNotification(
                 eq(dto.getClientId().toString()),
-                eq("Welcome to CourtierPro!"),
+                eq("notifications.transactionCreated.title"),
+                eq("notifications.transactionCreated.message"),
+                any(java.util.Map.class),
                 anyString(),
-                anyString(),
-                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME));
+                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL));
     }
 
     @Test
@@ -159,9 +164,9 @@ class TransactionServiceImplTest {
                         dto.getPropertyAddress().getProvince(), dto.getPropertyAddress().getPostalCode()));
         when(transactionRepository.save(any(Transaction.class))).thenReturn(expectedTx);
 
-        // Simulate Notification exception
+        // Simulate Notification exception - use the i18n version with Map
         doThrow(new RuntimeException("Notification Error")).when(notificationService)
-                .createNotification(anyString(), anyString(), anyString(), anyString(), any());
+                .createNotification(anyString(), anyString(), anyString(), any(java.util.Map.class), anyString(), any());
 
         // Act
         TransactionResponseDTO result = transactionService.createTransaction(dto);
@@ -170,7 +175,7 @@ class TransactionServiceImplTest {
         assertThat(result).isNotNull();
         verify(transactionRepository).save(any(Transaction.class));
         // Verify notification service WAS called (but failed)
-        verify(notificationService).createNotification(anyString(), anyString(), anyString(), anyString(), any());
+        verify(notificationService).createNotification(anyString(), anyString(), anyString(), any(java.util.Map.class), anyString(), any());
     }
 
     @Test

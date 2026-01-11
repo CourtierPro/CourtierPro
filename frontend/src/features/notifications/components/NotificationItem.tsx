@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/sha
 import { Badge } from '@/shared/components/ui/badge';
 import { formatDateTime } from '@/shared/utils/date';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Bell, AlertCircle, CheckCircle, Info, Sparkles, XCircle } from 'lucide-react';
+import { FileText, Bell, AlertCircle, CheckCircle, Info, Sparkles, XCircle, Home, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { NotificationType, NotificationCategory, type NotificationResponseDTO } from '../api/notificationsApi';
 import { cn } from '@/shared/utils/utils';
@@ -16,6 +16,35 @@ interface NotificationItemProps {
 export function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
     const { t } = useTranslation('notifications');
     const navigate = useNavigate();
+
+    // Get translated title and message if keys are present
+    const getTranslatedContent = () => {
+        let title = notification.title;
+        let message = notification.message;
+
+        if (notification.titleKey || notification.messageKey) {
+            // Parse params if available
+            let params: Record<string, string> = {};
+            if (notification.params) {
+                try {
+                    params = JSON.parse(notification.params);
+                } catch (e) {
+                    // Ignore parse errors
+                }
+            }
+
+            if (notification.titleKey) {
+                title = t(notification.titleKey, params) || notification.title;
+            }
+            if (notification.messageKey) {
+                message = t(notification.messageKey, params) || notification.message;
+            }
+        }
+
+        return { title, message };
+    };
+
+    const { title, message } = getTranslatedContent();
 
     const getIcon = () => {
         if (notification.type === NotificationType.BROADCAST) {
@@ -39,6 +68,10 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
                 return <Info className="w-4 h-4 text-blue-500" />;
             case NotificationCategory.TRANSACTION_CANCELLED:
                 return <XCircle className="w-4 h-4 text-destructive" />;
+            case NotificationCategory.PROPERTY_ADDED:
+                return <Home className="w-4 h-4 text-emerald-500" />;
+            case NotificationCategory.OFFER_RECEIVED:
+                return <DollarSign className="w-4 h-4 text-green-600" />;
             default:
                 return <Bell className="w-4 h-4 text-foreground/60" />;
         }
@@ -70,9 +103,19 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
                 ] as NotificationCategory[]
             ).includes(notification.category);
 
+            // Navigate to offers tab for offer notifications
+            const isOfferRelated = notification.category === NotificationCategory.OFFER_RECEIVED;
+
+            // Navigate to properties tab for property notifications
+            const isPropertyRelated = notification.category === NotificationCategory.PROPERTY_ADDED;
+
             const targetUrl = isDocumentRelated
                 ? `/transactions/${notification.relatedTransactionId}?tab=documents`
-                : `/transactions/${notification.relatedTransactionId}`;
+                : isOfferRelated
+                    ? `/transactions/${notification.relatedTransactionId}?tab=offers`
+                    : isPropertyRelated
+                        ? `/transactions/${notification.relatedTransactionId}?tab=properties`
+                        : `/transactions/${notification.relatedTransactionId}`;
 
             navigate(targetUrl);
         }
@@ -104,7 +147,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
                             </span>
                         )}
                         <span className="flex-shrink-0 mt-0.5">{getIcon()}</span>
-                        {notification.title}
+                        {title}
                     </CardTitle>
                     {!notification.read && (
                         <Badge variant="default" className="h-4 px-1 text-[10px]">
@@ -118,9 +161,10 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
             </CardHeader>
             <CardContent className="p-3 pt-1">
                 <p className="text-sm text-foreground/80 line-clamp-2">
-                    {notification.message}
+                    {message}
                 </p>
             </CardContent>
         </Card>
     );
 }
+

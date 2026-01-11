@@ -55,4 +55,15 @@ public interface TransactionService {
     PropertyResponseDTO getPropertyById(UUID propertyId, UUID userId, boolean isBroker);
     
     void setActiveProperty(UUID transactionId, UUID propertyId, UUID brokerId);
+
+    // Offers (for seller transactions)
+    List<OfferResponseDTO> getOffers(UUID transactionId, UUID userId, boolean isBroker);
+
+    OfferResponseDTO addOffer(UUID transactionId, OfferRequestDTO dto, UUID brokerId);
+
+    OfferResponseDTO updateOffer(UUID transactionId, UUID offerId, OfferRequestDTO dto, UUID brokerId);
+
+    void removeOffer(UUID transactionId, UUID offerId, UUID brokerId);
+
+    OfferResponseDTO getOfferById(UUID offerId, UUID userId, boolean isBroker);
 }
