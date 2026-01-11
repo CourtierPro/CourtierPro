@@ -131,10 +131,11 @@ export function AddOfferModal({ isOpen, onClose, transactionId }: AddOfferModalP
                             name="offerAmount"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>{t('offerAmount')}</FormLabel>
+                                    <FormLabel>{t('offerAmount')} <span className="text-destructive">*</span></FormLabel>
                                     <FormControl>
                                         <Input {...field} type="number" placeholder="0" />
                                     </FormControl>
+                                    <FormMessage>{form.formState.errors.offerAmount?.message && t(form.formState.errors.offerAmount.message)}</FormMessage>
                                 </FormItem>
                             )}
                         />

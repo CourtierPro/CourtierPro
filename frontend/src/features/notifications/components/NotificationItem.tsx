@@ -28,7 +28,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
             if (notification.params) {
                 try {
                     params = JSON.parse(notification.params);
-                } catch (e) {
+                } catch {
                     // Ignore parse errors
                 }
             }

@@ -137,8 +137,8 @@ class OfferServiceUnitTest {
         }
 
         @Test
-        @DisplayName("should hide notes for non-broker")
-        void getOffers_asClient_hidesNotes() {
+        @DisplayName("should show notes for non-broker")
+        void getOffers_asClient_showsNotes() {
             when(transactionRepository.findByTransactionId(transactionId))
                     .thenReturn(Optional.of(sellSideTransaction));
             when(offerRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId))
@@ -147,7 +147,7 @@ class OfferServiceUnitTest {
             List<OfferResponseDTO> result = service.getOffers(transactionId, clientId, false);
 
             assertThat(result).hasSize(1);
-            assertThat(result.get(0).getNotes()).isNull();
+            assertThat(result.get(0).getNotes()).isEqualTo(sampleOffer.getNotes());
         }
 
         @Test
@@ -384,7 +384,7 @@ class OfferServiceUnitTest {
             OfferResponseDTO result = service.getOfferById(offerId, clientId, false);
 
             assertThat(result.getBuyerName()).isEqualTo("John Doe");
-            assertThat(result.getNotes()).isNull();
+            assertThat(result.getNotes()).isEqualTo(sampleOffer.getNotes());
         }
 
         @Test

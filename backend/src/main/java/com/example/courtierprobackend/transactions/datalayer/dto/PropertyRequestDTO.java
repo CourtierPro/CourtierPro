@@ -18,7 +18,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class PropertyRequestDTO {
 
-    @NotNull
+    @NotNull(message = "Property address is required")
     @Valid
     private PropertyAddress address;
 

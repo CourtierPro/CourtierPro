@@ -10,7 +10,6 @@ import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus;
-;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus;
 import com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository;
@@ -145,8 +144,8 @@ class PropertyServiceUnitTest {
         }
 
         @Test
-        @DisplayName("should return properties without notes for client")
-        void getProperties_asClient_returnsPropertiesWithoutNotes() {
+        @DisplayName("should return properties with notes for client")
+        void getProperties_asClient_returnsPropertiesWithNotes() {
             when(transactionRepository.findByTransactionId(transactionId))
                     .thenReturn(Optional.of(buySideTransaction));
             when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId))
@@ -155,7 +154,7 @@ class PropertyServiceUnitTest {
             List<PropertyResponseDTO> result = service.getProperties(transactionId, clientId, false);
 
             assertThat(result).hasSize(1);
-            assertThat(result.get(0).getNotes()).isNull();
+            assertThat(result.get(0).getNotes()).isEqualTo(testProperty.getNotes());
             assertThat(result.get(0).getPropertyId()).isEqualTo(propertyId);
         }
 
@@ -462,8 +461,8 @@ class PropertyServiceUnitTest {
         }
 
         @Test
-        @DisplayName("should return property without notes for client")
-        void getPropertyById_asClient_returnsPropertyWithoutNotes() {
+        @DisplayName("should return property with notes for client")
+        void getPropertyById_asClient_returnsPropertyWithNotes() {
             when(propertyRepository.findByPropertyId(propertyId))
                     .thenReturn(Optional.of(testProperty));
             when(transactionRepository.findByTransactionId(transactionId))
@@ -472,7 +471,7 @@ class PropertyServiceUnitTest {
             PropertyResponseDTO result = service.getPropertyById(propertyId, clientId, false);
 
             assertThat(result).isNotNull();
-            assertThat(result.getNotes()).isNull();
+            assertThat(result.getNotes()).isEqualTo(testProperty.getNotes());
         }
 
         @Test

@@ -52,7 +52,10 @@ interface OfferDetailModalProps {
 
 const offerSchema = z.object({
     buyerName: z.string().min(1, 'buyerNameRequired'),
-    offerAmount: z.string().optional(),
+    offerAmount: z.string().min(1, 'offerAmountRequired').refine(
+        (val) => parseFloat(val) > 0,
+        { message: 'offerAmountMustBePositive' }
+    ),
     status: z.enum(['PENDING', 'UNDER_REVIEW', 'COUNTERED', 'ACCEPTED', 'DECLINED']),
     notes: z.string().optional(),
 });
@@ -198,10 +201,11 @@ export function OfferDetailModal({
                                     name="offerAmount"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>{t('offerAmount')}</FormLabel>
+                                            <FormLabel>{t('offerAmount')} <span className="text-destructive">*</span></FormLabel>
                                             <FormControl>
                                                 <Input {...field} type="number" placeholder="0" />
                                             </FormControl>
+                                            <FormMessage>{form.formState.errors.offerAmount?.message && t(form.formState.errors.offerAmount.message)}</FormMessage>
                                         </FormItem>
                                     )}
                                 />
