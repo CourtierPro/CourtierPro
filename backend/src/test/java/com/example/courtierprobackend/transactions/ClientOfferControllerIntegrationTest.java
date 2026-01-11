@@ -71,7 +71,7 @@ class ClientOfferControllerIntegrationTest {
             UUID transactionId = UUID.randomUUID();
 
             OfferResponseDTO offer = createSampleOfferResponse(transactionId);
-            offer.setNotes(null); // Notes hidden from clients
+            // Notes are now visible to clients
 
             when(service.getOffers(eq(transactionId), eq(clientId), eq(false)))
                     .thenReturn(List.of(offer));
@@ -84,7 +84,7 @@ class ClientOfferControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$[0].buyerName").value("John Doe"))
-                    .andExpect(jsonPath("$[0].notes").doesNotExist());
+                    .andExpect(jsonPath("$[0].notes").value("Test notes"));
         }
 
         @Test
@@ -154,7 +154,7 @@ class ClientOfferControllerIntegrationTest {
 
             OfferResponseDTO offer = createSampleOfferResponse(transactionId);
             offer.setOfferId(offerId);
-            offer.setNotes(null); // Notes hidden from clients
+            // Notes are now visible to clients
 
             when(service.getOfferById(eq(offerId), eq(clientId), eq(false)))
                     .thenReturn(offer);
@@ -167,7 +167,7 @@ class ClientOfferControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.offerId").value(offerId.toString()))
                     .andExpect(jsonPath("$.buyerName").value("John Doe"))
-                    .andExpect(jsonPath("$.notes").doesNotExist());
+                    .andExpect(jsonPath("$.notes").value("Test notes"));
         }
 
         @Test

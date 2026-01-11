@@ -374,8 +374,8 @@ class OfferServiceUnitTest {
         }
 
         @Test
-        @DisplayName("should return offer without notes for client")
-        void getOfferById_asClient_hidesNotes() {
+        @DisplayName("should return offer with notes for client")
+        void getOfferById_asClient_showsNotes() {
             when(offerRepository.findByOfferId(offerId))
                     .thenReturn(Optional.of(sampleOffer));
             when(transactionRepository.findByTransactionId(transactionId))

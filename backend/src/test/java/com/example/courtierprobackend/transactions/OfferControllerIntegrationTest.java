@@ -103,7 +103,7 @@ class OfferControllerIntegrationTest {
             UUID clientId = UUID.randomUUID();
 
             OfferResponseDTO offer = createSampleOfferResponse();
-            offer.setNotes(null); // Notes hidden from clients
+            // Notes are now visible to clients
 
             when(service.getOffers(eq(transactionId), eq(clientId), eq(false)))
                     .thenReturn(List.of(offer));
@@ -114,7 +114,7 @@ class OfferControllerIntegrationTest {
                             .requestAttr(UserContextFilter.INTERNAL_USER_ID_ATTR, clientId)
             )
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[0].notes").doesNotExist());
+                    .andExpect(jsonPath("$[0].notes").value("Test notes"));
         }
 
         @Test
