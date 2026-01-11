@@ -100,7 +100,6 @@ export function OfferList({ transactionId, isReadOnly = false, clientId }: Offer
                         key={offer.offerId}
                         offer={offer}
                         onClick={() => handleOfferClick(offer)}
-                        isReadOnly={isReadOnly}
                     />
                 ))}
             </div>
