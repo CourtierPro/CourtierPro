@@ -98,6 +98,29 @@ class UserProvisioningServiceTest {
     }
 
     @Test
+    void getClients_ReturnsOnlyClients() {
+        // Arrange
+        UserAccount client1 = new UserAccount("auth0|c1", "c1@test.com", "Client", "One", UserRole.CLIENT, "en");
+        UserAccount client2 = new UserAccount("auth0|c2", "c2@test.com", "Client", "Two", UserRole.CLIENT, "fr");
+
+        UserResponse resp1 = UserResponse.builder().email("c1@test.com").role("CLIENT").build();
+        UserResponse resp2 = UserResponse.builder().email("c2@test.com").role("CLIENT").build();
+
+        when(userAccountRepository.findByRole(UserRole.CLIENT)).thenReturn(List.of(client1, client2));
+        when(userMapper.toResponse(client1)).thenReturn(resp1);
+        when(userMapper.toResponse(client2)).thenReturn(resp2);
+
+        // Act
+        List<UserResponse> result = service.getClients();
+
+        // Assert
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getRole()).isEqualTo("CLIENT");
+        assertThat(result.get(1).getRole()).isEqualTo("CLIENT");
+        verify(userAccountRepository).findByRole(UserRole.CLIENT);
+    }
+
+    @Test
     void createUser_WithValidRequest_CreatesSuccessfully() {
         // Arrange
         CreateUserRequest request = CreateUserRequest.builder()

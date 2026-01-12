@@ -1167,19 +1167,21 @@ public class TransactionServiceImpl implements TransactionService {
                 txInfo);
 
         // Notify client about new condition
-        try {
-            notificationService.createNotification(
-                    tx.getClientId().toString(),
-                    "notifications.conditionAdded.title",
-                    "notifications.conditionAdded.message",
-                    java.util.Map.of(
-                            "conditionType", typeName,
-                            "deadline", saved.getDeadlineDate().toString()
-                    ),
-                    transactionId.toString(),
-                    com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
-        } catch (Exception e) {
-            log.error("Failed to send condition notification for transaction {}", transactionId, e);
+        if (tx.getClientId() != null) {
+            try {
+                notificationService.createNotification(
+                        tx.getClientId().toString(),
+                        "notifications.conditionAdded.title",
+                        "notifications.conditionAdded.message",
+                        java.util.Map.of(
+                                "conditionType", typeName,
+                                "deadline", saved.getDeadlineDate().toString()
+                        ),
+                        transactionId.toString(),
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
+            } catch (Exception e) {
+                log.error("Failed to send condition notification for transaction {}", transactionId, e);
+            }
         }
 
         return toConditionResponseDTO(saved, true);
@@ -1342,32 +1344,34 @@ public class TransactionServiceImpl implements TransactionService {
                 txInfo);
 
         // Notify client about condition status change
-        try {
-            String notifTitle;
-            String notifMessage;
-            if (status == ConditionStatus.SATISFIED) {
-                notifTitle = "notifications.conditionSatisfied.title";
-                notifMessage = "notifications.conditionSatisfied.message";
-            } else if (status == ConditionStatus.FAILED) {
-                notifTitle = "notifications.conditionFailed.title";
-                notifMessage = "notifications.conditionFailed.message";
-            } else {
-                // PENDING status change (e.g., reverting from SATISFIED)
-                notifTitle = "notifications.conditionStatusChanged.title";
-                notifMessage = "notifications.conditionStatusChanged.message";
+        if (tx.getClientId() != null) {
+            try {
+                String notifTitle;
+                String notifMessage;
+                if (status == ConditionStatus.SATISFIED) {
+                    notifTitle = "notifications.conditionSatisfied.title";
+                    notifMessage = "notifications.conditionSatisfied.message";
+                } else if (status == ConditionStatus.FAILED) {
+                    notifTitle = "notifications.conditionFailed.title";
+                    notifMessage = "notifications.conditionFailed.message";
+                } else {
+                    // PENDING status change (e.g., reverting from SATISFIED)
+                    notifTitle = "notifications.conditionStatusChanged.title";
+                    notifMessage = "notifications.conditionStatusChanged.message";
+                }
+                notificationService.createNotification(
+                        tx.getClientId().toString(),
+                        notifTitle,
+                        notifMessage,
+                        java.util.Map.of(
+                                "conditionType", typeName,
+                                "status", status.name()
+                        ),
+                        transactionId.toString(),
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
+            } catch (Exception e) {
+                log.error("Failed to send condition status notification for transaction {}", transactionId, e);
             }
-            notificationService.createNotification(
-                    tx.getClientId().toString(),
-                    notifTitle,
-                    notifMessage,
-                    java.util.Map.of(
-                            "conditionType", typeName,
-                            "status", status.name()
-                    ),
-                    transactionId.toString(),
-                    com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
-        } catch (Exception e) {
-            log.error("Failed to send condition status notification for transaction {}", transactionId, e);
         }
 
         return toConditionResponseDTO(saved, true);

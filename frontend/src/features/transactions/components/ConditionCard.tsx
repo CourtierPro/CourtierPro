@@ -84,6 +84,12 @@ export function ConditionCard({ condition, onClick, isReadOnly }: ConditionCardP
         <Section
             className={`p-4 transition-colors ${!isReadOnly ? 'cursor-pointer hover:bg-muted/50' : ''}`}
             onClick={!isReadOnly ? onClick : undefined}
+            onKeyDown={!isReadOnly && onClick ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick();
+                }
+            } : undefined}
             tabIndex={!isReadOnly ? 0 : undefined}
             role={!isReadOnly ? 'button' : undefined}
             aria-label={t('viewConditionDetails')}

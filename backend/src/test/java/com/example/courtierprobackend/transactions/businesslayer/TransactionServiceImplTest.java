@@ -2503,4 +2503,139 @@ class TransactionServiceImplTest {
         assertThatThrownBy(() -> transactionService.removeCondition(transactionId, conditionId, clientId))
                 .isInstanceOf(ForbiddenException.class);
     }
+    // =================================================================================================
+    // NEW TESTS FOR RETRIEVAL METHODS
+    // =================================================================================================
+
+    @Test
+    void getBrokerTransactions_WithFilters_ReturnsFilteredTransactions() {
+        // Arrange
+        UUID brokerId = UUID.randomUUID();
+        when(transactionRepository.findAllByFilters(eq(brokerId), eq(com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus.ACTIVE), eq(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE), eq(com.example.courtierprobackend.transactions.datalayer.enums.BuyerStage.BUYER_SUBMIT_OFFER)))
+                .thenReturn(List.of(new Transaction()));
+
+        // Act
+        List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(brokerId, "ACTIVE", "BUYER_SUBMIT_OFFER", "BUY");
+
+        // Assert
+        assertThat(result).hasSize(1);
+        verify(transactionRepository).findAllByFilters(eq(brokerId), eq(com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus.ACTIVE), eq(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE), eq(com.example.courtierprobackend.transactions.datalayer.enums.BuyerStage.BUYER_SUBMIT_OFFER));
+    }
+
+    @Test
+    void getBrokerTransactions_NoFilters_ReturnsAll() {
+        // Arrange
+        UUID brokerId = UUID.randomUUID();
+        when(transactionRepository.findAllByFilters(eq(brokerId), isNull(), isNull(), isNull()))
+                .thenReturn(List.of(new Transaction(), new Transaction()));
+
+        // Act
+        List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(brokerId, null, null, null);
+
+        // Assert
+        assertThat(result).hasSize(2);
+        verify(transactionRepository).findAllByFilters(eq(brokerId), isNull(), isNull(), isNull());
+    }
+
+    @Test
+    void getClientTransactions_ReturnsTransactionsForClient() {
+        // Arrange
+        UUID clientId = UUID.randomUUID();
+        when(transactionRepository.findAllByClientId(clientId)).thenReturn(List.of(new Transaction()));
+
+        // Act
+        List<TransactionResponseDTO> result = transactionService.getClientTransactions(clientId);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        verify(transactionRepository).findAllByClientId(clientId);
+    }
+
+    @Test
+    void getBrokerClientTransactions_ReturnsTransactionsForClientAndBroker() {
+        // Arrange
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+        Transaction t1 = new Transaction();
+        t1.setBrokerId(brokerId);
+        t1.setClientId(clientId);
+
+        Transaction t2 = new Transaction();
+        t2.setBrokerId(UUID.randomUUID()); // Different broker
+        t2.setClientId(clientId);
+
+        when(transactionRepository.findAllByClientId(clientId)).thenReturn(List.of(t1, t2));
+
+        // Act
+        List<TransactionResponseDTO> result = transactionService.getBrokerClientTransactions(brokerId, clientId);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        // Should filter out t2
+        verify(transactionRepository).findAllByClientId(clientId);
+    }
+
+    @Test
+    void getAllClientTransactions_ReturnsAllForClient() {
+        // Arrange
+        UUID clientId = UUID.randomUUID();
+        UUID brokerId1 = UUID.randomUUID();
+        UUID brokerId2 = UUID.randomUUID();
+
+        Transaction t1 = new Transaction();
+        t1.setBrokerId(brokerId1);
+        t1.setClientId(clientId);
+        
+        Transaction t2 = new Transaction();
+        t2.setBrokerId(brokerId2);
+        t2.setClientId(clientId);
+
+        when(transactionRepository.findAllByClientId(clientId)).thenReturn(List.of(t1, t2));
+
+        // Act
+        List<TransactionResponseDTO> result = transactionService.getAllClientTransactions(clientId);
+
+        // Assert
+        assertThat(result).hasSize(2);
+        verify(transactionRepository).findAllByClientId(clientId);
+    }
+
+    @Test
+    void getByTransactionId_WithValidAccess_ReturnsTransaction() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act
+        TransactionResponseDTO result = transactionService.getByTransactionId(transactionId, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getTransactionId()).isEqualTo(transactionId);
+    }
+
+    @Test
+    void getByTransactionId_WithUnauthorizedUser_ThrowsForbiddenException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(UUID.randomUUID());
+        
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getByTransactionId(transactionId, otherUserId))
+                .isInstanceOf(ForbiddenException.class);
+    }
 }
