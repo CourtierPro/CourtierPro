@@ -61,6 +61,12 @@ export interface TransactionInfo {
   buyerName?: string;
   offerAmount?: number;
   offerStatus?: string;
+  // Condition-related fields
+  conditionType?: string;
+  conditionDescription?: string;
+  conditionDeadline?: string;
+  conditionPreviousStatus?: string;
+  conditionNewStatus?: string;
 }
 
 export interface TimelineEntryDTO {

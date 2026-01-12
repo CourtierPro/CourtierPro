@@ -204,17 +204,22 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                             {entry.type.startsWith('CONDITION_') && (
                                                 <p className="text-sm text-muted-foreground mt-1">
                                                     {(() => {
-                                                        // Extract condition type from note (format: "Condition TYPE..." or "Condition added: TYPE...")
-                                                        const extractConditionType = (note: string | undefined) => {
-                                                            if (!note) return 'Unknown';
+                                                        // Get condition type from metadata, fallback to parsing from note for legacy entries
+                                                        const getConditionType = () => {
+                                                            const typeFromMetadata = entry.transactionInfo?.conditionType;
+                                                            if (typeFromMetadata) {
+                                                                return t(`conditionTypes.${typeFromMetadata}`, { defaultValue: typeFromMetadata });
+                                                            }
+                                                            // Fallback: extract from note for legacy entries
+                                                            const note = entry.note || '';
                                                             const match = note.match(/Condition\s+(?:added:|updated:|removed:)?\s*(\w+)/i);
                                                             if (match) {
                                                                 const type = match[1].toUpperCase();
                                                                 return t(`conditionTypes.${type}`, { defaultValue: type });
                                                             }
-                                                            return 'Unknown';
+                                                            return t('conditions.unknown', { defaultValue: 'Unknown' });
                                                         };
-                                                        const conditionType = extractConditionType(entry.note);
+                                                        const conditionType = getConditionType();
                                                         if (entry.type === 'CONDITION_ADDED') return t('timeline.conditionAdded', { conditionType });
                                                         if (entry.type === 'CONDITION_UPDATED') return t('timeline.conditionUpdated', { conditionType });
                                                         if (entry.type === 'CONDITION_REMOVED') return t('timeline.conditionRemoved', { conditionType });

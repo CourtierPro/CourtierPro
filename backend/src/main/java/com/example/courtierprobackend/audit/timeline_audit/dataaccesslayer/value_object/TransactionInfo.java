@@ -26,4 +26,11 @@ public class TransactionInfo {
     private String buyerName;
     private BigDecimal offerAmount;
     private String offerStatus;
+
+    // Condition-related fields
+    private String conditionType;
+    private String conditionDescription;
+    private String conditionDeadline;
+    private String conditionPreviousStatus;
+    private String conditionNewStatus;
 }

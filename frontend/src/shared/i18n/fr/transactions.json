@@ -399,7 +399,7 @@
   },
   "conditionStatus": {
     "PENDING": "En attente",
-    "SATISFIED": "Remplie",
+    "SATISFIED": "Satisfaite",
     "FAILED": "Échouée"
   },
   "viewConditionDetails": "Voir les détails de la condition",

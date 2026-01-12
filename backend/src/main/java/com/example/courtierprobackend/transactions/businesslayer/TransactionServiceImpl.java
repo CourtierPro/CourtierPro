@@ -1152,12 +1152,19 @@ public class TransactionServiceImpl implements TransactionService {
         String actorName = lookupUserName(brokerId);
         String description = "Condition added: " + typeName + " - " + saved.getDescription() + 
                 " (Deadline: " + saved.getDeadlineDate() + ")";
+        TransactionInfo txInfo = TransactionInfo.builder()
+                .actorName(actorName)
+                .conditionType(saved.getType().name())
+                .conditionDescription(saved.getDescription())
+                .conditionDeadline(saved.getDeadlineDate() != null ? saved.getDeadlineDate().toString() : null)
+                .build();
         timelineService.addEntry(
                 transactionId,
                 brokerId,
                 TimelineEntryType.CONDITION_ADDED,
                 description,
-                null);
+                null,
+                txInfo);
 
         // Notify client about new condition
         try {
@@ -1212,6 +1219,9 @@ public class TransactionServiceImpl implements TransactionService {
             condition.setStatus(dto.getStatus());
             if (dto.getStatus() == ConditionStatus.SATISFIED && condition.getSatisfiedAt() == null) {
                 condition.setSatisfiedAt(LocalDateTime.now());
+            } else if (dto.getStatus() != ConditionStatus.SATISFIED) {
+                // Clear satisfiedAt when status changes away from SATISFIED
+                condition.setSatisfiedAt(null);
             }
         }
         condition.setNotes(dto.getNotes());
@@ -1225,12 +1235,20 @@ public class TransactionServiceImpl implements TransactionService {
         if (statusChanged) {
             description += " - Status changed to " + dto.getStatus();
         }
+        TransactionInfo txInfo = TransactionInfo.builder()
+                .conditionType(saved.getType().name())
+                .conditionDescription(saved.getDescription())
+                .conditionDeadline(saved.getDeadlineDate() != null ? saved.getDeadlineDate().toString() : null)
+                .conditionPreviousStatus(statusChanged ? previousStatus.name() : null)
+                .conditionNewStatus(statusChanged ? dto.getStatus().name() : null)
+                .build();
         timelineService.addEntry(
                 transactionId,
                 brokerId,
                 TimelineEntryType.CONDITION_UPDATED,
                 description,
-                null);
+                null,
+                txInfo);
 
         return toConditionResponseDTO(saved, true);
     }
@@ -1251,17 +1269,22 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         String typeName = getConditionTypeName(condition);
+        String conditionTypeName = condition.getType().name();
 
         conditionRepository.delete(condition);
 
         // Add timeline entry for condition removal
         String description = "Condition removed: " + typeName;
+        TransactionInfo txInfo = TransactionInfo.builder()
+                .conditionType(conditionTypeName)
+                .build();
         timelineService.addEntry(
                 transactionId,
                 brokerId,
                 TimelineEntryType.CONDITION_REMOVED,
                 description,
-                null);
+                null,
+                txInfo);
     }
 
     @Override
@@ -1286,6 +1309,9 @@ public class TransactionServiceImpl implements TransactionService {
 
         if (status == ConditionStatus.SATISFIED && condition.getSatisfiedAt() == null) {
             condition.setSatisfiedAt(LocalDateTime.now());
+        } else if (status != ConditionStatus.SATISFIED) {
+            // Clear satisfiedAt when status changes away from SATISFIED
+            condition.setSatisfiedAt(null);
         }
 
         Condition saved = conditionRepository.save(condition);
@@ -1301,13 +1327,19 @@ public class TransactionServiceImpl implements TransactionService {
             timelineType = TimelineEntryType.CONDITION_UPDATED;
         }
         String description = "Condition " + typeName + " status changed: " + previousStatus + " → " + status;
-        
+        TransactionInfo txInfo = TransactionInfo.builder()
+                .conditionType(saved.getType().name())
+                .conditionDescription(saved.getDescription())
+                .conditionPreviousStatus(previousStatus.name())
+                .conditionNewStatus(status.name())
+                .build();
         timelineService.addEntry(
                 transactionId,
                 brokerId,
                 timelineType,
                 description,
-                null);
+                null,
+                txInfo);
 
         // Notify client about condition status change
         try {
@@ -1320,8 +1352,9 @@ public class TransactionServiceImpl implements TransactionService {
                 notifTitle = "notifications.conditionFailed.title";
                 notifMessage = "notifications.conditionFailed.message";
             } else {
-                notifTitle = "notifications.conditionAdded.title";
-                notifMessage = "notifications.conditionAdded.message";
+                // PENDING status change (e.g., reverting from SATISFIED)
+                notifTitle = "notifications.conditionStatusChanged.title";
+                notifMessage = "notifications.conditionStatusChanged.message";
             }
             notificationService.createNotification(
                     tx.getClientId().toString(),

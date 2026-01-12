@@ -20,5 +20,7 @@
     "notifications.conditionSatisfied.title": "Condition Satisfied",
     "notifications.conditionSatisfied.message": "The {{conditionType}} condition has been marked as satisfied.",
     "notifications.conditionFailed.title": "Condition Failed",
-    "notifications.conditionFailed.message": "The {{conditionType}} condition has been marked as failed."
+    "notifications.conditionFailed.message": "The {{conditionType}} condition has been marked as failed.",
+    "notifications.conditionStatusChanged.title": "Condition Status Updated",
+    "notifications.conditionStatusChanged.message": "The {{conditionType}} condition status has been changed to {{status}}."
 }

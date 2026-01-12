@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
@@ -23,33 +23,39 @@ export function AddConditionModal({ open, onOpenChange, transactionId, existingC
     const { t } = useTranslation('transactions');
     const isEditMode = !!existingCondition;
 
-    const [type, setType] = useState<ConditionType>('FINANCING');
-    const [customTitle, setCustomTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [deadlineDate, setDeadlineDate] = useState('');
-    const [status, setStatus] = useState<ConditionStatus>('PENDING');
-    const [notes, setNotes] = useState('');
+    // Compute initial values based on existingCondition
+    const getInitialValues = () => ({
+        type: existingCondition?.type ?? 'FINANCING' as ConditionType,
+        customTitle: existingCondition?.customTitle ?? '',
+        description: existingCondition?.description ?? '',
+        deadlineDate: existingCondition?.deadlineDate ?? '',
+        status: existingCondition?.status ?? 'PENDING' as ConditionStatus,
+        notes: existingCondition?.notes ?? '',
+    });
 
-    // Sync form state when modal opens or existingCondition changes
+    // Use single state object to allow atomic reset
+    const [formState, setFormState] = useState(getInitialValues);
+
+    // Derived values for easier access
+    const { type, customTitle, description, deadlineDate, status, notes } = formState;
+
+    // Setters that update single fields
+    const setType = (v: ConditionType) => setFormState(s => ({ ...s, type: v }));
+    const setCustomTitle = (v: string) => setFormState(s => ({ ...s, customTitle: v }));
+    const setDescription = (v: string) => setFormState(s => ({ ...s, description: v }));
+    const setDeadlineDate = (v: string) => setFormState(s => ({ ...s, deadlineDate: v }));
+    const setStatus = (v: ConditionStatus) => setFormState(s => ({ ...s, status: v }));
+    const setNotes = (v: string) => setFormState(s => ({ ...s, notes: v }));
+
+    // Reset form when modal opens - single setState call avoids cascading renders
+    const prevOpenRef = useRef(open);
     useEffect(() => {
-        if (open) {
-            if (existingCondition) {
-                setType(existingCondition.type);
-                setCustomTitle(existingCondition.customTitle || '');
-                setDescription(existingCondition.description || '');
-                setDeadlineDate(existingCondition.deadlineDate || '');
-                setStatus(existingCondition.status);
-                setNotes(existingCondition.notes || '');
-            } else {
-                // Reset to defaults for new condition
-                setType('FINANCING');
-                setCustomTitle('');
-                setDescription('');
-                setDeadlineDate('');
-                setStatus('PENDING');
-                setNotes('');
-            }
+        if (open && !prevOpenRef.current) {
+            // Single atomic reset - only one setState call
+            setFormState(getInitialValues());
         }
+        prevOpenRef.current = open;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, existingCondition]);
 
     const addCondition = useAddCondition();
@@ -58,12 +64,14 @@ export function AddConditionModal({ open, onOpenChange, transactionId, existingC
     const updateStatus = useUpdateConditionStatus();
 
     const resetForm = () => {
-        setType('FINANCING');
-        setCustomTitle('');
-        setDescription('');
-        setDeadlineDate('');
-        setStatus('PENDING');
-        setNotes('');
+        setFormState({
+            type: 'FINANCING',
+            customTitle: '',
+            description: '',
+            deadlineDate: '',
+            status: 'PENDING',
+            notes: '',
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -111,7 +119,8 @@ export function AddConditionModal({ open, onOpenChange, transactionId, existingC
     };
 
     const handleStatusChange = async (newStatus: ConditionStatus) => {
-        setStatus(newStatus);
+        const previousStatus = status;
+        setStatus(newStatus); // Optimistic update
         if (isEditMode && existingCondition) {
             try {
                 await updateStatus.mutateAsync({
@@ -120,7 +129,8 @@ export function AddConditionModal({ open, onOpenChange, transactionId, existingC
                     status: newStatus,
                 });
             } catch {
-                // Error handled by global error system
+                // Rollback on error
+                setStatus(previousStatus);
             }
         }
     };

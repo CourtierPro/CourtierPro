@@ -2012,6 +2012,7 @@ class TransactionServiceImplTest {
                 eq(brokerId),
                 eq(TimelineEntryType.CONDITION_ADDED),
                 any(),
+                any(),
                 any());
     }
 
@@ -2125,7 +2126,8 @@ class TransactionServiceImplTest {
                 eq(brokerId),
                 eq(TimelineEntryType.CONDITION_UPDATED),
                 anyString(),
-                isNull());
+                isNull(),
+                any());
     }
 
     @Test
@@ -2176,7 +2178,8 @@ class TransactionServiceImplTest {
                 eq(brokerId),
                 eq(TimelineEntryType.CONDITION_REMOVED),
                 anyString(),
-                isNull());
+                isNull(),
+                any());
     }
 
     @Test
@@ -2210,7 +2213,8 @@ class TransactionServiceImplTest {
                 eq(brokerId),
                 eq(TimelineEntryType.CONDITION_SATISFIED),
                 anyString(),
-                isNull());
+                isNull(),
+                any());
     }
 
     @Test
@@ -2264,5 +2268,239 @@ class TransactionServiceImplTest {
         condition.setCreatedAt(LocalDateTime.now());
         condition.setUpdatedAt(LocalDateTime.now());
         return condition;
+    }
+
+    @Test
+    void updateConditionStatus_withUnauthorizedBroker_throwsForbiddenException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID otherBrokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        tx.setClientId(UUID.randomUUID());
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateConditionStatus(
+                transactionId, conditionId, 
+                com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.SATISFIED, 
+                otherBrokerId))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void updateConditionStatus_withNonExistentCondition_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        tx.setClientId(UUID.randomUUID());
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateConditionStatus(
+                transactionId, conditionId, 
+                com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.SATISFIED, 
+                brokerId))
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.NotFoundException.class);
+    }
+
+    @Test
+    void updateConditionStatus_toFailed_createsCorrectTimelineEntry() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        tx.setClientId(UUID.randomUUID());
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        var condition = createSampleCondition(transactionId);
+        condition.setConditionId(conditionId);
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+        when(conditionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        // Act
+        transactionService.updateConditionStatus(
+                transactionId, conditionId, 
+                com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.FAILED, 
+                brokerId);
+
+        // Assert - verify timeline uses CONDITION_FAILED type
+        verify(timelineService).addEntry(
+                eq(transactionId),
+                eq(brokerId),
+                eq(TimelineEntryType.CONDITION_FAILED),
+                anyString(),
+                any(),
+                any());
+    }
+
+    @Test
+    void removeCondition_withUnauthorizedBroker_throwsForbiddenException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID otherBrokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.removeCondition(
+                transactionId, conditionId, otherBrokerId))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void removeCondition_withNonExistentCondition_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.removeCondition(
+                transactionId, conditionId, brokerId))
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.NotFoundException.class);
+    }
+
+    @Test
+    void removeCondition_withConditionFromDifferentTransaction_throwsBadRequestException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID otherTransactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        var condition = createSampleCondition(otherTransactionId);
+        condition.setConditionId(conditionId);
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.removeCondition(
+                transactionId, conditionId, brokerId))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void updateCondition_withConditionFromDifferentTransaction_throwsBadRequestException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID otherTransactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        var condition = createSampleCondition(otherTransactionId);
+        condition.setConditionId(conditionId);
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+
+        var request = new com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO();
+        request.setType(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.INSPECTION);
+        request.setDescription("Updated description");
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateCondition(
+                transactionId, conditionId, request, brokerId))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void updateConditionStatus_withConditionFromDifferentTransaction_throwsBadRequestException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID otherTransactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        tx.setClientId(UUID.randomUUID());
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        var condition = createSampleCondition(otherTransactionId);
+        condition.setConditionId(conditionId);
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateConditionStatus(
+                transactionId, conditionId, 
+                com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.SATISFIED, 
+                brokerId))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void addCondition_withClientId_throwsForbiddenException() {
+        // Arrange - client trying to add condition
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        tx.setClientId(clientId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        var request = new com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO();
+        request.setType(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING);
+        request.setDescription("Test condition");
+
+        // Act & Assert - client ID used instead of broker ID
+        assertThatThrownBy(() -> transactionService.addCondition(transactionId, request, clientId))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void updateCondition_withClientId_throwsForbiddenException() {
+        // Arrange - client trying to update condition
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        tx.setClientId(clientId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        var request = new com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO();
+        request.setType(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.INSPECTION);
+        request.setDescription("Updated");
+
+        // Act & Assert - client ID used instead of broker ID
+        assertThatThrownBy(() -> transactionService.updateCondition(transactionId, conditionId, request, clientId))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void removeCondition_withClientId_throwsForbiddenException() {
+        // Arrange - client trying to remove condition
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        tx.setClientId(clientId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert - client ID used instead of broker ID
+        assertThatThrownBy(() -> transactionService.removeCondition(transactionId, conditionId, clientId))
+                .isInstanceOf(ForbiddenException.class);
     }
 }

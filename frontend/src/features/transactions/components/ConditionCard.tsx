@@ -51,7 +51,7 @@ const deadlineBadgeStyles: Record<'overdue' | 'urgent' | 'warning' | 'normal', s
 };
 
 export function ConditionCard({ condition, onClick, isReadOnly }: ConditionCardProps) {
-    const { t } = useTranslation('transactions');
+    const { t, i18n } = useTranslation('transactions');
 
     const getConditionTitle = (type: ConditionType, customTitle?: string) => {
         if (type === 'OTHER' && customTitle) return customTitle;
@@ -63,7 +63,9 @@ export function ConditionCard({ condition, onClick, isReadOnly }: ConditionCardP
         // Parse date parts directly to avoid timezone issues
         const [year, month, day] = dateStr.split('-').map(Number);
         const date = new Date(year, month - 1, day); // month is 0-indexed
-        return date.toLocaleDateString('en-CA', {
+        // Use locale from i18n: 'en' -> 'en-CA', 'fr' -> 'fr-CA'
+        const locale = i18n.language === 'fr' ? 'fr-CA' : 'en-CA';
+        return date.toLocaleDateString(locale, {
             month: 'short',
             day: 'numeric',
             year: 'numeric',
