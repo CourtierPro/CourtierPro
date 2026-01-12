@@ -10,23 +10,23 @@ interface TransactionInfoProps {
     onClientClick?: () => void;
 }
 
-function formatAddress(address: Transaction['propertyAddress'] | null) {
-    if (!address || !address.street) {
-        return "No property selected";
-    }
-    const street = address.street.trim();
-    if (!street) {
-        return "No property selected";
-    }
-    // If street is just a number (e.g. "1"), treat it as needing a label
-    if (/^\d+$/.test(street)) {
-        return "Street address incomplete";
-    }
-    return street;
-}
-
 export function TransactionInfo({ transaction, hideClientLabel = false, onClientClick }: TransactionInfoProps) {
     const { t } = useTranslation('transactions');
+
+    const formatAddress = (address: Transaction['propertyAddress'] | null): string => {
+        if (!address || !address.street) {
+            return t('noPropertySelected');
+        }
+        const street = address.street.trim();
+        if (!street) {
+            return t('noPropertySelected');
+        }
+        // If street is just a number (e.g. "1"), treat it as needing a label
+        if (/^\d+$/.test(street)) {
+            return t('streetAddressIncomplete');
+        }
+        return street;
+    };
 
     return (
         <Section className="p-3 md:p-6">
@@ -80,4 +80,3 @@ export function TransactionInfo({ transaction, hideClientLabel = false, onClient
         </Section>
     );
 }
-

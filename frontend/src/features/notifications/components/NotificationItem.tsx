@@ -15,6 +15,7 @@ interface NotificationItemProps {
 
 export function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
     const { t } = useTranslation('notifications');
+    const { t: tTransactions } = useTranslation('transactions');
     const navigate = useNavigate();
 
     // Get translated title and message if keys are present
@@ -31,6 +32,11 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
                 } catch {
                     // Ignore parse errors
                 }
+            }
+
+            // Translate conditionType if present (e.g., "FINANCING" -> "Financing")
+            if (params.conditionType) {
+                params.conditionType = tTransactions(`conditionTypes.${params.conditionType}`, { defaultValue: params.conditionType });
             }
 
             if (notification.titleKey) {

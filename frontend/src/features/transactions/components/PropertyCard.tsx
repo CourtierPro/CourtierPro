@@ -67,7 +67,7 @@ export function PropertyCard({ property, onClick, isActive }: PropertyCardProps)
                     </div>
                     {isActive && (
                         <Badge variant="success" className="ml-auto h-6 shrink-0">
-                            Active
+                            {t('active')}
                         </Badge>
                     )}
                 </div>

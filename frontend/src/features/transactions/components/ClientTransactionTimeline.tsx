@@ -106,6 +106,12 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                                                 {t('timeline.by', { name: entry.transactionInfo.actorName })}
                                                             </span>
                                                         );
+                                                    } else if (entry.type.startsWith('CONDITION_') && entry.actorName) {
+                                                        return (
+                                                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground ml-2">
+                                                                {t('timeline.by', { name: entry.actorName })}
+                                                            </span>
+                                                        );
                                                     }
                                                     return null;
                                                 })()}
@@ -191,6 +197,30 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                                             return t('timeline.offerRemovedDetail', { buyerName: buyerName || '' });
                                                         }
                                                         return '';
+                                                    })()}
+                                                </p>
+                                            )}
+                                            {/* Show translated info for CONDITION events */}
+                                            {entry.type.startsWith('CONDITION_') && (
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    {(() => {
+                                                        // Extract condition type from note (format: "Condition TYPE..." or "Condition added: TYPE...")
+                                                        const extractConditionType = (note: string | undefined) => {
+                                                            if (!note) return 'Unknown';
+                                                            const match = note.match(/Condition\s+(?:added:|updated:|removed:)?\s*(\w+)/i);
+                                                            if (match) {
+                                                                const type = match[1].toUpperCase();
+                                                                return t(`conditionTypes.${type}`, { defaultValue: type });
+                                                            }
+                                                            return 'Unknown';
+                                                        };
+                                                        const conditionType = extractConditionType(entry.note);
+                                                        if (entry.type === 'CONDITION_ADDED') return t('timeline.conditionAdded', { conditionType });
+                                                        if (entry.type === 'CONDITION_UPDATED') return t('timeline.conditionUpdated', { conditionType });
+                                                        if (entry.type === 'CONDITION_REMOVED') return t('timeline.conditionRemoved', { conditionType });
+                                                        if (entry.type === 'CONDITION_SATISFIED') return t('timeline.conditionSatisfied', { conditionType });
+                                                        if (entry.type === 'CONDITION_FAILED') return t('timeline.conditionFailed', { conditionType });
+                                                        return entry.note || '';
                                                     })()}
                                                 </p>
                                             )}

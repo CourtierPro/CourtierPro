@@ -90,8 +90,8 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
 
   const filteredClients = clients.filter(
     (client) =>
-      client.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
-      client.email.toLowerCase().includes(clientSearch.toLowerCase())
+      (client.name?.toLowerCase() ?? '').includes(clientSearch.toLowerCase()) ||
+      (client.email?.toLowerCase() ?? '').includes(clientSearch.toLowerCase())
   );
 
   const stageEnums = transactionSide
@@ -170,14 +170,14 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
               {t('transactionDetails')}
             </h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
               {/* Left Column: Side Selection */}
               <FormField
                 control={form.control}
                 name="transactionSide"
                 render={({ field }) => (
                   <FormItem className="space-y-4">
-                    <FormLabel className="block text-sm font-medium text-foreground mb-4">
+                    <FormLabel className="block text-sm font-medium text-foreground">
                       {t('transactionSide')} <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
@@ -252,7 +252,7 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                       <FormControl>
                         <Input
                           id="client-search"
-                          value={selectedClientForDisplay ? selectedClientForDisplay.name : clientSearch}
+                          value={selectedClientForDisplay ? (selectedClientForDisplay.name || selectedClientForDisplay.email) : clientSearch}
                           onChange={(e) => {
                             setClientSearch(e.target.value);
                             setSelectedClientForDisplay(null);
@@ -276,10 +276,10 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                                 key={client.id}
                                 type="button"
                                 onClick={() => handleClientSelect(client)}
-                                className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                                className="w-full text-left px-3 py-2.5 hover:bg-accent hover:text-accent-foreground transition-colors"
                               >
-                                <div className="font-medium">{client.name}</div>
-                                <div className="text-xs text-muted-foreground">{client.email}</div>
+                                <div className="font-medium">{client.name || client.email}</div>
+                                {client.name && <div className="text-sm text-muted-foreground">{client.email}</div>}
                               </button>
                             ))
                           )}
@@ -287,9 +287,9 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                       )}
                     </div>
                     {selectedClientForDisplay && (
-                      <div className="flex items-center gap-2 mt-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm">
-                        <CheckCircle className="w-4 h-4" />
-                        <span>{selectedClientForDisplay.name}</span>
+                      <div className="flex items-center gap-2 mt-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                        <span className="font-medium">{selectedClientForDisplay.name || selectedClientForDisplay.email}</span>
                       </div>
                     )}
                     <FormMessage>{form.formState.errors.clientId?.message && t(form.formState.errors.clientId?.message)}</FormMessage>

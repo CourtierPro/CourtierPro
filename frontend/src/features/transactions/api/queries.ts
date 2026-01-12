@@ -227,3 +227,23 @@ export function useOffer(transactionId: string, offerId: string) {
         enabled: !!transactionId && !!offerId,
     });
 }
+
+// ==================== CONDITION QUERIES ====================
+
+import type { Condition } from '@/shared/api/types';
+
+export const conditionKeys = {
+    all: (transactionId: string) => [...transactionKeys.detail(transactionId), 'conditions'] as const,
+    detail: (transactionId: string, conditionId: string) => [...conditionKeys.all(transactionId), conditionId] as const,
+};
+
+export function useTransactionConditions(transactionId: string) {
+    return useQuery({
+        queryKey: conditionKeys.all(transactionId),
+        queryFn: async () => {
+            const res = await axiosInstance.get<Condition[]>(`/transactions/${transactionId}/conditions`);
+            return res.data;
+        },
+        enabled: !!transactionId,
+    });
+}

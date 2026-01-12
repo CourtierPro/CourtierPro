@@ -238,3 +238,69 @@ export function useRemoveOffer() {
         },
     });
 }
+
+// ==================== CONDITION MUTATIONS ====================
+
+import { conditionKeys } from '@/features/transactions/api/queries';
+import type { ConditionRequestDTO, Condition, ConditionStatus } from '@/shared/api/types';
+
+export function useAddCondition() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, data }: { transactionId: string; data: ConditionRequestDTO }) => {
+            const res = await axiosInstance.post<Condition>(`/transactions/${transactionId}/conditions`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: conditionKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+export function useUpdateCondition() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, conditionId, data }: { transactionId: string; conditionId: string; data: ConditionRequestDTO }) => {
+            const res = await axiosInstance.put<Condition>(`/transactions/${transactionId}/conditions/${conditionId}`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: conditionKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+export function useRemoveCondition() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, conditionId }: { transactionId: string; conditionId: string }) => {
+            await axiosInstance.delete(`/transactions/${transactionId}/conditions/${conditionId}`);
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: conditionKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+export function useUpdateConditionStatus() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, conditionId, status }: { transactionId: string; conditionId: string; status: ConditionStatus }) => {
+            const res = await axiosInstance.put<Condition>(`/transactions/${transactionId}/conditions/${conditionId}/status`, null, {
+                params: { status }
+            });
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: conditionKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}

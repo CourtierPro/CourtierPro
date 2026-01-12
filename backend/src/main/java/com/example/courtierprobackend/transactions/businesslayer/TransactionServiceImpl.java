@@ -55,6 +55,12 @@ import com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequest
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.Condition;
+import com.example.courtierprobackend.transactions.datalayer.repositories.ConditionRepository;
+import com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.ConditionResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus;
+import com.example.courtierprobackend.transactions.datalayer.enums.ConditionType;
 
 @Service
 @RequiredArgsConstructor
@@ -86,6 +92,8 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionParticipantRepository participantRepository;
     private final PropertyRepository propertyRepository;
     private final OfferRepository offerRepository;
+    private final ConditionRepository conditionRepository;
+
 
     private String lookupUserName(UUID userId) {
         if (userId == null) {
@@ -1091,6 +1099,267 @@ public class TransactionServiceImpl implements TransactionService {
                 .notes(offer.getNotes())
                 .createdAt(offer.getCreatedAt())
                 .updatedAt(offer.getUpdatedAt())
+                .build();
+    }
+
+    // ==================== CONDITION METHODS ====================
+
+    @Override
+    public List<ConditionResponseDTO> getConditions(UUID transactionId, UUID userId, boolean isBroker) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
+
+        List<Condition> conditions = conditionRepository.findByTransactionIdOrderByDeadlineDateAsc(transactionId);
+
+        return conditions.stream()
+                .map(c -> toConditionResponseDTO(c, isBroker))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public ConditionResponseDTO addCondition(UUID transactionId, ConditionRequestDTO dto, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        // Validate: OTHER type requires customTitle
+        if (dto.getType() == ConditionType.OTHER && 
+                (dto.getCustomTitle() == null || dto.getCustomTitle().isBlank())) {
+            throw new BadRequestException("Custom title is required for condition type OTHER");
+        }
+
+        Condition condition = Condition.builder()
+                .conditionId(UUID.randomUUID())
+                .transactionId(transactionId)
+                .type(dto.getType())
+                .customTitle(dto.getType() == ConditionType.OTHER ? dto.getCustomTitle() : null)
+                .description(dto.getDescription())
+                .deadlineDate(dto.getDeadlineDate())
+                .status(dto.getStatus() != null ? dto.getStatus() : ConditionStatus.PENDING)
+                .notes(dto.getNotes())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        Condition saved = conditionRepository.save(condition);
+
+        // Add timeline entry for condition added
+        String typeName = getConditionTypeName(saved);
+        String actorName = lookupUserName(brokerId);
+        String description = "Condition added: " + typeName + " - " + saved.getDescription() + 
+                " (Deadline: " + saved.getDeadlineDate() + ")";
+        timelineService.addEntry(
+                transactionId,
+                brokerId,
+                TimelineEntryType.CONDITION_ADDED,
+                description,
+                null);
+
+        // Notify client about new condition
+        try {
+            notificationService.createNotification(
+                    tx.getClientId().toString(),
+                    "notifications.conditionAdded.title",
+                    "notifications.conditionAdded.message",
+                    java.util.Map.of(
+                            "conditionType", typeName,
+                            "deadline", saved.getDeadlineDate().toString()
+                    ),
+                    transactionId.toString(),
+                    com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
+        } catch (Exception e) {
+            log.error("Failed to send condition notification for transaction {}", transactionId, e);
+        }
+
+        return toConditionResponseDTO(saved, true);
+    }
+
+    @Override
+    @Transactional
+    public ConditionResponseDTO updateCondition(UUID transactionId, UUID conditionId, ConditionRequestDTO dto, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        Condition condition = conditionRepository.findByConditionId(conditionId)
+                .orElseThrow(() -> new NotFoundException("Condition not found"));
+
+        if (!condition.getTransactionId().equals(transactionId)) {
+            throw new BadRequestException("Condition does not belong to this transaction");
+        }
+
+        // Validate: OTHER type requires customTitle
+        if (dto.getType() == ConditionType.OTHER && 
+                (dto.getCustomTitle() == null || dto.getCustomTitle().isBlank())) {
+            throw new BadRequestException("Custom title is required for condition type OTHER");
+        }
+
+        // Track status change for timeline
+        ConditionStatus previousStatus = condition.getStatus();
+        boolean statusChanged = dto.getStatus() != null && dto.getStatus() != previousStatus;
+
+        // Update fields
+        condition.setType(dto.getType());
+        condition.setCustomTitle(dto.getType() == ConditionType.OTHER ? dto.getCustomTitle() : null);
+        condition.setDescription(dto.getDescription());
+        condition.setDeadlineDate(dto.getDeadlineDate());
+        if (dto.getStatus() != null) {
+            condition.setStatus(dto.getStatus());
+            if (dto.getStatus() == ConditionStatus.SATISFIED && condition.getSatisfiedAt() == null) {
+                condition.setSatisfiedAt(LocalDateTime.now());
+            }
+        }
+        condition.setNotes(dto.getNotes());
+        condition.setUpdatedAt(LocalDateTime.now());
+
+        Condition saved = conditionRepository.save(condition);
+
+        // Add timeline entry for condition update
+        String typeName = getConditionTypeName(saved);
+        String description = "Condition updated: " + typeName;
+        if (statusChanged) {
+            description += " - Status changed to " + dto.getStatus();
+        }
+        timelineService.addEntry(
+                transactionId,
+                brokerId,
+                TimelineEntryType.CONDITION_UPDATED,
+                description,
+                null);
+
+        return toConditionResponseDTO(saved, true);
+    }
+
+    @Override
+    @Transactional
+    public void removeCondition(UUID transactionId, UUID conditionId, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        Condition condition = conditionRepository.findByConditionId(conditionId)
+                .orElseThrow(() -> new NotFoundException("Condition not found"));
+
+        if (!condition.getTransactionId().equals(transactionId)) {
+            throw new BadRequestException("Condition does not belong to this transaction");
+        }
+
+        String typeName = getConditionTypeName(condition);
+
+        conditionRepository.delete(condition);
+
+        // Add timeline entry for condition removal
+        String description = "Condition removed: " + typeName;
+        timelineService.addEntry(
+                transactionId,
+                brokerId,
+                TimelineEntryType.CONDITION_REMOVED,
+                description,
+                null);
+    }
+
+    @Override
+    @Transactional
+    public ConditionResponseDTO updateConditionStatus(UUID transactionId, UUID conditionId, 
+            ConditionStatus status, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        Condition condition = conditionRepository.findByConditionId(conditionId)
+                .orElseThrow(() -> new NotFoundException("Condition not found"));
+
+        if (!condition.getTransactionId().equals(transactionId)) {
+            throw new BadRequestException("Condition does not belong to this transaction");
+        }
+
+        ConditionStatus previousStatus = condition.getStatus();
+        condition.setStatus(status);
+        condition.setUpdatedAt(LocalDateTime.now());
+
+        if (status == ConditionStatus.SATISFIED && condition.getSatisfiedAt() == null) {
+            condition.setSatisfiedAt(LocalDateTime.now());
+        }
+
+        Condition saved = conditionRepository.save(condition);
+
+        // Add timeline entry - use CONDITION_SATISFIED or CONDITION_FAILED for status
+        String typeName = getConditionTypeName(saved);
+        TimelineEntryType timelineType;
+        if (status == ConditionStatus.SATISFIED) {
+            timelineType = TimelineEntryType.CONDITION_SATISFIED;
+        } else if (status == ConditionStatus.FAILED) {
+            timelineType = TimelineEntryType.CONDITION_FAILED;
+        } else {
+            timelineType = TimelineEntryType.CONDITION_UPDATED;
+        }
+        String description = "Condition " + typeName + " status changed: " + previousStatus + " → " + status;
+        
+        timelineService.addEntry(
+                transactionId,
+                brokerId,
+                timelineType,
+                description,
+                null);
+
+        // Notify client about condition status change
+        try {
+            String notifTitle;
+            String notifMessage;
+            if (status == ConditionStatus.SATISFIED) {
+                notifTitle = "notifications.conditionSatisfied.title";
+                notifMessage = "notifications.conditionSatisfied.message";
+            } else if (status == ConditionStatus.FAILED) {
+                notifTitle = "notifications.conditionFailed.title";
+                notifMessage = "notifications.conditionFailed.message";
+            } else {
+                notifTitle = "notifications.conditionAdded.title";
+                notifMessage = "notifications.conditionAdded.message";
+            }
+            notificationService.createNotification(
+                    tx.getClientId().toString(),
+                    notifTitle,
+                    notifMessage,
+                    java.util.Map.of(
+                            "conditionType", typeName,
+                            "status", status.name()
+                    ),
+                    transactionId.toString(),
+                    com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
+        } catch (Exception e) {
+            log.error("Failed to send condition status notification for transaction {}", transactionId, e);
+        }
+
+        return toConditionResponseDTO(saved, true);
+    }
+
+    private String getConditionTypeName(Condition condition) {
+        if (condition.getType() == ConditionType.OTHER && condition.getCustomTitle() != null) {
+            return condition.getCustomTitle();
+        }
+        return condition.getType().name();
+    }
+
+    private ConditionResponseDTO toConditionResponseDTO(Condition condition, boolean includeBrokerNotes) {
+        return ConditionResponseDTO.builder()
+                .conditionId(condition.getConditionId())
+                .transactionId(condition.getTransactionId())
+                .type(condition.getType())
+                .customTitle(condition.getCustomTitle())
+                .description(condition.getDescription())
+                .deadlineDate(condition.getDeadlineDate())
+                .status(condition.getStatus())
+                .satisfiedAt(condition.getSatisfiedAt())
+                .notes(includeBrokerNotes ? condition.getNotes() : null)
+                .createdAt(condition.getCreatedAt())
+                .updatedAt(condition.getUpdatedAt())
                 .build();
     }
 }

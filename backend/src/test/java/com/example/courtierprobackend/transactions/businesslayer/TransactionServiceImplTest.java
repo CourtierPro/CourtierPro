@@ -81,12 +81,15 @@ class TransactionServiceImplTest {
     @Mock
     private com.example.courtierprobackend.transactions.datalayer.repositories.OfferRepository offerRepository;
 
+    @Mock
+    private com.example.courtierprobackend.transactions.datalayer.repositories.ConditionRepository conditionRepository;
+
 
     @BeforeEach
     void setup() {
         transactionService = new TransactionServiceImpl(transactionRepository, pinnedTransactionRepository,
                 userAccountRepository, emailService,
-                notificationService, timelineService, participantRepository, propertyRepository, offerRepository);
+                notificationService, timelineService, participantRepository, propertyRepository, offerRepository, conditionRepository);
         lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
     }
 
@@ -1911,5 +1914,355 @@ class TransactionServiceImplTest {
 
         // Assert
         verify(timelineService, never()).addEntry(any(), any(), any(), any(), any());
+    }
+
+    // ========== Condition Management Tests ==========
+
+    @Test
+    void getConditions_withValidBrokerAccess_returnsConditions() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                createSampleCondition(transactionId);
+        when(conditionRepository.findByTransactionIdOrderByDeadlineDateAsc(transactionId))
+                .thenReturn(List.of(condition));
+
+        // Act
+        var result = transactionService.getConditions(transactionId, brokerId, true);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getType()).isEqualTo(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING);
+        verify(conditionRepository).findByTransactionIdOrderByDeadlineDateAsc(transactionId);
+    }
+
+    @Test
+    void getConditions_withClientAccess_returnsConditions() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        tx.setClientId(clientId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                createSampleCondition(transactionId);
+        when(conditionRepository.findByTransactionIdOrderByDeadlineDateAsc(transactionId))
+                .thenReturn(List.of(condition));
+
+        // Act
+        var result = transactionService.getConditions(transactionId, clientId, false);
+
+        // Assert
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getConditions_withUnauthorizedAccess_throwsForbiddenException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID unauthorizedUserId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, UUID.randomUUID());
+        tx.setClientId(UUID.randomUUID()); // Different client
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getConditions(transactionId, unauthorizedUserId, false))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void addCondition_withValidData_createsCondition() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        tx.setClientId(UUID.randomUUID());
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO request = 
+                com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO.builder()
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .description("Must obtain mortgage approval")
+                        .deadlineDate(java.time.LocalDate.now().plusDays(30))
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.Condition savedCondition = 
+                createSampleCondition(transactionId);
+        when(conditionRepository.save(any())).thenReturn(savedCondition);
+
+        // Act
+        var result = transactionService.addCondition(transactionId, request, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getType()).isEqualTo(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING);
+        verify(conditionRepository).save(any());
+        verify(timelineService).addEntry(
+                eq(transactionId),
+                eq(brokerId),
+                eq(TimelineEntryType.CONDITION_ADDED),
+                any(),
+                any());
+    }
+
+    @Test
+    void addCondition_withOtherTypeAndNoCustomTitle_throwsBadRequestException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO request = 
+                com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO.builder()
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.OTHER)
+                        .description("Custom requirement")
+                        .deadlineDate(java.time.LocalDate.now().plusDays(30))
+                        .build();
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.addCondition(transactionId, request, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Custom title is required");
+    }
+
+    @Test
+    void addCondition_withOtherTypeAndCustomTitle_createsCondition() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        tx.setClientId(UUID.randomUUID());
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO request = 
+                com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO.builder()
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.OTHER)
+                        .customTitle("Survey Completion")
+                        .description("Must complete land survey")
+                        .deadlineDate(java.time.LocalDate.now().plusDays(30))
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.Condition savedCondition = 
+                createSampleCondition(transactionId);
+        savedCondition.setType(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.OTHER);
+        savedCondition.setCustomTitle("Survey Completion");
+        when(conditionRepository.save(any())).thenReturn(savedCondition);
+
+        // Act
+        var result = transactionService.addCondition(transactionId, request, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getCustomTitle()).isEqualTo("Survey Completion");
+    }
+
+    @Test
+    void addCondition_withUnauthorizedBroker_throwsForbiddenException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID unauthorizedBrokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, UUID.randomUUID());
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO request = 
+                com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO.builder()
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .description("Test")
+                        .deadlineDate(java.time.LocalDate.now().plusDays(30))
+                        .build();
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.addCondition(transactionId, request, unauthorizedBrokerId))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void updateCondition_withValidData_updatesCondition() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        tx.setClientId(UUID.randomUUID());
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        com.example.courtierprobackend.transactions.datalayer.Condition existingCondition = 
+                createSampleCondition(transactionId);
+        existingCondition.setConditionId(conditionId);
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(existingCondition));
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO request = 
+                com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO.builder()
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .description("Updated description")
+                        .deadlineDate(java.time.LocalDate.now().plusDays(45))
+                        .build();
+
+        when(conditionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.updateCondition(transactionId, conditionId, request, brokerId);
+
+        // Assert
+        assertThat(result.getDescription()).isEqualTo("Updated description");
+        verify(timelineService).addEntry(
+                eq(transactionId),
+                eq(brokerId),
+                eq(TimelineEntryType.CONDITION_UPDATED),
+                anyString(),
+                isNull());
+    }
+
+    @Test
+    void updateCondition_withNonExistentCondition_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.empty());
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO request = 
+                com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO.builder()
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .description("Test")
+                        .deadlineDate(java.time.LocalDate.now().plusDays(30))
+                        .build();
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateCondition(transactionId, conditionId, request, brokerId))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void removeCondition_withValidData_deletesCondition() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                createSampleCondition(transactionId);
+        condition.setConditionId(conditionId);
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+
+        // Act
+        transactionService.removeCondition(transactionId, conditionId, brokerId);
+
+        // Assert
+        verify(conditionRepository).delete(condition);
+        verify(timelineService).addEntry(
+                eq(transactionId),
+                eq(brokerId),
+                eq(TimelineEntryType.CONDITION_REMOVED),
+                anyString(),
+                isNull());
+    }
+
+    @Test
+    void updateConditionStatus_toSatisfied_setsSatisfiedAt() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        tx.setClientId(UUID.randomUUID());
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                createSampleCondition(transactionId);
+        condition.setConditionId(conditionId);
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+        when(conditionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.updateConditionStatus(
+                transactionId, conditionId, 
+                com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.SATISFIED, 
+                brokerId);
+
+        // Assert
+        assertThat(result.getStatus()).isEqualTo(com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.SATISFIED);
+        assertThat(result.getSatisfiedAt()).isNotNull();
+        verify(timelineService).addEntry(
+                eq(transactionId),
+                eq(brokerId),
+                eq(TimelineEntryType.CONDITION_SATISFIED),
+                anyString(),
+                isNull());
+    }
+
+    @Test
+    void updateConditionStatus_toFailed_doesNotSetSatisfiedAt() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = createBuySideTransaction(transactionId, brokerId);
+        tx.setClientId(UUID.randomUUID());
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                createSampleCondition(transactionId);
+        condition.setConditionId(conditionId);
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+        when(conditionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.updateConditionStatus(
+                transactionId, conditionId, 
+                com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.FAILED, 
+                brokerId);
+
+        // Assert
+        assertThat(result.getStatus()).isEqualTo(com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.FAILED);
+        assertThat(result.getSatisfiedAt()).isNull();
+    }
+
+    // Helper method for condition tests
+    private Transaction createBuySideTransaction(UUID transactionId, UUID brokerId) {
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+        tx.setStatus(TransactionStatus.ACTIVE);
+        return tx;
+    }
+
+    private com.example.courtierprobackend.transactions.datalayer.Condition createSampleCondition(UUID transactionId) {
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                new com.example.courtierprobackend.transactions.datalayer.Condition();
+        condition.setConditionId(UUID.randomUUID());
+        condition.setTransactionId(transactionId);
+        condition.setType(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING);
+        condition.setDescription("Buyer must obtain mortgage approval");
+        condition.setDeadlineDate(java.time.LocalDate.now().plusDays(30));
+        condition.setStatus(com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.PENDING);
+        condition.setCreatedAt(LocalDateTime.now());
+        condition.setUpdatedAt(LocalDateTime.now());
+        return condition;
     }
 }

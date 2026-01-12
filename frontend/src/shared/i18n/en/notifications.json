@@ -14,5 +14,11 @@
     "notifications.propertyAdded.title": "New Property Added",
     "notifications.propertyAdded.message": "A new property at {{address}} has been added to your transaction.",
     "notifications.offerReceived.title": "New Offer Received",
-    "notifications.offerReceived.message": "An offer of {{offerAmount}} has been received from {{buyerName}}."
+    "notifications.offerReceived.message": "An offer of {{offerAmount}} has been received from {{buyerName}}.",
+    "notifications.conditionAdded.title": "New Condition Added",
+    "notifications.conditionAdded.message": "A new {{conditionType}} condition has been added with a deadline of {{deadline}}.",
+    "notifications.conditionSatisfied.title": "Condition Satisfied",
+    "notifications.conditionSatisfied.message": "The {{conditionType}} condition has been marked as satisfied.",
+    "notifications.conditionFailed.title": "Condition Failed",
+    "notifications.conditionFailed.message": "The {{conditionType}} condition has been marked as failed."
 }

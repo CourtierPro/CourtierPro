@@ -402,3 +402,35 @@ CREATE TABLE IF NOT EXISTS offers (
 CREATE INDEX IF NOT EXISTS idx_offers_transaction_id ON offers(transaction_id);
 CREATE INDEX IF NOT EXISTS idx_offers_offer_id ON offers(offer_id);
 CREATE INDEX IF NOT EXISTS idx_offers_status ON offers(status);
+
+-- =============================================================================
+-- CONDITIONS (for all transactions - tracking conditional clauses)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS conditions (
+    id BIGSERIAL PRIMARY KEY,
+    condition_id UUID NOT NULL UNIQUE,
+    transaction_id UUID NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    custom_title VARCHAR(255),
+    description TEXT NOT NULL,
+    deadline_date DATE NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    notes TEXT,
+    satisfied_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    
+    CONSTRAINT fk_conditions_transaction 
+        FOREIGN KEY (transaction_id) 
+        REFERENCES transactions(transaction_id)
+        ON DELETE CASCADE,
+    CONSTRAINT chk_condition_type 
+        CHECK (type IN ('FINANCING', 'INSPECTION', 'SALE_OF_PROPERTY', 'OTHER')),
+    CONSTRAINT chk_condition_status
+        CHECK (status IN ('PENDING', 'SATISFIED', 'FAILED'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_conditions_transaction_id ON conditions(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_conditions_condition_id ON conditions(condition_id);
+CREATE INDEX IF NOT EXISTS idx_conditions_deadline_date ON conditions(deadline_date);
+CREATE INDEX IF NOT EXISTS idx_conditions_status ON conditions(status);

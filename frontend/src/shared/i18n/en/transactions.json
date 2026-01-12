@@ -230,6 +230,11 @@
   "timeline.propertyAdded": "Property added: {{address}}",
   "timeline.propertyUpdated": "Property updated: {{address}}",
   "timeline.propertyRemoved": "Property removed: {{address}}",
+  "timeline.conditionAdded": "Condition added: {{conditionType}}",
+  "timeline.conditionUpdated": "Condition updated: {{conditionType}}",
+  "timeline.conditionRemoved": "Condition removed: {{conditionType}}",
+  "timeline.conditionSatisfied": "Condition satisfied: {{conditionType}}",
+  "timeline.conditionFailed": "Condition failed: {{conditionType}}",
   "setActive": "Set Active",
   "clearActiveProperty": "Clear Selection",
   "add": "Add",
@@ -305,6 +310,7 @@
   "brokerNotesHint": "These notes are visible to clients.",
   "propertiesBeingConsidered": "Properties Being Considered",
   "noPropertySelected": "No property selected",
+  "streetAddressIncomplete": "Street address incomplete",
   "propertiesCount": "{{count}} property",
   "propertiesCount_other": "{{count}} properties",
   "propertyAdded": "Property added successfully",
@@ -366,5 +372,48 @@
   "timeline.offerRemovedDetail": "Offer removed from {{buyerName}}",
   "timelineType.OFFER_RECEIVED": "Offer Received",
   "timelineType.OFFER_UPDATED": "Offer Updated",
-  "timelineType.OFFER_REMOVED": "Offer Removed"
+  "timelineType.OFFER_REMOVED": "Offer Removed",
+  "timelineType.CONDITION_ADDED": "Condition Added",
+  "timelineType.CONDITION_UPDATED": "Condition Updated",
+  "timelineType.CONDITION_REMOVED": "Condition Removed",
+  "timelineType.CONDITION_SATISFIED": "Condition Satisfied",
+  "timelineType.CONDITION_FAILED": "Condition Failed",
+  "conditions": {
+    "tab": "Conditions",
+    "title": "Conditions",
+    "addCondition": "Add Condition",
+    "editCondition": "Edit Condition",
+    "noConditions": "No conditions added yet",
+    "type": "Condition Type",
+    "customTitle": "Custom Title",
+    "customTitlePlaceholder": "Enter a custom condition title",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe the condition requirements...",
+    "deadline": "Deadline",
+    "status": "Status",
+    "notes": "Broker Notes",
+    "notesPlaceholder": "Add notes about this condition..."
+  },
+  "conditionTypes": {
+    "FINANCING": "Financing",
+    "INSPECTION": "Inspection",
+    "SALE_OF_PROPERTY": "Sale of Property",
+    "OTHER": "Other"
+  },
+  "conditionStatus": {
+    "PENDING": "Pending",
+    "SATISFIED": "Satisfied",
+    "FAILED": "Failed"
+  },
+  "viewConditionDetails": "View condition details",
+  "overdue": "Overdue",
+  "dueSoon": "Due Soon",
+  "common": {
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "saving": "Saving..."
+  }
 }

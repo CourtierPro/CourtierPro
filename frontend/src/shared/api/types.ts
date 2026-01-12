@@ -43,7 +43,12 @@ export type TimelineEventType =
   | 'PROPERTY_REMOVED'
   | 'OFFER_RECEIVED'
   | 'OFFER_UPDATED'
-  | 'OFFER_REMOVED';
+  | 'OFFER_REMOVED'
+  | 'CONDITION_ADDED'
+  | 'CONDITION_UPDATED'
+  | 'CONDITION_REMOVED'
+  | 'CONDITION_SATISFIED'
+  | 'CONDITION_FAILED';
 
 export interface TransactionInfo {
   clientName?: string;
@@ -142,3 +147,32 @@ export interface OfferRequestDTO {
   status: ReceivedOfferStatus;
   notes?: string;
 }
+
+// ==================== CONDITION TYPES ====================
+
+export type ConditionType = 'FINANCING' | 'INSPECTION' | 'SALE_OF_PROPERTY' | 'OTHER';
+export type ConditionStatus = 'PENDING' | 'SATISFIED' | 'FAILED';
+
+export interface Condition {
+  conditionId: string;
+  transactionId: string;
+  type: ConditionType;
+  customTitle?: string;
+  description: string;
+  deadlineDate: string;
+  status: ConditionStatus;
+  satisfiedAt?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConditionRequestDTO {
+  type: ConditionType;
+  customTitle?: string;
+  description: string;
+  deadlineDate: string;
+  status?: ConditionStatus;
+  notes?: string;
+}
+

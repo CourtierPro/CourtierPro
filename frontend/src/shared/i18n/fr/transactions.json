@@ -268,7 +268,12 @@
     "PROPERTY_REMOVED": "Propriété retirée",
     "OFFER_RECEIVED": "Offre reçue",
     "OFFER_UPDATED": "Offre mise à jour",
-    "OFFER_REMOVED": "Offre retirée"
+    "OFFER_REMOVED": "Offre retirée",
+    "CONDITION_ADDED": "Condition ajoutée",
+    "CONDITION_UPDATED": "Condition mise à jour",
+    "CONDITION_REMOVED": "Condition retirée",
+    "CONDITION_SATISFIED": "Condition satisfaite",
+    "CONDITION_FAILED": "Condition non satisfaite"
   },
   "properties": "Propriétés",
   "loadingProperties": "Chargement des propriétés...",
@@ -299,6 +304,7 @@
   "brokerNotesHint": "Ces notes sont visibles aux clients.",
   "propertiesBeingConsidered": "Propriétés considérées",
   "noPropertySelected": "Aucune propriété sélectionnée",
+  "streetAddressIncomplete": "Adresse de rue incomplète",
   "propertiesCount": "{{count}} propriété",
   "propertiesCount_other": "{{count}} propriétés",
   "propertyAdded": "Propriété ajoutée avec succès",
@@ -362,6 +368,49 @@
   "timeline.propertyAdded": "Propriété ajoutée: {{address}}",
   "timeline.propertyUpdated": "Propriété mise à jour: {{address}}",
   "timeline.propertyRemoved": "Propriété retirée: {{address}}",
+  "timeline.conditionAdded": "Condition ajoutée: {{conditionType}}",
+  "timeline.conditionUpdated": "Condition mise à jour: {{conditionType}}",
+  "timeline.conditionRemoved": "Condition retirée: {{conditionType}}",
+  "timeline.conditionSatisfied": "Condition satisfaite: {{conditionType}}",
+  "timeline.conditionFailed": "Condition non satisfaite: {{conditionType}}",
   "setActive": "Définir actif",
-  "clearActiveProperty": "Effacer la sélection"
+  "clearActiveProperty": "Effacer la sélection",
+  "conditions": {
+    "tab": "Conditions",
+    "title": "Conditions",
+    "addCondition": "Ajouter une condition",
+    "editCondition": "Modifier la condition",
+    "noConditions": "Aucune condition ajoutée",
+    "type": "Type de condition",
+    "customTitle": "Titre personnalisé",
+    "customTitlePlaceholder": "Entrer un titre personnalisé",
+    "description": "Description",
+    "descriptionPlaceholder": "Décrire les exigences de la condition...",
+    "deadline": "Date limite",
+    "status": "Statut",
+    "notes": "Notes du courtier",
+    "notesPlaceholder": "Ajouter des notes sur cette condition..."
+  },
+  "conditionTypes": {
+    "FINANCING": "Financement",
+    "INSPECTION": "Inspection",
+    "SALE_OF_PROPERTY": "Vente de propriété",
+    "OTHER": "Autre"
+  },
+  "conditionStatus": {
+    "PENDING": "En attente",
+    "SATISFIED": "Remplie",
+    "FAILED": "Échouée"
+  },
+  "viewConditionDetails": "Voir les détails de la condition",
+  "overdue": "En retard",
+  "dueSoon": "Bientôt due",
+  "common": {
+    "add": "Ajouter",
+    "save": "Sauvegarder",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "deleting": "Suppression...",
+    "saving": "Sauvegarde..."
+  }
 }

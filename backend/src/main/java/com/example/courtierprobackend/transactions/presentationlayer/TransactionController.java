@@ -13,6 +13,9 @@ import com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequest
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.ConditionResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus;
 
 import com.example.courtierprobackend.security.UserContextUtils;
 import jakarta.validation.Valid;
@@ -364,5 +367,65 @@ public class TransactionController {
         UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
         boolean isBroker = UserContextUtils.isBroker(request);
         return ResponseEntity.ok(service.getOfferById(offerId, userId, isBroker));
+    }
+
+    // ==================== CONDITION ENDPOINTS ====================
+
+    @GetMapping("/{transactionId}/conditions")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<List<ConditionResponseDTO>> getConditions(
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        boolean isBroker = UserContextUtils.isBroker(request);
+        return ResponseEntity.ok(service.getConditions(transactionId, userId, isBroker));
+    }
+
+    @PostMapping("/{transactionId}/conditions")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<ConditionResponseDTO> addCondition(
+            @PathVariable UUID transactionId,
+            @Valid @RequestBody ConditionRequestDTO dto,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.addCondition(transactionId, dto, brokerId));
+    }
+
+    @PutMapping("/{transactionId}/conditions/{conditionId}")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<ConditionResponseDTO> updateCondition(
+            @PathVariable UUID transactionId,
+            @PathVariable UUID conditionId,
+            @Valid @RequestBody ConditionRequestDTO dto,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.updateCondition(transactionId, conditionId, dto, brokerId));
+    }
+
+    @DeleteMapping("/{transactionId}/conditions/{conditionId}")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<Void> removeCondition(
+            @PathVariable UUID transactionId,
+            @PathVariable UUID conditionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        service.removeCondition(transactionId, conditionId, brokerId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{transactionId}/conditions/{conditionId}/status")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<ConditionResponseDTO> updateConditionStatus(
+            @PathVariable UUID transactionId,
+            @PathVariable UUID conditionId,
+            @RequestParam ConditionStatus status,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.updateConditionStatus(transactionId, conditionId, status, brokerId));
     }
 }

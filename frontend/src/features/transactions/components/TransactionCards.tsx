@@ -22,7 +22,9 @@ export function TransactionCards({ transactions, onNavigate, pinnedIds }: Transa
     const getStageName = (tx: Transaction) => {
         const stageEnums = getStagesForSide(tx.side);
         const idx = resolveStageIndex(tx.currentStage, stageEnums);
-        return enumToLabel(stageEnums[idx]);
+        const stageKey = stageEnums[idx];
+        const sideKey = tx.side === 'BUY_SIDE' ? 'buy' : 'sell';
+        return t(`stages.${sideKey}.${stageKey.toLowerCase()}`, { defaultValue: enumToLabel(stageKey) });
     };
 
     const handlePinToggle = (e: React.MouseEvent, transactionId: string) => {
