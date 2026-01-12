@@ -16,6 +16,7 @@ public class TransactionResponseDTO {
     private UUID clientId;
     private String clientName;
     private UUID brokerId;
+    private String brokerName;
     private TransactionSide side;
     private PropertyAddress propertyAddress;
     private String centrisNumber;

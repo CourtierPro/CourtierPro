@@ -26,6 +26,14 @@ public interface TransactionService {
 
     List<TransactionResponseDTO> getClientTransactions(UUID clientId);
 
+    List<TransactionResponseDTO> getBrokerClientTransactions(UUID brokerId, UUID clientId);
+
+    /**
+     * Get all transactions for a client, regardless of broker.
+     * Returns all transactions with broker name for each.
+     */
+    List<TransactionResponseDTO> getAllClientTransactions(UUID clientId);
+
     TransactionResponseDTO updateTransactionStage(UUID transactionId, StageUpdateRequestDTO dto, UUID brokerId);
 
     TransactionResponseDTO getByTransactionId(UUID transactionId, UUID userId);

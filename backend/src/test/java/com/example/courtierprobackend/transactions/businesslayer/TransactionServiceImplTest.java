@@ -20,6 +20,7 @@ import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.common.exceptions.ForbiddenException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -574,6 +575,165 @@ class TransactionServiceImplTest {
 
         // Assert
         verify(transactionRepository).findAllByFilters(eq(brokerUuid), isNull(), isNull(), isNull());
+    }
+
+    // ========== getBrokerClientTransactions Tests ==========
+
+    @Test
+    void getBrokerClientTransactions_withValidBrokerAndClient_returnsList() {
+        // Arrange
+        UUID brokerUuid = UUID.randomUUID();
+        UUID clientUuid = UUID.randomUUID();
+        
+        Transaction tx1 = new Transaction();
+        tx1.setTransactionId(UUID.randomUUID());
+        tx1.setBrokerId(brokerUuid);
+        tx1.setClientId(clientUuid);
+        
+        Transaction tx2 = new Transaction();
+        tx2.setTransactionId(UUID.randomUUID());
+        tx2.setBrokerId(brokerUuid);
+        tx2.setClientId(clientUuid);
+        
+        when(transactionRepository.findAllByClientId(clientUuid)).thenReturn(List.of(tx1, tx2));
+
+        // Act
+        List<TransactionResponseDTO> result = transactionService.getBrokerClientTransactions(brokerUuid, clientUuid);
+
+        // Assert
+        assertThat(result).hasSize(2);
+        verify(transactionRepository).findAllByClientId(clientUuid);
+    }
+
+    @Test
+    void getBrokerClientTransactions_filtersByBrokerId() {
+        // Arrange
+        UUID brokerUuid = UUID.randomUUID();
+        UUID otherBrokerUuid = UUID.randomUUID();
+        UUID clientUuid = UUID.randomUUID();
+        
+        // Transaction belonging to the requesting broker
+        Transaction txBelongsToRequestingBroker = new Transaction();
+        txBelongsToRequestingBroker.setTransactionId(UUID.randomUUID());
+        txBelongsToRequestingBroker.setBrokerId(brokerUuid);
+        txBelongsToRequestingBroker.setClientId(clientUuid);
+        
+        // Transaction belonging to a different broker
+        Transaction txBelongsToDifferentBroker = new Transaction();
+        txBelongsToDifferentBroker.setTransactionId(UUID.randomUUID());
+        txBelongsToDifferentBroker.setBrokerId(otherBrokerUuid);
+        txBelongsToDifferentBroker.setClientId(clientUuid);
+        
+        when(transactionRepository.findAllByClientId(clientUuid))
+                .thenReturn(List.of(txBelongsToRequestingBroker, txBelongsToDifferentBroker));
+
+        // Act
+        List<TransactionResponseDTO> result = transactionService.getBrokerClientTransactions(brokerUuid, clientUuid);
+
+        // Assert - Should only return the transaction belonging to requesting broker
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getTransactionId()).isEqualTo(txBelongsToRequestingBroker.getTransactionId());
+    }
+
+    @Test
+    void getBrokerClientTransactions_withNoMatchingTransactions_returnsEmptyList() {
+        // Arrange
+        UUID brokerUuid = UUID.randomUUID();
+        UUID otherBrokerUuid = UUID.randomUUID();
+        UUID clientUuid = UUID.randomUUID();
+        
+        // All transactions belong to a different broker
+        Transaction txBelongsToDifferentBroker = new Transaction();
+        txBelongsToDifferentBroker.setTransactionId(UUID.randomUUID());
+        txBelongsToDifferentBroker.setBrokerId(otherBrokerUuid);
+        txBelongsToDifferentBroker.setClientId(clientUuid);
+        
+        when(transactionRepository.findAllByClientId(clientUuid))
+                .thenReturn(List.of(txBelongsToDifferentBroker));
+
+        // Act
+        List<TransactionResponseDTO> result = transactionService.getBrokerClientTransactions(brokerUuid, clientUuid);
+
+        // Assert
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getBrokerClientTransactions_withNoTransactions_returnsEmptyList() {
+        // Arrange
+        UUID brokerUuid = UUID.randomUUID();
+        UUID clientUuid = UUID.randomUUID();
+        
+        when(transactionRepository.findAllByClientId(clientUuid)).thenReturn(List.of());
+
+        // Act
+        List<TransactionResponseDTO> result = transactionService.getBrokerClientTransactions(brokerUuid, clientUuid);
+
+        // Assert
+        assertThat(result).isEmpty();
+    }
+
+    // ========== getAllClientTransactions Tests ==========
+
+    @Test
+    void getAllClientTransactions_returnsAllTransactionsWithBrokerNames() {
+        // Arrange
+        UUID clientUuid = UUID.randomUUID();
+        UUID broker1Uuid = UUID.randomUUID();
+        UUID broker2Uuid = UUID.randomUUID();
+        
+        Transaction tx1 = new Transaction();
+        tx1.setTransactionId(UUID.randomUUID());
+        tx1.setClientId(clientUuid);
+        tx1.setBrokerId(broker1Uuid);
+        tx1.setSide(TransactionSide.BUY_SIDE);
+        tx1.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+        tx1.setStatus(TransactionStatus.ACTIVE);
+        
+        Transaction tx2 = new Transaction();
+        tx2.setTransactionId(UUID.randomUUID());
+        tx2.setClientId(clientUuid);
+        tx2.setBrokerId(broker2Uuid);
+        tx2.setSide(TransactionSide.SELL_SIDE);
+        tx2.setSellerStage(SellerStage.SELLER_INITIAL_CONSULTATION);
+        tx2.setStatus(TransactionStatus.ACTIVE);
+        
+        when(transactionRepository.findAllByClientId(clientUuid)).thenReturn(List.of(tx1, tx2));
+        when(userAccountRepository.findById(clientUuid)).thenReturn(Optional.of(createUserAccount(clientUuid, "Test Client")));
+        when(userAccountRepository.findById(broker1Uuid)).thenReturn(Optional.of(createUserAccount(broker1Uuid, "Broker One")));
+        when(userAccountRepository.findById(broker2Uuid)).thenReturn(Optional.of(createUserAccount(broker2Uuid, "Broker Two")));
+
+        // Act
+        List<TransactionResponseDTO> result = transactionService.getAllClientTransactions(clientUuid);
+
+        // Assert
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getBrokerName()).isEqualTo("Broker One");
+        assertThat(result.get(1).getBrokerName()).isEqualTo("Broker Two");
+        assertThat(result.get(0).getClientName()).isEqualTo("Test Client");
+    }
+
+    @Test
+    void getAllClientTransactions_withNoTransactions_returnsEmptyList() {
+        // Arrange
+        UUID clientUuid = UUID.randomUUID();
+        
+        when(transactionRepository.findAllByClientId(clientUuid)).thenReturn(List.of());
+
+        // Act
+        List<TransactionResponseDTO> result = transactionService.getAllClientTransactions(clientUuid);
+
+        // Assert
+        assertThat(result).isEmpty();
+    }
+
+    private UserAccount createUserAccount(UUID id, String name) {
+        UserAccount account = new UserAccount();
+        account.setId(id);
+        String[] parts = name.split(" ", 2);
+        account.setFirstName(parts[0]);
+        account.setLastName(parts.length > 1 ? parts[1] : "");
+        return account;
     }
 
     // ========== getByTransactionId Tests ==========

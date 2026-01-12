@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import axiosInstance from '@/shared/api/axiosInstance';
 
 export const profileKeys = {
     all: ['profile'] as const,
@@ -7,26 +8,20 @@ export const profileKeys = {
 
 export interface UserProfile {
     id: string;
-    name: string;
     email: string;
-    role: string;
-    agency: string;
-    licenseNumber: string;
+    firstName: string;
+    lastName: string;
+    role: 'BROKER' | 'CLIENT' | 'ADMIN';
+    active: boolean;
+    preferredLanguage: string;
 }
 
 export function useUserProfile() {
     return useQuery({
         queryKey: profileKeys.details(),
         queryFn: async () => {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            return {
-                id: 'u1',
-                name: "John Doe",
-                email: "john.doe@example.com",
-                role: "Broker",
-                agency: "CourtierPro Realty",
-                licenseNumber: "BR-123456"
-            } as UserProfile;
+            const response = await axiosInstance.get<UserProfile>('/api/me');
+            return response.data;
         },
     });
 }

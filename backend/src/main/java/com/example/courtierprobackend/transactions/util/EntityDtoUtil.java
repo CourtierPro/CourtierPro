@@ -17,7 +17,7 @@ public class EntityDtoUtil {
        TRANSACTION -> RESPONSE DTO
        ========================================================= */
     public static TransactionResponseDTO toResponse(Transaction t, String clientName) {
-        return toResponse(t, clientName, t.getCentrisNumber());
+        return toResponse(t, clientName, t.getCentrisNumber(), null);
     }
 
     /**
@@ -25,11 +25,20 @@ public class EntityDtoUtil {
      * Used for buy-side transactions where centris comes from the accepted property.
      */
     public static TransactionResponseDTO toResponse(Transaction t, String clientName, String centrisNumber) {
+        return toResponse(t, clientName, centrisNumber, null);
+    }
+
+    /**
+     * Full version that accepts client name, centris number override, and broker name.
+     * Used when listing all transactions for a client with broker attribution.
+     */
+    public static TransactionResponseDTO toResponse(Transaction t, String clientName, String centrisNumber, String brokerName) {
         return TransactionResponseDTO.builder()
                 .transactionId(t.getTransactionId())
                 .clientId(t.getClientId())
                 .clientName(clientName)
                 .brokerId(t.getBrokerId())
+                .brokerName(brokerName)
                 .side(t.getSide())
                 .propertyAddress(t.getPropertyAddress())
                 .centrisNumber(centrisNumber)

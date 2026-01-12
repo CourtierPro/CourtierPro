@@ -121,6 +121,79 @@ class Auth0ManagementClientTest {
         Map<String, Object> body = (Map<String, Object>) captor.getValue().getBody();
         assertThat(body).containsEntry("blocked", true);
     }
+
+    @Test
+    void updateUserLanguage_PatchesUserMetadata() {
+        // Arrange
+        String userId = "auth0|user";
+        String language = "fr";
+        
+        when(restTemplate.exchange(
+                eq("https://example.auth0.com/api/v2/users/" + userId),
+                eq(HttpMethod.PATCH),
+                any(HttpEntity.class),
+                eq(Void.class),
+                any(Object[].class)))
+            .thenReturn(ResponseEntity.ok(null));
+
+        // Act
+        client.updateUserLanguage(userId, language);
+
+        // Assert
+        ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+        verify(restTemplate).exchange(contains(userId), eq(HttpMethod.PATCH), captor.capture(), eq(Void.class), any(Object[].class));
+        Map<String, Object> body = (Map<String, Object>) captor.getValue().getBody();
+        Map<String, Object> userMetadata = (Map<String, Object>) body.get("user_metadata");
+        assertThat(userMetadata).containsEntry("preferred_language", "fr");
+    }
+
+    @Test
+    void updateUserLanguage_NormalizesUppercaseLanguage() {
+        // Arrange
+        String userId = "auth0|user";
+        
+        when(restTemplate.exchange(
+                eq("https://example.auth0.com/api/v2/users/" + userId),
+                eq(HttpMethod.PATCH),
+                any(HttpEntity.class),
+                eq(Void.class),
+                any(Object[].class)))
+            .thenReturn(ResponseEntity.ok(null));
+
+        // Act
+        client.updateUserLanguage(userId, "FR");
+
+        // Assert
+        ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+        verify(restTemplate).exchange(contains(userId), eq(HttpMethod.PATCH), captor.capture(), eq(Void.class), any(Object[].class));
+        Map<String, Object> body = (Map<String, Object>) captor.getValue().getBody();
+        Map<String, Object> userMetadata = (Map<String, Object>) body.get("user_metadata");
+        assertThat(userMetadata).containsEntry("preferred_language", "fr");
+    }
+
+    @Test
+    void updateUserLanguage_DefaultsToEnglishForInvalidLanguage() {
+        // Arrange
+        String userId = "auth0|user";
+        
+        when(restTemplate.exchange(
+                eq("https://example.auth0.com/api/v2/users/" + userId),
+                eq(HttpMethod.PATCH),
+                any(HttpEntity.class),
+                eq(Void.class),
+                any(Object[].class)))
+            .thenReturn(ResponseEntity.ok(null));
+
+        // Act
+        client.updateUserLanguage(userId, "de");
+
+        // Assert
+        ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+        verify(restTemplate).exchange(contains(userId), eq(HttpMethod.PATCH), captor.capture(), eq(Void.class), any(Object[].class));
+        Map<String, Object> body = (Map<String, Object>) captor.getValue().getBody();
+        Map<String, Object> userMetadata = (Map<String, Object>) body.get("user_metadata");
+        assertThat(userMetadata).containsEntry("preferred_language", "en");
+    }
     
     @Test
     void createPasswordChangeTicket_ReturnsTicketUrl() {

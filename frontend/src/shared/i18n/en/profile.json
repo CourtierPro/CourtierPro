@@ -9,5 +9,19 @@
     "professionalDetails": "Professional Details",
     "agency": "Agency",
     "licenseNumber": "License Number",
-    "userNotFound": "User not found"
+    "userNotFound": "User not found",
+    "modalTitle": "Your Profile",
+    "preferredLanguage": "Language",
+    "accountStatus": "Account Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "close": "Close",
+    "loading": "Loading profile...",
+    "error": "Failed to load profile",
+    "retry": "Retry",
+    "roleBroker": "Broker",
+    "roleAdmin": "Administrator",
+    "roleClient": "Client",
+    "languageEnglish": "English",
+    "languageFrench": "French"
 }

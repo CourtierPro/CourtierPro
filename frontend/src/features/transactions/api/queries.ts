@@ -43,6 +43,7 @@ export interface Transaction {
     openedDate?: string;
     notes?: string;
     brokerId?: string;
+    brokerName?: string;
 }
 
 export function usePinnedTransactionIds() {
@@ -86,6 +87,36 @@ export function useClientTransactions(clientId: string) {
         queryKey: transactionKeys.client(clientId),
         queryFn: async () => {
             const res = await axiosInstance.get<Transaction[]>(`/clients/${encodeURIComponent(clientId)}/transactions`);
+            return res.data;
+        },
+        enabled: !!clientId,
+    });
+}
+
+/**
+ * Hook for brokers to fetch transactions for a specific client.
+ * Uses the broker-specific endpoint that filters to transactions where the logged-in user is the broker.
+ */
+export function useBrokerClientTransactions(clientId: string) {
+    return useQuery({
+        queryKey: [...transactionKeys.client(clientId), 'broker'] as const,
+        queryFn: async () => {
+            const res = await axiosInstance.get<Transaction[]>(`/api/broker/clients/${encodeURIComponent(clientId)}/transactions`);
+            return res.data;
+        },
+        enabled: !!clientId,
+    });
+}
+
+/**
+ * Hook for brokers to fetch ALL transactions for a client (across all brokers).
+ * Returns broker names with each transaction for display in client info modal.
+ */
+export function useAllClientTransactions(clientId: string) {
+    return useQuery({
+        queryKey: [...transactionKeys.client(clientId), 'all'] as const,
+        queryFn: async () => {
+            const res = await axiosInstance.get<Transaction[]>(`/api/broker/clients/${encodeURIComponent(clientId)}/all-transactions`);
             return res.data;
         },
         enabled: !!clientId,

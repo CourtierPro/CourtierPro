@@ -12,6 +12,7 @@ import { Calendar } from 'lucide-react';
 import { TransactionTimeline } from './TransactionTimeline';
 import { PropertyList } from './PropertyList';
 import { OfferList } from './OfferList';
+import { ParticipantsList } from './ParticipantsList';
 
 interface TransactionTabsProps {
   transaction: Transaction;
@@ -100,6 +101,14 @@ export function TransactionTabs({
         >
           {t('documents')}
         </TabsTrigger>
+        {!isReadOnly && (
+          <TabsTrigger
+            value="participants"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
+          >
+            {t('participants')}
+          </TabsTrigger>
+        )}
         <TabsTrigger
           value="appointments"
           className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
@@ -168,6 +177,16 @@ export function TransactionTabs({
           transactionSide={transaction.side}
         />
       </TabsContent>
+
+      {/* Participants Tab Content - only for brokers */}
+      {!isReadOnly && (
+        <TabsContent value="participants" className="py-4">
+          <ParticipantsList
+            transactionId={transaction.transactionId}
+            isReadOnly={isReadOnly}
+          />
+        </TabsContent>
+      )}
 
       <TabsContent value="appointments" className="py-4">
         <Section>

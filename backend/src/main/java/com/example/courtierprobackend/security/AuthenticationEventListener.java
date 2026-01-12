@@ -12,20 +12,32 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.time.Instant;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-@AllArgsConstructor
 public class AuthenticationEventListener {
 
     private static final Logger logger =
             LoggerFactory.getLogger(AuthenticationEventListener.class);
 
     private final LoginAuditService loginAuditService;
+    
+    // Track which tokens have already been audited to avoid duplicate entries
+    // Key is subject + issued-at timestamp to uniquely identify a login session
+    private final Set<String> auditedTokens = ConcurrentHashMap.newKeySet();
+    
+    // Limit cache size to prevent memory issues (tokens expire anyway)
+    private static final int MAX_CACHE_SIZE = 10000;
 
     // Trusted proxy IPs (can be extended later or externalized to config)
     private static final Set<String> TRUSTED_PROXIES =
             Set.of("127.0.0.1", "::1");
+
+    public AuthenticationEventListener(LoginAuditService loginAuditService) {
+        this.loginAuditService = loginAuditService;
+    }
 
     @EventListener
     public void onAuthenticationSuccess(AuthenticationSuccessEvent event) {
@@ -37,6 +49,23 @@ public class AuthenticationEventListener {
             }
 
             String userId = jwt.getSubject();
+            Instant issuedAt = jwt.getIssuedAt();
+            
+            // Create unique key for this token session
+            String tokenKey = userId + ":" + (issuedAt != null ? issuedAt.toEpochMilli() : "unknown");
+            
+            // Only record audit if we haven't seen this token before
+            if (!auditedTokens.add(tokenKey)) {
+                // Token already audited, skip duplicate
+                return;
+            }
+            
+            // Prevent unbounded cache growth
+            if (auditedTokens.size() > MAX_CACHE_SIZE) {
+                auditedTokens.clear();
+                auditedTokens.add(tokenKey);
+                logger.debug("Cleared login audit token cache due to size limit");
+            }
 
             // Email: custom claim → fallback
             String email = jwt.getClaimAsString("https://courtierpro.dev/email");
@@ -103,3 +132,4 @@ public class AuthenticationEventListener {
         return remoteAddr;
     }
 }
+

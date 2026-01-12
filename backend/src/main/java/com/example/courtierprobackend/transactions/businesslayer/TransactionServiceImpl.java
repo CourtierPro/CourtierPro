@@ -329,6 +329,35 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    public List<TransactionResponseDTO> getBrokerClientTransactions(UUID brokerId, UUID clientId) {
+        // Get all transactions for this client where this broker is the broker
+        List<Transaction> transactions = repo.findAllByClientId(clientId).stream()
+                .filter(tx -> brokerId.equals(tx.getBrokerId()))
+                .toList();
+
+        return transactions.stream()
+                .map(tx -> EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId())))
+                .toList();
+    }
+
+    @Override
+    public List<TransactionResponseDTO> getAllClientTransactions(UUID clientId) {
+        // Get ALL transactions for this client (across all brokers)
+        List<Transaction> transactions = repo.findAllByClientId(clientId);
+
+        String clientName = lookupUserName(clientId);
+
+        return transactions.stream()
+                .map(tx -> EntityDtoUtil.toResponse(
+                        tx, 
+                        clientName, 
+                        tx.getCentrisNumber(),
+                        lookupUserName(tx.getBrokerId())
+                ))
+                .toList();
+    }
+
+    @Override
     public TransactionResponseDTO getByTransactionId(UUID transactionId, UUID userId) {
 
         Transaction tx = repo.findByTransactionId(transactionId)

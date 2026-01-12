@@ -246,6 +246,45 @@ public class Auth0ManagementClient {
     }
 
     /**
+     * Updates the user's preferred language in Auth0 user_metadata.
+     * This ensures the language persists across logins.
+     */
+    public void updateUserLanguage(String auth0UserId, String preferredLanguage) {
+        String token = getManagementToken();
+
+        String url = managementBaseUrl + "/users/" + auth0UserId;
+
+        // Normalize language: en / fr only, default en
+        String safeLang = (preferredLanguage != null && !preferredLanguage.isBlank())
+                ? preferredLanguage.toLowerCase()
+                : "en";
+        if (!safeLang.equals("fr")) {
+            safeLang = "en";
+        }
+
+        Map<String, Object> userMetadata = Map.of(
+                "preferred_language", safeLang
+        );
+
+        Map<String, Object> body = Map.of(
+                "user_metadata", userMetadata
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<Void> response =
+                restTemplate.exchange(url, HttpMethod.PATCH, entity, Void.class);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            log.warn("Failed to update language in Auth0 for user {}", auth0UserId);
+        }
+    }
+
+    /**
      * Creates a password change ticket for a user to set their initial password.
      * Returns the URL that the user can use to set their password.
      */

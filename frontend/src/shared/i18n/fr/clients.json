@@ -1,4 +1,37 @@
 {
     "title": "Clients",
-    "subtitle": "Ceci est la page pour gérer les clients des courtiers dans CourtierPro."
+    "subtitle": "Voir et gérer vos clients",
+    "noClients": "Vous n'avez pas encore de clients",
+    "noClientsDescription": "Les clients apparaîtront ici lorsque vous créerez des transactions pour eux",
+    "loading": "Chargement des clients...",
+    "error": "Échec du chargement des clients",
+    "errorDescription": "Une erreur s'est produite lors du chargement de vos clients. Veuillez réessayer.",
+    "retry": "Réessayer",
+    "viewClient": "Voir le client",
+    "clientDetails": "Détails du client et transactions",
+    "contactInfo": "Coordonnées",
+    "email": "Courriel",
+    "preferredLanguage": "Langue préférée",
+    "transactions": "Transactions",
+    "loadingTransactions": "Chargement des transactions...",
+    "errorLoadingTransactions": "Échec du chargement des transactions. Veuillez réessayer.",
+    "activeTransactions": "actives",
+    "closedTransactions": "terminées",
+    "noTransactions": "Aucune transaction",
+    "viewTransaction": "Voir la transaction",
+    "noPropertySelected": "Aucune propriété sélectionnée",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "buy": "Achat",
+    "sell": "Vente",
+    "broker": "Courtier",
+    "sortBy": "Trier par",
+    "sortByName": "Nom",
+    "sortByEmail": "Courriel",
+    "sortByStatus": "Statut",
+    "status": {
+        "active": "Actif",
+        "closed_successfully": "Fermée",
+        "terminated": "Annulée"
+    }
 }
