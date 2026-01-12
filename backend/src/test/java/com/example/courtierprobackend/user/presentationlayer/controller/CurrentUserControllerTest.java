@@ -150,6 +150,7 @@ class CurrentUserControllerTest {
             UUID internalId = UUID.randomUUID();
             UserAccount account = new UserAccount();
             account.setPreferredLanguage("en");
+            account.setAuth0UserId("auth0|testfr456");
             UserResponse response = UserResponse.builder().preferredLanguage("fr").build();
 
             when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(internalId);
@@ -164,6 +165,7 @@ class CurrentUserControllerTest {
 
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(account.getPreferredLanguage()).isEqualTo("fr");
+            verify(auth0ManagementClient).updateUserLanguage("auth0|testfr456", "fr");
         }
 
         @Test
@@ -262,6 +264,33 @@ class CurrentUserControllerTest {
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(account.getPreferredLanguage()).isEqualTo("en");
             verify(userAccountRepository).save(account);
+        }
+
+        @Test
+        void updateCurrentUser_Auth0SyncFails_StillSucceeds() {
+            UUID internalId = UUID.randomUUID();
+            UserAccount account = new UserAccount();
+            account.setPreferredLanguage("fr");
+            account.setAuth0UserId("auth0|syncfail789");
+            UserResponse response = UserResponse.builder().preferredLanguage("en").build();
+
+            when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(internalId);
+            when(userAccountRepository.findById(internalId)).thenReturn(Optional.of(account));
+            when(userAccountRepository.save(account)).thenReturn(account);
+            when(userMapper.toResponse(account)).thenReturn(response);
+            doThrow(new RuntimeException("Auth0 API error")).when(auth0ManagementClient)
+                    .updateUserLanguage(anyString(), anyString());
+
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("preferredLanguage", "en");
+
+            ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updates);
+
+            // Request should still succeed even if Auth0 sync fails
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(account.getPreferredLanguage()).isEqualTo("en");
+            verify(userAccountRepository).save(account);
+            verify(auth0ManagementClient).updateUserLanguage("auth0|syncfail789", "en");
         }
     }
 }

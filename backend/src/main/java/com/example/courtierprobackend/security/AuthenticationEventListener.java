@@ -54,17 +54,23 @@ public class AuthenticationEventListener {
             // Create unique key for this token session
             String tokenKey = userId + ":" + (issuedAt != null ? issuedAt.toEpochMilli() : "unknown");
             
+            // Prevent unbounded cache growth - evict oldest entries before adding new one
+            if (auditedTokens.size() >= MAX_CACHE_SIZE) {
+                // Remove approximately 10% of entries to avoid frequent evictions
+                int toRemove = MAX_CACHE_SIZE / 10;
+                var iterator = auditedTokens.iterator();
+                while (iterator.hasNext() && toRemove > 0) {
+                    iterator.next();
+                    iterator.remove();
+                    toRemove--;
+                }
+                logger.debug("Evicted entries from login audit token cache due to size limit");
+            }
+            
             // Only record audit if we haven't seen this token before
             if (!auditedTokens.add(tokenKey)) {
                 // Token already audited, skip duplicate
                 return;
-            }
-            
-            // Prevent unbounded cache growth
-            if (auditedTokens.size() > MAX_CACHE_SIZE) {
-                auditedTokens.clear();
-                auditedTokens.add(tokenKey);
-                logger.debug("Cleared login audit token cache due to size limit");
             }
 
             // Email: custom claim → fallback

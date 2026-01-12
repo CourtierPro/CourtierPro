@@ -11,6 +11,7 @@
     "clientDetails": "Client details and transactions",
     "contactInfo": "Contact Information",
     "email": "Email",
+    "emailNotAvailable": "Not available",
     "preferredLanguage": "Preferred Language",
     "transactions": "Transactions",
     "loadingTransactions": "Loading transactions...",

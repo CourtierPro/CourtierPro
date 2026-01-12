@@ -72,12 +72,12 @@ export function ClientDetailModal({ client: clientProp, isOpen, onClose }: Clien
                             <div className="flex items-center gap-2 text-sm">
                                 <Mail className="h-4 w-4 text-muted-foreground" />
                                 <span className="text-muted-foreground">{t('email')}:</span>
-                                <span className="text-foreground">{client.email}</span>
+                                <span className="text-foreground">{client.email || <span className="italic text-muted-foreground">{t('emailNotAvailable')}</span>}</span>
                             </div>
                             <div className="flex items-center gap-2 text-sm">
                                 <Globe className="h-4 w-4 text-muted-foreground" />
                                 <span className="text-muted-foreground">{t('preferredLanguage')}:</span>
-                                <span className="text-foreground capitalize">{client.preferredLanguage}</span>
+                                <span className="text-foreground capitalize">{client.preferredLanguage || '-'}</span>
                             </div>
                         </div>
                     </section>

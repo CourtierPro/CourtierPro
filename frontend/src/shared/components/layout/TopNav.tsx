@@ -36,7 +36,7 @@ export function TopNav({
 }: TopNavProps) {
   const { t } = useTranslation("topnav");
   const { setIsOpen } = useSearchContext();
-  const { data: user } = useUserProfile();
+  const { data: user, isLoading: isUserLoading } = useUserProfile();
 
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -49,6 +49,11 @@ export function TopNav({
   const userInitials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
     : '';
+
+  // Show loading dot animation when user is loading
+  const avatarContent = isUserLoading
+    ? <span className="animate-pulse">•••</span>
+    : (userInitials || '?');
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -231,7 +236,7 @@ export function TopNav({
             aria-haspopup="true"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold">
-              <span>{userInitials || '?'}</span>
+              <span>{avatarContent}</span>
             </div>
             <ChevronDown className="hidden h-4 w-4 sm:block" />
           </Button>

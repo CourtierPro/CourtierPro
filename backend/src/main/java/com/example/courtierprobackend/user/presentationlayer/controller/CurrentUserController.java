@@ -89,8 +89,12 @@ public class CurrentUserController {
 
         // Handle preferredLanguage update
         if (updates.containsKey("preferredLanguage")) {
-            String newLanguage = (String) updates.get("preferredLanguage");
-            if (newLanguage == null || !ALLOWED_LANGUAGES.contains(newLanguage.toLowerCase())) {
+            Object languageValue = updates.get("preferredLanguage");
+            if (!(languageValue instanceof String)) {
+                throw new BadRequestException("Invalid language. Value must be a string.");
+            }
+            String newLanguage = (String) languageValue;
+            if (!ALLOWED_LANGUAGES.contains(newLanguage.toLowerCase())) {
                 throw new BadRequestException("Invalid language. Allowed values: en, fr");
             }
             account.setPreferredLanguage(newLanguage.toLowerCase());
