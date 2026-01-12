@@ -38,8 +38,7 @@ const SystemLogsPage = lazy(() => import("@/pages/admin/SystemLogsPage").then(mo
 const PasswordResetAuditPage = lazy(() => import("@/pages/admin/PasswordResetAuditPage").then(module => ({ default: module.PasswordResetAuditPage })));
 const AdminResourcesPage = lazy(() => import("@/pages/admin/AdminResourcesPage").then(module => ({ default: module.AdminResourcesPage })));
 
-// Profile
-const ProfilePage = lazy(() => import("@/pages/profile/ProfilePage").then(module => ({ default: module.ProfilePage })));
+
 
 // Error / status pages
 const UnauthorizedPage = lazy(() => import("@/pages/status/UnauthorizedPage").then(module => ({ default: module.UnauthorizedPage })));
@@ -295,17 +294,6 @@ export function AppRoutes() {
                     }
                 />
 
-                {/* Profile */}
-                <Route
-                    path="/profile"
-                    element={
-                        <RequireRole allowed={["broker", "client", "admin"]}>
-                            <AppShell>
-                                <ProfilePage />
-                            </AppShell>
-                        </RequireRole>
-                    }
-                />
 
                 {/* Showcase */}
                 <Route

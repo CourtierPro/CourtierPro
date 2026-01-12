@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import { NotificationPopover } from '@/features/notifications/components/NotificationPopover';
 import { Button } from "@/shared/components/ui/button";
 import { ModeToggle } from "@/shared/components/ui/mode-toggle";
+import { ProfileModal } from "@/features/profile";
+import { useUserProfile } from "@/features/profile";
 
 interface NotificationItem {
   id: string | number;
@@ -30,18 +32,28 @@ export function TopNav({
   onMenuToggle,
   language,
   onLanguageChange,
-  userRole,
   onLogout,
-  onNavigate,
 }: TopNavProps) {
   const { t } = useTranslation("topnav");
   const { setIsOpen } = useSearchContext();
+  const { data: user, isLoading: isUserLoading } = useUserProfile();
 
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const languageRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Compute user initials from profile data
+  const userInitials = user
+    ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
+    : '';
+
+  // Show loading dot animation when user is loading
+  const avatarContent = isUserLoading
+    ? <span className="animate-pulse">•••</span>
+    : (userInitials || '?');
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -88,7 +100,7 @@ export function TopNav({
 
   const handleProfile = () => {
     setIsUserMenuOpen(false);
-    onNavigate("/profile");
+    setIsProfileModalOpen(true);
   };
 
   return (
@@ -224,13 +236,7 @@ export function TopNav({
             aria-haspopup="true"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold">
-              <span>
-                {userRole === "broker"
-                  ? "B"
-                  : userRole === "client"
-                    ? "C"
-                    : "A"}
-              </span>
+              <span>{avatarContent}</span>
             </div>
             <ChevronDown className="hidden h-4 w-4 sm:block" />
           </Button>
@@ -270,6 +276,12 @@ export function TopNav({
           )}
         </div>
       </div>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </nav>
   );
 }

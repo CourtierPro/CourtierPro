@@ -7,6 +7,7 @@ import { Badge } from "@/shared/components/ui/badge";
 interface TransactionInfoProps {
     transaction: Transaction;
     hideClientLabel?: boolean;
+    onClientClick?: () => void;
 }
 
 function formatAddress(address: Transaction['propertyAddress'] | null) {
@@ -24,7 +25,7 @@ function formatAddress(address: Transaction['propertyAddress'] | null) {
     return street;
 }
 
-export function TransactionInfo({ transaction, hideClientLabel = false }: TransactionInfoProps) {
+export function TransactionInfo({ transaction, hideClientLabel = false, onClientClick }: TransactionInfoProps) {
     const { t } = useTranslation('transactions');
 
     return (
@@ -58,7 +59,16 @@ export function TransactionInfo({ transaction, hideClientLabel = false }: Transa
                     {!hideClientLabel && (
                         <>
                             <p className="text-xs md:text-sm text-muted-foreground">{t('client')}</p>
-                            <p className="text-base md:text-lg font-medium text-foreground">{transaction.clientName}</p>
+                            {onClientClick ? (
+                                <button
+                                    onClick={onClientClick}
+                                    className="text-base md:text-lg font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
+                                >
+                                    {transaction.clientName}
+                                </button>
+                            ) : (
+                                <p className="text-base md:text-lg font-medium text-foreground">{transaction.clientName}</p>
+                            )}
                         </>
                     )}
                     <p className={`text-xs md:text-sm text-muted-foreground ${hideClientLabel ? '' : 'mt-1 md:mt-2'}`}>{t('openedDate')}</p>
@@ -70,3 +80,4 @@ export function TransactionInfo({ transaction, hideClientLabel = false }: Transa
         </Section>
     );
 }
+

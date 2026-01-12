@@ -9,5 +9,19 @@
     "professionalDetails": "Détails professionnels",
     "agency": "Agence",
     "licenseNumber": "Numéro de permis",
-    "userNotFound": "Utilisateur non trouvé"
+    "userNotFound": "Utilisateur non trouvé",
+    "modalTitle": "Votre profil",
+    "preferredLanguage": "Langue",
+    "accountStatus": "Statut du compte",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "close": "Fermer",
+    "loading": "Chargement du profil...",
+    "error": "Échec du chargement du profil",
+    "retry": "Réessayer",
+    "roleBroker": "Courtier",
+    "roleAdmin": "Administrateur",
+    "roleClient": "Client",
+    "languageEnglish": "Anglais",
+    "languageFrench": "Français"
 }

@@ -14,7 +14,8 @@ import { TransactionInfo } from '@/features/transactions/components/TransactionI
 import { TransactionStageTracker } from '@/features/transactions/components/TransactionStageTracker';
 import { TransactionTabs } from '@/features/transactions/components/TransactionTabs';
 import { useUpdateTransactionStage } from '@/features/transactions/api/mutations';
-import { ParticipantsList } from '@/features/transactions/components/ParticipantsList';
+import { ClientDetailModal } from '@/features/clients/components/ClientDetailModal';
+import type { Client } from '@/features/clients/api/clientsApi';
 
 interface TransactionDetailProps {
   transactionId?: string;
@@ -38,8 +39,20 @@ function TransactionDetailContent({
   const saveNotes = useSaveTransactionNotes();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [notes, setNotes] = useState<string>(transaction.notes || '');
   const updateStage = useUpdateTransactionStage();
+
+  // Construct a minimal client object from transaction data for the modal
+  const clientFromTransaction: Client | null = transaction.clientId ? {
+    id: transaction.clientId,
+    email: '', // Will be fetched by the modal's useBrokerClientTransactions
+    firstName: transaction.clientName?.split(' ')[0] || '',
+    lastName: transaction.clientName?.split(' ').slice(1).join(' ') || '',
+    role: 'CLIENT',
+    active: true,
+    preferredLanguage: 'en'
+  } : null;
 
   // stage updates are handled by the StageUpdateModal which calls this onSubmit
   const handleStageUpdate = async (stage: string, note: string) => {
@@ -64,6 +77,12 @@ function TransactionDetailContent({
   const handleCopyId = () => {
     navigator.clipboard.writeText(transaction.transactionId);
     toast.success(t('idCopied'));
+  };
+
+  const handleClientClick = () => {
+    if (!isReadOnly && clientFromTransaction) {
+      setIsClientModalOpen(true);
+    }
   };
 
   return (
@@ -96,9 +115,11 @@ function TransactionDetailContent({
         }
       />
 
-      <TransactionInfo transaction={transaction} hideClientLabel={isReadOnly} />
-
-      <ParticipantsList transactionId={transaction.transactionId} isReadOnly={isReadOnly} />
+      <TransactionInfo
+        transaction={transaction}
+        hideClientLabel={isReadOnly}
+        onClientClick={!isReadOnly ? handleClientClick : undefined}
+      />
 
       <TransactionStageTracker
         transaction={transaction}
@@ -125,6 +146,14 @@ function TransactionDetailContent({
         transactionSide={transaction.side === 'BUY_SIDE' ? 'buy' : 'sell'}
         transactionId={transaction.transactionId}
       />
+
+      {!isReadOnly && clientFromTransaction && (
+        <ClientDetailModal
+          client={clientFromTransaction}
+          isOpen={isClientModalOpen}
+          onClose={() => setIsClientModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
