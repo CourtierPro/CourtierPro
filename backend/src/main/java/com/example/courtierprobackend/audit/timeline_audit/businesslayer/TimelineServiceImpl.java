@@ -35,7 +35,8 @@ public class TimelineServiceImpl implements TimelineService {
         boolean visibleToClient = switch (type) {
             case CREATED, DOCUMENT_REQUESTED, DOCUMENT_SUBMITTED, DOCUMENT_APPROVED, DOCUMENT_NEEDS_REVISION, STAGE_CHANGE,
                  PROPERTY_ADDED, PROPERTY_UPDATED, PROPERTY_REMOVED,
-                 OFFER_RECEIVED, OFFER_UPDATED, OFFER_REMOVED -> true;
+                 OFFER_RECEIVED, OFFER_UPDATED, OFFER_REMOVED,
+                 CONDITION_ADDED, CONDITION_UPDATED, CONDITION_REMOVED, CONDITION_SATISFIED, CONDITION_FAILED -> true;
             default -> false;
         };
         TimelineEntry entry = TimelineEntry.builder()

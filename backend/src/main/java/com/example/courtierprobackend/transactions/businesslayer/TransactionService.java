@@ -74,4 +74,16 @@ public interface TransactionService {
     void removeOffer(UUID transactionId, UUID offerId, UUID brokerId);
 
     OfferResponseDTO getOfferById(UUID offerId, UUID userId, boolean isBroker);
+
+    // Conditions (for all transactions)
+    List<ConditionResponseDTO> getConditions(UUID transactionId, UUID userId, boolean isBroker);
+
+    ConditionResponseDTO addCondition(UUID transactionId, ConditionRequestDTO dto, UUID brokerId);
+
+    ConditionResponseDTO updateCondition(UUID transactionId, UUID conditionId, ConditionRequestDTO dto, UUID brokerId);
+
+    void removeCondition(UUID transactionId, UUID conditionId, UUID brokerId);
+
+    ConditionResponseDTO updateConditionStatus(UUID transactionId, UUID conditionId, 
+            com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus status, UUID brokerId);
 }

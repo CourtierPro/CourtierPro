@@ -15,7 +15,10 @@ export function ClientCard({ client, hasActiveTransaction, onClick }: ClientCard
     const { t } = useTranslation('clients');
 
     const initials = `${client.firstName?.[0] ?? ''}${client.lastName?.[0] ?? ''}`.toUpperCase();
-    const fullName = `${client.firstName} ${client.lastName}`.trim();
+    const hasName = client.firstName || client.lastName;
+    const fullName = hasName
+        ? `${client.firstName ?? ''} ${client.lastName ?? ''}`.trim()
+        : client.email?.split('@')[0] ?? 'Unknown';
 
     return (
         <Card

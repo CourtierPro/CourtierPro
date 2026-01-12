@@ -77,6 +77,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/transactions/*/properties").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers(HttpMethod.GET, "/transactions/*/properties/*").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers(HttpMethod.GET, "/transactions/*").hasAnyRole("BROKER", "CLIENT")
+                        // Conditions: GET is accessible to both, modifications are broker-only (handled by @PreAuthorize)
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/conditions").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers("/transactions/**").hasRole("BROKER")
 
                         // Everything else must be authenticated

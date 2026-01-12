@@ -1,6 +1,6 @@
 // src/features/transactions/components/getEventIcon.tsx
 import type { TimelineEntryDTO as TimelineEntry } from '@/shared/api/types';
-import { Clock, FileText, CheckCircle, AlertCircle, AlertTriangle, Archive, Home, RefreshCcw, Trash2 } from 'lucide-react';
+import { Clock, FileText, CheckCircle, AlertCircle, AlertTriangle, Archive, Home, RefreshCcw, Trash2, FileCheck, XCircle } from 'lucide-react';
 
 /**
  * Returns the appropriate icon for a timeline event type.
@@ -28,6 +28,16 @@ export function getEventIcon(type: TimelineEntry['type']) {
         case 'PROPERTY_UPDATED':
             return <RefreshCcw className="w-5 h-5 text-blue-500" />;
         case 'PROPERTY_REMOVED':
+            return <Trash2 className="w-5 h-5 text-red-500" />;
+        case 'CONDITION_ADDED':
+            return <FileCheck className="w-5 h-5 text-purple-500" />;
+        case 'CONDITION_UPDATED':
+            return <RefreshCcw className="w-5 h-5 text-blue-500" />;
+        case 'CONDITION_SATISFIED':
+            return <CheckCircle className="w-5 h-5 text-green-500" />;
+        case 'CONDITION_FAILED':
+            return <XCircle className="w-5 h-5 text-red-500" />;
+        case 'CONDITION_REMOVED':
             return <Trash2 className="w-5 h-5 text-red-500" />;
         default:
             return <Clock className="w-5 h-5 text-gray-400" />;

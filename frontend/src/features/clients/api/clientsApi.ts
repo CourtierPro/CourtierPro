@@ -21,8 +21,14 @@ export const fetchClients = async (): Promise<Client[]> => {
     return response.data;
 };
 
-export const toClientDisplay = (client: Client): ClientDisplay => ({
-    id: client.id,
-    name: `${client.firstName} ${client.lastName}`,
-    email: client.email,
-});
+export const toClientDisplay = (client: Client): ClientDisplay => {
+    const hasName = client.firstName || client.lastName;
+    const name = hasName
+        ? `${client.firstName ?? ''} ${client.lastName ?? ''}`.trim()
+        : client.email?.split('@')[0] ?? 'Unknown';
+    return {
+        id: client.id,
+        name,
+        email: client.email,
+    };
+};

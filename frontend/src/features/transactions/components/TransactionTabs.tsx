@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
 import { Section } from "@/shared/components/branded/Section";
 import { SectionHeader } from "@/shared/components/branded/SectionHeader";
 import { Button } from "@/shared/components/ui/button";
@@ -7,12 +8,16 @@ import { EmptyState } from "@/shared/components/branded/EmptyState";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/components/ui/tabs";
 import { type Transaction } from '@/features/transactions/api/queries';
+import { useTransactionConditions } from '@/features/transactions/api/queries';
 import { DocumentsPage } from '@/pages/documents/DocumentsPage';
 import { Calendar } from 'lucide-react';
 import { TransactionTimeline } from './TransactionTimeline';
 import { PropertyList } from './PropertyList';
 import { OfferList } from './OfferList';
 import { ParticipantsList } from './ParticipantsList';
+import { ConditionList } from './ConditionList';
+import { AddConditionModal } from './AddConditionModal';
+import type { Condition } from '@/shared/api/types';
 
 interface TransactionTabsProps {
   transaction: Transaction;
@@ -57,6 +62,23 @@ export function TransactionTabs({
       }
       return newParams;
     });
+  };
+
+  // Conditions state
+  const { data: conditions = [], isLoading: isLoadingConditions } = useTransactionConditions(transaction.transactionId);
+  const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
+  const [selectedCondition, setSelectedCondition] = useState<Condition | undefined>(undefined);
+
+  const handleAddCondition = () => {
+    setSelectedCondition(undefined);
+    setIsConditionModalOpen(true);
+  };
+
+  const handleConditionClick = (condition: Condition) => {
+    if (!isReadOnly) {
+      setSelectedCondition(condition);
+      setIsConditionModalOpen(true);
+    }
   };
 
 
@@ -114,6 +136,12 @@ export function TransactionTabs({
           className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
         >
           {t('appointments')}
+        </TabsTrigger>
+        <TabsTrigger
+          value="conditions"
+          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
+        >
+          {t('conditions.tab')}
         </TabsTrigger>
       </TabsList>
 
@@ -198,7 +226,22 @@ export function TransactionTabs({
           />
         </Section>
       </TabsContent>
+
+      <TabsContent value="conditions" className="py-4">
+        <ConditionList
+          conditions={conditions}
+          onAddClick={handleAddCondition}
+          onConditionClick={handleConditionClick}
+          isLoading={isLoadingConditions}
+          isReadOnly={isReadOnly}
+        />
+        <AddConditionModal
+          open={isConditionModalOpen}
+          onOpenChange={setIsConditionModalOpen}
+          transactionId={transaction.transactionId}
+          existingCondition={selectedCondition}
+        />
+      </TabsContent>
     </Tabs>
   );
 }
-
