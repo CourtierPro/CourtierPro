@@ -1,6 +1,6 @@
 :80 {
     # Route API requests to the Backend
-    handle /api/* {
+    handle_path /api/* {
         reverse_proxy backend:8080
     }
 

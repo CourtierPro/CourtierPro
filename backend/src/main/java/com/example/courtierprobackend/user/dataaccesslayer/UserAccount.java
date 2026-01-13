@@ -26,13 +26,13 @@ public class UserAccount {
     private String lastName;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private UserRole role;
 
     @Column(nullable = false)
     private boolean active;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 10)
     private String preferredLanguage;
 
     @Column(nullable = false, updatable = false)
@@ -41,16 +41,15 @@ public class UserAccount {
     @Column(nullable = false)
     private Instant updatedAt;
 
-
     public UserAccount() {
     }
 
     public UserAccount(String auth0UserId,
-                       String email,
-                       String firstName,
-                       String lastName,
-                       UserRole role,
-                       String preferredLanguage) {
+            String email,
+            String firstName,
+            String lastName,
+            UserRole role,
+            String preferredLanguage) {
 
         this.id = UUID.randomUUID();
         this.auth0UserId = auth0UserId;
@@ -64,13 +63,10 @@ public class UserAccount {
         this.updatedAt = Instant.now();
     }
 
-
     public void setActive(boolean active) {
         this.active = active;
         this.updatedAt = Instant.now();
     }
-
-
 
     public void setPreferredLanguage(String preferredLanguage) {
         this.preferredLanguage = preferredLanguage;
