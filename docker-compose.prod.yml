@@ -29,6 +29,7 @@ services:
   backend:
     # Pulls the image built by GitHub Actions
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/courtierpro-backend:${IMAGE_TAG}
+    build: ./backend
     container_name: courtierpro_backend
     restart: unless-stopped
     environment:
@@ -54,7 +55,7 @@ services:
       GITHUB_APP_ID: ${GITHUB_APP_ID}
       GITHUB_APP_INSTALLATION_ID: ${GITHUB_APP_INSTALLATION_ID}
       GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY}
-      GITHUB_REPO_OWNER: ${GITHUB_REPO_OWNER}
+      GITHUB_REPO_OWNER: ${GITHUB_REPOSITORY_OWNER}
       GITHUB_REPO_NAME: ${GITHUB_REPO_NAME}
     depends_on:
       db:
@@ -63,6 +64,7 @@ services:
   # --- Frontend ---
   frontend:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/courtierpro-frontend:${IMAGE_TAG}
+    build: ./frontend
     container_name: courtierpro_frontend
     restart: unless-stopped
 
