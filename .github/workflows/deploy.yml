@@ -21,6 +21,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # THIS STEP FIXES THE ERROR: It converts the repo name to lowercase
+      - name: Lowercase Registry Name
+        run: |
+          echo "IMAGE_NAME_LOWERCASE=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
@@ -28,21 +33,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Build Backend
+      # Build Backend using the new lowercase variable
       - name: Build and push Backend Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWERCASE }}-backend:${{ github.sha }}
 
-      # Build Frontend
+      # Build Frontend using the new lowercase variable
       - name: Build and push Frontend Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWERCASE }}-frontend:${{ github.sha }}
 
   deploy:
     runs-on: ubuntu-latest
