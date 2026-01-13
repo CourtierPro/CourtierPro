@@ -80,38 +80,21 @@ jobs:
           script: |
             cd /home/${{ secrets.EC2_USER }}/app
 
-            # 1. Login to Registry
+            # 1. Update the .env file with the current commit SHA
+            # We use --env-file below, but updating the file is good for persistence
+            sed -i "s/IMAGE_TAG=.*/IMAGE_TAG=${{ github.sha }}/" .env
+
+            # 2. Login to Registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # 2. Backup current state (save current .env which holds the working TAG)
-            if [ -f .env ]; then
-              cp .env .env.backup
-            else
-              touch .env
-            fi
+            # 3. Pull and Deploy using the --env-file flag to ensure variables are loaded
+            # This is the crucial fix for "invalid reference format"
+            docker compose --env-file .env -f docker-compose.prod.yml pull
+            docker compose --env-file .env -f docker-compose.prod.yml up -d --remove-orphans
 
-            # 3. Update .env with NEW Tag
-            # We use sed to replace the IMAGE_TAG line or append it if missing
-            if grep -q "IMAGE_TAG=" .env; then
-              sed -i "s/IMAGE_TAG=.*/IMAGE_TAG=${{ github.sha }}/" .env
-            else
-              echo "IMAGE_TAG=${{ github.sha }}" >> .env
-            fi
-
-            # Ensure other secrets are present (Create .env from GH Secrets if it doesn't exist securely)
-            # (In a real setup, populate .env once manually on the server for static secrets, 
-            #  or inject them here via echo "VAR=${{ secrets.VAR }}" >> .env)
-
-            # 4. Pull new images
-            docker compose -f docker-compose.prod.yml pull
-
-            # 5. Deploy
-            echo "🚀 Deploying version ${{ github.sha }}..."
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
-
-            # 6. Health Check & Rollback Logic
+            # 4. Health Check
             echo "🏥 Performing Health Check..."
-            sleep 15 # Give Spring Boot time to start
+            sleep 20
 
             # Attempt to curl the backend health endpoint (via Caddy or direct container)
             # We check for HTTP 200 OK. Max 5 retries.
