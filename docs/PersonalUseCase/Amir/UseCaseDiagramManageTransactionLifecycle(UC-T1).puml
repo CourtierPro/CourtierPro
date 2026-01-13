@@ -1,0 +1,30 @@
+@startuml
+title Use Case Diagram - Manage Transaction Lifecycle (UC-T1)
+left to right direction
+
+actor "Broker" as Broker
+actor "Client" as Client
+
+package "CourtierPro System" {
+    usecase "Manage Transaction Lifecycle (UC-T1)" as UC_Main
+    usecase "Notify Client" as UC_Notify
+    usecase "Record Timeline Entry" as UC_Audit
+    usecase "Pin Transaction" as UC_Pin
+    usecase "Manage Participants" as UC_Participants
+    usecase "Track Conditions" as UC_Conditions
+}
+
+Broker --> UC_Main
+
+' Inclusions
+UC_Main ..> UC_Notify : <<include>>
+UC_Main ..> UC_Audit : <<include>>
+
+' Extensions
+UC_Pin ..> UC_Main : <<extend>>
+UC_Participants ..> UC_Main : <<extend>>
+UC_Conditions ..> UC_Main : <<extend>>
+
+' System Actor Interaction
+UC_Notify --> Client : "Sends Email/SMS"
+@enduml

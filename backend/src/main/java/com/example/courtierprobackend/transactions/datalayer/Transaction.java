@@ -32,19 +32,23 @@ public class Transaction {
     private PropertyAddress propertyAddress;
 
     // Centris Number for sell-side transactions (the property being sold)
-    @Column(name = "centris_number")
+    @Column(name = "centris_number", length = 50)
     private String centrisNumber;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 50)
     private TransactionSide side;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 50)
     private BuyerStage buyerStage;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 50)
     private SellerStage sellerStage;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 50)
     private TransactionStatus status;
 
     private LocalDateTime openedAt;
@@ -71,4 +75,3 @@ public class Transaction {
     private LocalDateTime deletedAt;
     private UUID deletedBy;
 }
-

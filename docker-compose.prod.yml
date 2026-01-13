@@ -1,0 +1,91 @@
+services:
+  # --- Reverse Proxy (Caddy) ---
+  caddy:
+    image: caddy:alpine
+    container_name: courtierpro_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+
+  # --- Cloudflare Tunnel ---
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: courtierpro_tunnel
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      - caddy
+
+  # --- Backend API ---
+  backend:
+    # Pulls the image built by GitHub Actions
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/courtierpro-backend:${IMAGE_TAG}
+    build: ./backend
+    container_name: courtierpro_backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # --- FIX START: Tell Flyway where your SQL files are ---
+      SPRING_FLYWAY_LOCATIONS: classpath:migration
+      # --- FIX END ---
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+      AUTH0_MGMT_CLIENT_ID: ${AUTH0_MGMT_CLIENT_ID}
+      AUTH0_MGMT_CLIENT_SECRET: ${AUTH0_MGMT_CLIENT_SECRET}
+      AUTH0_MGMT_AUDIENCE: ${AUTH0_MGMT_AUDIENCE}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      GMAIL_USERNAME: ${GMAIL_USERNAME}
+      GMAIL_PASSWORD: ${GMAIL_PASSWORD}
+      GITHUB_APP_ID: ${GITHUB_APP_ID}
+      GITHUB_APP_INSTALLATION_ID: ${GITHUB_APP_INSTALLATION_ID}
+      GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY}
+      GITHUB_REPO_OWNER: ${GITHUB_REPOSITORY_OWNER}
+      GITHUB_REPO_NAME: ${GITHUB_REPO_NAME}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # --- Frontend ---
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/courtierpro-frontend:${IMAGE_TAG}
+    build: ./frontend
+    container_name: courtierpro_frontend
+    restart: unless-stopped
+
+  # --- Database ---
+  db:
+    image: postgres:15
+    container_name: courtierpro_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: courtierpro
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${DB_USER}", "-d", "courtierpro"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
