@@ -1,0 +1,11 @@
+:80 {
+    # Route API requests to the Backend
+    handle /api/* {
+        reverse_proxy backend:8080
+    }
+
+    # Route all other requests to the Frontend (React/Nginx)
+    handle /* {
+        reverse_proxy frontend:80
+    }
+}

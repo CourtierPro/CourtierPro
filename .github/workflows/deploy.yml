@@ -1,104 +1,141 @@
-name: Deploy to AWS ECS
+name: Deploy to EC2 with Rollback
 
 on:
   push:
-    branches:
-      - main
-
-permissions:
-  id-token: write
-  contents: read
+    branches: ["main"]
+  workflow_dispatch:
 
 env:
-  AWS_REGION: us-east-1
-  ECR_REPOSITORY_BACKEND: courtierpro-backend
-  ECR_REPOSITORY_FRONTEND: courtierpro-frontend
-  ECS_SERVICE_BACKEND: courtierpro-backend-service
-  ECS_SERVICE_FRONTEND: courtierpro-frontend-service
-  ECS_CLUSTER: courtierpro-cluster
-  ECS_TASK_DEFINITION_BACKEND: courtierpro-backend-task
-  ECS_TASK_DEFINITION_FRONTEND: courtierpro-frontend-task
-  CONTAINER_NAME_BACKEND: backend-container
-  CONTAINER_NAME_FRONTEND: frontend-container
+  # Replace with your actual username/org name in lowercase
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  deploy:
-    name: Deploy
+  build-and-push:
     runs-on: ubuntu-latest
-    environment: production
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      # Backend Deployment
-      - name: Build, tag, and push backend image to Amazon ECR
-        id: build-backend
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG ./backend
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG" >> $GITHUB_OUTPUT
-
-      - name: Download backend task definition
-        run: |
-          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION_BACKEND }} --query taskDefinition > backend-task-def.json
-
-      - name: Fill in the new backend image ID in the Amazon ECS task definition
-        id: task-def-backend
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
+      # Build Backend
+      - name: Build and push Backend Docker image
+        uses: docker/build-push-action@v5
         with:
-          task-definition: backend-task-def.json
-          container-name: ${{ env.CONTAINER_NAME_BACKEND }}
-          image: ${{ steps.build-backend.outputs.image }}
+          context: ./backend
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }}
 
-      - name: Deploy backend Amazon ECS task definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      # Build Frontend
+      - name: Build and push Frontend Docker image
+        uses: docker/build-push-action@v5
         with:
-          task-definition: ${{ steps.task-def-backend.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE_BACKEND }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
+          context: ./frontend
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
 
-      # Frontend Deployment
-      - name: Build, tag, and push frontend image to Amazon ECR
-        id: build-frontend
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG ./frontend
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG" >> $GITHUB_OUTPUT
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
 
-      - name: Download frontend task definition
-        run: |
-          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION_FRONTEND }} --query taskDefinition > frontend-task-def.json
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Fill in the new frontend image ID in the Amazon ECS task definition
-        id: task-def-frontend
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
+      - name: Copy Compose & Caddyfile to EC2
+        uses: appleboy/scp-action@master
         with:
-          task-definition: frontend-task-def.json
-          container-name: ${{ env.CONTAINER_NAME_FRONTEND }}
-          image: ${{ steps.build-frontend.outputs.image }}
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.prod.yml,Caddyfile"
+          target: "/home/${{ secrets.EC2_USER }}/app"
 
-      - name: Deploy frontend Amazon ECS task definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@master
         with:
-          task-definition: ${{ steps.task-def-frontend.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE_FRONTEND }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/${{ secrets.EC2_USER }}/app
+
+            # 1. Login to Registry
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # 2. Backup current state (save current .env which holds the working TAG)
+            if [ -f .env ]; then
+              cp .env .env.backup
+            else
+              touch .env
+            fi
+
+            # 3. Update .env with NEW Tag
+            # We use sed to replace the IMAGE_TAG line or append it if missing
+            if grep -q "IMAGE_TAG=" .env; then
+              sed -i "s/IMAGE_TAG=.*/IMAGE_TAG=${{ github.sha }}/" .env
+            else
+              echo "IMAGE_TAG=${{ github.sha }}" >> .env
+            fi
+
+            # Ensure other secrets are present (Create .env from GH Secrets if it doesn't exist securely)
+            # (In a real setup, populate .env once manually on the server for static secrets, 
+            #  or inject them here via echo "VAR=${{ secrets.VAR }}" >> .env)
+
+            # 4. Pull new images
+            docker compose -f docker-compose.prod.yml pull
+
+            # 5. Deploy
+            echo "🚀 Deploying version ${{ github.sha }}..."
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+
+            # 6. Health Check & Rollback Logic
+            echo "🏥 Performing Health Check..."
+            sleep 15 # Give Spring Boot time to start
+
+            # Attempt to curl the backend health endpoint (via Caddy or direct container)
+            # We check for HTTP 200 OK. Max 5 retries.
+            HEALTH_CHECK_URL="http://localhost:80/api/actuator/health"
+            MAX_RETRIES=5
+            COUNT=0
+            SUCCESS=0
+
+            while [ $COUNT -lt $MAX_RETRIES ]; do
+              if curl -s -f "$HEALTH_CHECK_URL" > /dev/null; then
+                SUCCESS=1
+                break
+              fi
+              echo "Waiting for service to be healthy... ($((COUNT+1))/$MAX_RETRIES)"
+              sleep 10
+              COUNT=$((COUNT+1))
+            done
+
+            if [ $SUCCESS -eq 1 ]; then
+              echo "✅ Deployment Successful!"
+              rm -f .env.backup
+            else
+              echo "❌ Deployment Failed! Rolling back..."
+              
+              # RESTORE BACKUP
+              if [ -f .env.backup ]; then
+                mv .env.backup .env
+                source .env
+                echo "Reverting to previous tag: $IMAGE_TAG"
+                docker compose -f docker-compose.prod.yml up -d --remove-orphans
+                echo "🔄 Rollback complete."
+              else
+                echo "⚠️ No backup found. Cannot rollback automatically."
+              fi
+              
+              exit 1
+            fi
