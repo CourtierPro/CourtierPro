@@ -60,6 +60,17 @@ public class Transaction {
 
     // Timeline is now handled via audit/timeline module, not as a direct relation
 
+    // Archive fields - allows brokers to hide completed transactions from default views
+    @Column(name = "archived", nullable = false)
+    @Builder.Default
+    private Boolean archived = false;
+
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
+
+    @Column(name = "archived_by")
+    private UUID archivedBy;
+
     // Soft delete fields
     private LocalDateTime deletedAt;
     private UUID deletedBy;

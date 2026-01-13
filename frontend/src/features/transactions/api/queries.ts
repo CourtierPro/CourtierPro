@@ -44,6 +44,8 @@ export interface Transaction {
     notes?: string;
     brokerId?: string;
     brokerName?: string;
+    archived?: boolean;
+    archivedAt?: string;
 }
 
 export function usePinnedTransactionIds() {
@@ -52,6 +54,16 @@ export function usePinnedTransactionIds() {
         queryFn: async () => {
             const res = await axiosInstance.get<string[]>('/transactions/pinned');
             return new Set(res.data);
+        },
+    });
+}
+
+export function useArchivedTransactions() {
+    return useQuery({
+        queryKey: [...transactionKeys.all, 'archived'] as const,
+        queryFn: async () => {
+            const res = await axiosInstance.get<Transaction[]>('/transactions/archived');
+            return res.data;
         },
     });
 }

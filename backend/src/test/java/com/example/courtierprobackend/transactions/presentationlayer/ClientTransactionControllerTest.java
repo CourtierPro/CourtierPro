@@ -2,6 +2,8 @@ package com.example.courtierprobackend.transactions.presentationlayer;
 
 import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
+import com.example.courtierprobackend.transactions.datalayer.dto.PropertyAddressDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +29,47 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class ClientTransactionControllerTest {
+    // ========== getTransactionProperties & getPropertyById Tests ========== 
+
+    @Test
+    void getTransactionProperties_WithValidRequest_ReturnsProperties() {
+        UUID clientId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(clientId);
+        PropertyResponseDTO property = PropertyResponseDTO.builder()
+                .propertyId(UUID.randomUUID())
+                .transactionId(transactionId)
+                .address(PropertyAddressDTO.builder().street("123 Main St").city("Testville").province("QC").postalCode("A1A1A1").build())
+                .build();
+        when(transactionService.getProperties(eq(transactionId), eq(clientId), eq(false))).thenReturn(List.of(property));
+
+        ResponseEntity<List<PropertyResponseDTO>> response = controller.getTransactionProperties(clientId, transactionId, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().get(0).getPropertyId()).isEqualTo(property.getPropertyId());
+        verify(transactionService).getProperties(transactionId, clientId, false);
+    }
+
+    @Test
+    void getPropertyById_WithValidRequest_ReturnsProperty() {
+        UUID clientId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(clientId);
+        PropertyResponseDTO property = PropertyResponseDTO.builder()
+                .propertyId(propertyId)
+                .transactionId(transactionId)
+                .address(PropertyAddressDTO.builder().street("123 Main St").city("Testville").province("QC").postalCode("A1A1A1").build())
+                .build();
+        when(transactionService.getPropertyById(eq(propertyId), eq(clientId), eq(false))).thenReturn(property);
+
+        ResponseEntity<PropertyResponseDTO> response = controller.getPropertyById(clientId, transactionId, propertyId, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getPropertyId()).isEqualTo(propertyId);
+        verify(transactionService).getPropertyById(propertyId, clientId, false);
+    }
 
     @Mock
     private TransactionService transactionService;

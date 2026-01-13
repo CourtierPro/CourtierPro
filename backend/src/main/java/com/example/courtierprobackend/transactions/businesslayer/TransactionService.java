@@ -86,4 +86,11 @@ public interface TransactionService {
 
     ConditionResponseDTO updateConditionStatus(UUID transactionId, UUID conditionId, 
             com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus status, UUID brokerId);
+
+    // Archive functionality
+    void archiveTransaction(UUID transactionId, UUID brokerId);
+
+    void unarchiveTransaction(UUID transactionId, UUID brokerId);
+
+    List<TransactionResponseDTO> getArchivedTransactions(UUID brokerId);
 }

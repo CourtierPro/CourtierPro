@@ -26,13 +26,22 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT t FROM Transaction t WHERE t.brokerId = :brokerId " +
             "AND (:status IS NULL OR t.status = :status) " +
             "AND (:side IS NULL OR t.side = :side) " +
-            "AND (:stage IS NULL OR t.buyerStage = :stage OR t.sellerStage = :stage)")
+            "AND (:stage IS NULL OR t.buyerStage = :stage OR t.sellerStage = :stage) " +
+            "AND (:includeArchived = true OR t.archived = false)")
     List<Transaction> findAllByFilters(
             @Param("brokerId") UUID brokerId,
             @Param("status") TransactionStatus status,
             @Param("side") com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide side,
-            @Param("stage") Enum<?> stage
+            @Param("stage") Enum<?> stage,
+            @Param("includeArchived") boolean includeArchived
     );
+
+    // Query to get only archived transactions for a broker
+    @Query("SELECT t FROM Transaction t WHERE t.brokerId = :brokerId AND t.archived = true")
+    List<Transaction> findArchivedByBrokerId(@Param("brokerId") UUID brokerId);
+
+    // Query to get non-archived transactions for a broker
+    List<Transaction> findAllByBrokerIdAndArchivedFalse(UUID brokerId);
 
     @Query("SELECT t FROM Transaction t WHERE " +
             "(t.brokerId = :userId OR t.clientId = :userId) AND " +

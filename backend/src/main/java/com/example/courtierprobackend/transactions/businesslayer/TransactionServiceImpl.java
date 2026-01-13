@@ -319,7 +319,8 @@ public class TransactionServiceImpl implements TransactionService {
             }
         }
 
-        List<Transaction> transactions = repo.findAllByFilters(brokerId, status, side, stage);
+        // By default, don't include archived transactions in the main list
+        List<Transaction> transactions = repo.findAllByFilters(brokerId, status, side, stage, false);
 
         return transactions.stream()
                 .map(tx -> EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId())))
@@ -1398,5 +1399,69 @@ public class TransactionServiceImpl implements TransactionService {
                 .createdAt(condition.getCreatedAt())
                 .updatedAt(condition.getUpdatedAt())
                 .build();
+    }
+
+    // ==================== ARCHIVE METHODS ====================
+
+    @Override
+    @Transactional
+    public void archiveTransaction(UUID transactionId, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        if (tx.getArchived() != null && tx.getArchived()) {
+            throw new BadRequestException("Transaction is already archived");
+        }
+
+        tx.setArchived(true);
+        tx.setArchivedAt(LocalDateTime.now());
+        tx.setArchivedBy(brokerId);
+        repo.save(tx);
+
+        // Add timeline entry for archiving
+        String actorName = lookupUserName(brokerId);
+        timelineService.addEntry(
+                transactionId,
+                brokerId,
+                TimelineEntryType.STATUS_CHANGE,
+                "Transaction archived by " + actorName,
+                null);
+    }
+
+    @Override
+    @Transactional
+    public void unarchiveTransaction(UUID transactionId, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        if (tx.getArchived() == null || !tx.getArchived()) {
+            throw new BadRequestException("Transaction is not archived");
+        }
+
+        tx.setArchived(false);
+        tx.setArchivedAt(null);
+        tx.setArchivedBy(null);
+        repo.save(tx);
+
+        // Add timeline entry for unarchiving
+        String actorName = lookupUserName(brokerId);
+        timelineService.addEntry(
+                transactionId,
+                brokerId,
+                TimelineEntryType.STATUS_CHANGE,
+                "Transaction unarchived by " + actorName,
+                null);
+    }
+
+    @Override
+    public List<TransactionResponseDTO> getArchivedTransactions(UUID brokerId) {
+        List<Transaction> transactions = repo.findArchivedByBrokerId(brokerId);
+        return transactions.stream()
+                .map(tx -> EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId())))
+                .toList();
     }
 }

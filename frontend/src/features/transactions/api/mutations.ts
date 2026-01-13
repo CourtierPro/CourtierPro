@@ -83,6 +83,36 @@ export function useUnpinTransaction() {
     });
 }
 
+export function useArchiveTransaction() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (transactionId: string) => {
+            await axiosInstance.post(`/transactions/${transactionId}/archive`);
+        },
+        onSuccess: (_data, transactionId) => {
+            queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(transactionId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.all, 'archived'] });
+        },
+    });
+}
+
+export function useUnarchiveTransaction() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (transactionId: string) => {
+            await axiosInstance.delete(`/transactions/${transactionId}/archive`);
+        },
+        onSuccess: (_data, transactionId) => {
+            queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(transactionId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.all, 'archived'] });
+        },
+    });
+}
+
 export function useAddParticipant() {
     const queryClient = useQueryClient();
 

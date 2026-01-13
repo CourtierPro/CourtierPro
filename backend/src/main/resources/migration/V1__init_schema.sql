@@ -79,8 +79,15 @@ CREATE INDEX IF NOT EXISTS idx_transactions_broker_id ON transactions(broker_id)
 CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
 CREATE INDEX IF NOT EXISTS idx_transactions_deleted_at ON transactions(deleted_at);
 
--- Search Indexes
--- Search Indexes
+-- Add archived columns and indexes (moved from V2__add_archived_column.sql)
+ALTER TABLE transactions ADD COLUMN archived BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE transactions ADD COLUMN archived_at TIMESTAMP;
+ALTER TABLE transactions ADD COLUMN archived_by UUID;
+
+-- Create index for faster filtering on archived status
+CREATE INDEX idx_transactions_archived ON transactions(archived);
+CREATE INDEX idx_transactions_broker_archived ON transactions(broker_id, archived);
+
 -- CREATE INDEX IF NOT EXISTS idx_transactions_street_trgm 
 --     ON transactions USING GIN (street gin_trgm_ops);
 -- CREATE INDEX IF NOT EXISTS idx_transactions_city_trgm 

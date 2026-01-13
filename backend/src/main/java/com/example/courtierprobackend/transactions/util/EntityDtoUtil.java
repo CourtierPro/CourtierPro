@@ -45,6 +45,8 @@ public class EntityDtoUtil {
                 .currentStage(resolveStage(t))
                 .status(t.getStatus())
                 .openedDate(t.getOpenedAt() != null ? t.getOpenedAt().toLocalDate().toString() : null)
+                .archived(t.getArchived() != null ? t.getArchived() : false)
+                .archivedAt(t.getArchivedAt() != null ? t.getArchivedAt().toString() : null)
                 .build();
     }
 
@@ -149,6 +151,8 @@ public class EntityDtoUtil {
                 .propertyAddress(null)
                 .currentStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY.name())
                 .openedDate(LocalDate.now().toString())
+                .archived(false)
+                .archivedAt(null)
                 .build();
     }
 
