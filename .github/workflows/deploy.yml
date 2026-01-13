@@ -76,28 +76,27 @@ jobs:
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
+          # Ensure you are using the NEW Ed25519 Private Key here
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd /home/${{ secrets.EC2_USER }}/app
 
             # 1. Update the .env file with the current commit SHA
-            # We use --env-file below, but updating the file is good for persistence
+            # We use sed to replace the line.
             sed -i "s/IMAGE_TAG=.*/IMAGE_TAG=${{ github.sha }}/" .env
 
             # 2. Login to Registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # 3. Pull and Deploy using the --env-file flag to ensure variables are loaded
-            # This is the crucial fix for "invalid reference format"
+            # 3. Pull and Deploy using the --env-file flag
+            # THIS IS THE FIX: the --env-file .env flag forces Docker to read GITHUB_REPOSITORY_OWNER
             docker compose --env-file .env -f docker-compose.prod.yml pull
             docker compose --env-file .env -f docker-compose.prod.yml up -d --remove-orphans
 
             # 4. Health Check
             echo "🏥 Performing Health Check..."
-            sleep 20
+            sleep 30 # Give the Spring Boot app more time to start
 
-            # Attempt to curl the backend health endpoint (via Caddy or direct container)
-            # We check for HTTP 200 OK. Max 5 retries.
             HEALTH_CHECK_URL="http://localhost:80/api/actuator/health"
             MAX_RETRIES=5
             COUNT=0
@@ -109,26 +108,14 @@ jobs:
                 break
               fi
               echo "Waiting for service to be healthy... ($((COUNT+1))/$MAX_RETRIES)"
-              sleep 10
+              sleep 15
               COUNT=$((COUNT+1))
             done
 
             if [ $SUCCESS -eq 1 ]; then
               echo "✅ Deployment Successful!"
-              rm -f .env.backup
             else
-              echo "❌ Deployment Failed! Rolling back..."
-              
-              # RESTORE BACKUP
-              if [ -f .env.backup ]; then
-                mv .env.backup .env
-                source .env
-                echo "Reverting to previous tag: $IMAGE_TAG"
-                docker compose -f docker-compose.prod.yml up -d --remove-orphans
-                echo "🔄 Rollback complete."
-              else
-                echo "⚠️ No backup found. Cannot rollback automatically."
-              fi
-              
+              echo "❌ Deployment Failed! Logs:"
+              docker compose --env-file .env -f docker-compose.prod.yml logs --tail=20 backend
               exit 1
             fi
