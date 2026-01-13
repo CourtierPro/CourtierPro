@@ -94,7 +94,6 @@ public class TransactionServiceImpl implements TransactionService {
     private final OfferRepository offerRepository;
     private final ConditionRepository conditionRepository;
 
-
     private String lookupUserName(UUID userId) {
         if (userId == null) {
             return "Unknown User";
@@ -188,7 +187,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
         tx.setStatus(TransactionStatus.ACTIVE);
         tx.setOpenedAt(LocalDateTime.now());
-        
+
         // Normalize postal code before saving
         var address = dto.getPropertyAddress();
         if (address != null && address.getPostalCode() != null) {
@@ -225,7 +224,8 @@ public class TransactionServiceImpl implements TransactionService {
                     saved.getTransactionId().toString(),
                     com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
         } catch (Exception e) {
-            log.error("Failed to send transaction created notification for transaction {}", saved.getTransactionId(), e);
+            log.error("Failed to send transaction created notification for transaction {}", saved.getTransactionId(),
+                    e);
         }
 
         return EntityDtoUtil.toResponse(saved, lookupUserName(saved.getClientId()));
@@ -357,11 +357,10 @@ public class TransactionServiceImpl implements TransactionService {
 
         return transactions.stream()
                 .map(tx -> EntityDtoUtil.toResponse(
-                        tx, 
-                        clientName, 
+                        tx,
+                        clientName,
                         tx.getCentrisNumber(),
-                        lookupUserName(tx.getBrokerId())
-                ))
+                        lookupUserName(tx.getBrokerId())))
                 .toList();
     }
 
@@ -378,7 +377,8 @@ public class TransactionServiceImpl implements TransactionService {
         String centrisNumber = tx.getCentrisNumber();
         if (tx.getSide() == com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE) {
             var acceptedProperty = propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId).stream()
-                    .filter(p -> p.getOfferStatus() == com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus.ACCEPTED)
+                    .filter(p -> p
+                            .getOfferStatus() == com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus.ACCEPTED)
                     .findFirst();
             if (acceptedProperty.isPresent() && acceptedProperty.get().getCentrisNumber() != null) {
                 centrisNumber = acceptedProperty.get().getCentrisNumber();
@@ -694,7 +694,7 @@ public class TransactionServiceImpl implements TransactionService {
         if (propertyAddress != null && propertyAddress.getPostalCode() != null) {
             propertyAddress.setPostalCode(PostalCodeUtil.normalize(propertyAddress.getPostalCode()));
         }
-        
+
         Property property = Property.builder()
                 .propertyId(UUID.randomUUID())
                 .transactionId(transactionId)
@@ -743,7 +743,8 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Transactional
-    public PropertyResponseDTO updateProperty(UUID transactionId, UUID propertyId, PropertyRequestDTO dto, UUID brokerId) {
+    public PropertyResponseDTO updateProperty(UUID transactionId, UUID propertyId, PropertyRequestDTO dto,
+            UUID brokerId) {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
@@ -864,9 +865,10 @@ public class TransactionServiceImpl implements TransactionService {
                 .updatedAt(property.getUpdatedAt())
                 .build();
     }
-    
+
     private PropertyAddressDTO toAddressDTO(PropertyAddress address) {
-        if (address == null) return null;
+        if (address == null)
+            return null;
         return PropertyAddressDTO.builder()
                 .street(address.getStreet())
                 .city(address.getCity())
@@ -978,8 +980,7 @@ public class TransactionServiceImpl implements TransactionService {
                     "notifications.offerReceived.message",
                     java.util.Map.of(
                             "buyerName", saved.getBuyerName(),
-                            "offerAmount", String.format("$%,.0f", saved.getOfferAmount())
-                    ),
+                            "offerAmount", String.format("$%,.0f", saved.getOfferAmount())),
                     transactionId.toString(),
                     com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.OFFER_RECEIVED);
         } catch (Exception e) {
@@ -1127,7 +1128,7 @@ public class TransactionServiceImpl implements TransactionService {
         TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
 
         // Validate: OTHER type requires customTitle
-        if (dto.getType() == ConditionType.OTHER && 
+        if (dto.getType() == ConditionType.OTHER &&
                 (dto.getCustomTitle() == null || dto.getCustomTitle().isBlank())) {
             throw new BadRequestException("Custom title is required for condition type OTHER");
         }
@@ -1150,13 +1151,13 @@ public class TransactionServiceImpl implements TransactionService {
         // Add timeline entry for condition added
         String typeName = getConditionTypeName(saved);
         String actorName = lookupUserName(brokerId);
-        String description = "Condition added: " + typeName + " - " + saved.getDescription() + 
+        String description = "Condition added: " + typeName + " - " + saved.getDescription() +
                 " (Deadline: " + saved.getDeadlineDate() + ")";
         TransactionInfo txInfo = TransactionInfo.builder()
                 .actorName(actorName)
                 .conditionType(saved.getType().name())
                 .conditionDescription(saved.getDescription())
-                .conditionDeadline(saved.getDeadlineDate() != null ? saved.getDeadlineDate().toString() : null)
+                .conditionDeadline(saved.getDeadlineDate())
                 .build();
         timelineService.addEntry(
                 transactionId,
@@ -1175,8 +1176,7 @@ public class TransactionServiceImpl implements TransactionService {
                         "notifications.conditionAdded.message",
                         java.util.Map.of(
                                 "conditionType", typeName,
-                                "deadline", saved.getDeadlineDate().toString()
-                        ),
+                                "deadline", saved.getDeadlineDate().toString()),
                         transactionId.toString(),
                         com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
             } catch (Exception e) {
@@ -1189,7 +1189,8 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Transactional
-    public ConditionResponseDTO updateCondition(UUID transactionId, UUID conditionId, ConditionRequestDTO dto, UUID brokerId) {
+    public ConditionResponseDTO updateCondition(UUID transactionId, UUID conditionId, ConditionRequestDTO dto,
+            UUID brokerId) {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
@@ -1203,7 +1204,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // Validate: OTHER type requires customTitle
-        if (dto.getType() == ConditionType.OTHER && 
+        if (dto.getType() == ConditionType.OTHER &&
                 (dto.getCustomTitle() == null || dto.getCustomTitle().isBlank())) {
             throw new BadRequestException("Custom title is required for condition type OTHER");
         }
@@ -1240,7 +1241,7 @@ public class TransactionServiceImpl implements TransactionService {
         TransactionInfo txInfo = TransactionInfo.builder()
                 .conditionType(saved.getType().name())
                 .conditionDescription(saved.getDescription())
-                .conditionDeadline(saved.getDeadlineDate() != null ? saved.getDeadlineDate().toString() : null)
+                .conditionDeadline(saved.getDeadlineDate())
                 .conditionPreviousStatus(statusChanged ? previousStatus.name() : null)
                 .conditionNewStatus(statusChanged ? dto.getStatus().name() : null)
                 .build();
@@ -1291,7 +1292,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Transactional
-    public ConditionResponseDTO updateConditionStatus(UUID transactionId, UUID conditionId, 
+    public ConditionResponseDTO updateConditionStatus(UUID transactionId, UUID conditionId,
             ConditionStatus status, UUID brokerId) {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
@@ -1365,8 +1366,7 @@ public class TransactionServiceImpl implements TransactionService {
                         notifMessage,
                         java.util.Map.of(
                                 "conditionType", typeName,
-                                "status", status.name()
-                        ),
+                                "status", status.name()),
                         transactionId.toString(),
                         com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
             } catch (Exception e) {

@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Data
 @AllArgsConstructor
@@ -30,7 +31,7 @@ public class TransactionInfo {
     // Condition-related fields
     private String conditionType;
     private String conditionDescription;
-    private String conditionDeadline;
+    private LocalDate conditionDeadline;
     private String conditionPreviousStatus;
     private String conditionNewStatus;
 }
