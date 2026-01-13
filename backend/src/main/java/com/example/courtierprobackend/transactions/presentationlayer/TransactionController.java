@@ -194,6 +194,39 @@ public class TransactionController {
         return ResponseEntity.ok(service.getPinnedTransactionIds(brokerId));
     }
 
+    // ==================== ARCHIVE ENDPOINTS ====================
+
+    @PostMapping("/{transactionId}/archive")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<Void> archiveTransaction(
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        service.archiveTransaction(transactionId, brokerId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{transactionId}/archive")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<Void> unarchiveTransaction(
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        service.unarchiveTransaction(transactionId, brokerId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/archived")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<List<TransactionResponseDTO>> getArchivedTransactions(
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.getArchivedTransactions(brokerId));
+    }
+
     @PostMapping("/{transactionId}/participants")
     @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<ParticipantResponseDTO> addParticipant(

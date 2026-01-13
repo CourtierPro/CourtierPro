@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Filter, Plus } from 'lucide-react';
+import { Filter, Plus, Archive } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
 import { Button } from "@/shared/components/ui/button";
-import { useTransactions, usePinnedTransactionIds } from '@/features/transactions/api/queries';
+import { useTransactions, usePinnedTransactionIds, useArchivedTransactions } from '@/features/transactions/api/queries';
 import { TransactionFilters } from './TransactionFilters';
 import { TransactionTable } from './TransactionTable';
 import { TransactionCards } from './TransactionCards';
@@ -30,15 +30,21 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
   const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc'>('dateDesc');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data: transactions = [], isLoading, error, refetch } = useTransactions({
     status: statusFilter,
     stage: stageFilter,
     side: sideFilter
   });
+  const { data: archivedTransactions = [], isLoading: isLoadingArchived } = useArchivedTransactions();
   const { data: pinnedIds = new Set<string>() } = usePinnedTransactionIds();
 
   const { t, i18n } = useTranslation('transactions');
+
+  // Use archived transactions when viewing archived, otherwise use regular transactions
+  const displayTransactions = showArchived ? archivedTransactions : transactions;
+  const isLoadingData = showArchived ? isLoadingArchived : isLoading;
 
   useEffect(() => {
     if (language) {
@@ -69,8 +75,13 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     setCurrentPage(1);
   };
 
+  const handleToggleArchived = () => {
+    setShowArchived(!showArchived);
+    setCurrentPage(1);
+  };
 
-  const sortedTransactions = [...transactions].sort((a, b) => {
+
+  const sortedTransactions = [...displayTransactions].sort((a, b) => {
     // Pinned items always come first
     const aPinned = pinnedIds.has(a.transactionId);
     const bPinned = pinnedIds.has(b.transactionId);
@@ -110,7 +121,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
 
   const hasActiveFilters = sideFilter !== 'all' || statusFilter !== 'all' || stageFilter !== 'all';
 
-  if (error && !isLoading) {
+  if (error && !isLoadingData) {
     return (
       <div className="space-y-6">
         <PageHeader
@@ -130,7 +141,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     );
   }
 
-  if (isLoading) {
+  if (isLoadingData) {
     return (
       <div className="space-y-6">
         <PageHeader title={t('title')} subtitle={t('subtitle')} />
@@ -142,46 +153,62 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={t('title')}
-        subtitle={t('subtitle')}
+        title={showArchived ? t('archivedTransactions') : t('title')}
+        subtitle={showArchived ? t('archivedSubtitle') : t('subtitle')}
         actions={
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            {t('newTransaction')}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant={showArchived ? "default" : "outline"}
+              onClick={handleToggleArchived}
+              className="gap-2"
+            >
+              <Archive className="w-4 h-4" />
+              {showArchived ? t('viewActive') : t('viewArchived')}
+            </Button>
+            {!showArchived && (
+              <Button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                {t('newTransaction')}
+              </Button>
+            )}
+          </div>
         }
       />
 
-      <TransactionFilters
-        sideFilter={sideFilter}
-        statusFilter={statusFilter}
-        stageFilter={stageFilter}
-        sortBy={sortBy}
-        onSideFilterChange={handleSideFilterChange}
-        onStatusFilterChange={handleStatusFilterChange}
-        onStageFilterChange={handleStageFilterChange}
-        onSortByChange={handleSortByChange}
-        onResetFilters={handleResetFilters}
-        hasActiveFilters={hasActiveFilters}
-      />
+      {!showArchived && (
+        <TransactionFilters
+          sideFilter={sideFilter}
+          statusFilter={statusFilter}
+          stageFilter={stageFilter}
+          sortBy={sortBy}
+          onSideFilterChange={handleSideFilterChange}
+          onStatusFilterChange={handleStatusFilterChange}
+          onStageFilterChange={handleStageFilterChange}
+          onSortByChange={handleSortByChange}
+          onResetFilters={handleResetFilters}
+          hasActiveFilters={hasActiveFilters}
+        />
+      )}
 
       {paginatedTransactions.length === 0 ? (
         <Section className="p-12 text-center">
           <Filter className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
           <h2 className="mb-4 text-foreground font-medium">
-            {t('noTransactions')}
+            {showArchived ? t('noArchivedTransactions') : t('noTransactions')}
           </h2>
-          <Button onClick={handleResetFilters}>
-            {t('resetFilters')}
-          </Button>
+          {!showArchived && (
+            <Button onClick={handleResetFilters}>
+              {t('resetFilters')}
+            </Button>
+          )}
         </Section>
       ) : (
         <>
-          <TransactionTable transactions={paginatedTransactions} onNavigate={onNavigate} pinnedIds={pinnedIds} />
-          <TransactionCards transactions={paginatedTransactions} onNavigate={onNavigate} pinnedIds={pinnedIds} />
+          <TransactionTable transactions={paginatedTransactions} onNavigate={onNavigate} pinnedIds={pinnedIds} showArchived={showArchived} />
+          <TransactionCards transactions={paginatedTransactions} onNavigate={onNavigate} pinnedIds={pinnedIds} showArchived={showArchived} />
           <TransactionPagination
             currentPage={currentPage}
             totalPages={totalPages}
