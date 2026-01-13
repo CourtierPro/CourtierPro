@@ -7,6 +7,8 @@ import com.example.courtierprobackend.transactions.businesslayer.TransactionServ
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -90,6 +92,36 @@ public class ClientTransactionController {
         return ResponseEntity.ok(service.getPropertyById(propertyId, validatedClientId, false));
     }
 
+    /**
+     * Get all offers for a property (buy-side).
+     */
+    @GetMapping("/{clientId}/transactions/{transactionId}/properties/{propertyId}/offers")
+    public ResponseEntity<List<PropertyOfferResponseDTO>> getPropertyOffers(
+            @PathVariable UUID clientId,
+            @PathVariable UUID transactionId,
+            @PathVariable UUID propertyId,
+            HttpServletRequest request
+    ) {
+        UUID validatedClientId = resolveAndValidateClientId(request, clientId);
+        // isBroker = false
+        return ResponseEntity.ok(service.getPropertyOffers(propertyId, validatedClientId, false));
+    }
+
+    /**
+     * Get documents for a buy-side property offer.
+     */
+    @GetMapping("/{clientId}/transactions/{transactionId}/properties/{propertyId}/offers/{propertyOfferId}/documents")
+    public ResponseEntity<List<OfferDocumentResponseDTO>> getPropertyOfferDocuments(
+            @PathVariable UUID clientId,
+            @PathVariable UUID transactionId,
+            @PathVariable UUID propertyId,
+            @PathVariable UUID propertyOfferId,
+            HttpServletRequest request
+    ) {
+        UUID validatedClientId = resolveAndValidateClientId(request, clientId);
+        return ResponseEntity.ok(service.getPropertyOfferDocuments(propertyOfferId, validatedClientId, false));
+    }
+
     // ==================== OFFER ENDPOINTS (CLIENT - READ ONLY) ====================
 
     /**
@@ -120,6 +152,20 @@ public class ClientTransactionController {
         UUID validatedClientId = resolveAndValidateClientId(request, clientId);
         // isBroker = false means broker notes will be stripped
         return ResponseEntity.ok(service.getOfferById(offerId, validatedClientId, false));
+    }
+
+    /**
+     * Get documents for a sell-side offer.
+     */
+    @GetMapping("/{clientId}/transactions/{transactionId}/offers/{offerId}/documents")
+    public ResponseEntity<List<OfferDocumentResponseDTO>> getOfferDocuments(
+            @PathVariable UUID clientId,
+            @PathVariable UUID transactionId,
+            @PathVariable UUID offerId,
+            HttpServletRequest request
+    ) {
+        UUID validatedClientId = resolveAndValidateClientId(request, clientId);
+        return ResponseEntity.ok(service.getOfferDocuments(offerId, validatedClientId, false));
     }
 }
 

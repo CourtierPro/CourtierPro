@@ -12,7 +12,9 @@ import {
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
 import { Separator } from '@/shared/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { AddPropertyModal } from './AddPropertyModal';
+import { PropertyOfferList } from './PropertyOfferList';
 import { useRemoveProperty } from '@/features/transactions/api/mutations';
 import type { Property, PropertyOfferStatus } from '@/shared/api/types';
 
@@ -79,7 +81,7 @@ export function PropertyDetailModal({
     return (
         <>
             <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="max-w-xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <MapPin className="w-5 h-5 text-primary" />
@@ -95,68 +97,86 @@ export function PropertyDetailModal({
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4 py-4">
-                        {/* Address Section */}
-                        <div className="space-y-2">
-                            <h4 className="text-sm font-medium text-muted-foreground">{t('address')}</h4>
-                            <div className="text-foreground">
-                                <p>{property.address?.street}</p>
-                                <p>
-                                    {[property.address?.city, property.address?.province].filter(Boolean).join(', ')}
-                                </p>
-                                {property.address?.postalCode && (
-                                    <p className="text-muted-foreground">{property.address.postalCode}</p>
-                                )}
-                            </div>
-                        </div>
+                    <Tabs defaultValue="details" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="details">{t('details')}</TabsTrigger>
+                            <TabsTrigger value="offers">{t('offerHistory')}</TabsTrigger>
+                        </TabsList>
 
-                        <Separator />
-
-                        {/* Pricing Section */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <h4 className="text-sm font-medium text-muted-foreground">{t('askingPrice')}</h4>
-                                <span className="text-lg font-semibold text-foreground">
-                                    {formatCurrency(property.askingPrice)}
-                                </span>
-                            </div>
-
-                            <div className="space-y-1">
-                                <h4 className="text-sm font-medium text-muted-foreground">{t('offerAmount')}</h4>
-                                <span className="text-lg font-semibold text-foreground">
-                                    {property.offerAmount ? formatCurrency(property.offerAmount) : t('pending')}
-                                </span>
-                            </div>
-                        </div>
-
-                        <Separator />
-
-                        {/* Status Section */}
-                        <div className="space-y-2">
-                            <h4 className="text-sm font-medium text-muted-foreground">{t('offerStatusLabel')}</h4>
-                            <Badge variant={statusConfig.variant} className={`${statusConfig.className} text-sm px-3 py-1`}>
-                                <Tag className="w-3 h-3 mr-1" />
-                                {t(`propertyOfferStatuses.${property.offerStatus}`)}
-                            </Badge>
-                        </div>
-
-                        {/* Notes (visible to all) */}
-                        {property.notes && (
-                            <>
-                                <Separator />
-                                <div className="space-y-2">
-                                    <h4 className="text-sm font-medium text-muted-foreground">
-                                        {isReadOnly ? t('notes') : t('brokerNotes')}
-                                    </h4>
-                                    <p className="text-foreground text-sm bg-muted/50 p-3 rounded-md">
-                                        {property.notes}
+                        <TabsContent value="details" className="space-y-4 py-4">
+                            {/* Address Section */}
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-medium text-muted-foreground">{t('address')}</h4>
+                                <div className="text-foreground">
+                                    <p>{property.address?.street}</p>
+                                    <p>
+                                        {[property.address?.city, property.address?.province].filter(Boolean).join(', ')}
                                     </p>
+                                    {property.address?.postalCode && (
+                                        <p className="text-muted-foreground">{property.address.postalCode}</p>
+                                    )}
                                 </div>
-                            </>
-                        )}
-                    </div>
+                            </div>
 
-                    {/* Actions (broker only) */}
+                            <Separator />
+
+                            {/* Pricing Section */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <h4 className="text-sm font-medium text-muted-foreground">{t('askingPrice')}</h4>
+                                    <span className="text-lg font-semibold text-foreground">
+                                        {formatCurrency(property.askingPrice)}
+                                    </span>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <h4 className="text-sm font-medium text-muted-foreground">{t('offerAmount')}</h4>
+                                    <span className="text-lg font-semibold text-foreground">
+                                        {property.offerAmount ? formatCurrency(property.offerAmount) : t('pending')}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <Separator />
+
+                            {/* Status Section */}
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-medium text-muted-foreground">{t('offerStatusLabel')}</h4>
+                                <Badge variant={statusConfig.variant} className={`${statusConfig.className} text-sm px-3 py-1`}>
+                                    <Tag className="w-3 h-3 mr-1" />
+                                    {t(`propertyOfferStatuses.${property.offerStatus}`)}
+                                </Badge>
+                            </div>
+
+                            {/* Notes (visible to all) */}
+                            {property.notes && (
+                                <>
+                                    <Separator />
+                                    <div className="space-y-2">
+                                        <h4 className="text-sm font-medium text-muted-foreground">
+                                            {isReadOnly ? t('notes') : t('brokerNotes')}
+                                        </h4>
+                                        <p className="text-foreground text-sm bg-muted/50 p-3 rounded-md">
+                                            {property.notes}
+                                        </p>
+                                    </div>
+                                </>
+                            )}
+                        </TabsContent>
+
+                        <TabsContent value="offers" className="py-4">
+                            <PropertyOfferList
+                                transactionId={transactionId}
+                                propertyId={property.propertyId}
+                                isReadOnly={isReadOnly}
+                            />
+                        </TabsContent>
+                    </Tabs>
+
+                    {/* Actions (broker only) - visible only in details tab? Or always? Always is fine but maybe sticky? */}
+                    {/* For now keeping it at bottom, but it applies mostly to "details" context. 
+                        Wait, deleting property deletes offers too. 
+                    */}
                     {!isReadOnly && (
                         <div className="flex justify-end gap-2 pt-4 border-t border-border">
                             {isConfirmingDelete ? (

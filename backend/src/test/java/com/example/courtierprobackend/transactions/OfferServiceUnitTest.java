@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 /**
  * Unit tests for offer-related methods in TransactionServiceImpl.
@@ -69,6 +70,21 @@ class OfferServiceUnitTest {
 
     @Mock
     private TimelineService timelineService;
+
+    @Mock
+    private ConditionRepository conditionRepository;
+
+    @Mock
+    private PropertyOfferRepository propertyOfferRepository;
+
+    @Mock
+    private OfferDocumentRepository offerDocumentRepository;
+
+    @Mock
+    private OfferRevisionRepository offerRevisionRepository;
+
+    @Mock
+    private com.example.courtierprobackend.infrastructure.storage.S3StorageService s3StorageService;
 
     @InjectMocks
     private TransactionServiceImpl service;
@@ -113,6 +129,13 @@ class OfferServiceUnitTest {
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
+
+        // Default stub: offerDocumentRepository returns empty list
+        lenient().when(offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(any()))
+                .thenReturn(java.util.Collections.emptyList());
+        // Default stub: offerRevisionRepository returns null for max revision
+        lenient().when(offerRevisionRepository.findMaxRevisionNumberByOfferId(any()))
+                .thenReturn(null);
     }
 
     // ==================== getOffers Tests ====================

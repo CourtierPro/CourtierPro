@@ -84,12 +84,25 @@ class TransactionServiceImplTest {
     @Mock
     private com.example.courtierprobackend.transactions.datalayer.repositories.ConditionRepository conditionRepository;
 
+    @Mock
+    private com.example.courtierprobackend.transactions.datalayer.repositories.PropertyOfferRepository propertyOfferRepository;
+
+    @Mock
+    private com.example.courtierprobackend.transactions.datalayer.repositories.OfferDocumentRepository offerDocumentRepository;
+
+    @Mock
+    private com.example.courtierprobackend.transactions.datalayer.repositories.OfferRevisionRepository offerRevisionRepository;
+
+    @Mock
+    private com.example.courtierprobackend.infrastructure.storage.S3StorageService s3StorageService;
+
 
     @BeforeEach
     void setup() {
         transactionService = new TransactionServiceImpl(transactionRepository, pinnedTransactionRepository,
                 userAccountRepository, emailService,
-                notificationService, timelineService, participantRepository, propertyRepository, offerRepository, conditionRepository);
+                notificationService, timelineService, participantRepository, propertyRepository, offerRepository, conditionRepository,
+                propertyOfferRepository, offerDocumentRepository, offerRevisionRepository, s3StorageService);
         lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
     }
 

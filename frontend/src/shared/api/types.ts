@@ -44,6 +44,9 @@ export type TimelineEventType =
   | 'OFFER_RECEIVED'
   | 'OFFER_UPDATED'
   | 'OFFER_REMOVED'
+  | 'PROPERTY_OFFER_MADE'
+  | 'PROPERTY_OFFER_UPDATED'
+  | 'OFFER_DOCUMENT_UPLOADED'
   | 'CONDITION_ADDED'
   | 'CONDITION_UPDATED'
   | 'CONDITION_REMOVED'
@@ -143,6 +146,8 @@ export interface Offer {
   offerAmount?: number;
   status: ReceivedOfferStatus;
   notes?: string;
+  expiryDate?: string;
+  documents?: OfferDocument[];
   createdAt: string;
   updatedAt: string;
 }
@@ -151,6 +156,77 @@ export interface OfferRequestDTO {
   buyerName: string;
   offerAmount?: number;
   status: ReceivedOfferStatus;
+  expiryDate?: string;
+  notes?: string;
+}
+
+// ==================== OFFER DOCUMENT TYPES ====================
+
+export interface OfferDocument {
+  documentId: string;
+  offerId?: string;
+  propertyOfferId?: string;
+  s3Key: string;
+  fileName: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  fileSize?: number; // Kept for compatibility if backend sends this
+  uploadedBy: string;
+  downloadUrl?: string;
+  uploadedAt: string;
+  createdAt: string;
+}
+
+// ==================== OFFER REVISION TYPES ====================
+
+export interface OfferRevision {
+  revisionId: string;
+  offerId: string;
+  revisionNumber: number;
+  previousAmount?: number;
+  newAmount?: number;
+  previousStatus?: string;
+  newStatus?: string;
+  createdAt: string;
+}
+
+// ==================== PROPERTY OFFER TYPES (for buyer transactions) ====================
+
+export type BuyerOfferStatus =
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'COUNTERED'
+  | 'ACCEPTED'
+  | 'DECLINED'
+  | 'EXPIRED'
+  | 'WITHDRAWN';
+
+export type CounterpartyResponse =
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'COUNTERED'
+  | 'DECLINED'
+  | 'NO_RESPONSE';
+
+export interface PropertyOffer {
+  propertyOfferId: string;
+  propertyId: string;
+  offerRound: number;
+  offerAmount: number;
+  status: BuyerOfferStatus;
+  counterpartyResponse?: CounterpartyResponse;
+  expiryDate?: string;
+  notes?: string;
+  documents: OfferDocument[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PropertyOfferRequestDTO {
+  offerAmount: number;
+  status?: BuyerOfferStatus;
+  counterpartyResponse?: CounterpartyResponse;
+  expiryDate?: string;
   notes?: string;
 }
 

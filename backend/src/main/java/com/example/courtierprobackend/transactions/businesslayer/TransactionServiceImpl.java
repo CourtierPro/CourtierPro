@@ -61,6 +61,20 @@ import com.example.courtierprobackend.transactions.datalayer.dto.ConditionReques
 import com.example.courtierprobackend.transactions.datalayer.dto.ConditionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus;
 import com.example.courtierprobackend.transactions.datalayer.enums.ConditionType;
+import com.example.courtierprobackend.transactions.datalayer.enums.BuyerOfferStatus;
+import com.example.courtierprobackend.transactions.datalayer.enums.CounterpartyResponse;
+import com.example.courtierprobackend.transactions.datalayer.PropertyOffer;
+import com.example.courtierprobackend.transactions.datalayer.OfferDocument;
+import com.example.courtierprobackend.transactions.datalayer.OfferRevision;
+import com.example.courtierprobackend.transactions.datalayer.repositories.PropertyOfferRepository;
+import com.example.courtierprobackend.transactions.datalayer.repositories.OfferDocumentRepository;
+import com.example.courtierprobackend.transactions.datalayer.repositories.OfferRevisionRepository;
+import com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.OfferRevisionResponseDTO;
+import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -93,6 +107,10 @@ public class TransactionServiceImpl implements TransactionService {
     private final PropertyRepository propertyRepository;
     private final OfferRepository offerRepository;
     private final ConditionRepository conditionRepository;
+    private final PropertyOfferRepository propertyOfferRepository;
+    private final OfferDocumentRepository offerDocumentRepository;
+    private final OfferRevisionRepository offerRevisionRepository;
+    private final S3StorageService s3StorageService;
 
     private String lookupUserName(UUID userId) {
         if (userId == null) {
@@ -910,6 +928,237 @@ public class TransactionServiceImpl implements TransactionService {
         // No timeline entry for active property change on buy-side
     }
 
+    @Override
+    @Transactional
+    public void clearActiveProperty(UUID transactionId, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        tx.setPropertyAddress(null);
+        repo.save(tx);
+    }
+
+    // ==================== PROPERTY OFFER METHODS ====================
+
+    @Override
+    public List<PropertyOfferResponseDTO> getPropertyOffers(UUID propertyId, UUID userId, boolean isBroker) {
+        Property property = propertyRepository.findByPropertyId(propertyId)
+                .orElseThrow(() -> new NotFoundException("Property not found"));
+
+        Transaction tx = repo.findByTransactionId(property.getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
+
+        List<PropertyOffer> offers = propertyOfferRepository.findByPropertyIdOrderByOfferRoundDesc(propertyId);
+
+        return offers.stream()
+                .map(po -> toPropertyOfferResponseDTO(po))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public PropertyOfferResponseDTO addPropertyOffer(UUID propertyId, PropertyOfferRequestDTO dto, UUID brokerId) {
+        Property property = propertyRepository.findByPropertyId(propertyId)
+                .orElseThrow(() -> new NotFoundException("Property not found"));
+
+        Transaction tx = repo.findByTransactionId(property.getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        // Calculate next offer round
+        Integer maxRound = propertyOfferRepository.findMaxOfferRoundByPropertyId(propertyId);
+        int nextRound = (maxRound != null ? maxRound : 0) + 1;
+
+        PropertyOffer offer = PropertyOffer.builder()
+                .propertyOfferId(UUID.randomUUID())
+                .propertyId(propertyId)
+                .offerRound(nextRound)
+                .offerAmount(dto.getOfferAmount())
+                .status(dto.getStatus() != null ? dto.getStatus() : BuyerOfferStatus.OFFER_MADE)
+                .counterpartyResponse(dto.getCounterpartyResponse())
+                .expiryDate(dto.getExpiryDate())
+                .notes(dto.getNotes())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        PropertyOffer saved = propertyOfferRepository.save(offer);
+
+        // Sync latest offer to Property entity
+        property.setOfferAmount(saved.getOfferAmount());
+        property.setOfferStatus(toPropertyOfferStatus(saved.getStatus()));
+        property.setUpdatedAt(LocalDateTime.now());
+        propertyRepository.save(property);
+
+        // Add timeline entry
+        String address = property.getAddress() != null ? property.getAddress().getStreet() : "Unknown";
+        String actorName = lookupUserName(brokerId);
+        TransactionInfo info = TransactionInfo.builder()
+                .actorName(actorName)
+                .address(address)
+                .offerAmount(saved.getOfferAmount())
+                .offerStatus(saved.getStatus().name())
+                .build();
+        timelineService.addEntry(
+                tx.getTransactionId(),
+                brokerId,
+                TimelineEntryType.PROPERTY_OFFER_MADE,
+                "Offer #" + nextRound + " made on " + address + ": $" + saved.getOfferAmount(),
+                null,
+                info);
+
+        // Notify client
+        try {
+            notificationService.createNotification(
+                    tx.getClientId().toString(),
+                    "notifications.propertyOfferMade.title",
+                    "notifications.propertyOfferMade.message",
+                    java.util.Map.of(
+                            "address", address,
+                            "offerAmount", String.format("$%,.0f", saved.getOfferAmount()),
+                            "offerRound", String.valueOf(nextRound)
+                    ),
+                    tx.getTransactionId().toString(),
+                    com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.OFFER_MADE);
+        } catch (Exception e) {
+            log.error("Failed to send property offer notification for property {}", propertyId, e);
+        }
+
+        return toPropertyOfferResponseDTO(saved);
+    }
+
+    @Override
+    @Transactional
+    public PropertyOfferResponseDTO updatePropertyOffer(UUID propertyId, UUID propertyOfferId, PropertyOfferRequestDTO dto, UUID brokerId) {
+        Property property = propertyRepository.findByPropertyId(propertyId)
+                .orElseThrow(() -> new NotFoundException("Property not found"));
+
+        Transaction tx = repo.findByTransactionId(property.getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        PropertyOffer offer = propertyOfferRepository.findByPropertyOfferId(propertyOfferId)
+                .orElseThrow(() -> new NotFoundException("Property offer not found"));
+
+        if (!offer.getPropertyId().equals(propertyId)) {
+            throw new BadRequestException("Offer does not belong to this property");
+        }
+
+        // Track status changes
+        BuyerOfferStatus previousStatus = offer.getStatus();
+        boolean statusChanged = dto.getStatus() != null && dto.getStatus() != previousStatus;
+
+        // Update fields
+        offer.setOfferAmount(dto.getOfferAmount());
+        if (dto.getStatus() != null) {
+            offer.setStatus(dto.getStatus());
+        }
+        offer.setCounterpartyResponse(dto.getCounterpartyResponse());
+        offer.setExpiryDate(dto.getExpiryDate());
+        offer.setNotes(dto.getNotes());
+        offer.setUpdatedAt(LocalDateTime.now());
+
+        PropertyOffer saved = propertyOfferRepository.save(offer);
+
+        // If this is the latest offer, sync to Property entity
+        PropertyOffer latestOffer = propertyOfferRepository.findTopByPropertyIdOrderByOfferRoundDesc(propertyId).orElse(null);
+        if (latestOffer != null && latestOffer.getPropertyOfferId().equals(saved.getPropertyOfferId())) {
+            property.setOfferAmount(saved.getOfferAmount());
+            property.setOfferStatus(toPropertyOfferStatus(saved.getStatus()));
+            property.setUpdatedAt(LocalDateTime.now());
+            propertyRepository.save(property);
+        }
+
+        // Add timeline entry for status changes
+        if (statusChanged) {
+            String address = property.getAddress() != null ? property.getAddress().getStreet() : "Unknown";
+            String actorName = lookupUserName(brokerId);
+            TransactionInfo info = TransactionInfo.builder()
+                    .actorName(actorName)
+                    .address(address)
+                    .offerAmount(saved.getOfferAmount())
+                    .offerStatus(saved.getStatus().name())
+                    .build();
+            timelineService.addEntry(
+                    tx.getTransactionId(),
+                    brokerId,
+                    TimelineEntryType.PROPERTY_OFFER_UPDATED,
+                    "Offer #" + saved.getOfferRound() + " on " + address + " status changed to " + saved.getStatus(),
+                    null,
+                    info);
+
+            // Notify client on significant status changes
+            if (saved.getStatus() == BuyerOfferStatus.COUNTERED || 
+                saved.getStatus() == BuyerOfferStatus.ACCEPTED || 
+                saved.getStatus() == BuyerOfferStatus.DECLINED) {
+                try {
+                    notificationService.createNotification(
+                            tx.getClientId().toString(),
+                            "notifications.propertyOfferStatusChanged.title",
+                            "notifications.propertyOfferStatusChanged.message",
+                            java.util.Map.of(
+                                    "address", address,
+                                    "status", saved.getStatus().name()
+                            ),
+                            tx.getTransactionId().toString(),
+                            saved.getStatus() == BuyerOfferStatus.COUNTERED 
+                                ? com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.OFFER_COUNTERED 
+                                : com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.OFFER_STATUS_CHANGED);
+                } catch (Exception e) {
+                    log.error("Failed to send property offer status notification for property {}", propertyId, e);
+                }
+            }
+        }
+
+        return toPropertyOfferResponseDTO(saved);
+    }
+
+    private PropertyOfferStatus toPropertyOfferStatus(BuyerOfferStatus status) {
+        return switch (status) {
+            case OFFER_MADE -> PropertyOfferStatus.OFFER_MADE;
+            case COUNTERED -> PropertyOfferStatus.COUNTERED;
+            case ACCEPTED -> PropertyOfferStatus.ACCEPTED;
+            case DECLINED -> PropertyOfferStatus.DECLINED;
+            case WITHDRAWN, EXPIRED -> PropertyOfferStatus.DECLINED;
+        };
+    }
+
+    private PropertyOfferResponseDTO toPropertyOfferResponseDTO(PropertyOffer offer) {
+        List<OfferDocument> documents = offerDocumentRepository.findByPropertyOfferIdOrderByCreatedAtDesc(offer.getPropertyOfferId());
+        
+        return PropertyOfferResponseDTO.builder()
+                .propertyOfferId(offer.getPropertyOfferId())
+                .propertyId(offer.getPropertyId())
+                .offerRound(offer.getOfferRound())
+                .offerAmount(offer.getOfferAmount())
+                .status(offer.getStatus())
+                .counterpartyResponse(offer.getCounterpartyResponse())
+                .expiryDate(offer.getExpiryDate())
+                .notes(offer.getNotes())
+                .createdAt(offer.getCreatedAt())
+                .updatedAt(offer.getUpdatedAt())
+                .documents(documents.stream()
+                        .map(this::toOfferDocumentResponseDTO)
+                        .toList())
+                .build();
+    }
+
+    private OfferDocumentResponseDTO toOfferDocumentResponseDTO(OfferDocument doc) {
+        return OfferDocumentResponseDTO.builder()
+                .documentId(doc.getDocumentId())
+                .fileName(doc.getFileName())
+                .mimeType(doc.getMimeType())
+                .sizeBytes(doc.getSizeBytes())
+                .createdAt(doc.getCreatedAt())
+                .build();
+    }
+
     // ==================== OFFER METHODS ====================
 
     @Override
@@ -950,6 +1199,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .buyerName(dto.getBuyerName())
                 .offerAmount(dto.getOfferAmount())
                 .status(dto.getStatus() != null ? dto.getStatus() : ReceivedOfferStatus.PENDING)
+                .expiryDate(dto.getExpiryDate())
                 .notes(dto.getNotes())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
@@ -1006,9 +1256,32 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BadRequestException("Offer does not belong to this transaction");
         }
 
-        // Track if status changed for timeline
+        // Track changes for revision
         ReceivedOfferStatus previousStatus = offer.getStatus();
+        java.math.BigDecimal previousAmount = offer.getOfferAmount();
         boolean statusChanged = dto.getStatus() != null && dto.getStatus() != previousStatus;
+        boolean amountChanged = dto.getOfferAmount() != null && 
+                (previousAmount == null || dto.getOfferAmount().compareTo(previousAmount) != 0);
+
+        // Create revision if there are changes
+        if (statusChanged || amountChanged) {
+            Integer maxRevision = offerRevisionRepository.findMaxRevisionNumberByOfferId(offerId);
+            int nextRevision = (maxRevision != null ? maxRevision : 0) + 1;
+
+            OfferRevision revision = OfferRevision.builder()
+                    .revisionId(UUID.randomUUID())
+                    .offerId(offerId)
+                    .revisionNumber(nextRevision)
+                    .previousAmount(previousAmount)
+                    .newAmount(dto.getOfferAmount())
+                    .previousStatus(previousStatus != null ? previousStatus.name() : null)
+                    .newStatus(dto.getStatus() != null ? dto.getStatus().name() : null)
+                    .changedBy(brokerId)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            offerRevisionRepository.save(revision);
+        }
 
         // Update fields
         if (dto.getBuyerName() != null) {
@@ -1018,6 +1291,7 @@ public class TransactionServiceImpl implements TransactionService {
         if (dto.getStatus() != null) {
             offer.setStatus(dto.getStatus());
         }
+        offer.setExpiryDate(dto.getExpiryDate());
         offer.setNotes(dto.getNotes());
         offer.setUpdatedAt(LocalDateTime.now());
 
@@ -1039,9 +1313,270 @@ public class TransactionServiceImpl implements TransactionService {
                     null,
                     null,
                     info);
+
+            // Notify client on significant status changes
+            if (dto.getStatus() == ReceivedOfferStatus.COUNTERED ||
+                dto.getStatus() == ReceivedOfferStatus.ACCEPTED ||
+                dto.getStatus() == ReceivedOfferStatus.DECLINED) {
+                try {
+                    notificationService.createNotification(
+                            tx.getClientId().toString(),
+                            "notifications.offerStatusChanged.title",
+                            "notifications.offerStatusChanged.message",
+                            java.util.Map.of(
+                                    "buyerName", saved.getBuyerName(),
+                                    "status", dto.getStatus().name()
+                            ),
+                            transactionId.toString(),
+                            dto.getStatus() == ReceivedOfferStatus.COUNTERED
+                                ? com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.OFFER_COUNTERED
+                                : com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.OFFER_STATUS_CHANGED);
+                } catch (Exception e) {
+                    log.error("Failed to send offer status notification for transaction {}", transactionId, e);
+                }
+            }
         }
 
         return toOfferResponseDTO(saved, true);
+    }
+
+    @Override
+    public List<OfferRevisionResponseDTO> getOfferRevisions(UUID offerId, UUID userId, boolean isBroker) {
+        Offer offer = offerRepository.findByOfferId(offerId)
+                .orElseThrow(() -> new NotFoundException("Offer not found"));
+
+        Transaction tx = repo.findByTransactionId(offer.getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
+
+        List<OfferRevision> revisions = offerRevisionRepository.findByOfferIdOrderByRevisionNumberAsc(offerId);
+
+        return revisions.stream()
+                .map(this::toOfferRevisionResponseDTO)
+                .toList();
+    }
+
+    private OfferRevisionResponseDTO toOfferRevisionResponseDTO(OfferRevision revision) {
+        return OfferRevisionResponseDTO.builder()
+                .revisionId(revision.getRevisionId())
+                .offerId(revision.getOfferId())
+                .revisionNumber(revision.getRevisionNumber())
+                .previousAmount(revision.getPreviousAmount())
+                .newAmount(revision.getNewAmount())
+                .previousStatus(revision.getPreviousStatus())
+                .newStatus(revision.getNewStatus())
+                .createdAt(revision.getCreatedAt())
+                .build();
+    }
+
+    // ==================== OFFER DOCUMENT METHODS ====================
+
+    @Override
+    @Transactional
+    public OfferDocumentResponseDTO uploadOfferDocument(UUID offerId, MultipartFile file, UUID brokerId) {
+        Offer offer = offerRepository.findByOfferId(offerId)
+                .orElseThrow(() -> new NotFoundException("Offer not found"));
+
+        Transaction tx = repo.findByTransactionId(offer.getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        try {
+            String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed";
+            String uniqueId = UUID.randomUUID().toString();
+            String s3Key = String.format("offers/%s/%s_%s", offerId, uniqueId, originalFilename);
+
+            // Upload to S3 using the storage service
+            s3StorageService.uploadFile(file, offer.getTransactionId(), offerId);
+
+            OfferDocument document = OfferDocument.builder()
+                    .documentId(UUID.randomUUID())
+                    .offerId(offerId)
+                    .propertyOfferId(null)
+                    .s3Key(s3Key)
+                    .fileName(originalFilename)
+                    .mimeType(file.getContentType())
+                    .sizeBytes(file.getSize())
+                    .uploadedBy(brokerId)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            OfferDocument saved = offerDocumentRepository.save(document);
+
+            // Add timeline entry
+            String actorName = lookupUserName(brokerId);
+            TransactionInfo info = TransactionInfo.builder()
+                    .actorName(actorName)
+                    .build();
+            timelineService.addEntry(
+                    tx.getTransactionId(),
+                    brokerId,
+                    TimelineEntryType.OFFER_DOCUMENT_UPLOADED,
+                    "Document uploaded to offer: " + originalFilename,
+                    null,
+                    info);
+
+            return toOfferDocumentResponseDTO(saved);
+
+        } catch (java.io.IOException e) {
+            log.error("Failed to upload offer document for offer {}", offerId, e);
+            throw new RuntimeException("Failed to upload document", e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public OfferDocumentResponseDTO uploadPropertyOfferDocument(UUID propertyOfferId, MultipartFile file, UUID brokerId) {
+        PropertyOffer offer = propertyOfferRepository.findByPropertyOfferId(propertyOfferId)
+                .orElseThrow(() -> new NotFoundException("Property offer not found"));
+
+        Property property = propertyRepository.findByPropertyId(offer.getPropertyId())
+                .orElseThrow(() -> new NotFoundException("Property not found"));
+
+        Transaction tx = repo.findByTransactionId(property.getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+
+        try {
+            String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed";
+            String uniqueId = UUID.randomUUID().toString();
+            String s3Key = String.format("property-offers/%s/%s_%s", propertyOfferId, uniqueId, originalFilename);
+
+            // Upload to S3
+            s3StorageService.uploadFile(file, tx.getTransactionId(), propertyOfferId);
+
+            OfferDocument document = OfferDocument.builder()
+                    .documentId(UUID.randomUUID())
+                    .offerId(null)
+                    .propertyOfferId(propertyOfferId)
+                    .s3Key(s3Key)
+                    .fileName(originalFilename)
+                    .mimeType(file.getContentType())
+                    .sizeBytes(file.getSize())
+                    .uploadedBy(brokerId)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            OfferDocument saved = offerDocumentRepository.save(document);
+
+            // Add timeline entry
+            String address = property.getAddress() != null ? property.getAddress().getStreet() : "Unknown";
+            String actorName = lookupUserName(brokerId);
+            TransactionInfo info = TransactionInfo.builder()
+                    .actorName(actorName)
+                    .address(address)
+                    .build();
+            timelineService.addEntry(
+                    tx.getTransactionId(),
+                    brokerId,
+                    TimelineEntryType.OFFER_DOCUMENT_UPLOADED,
+                    "Document uploaded to property offer #" + offer.getOfferRound() + ": " + originalFilename,
+                    null,
+                    info);
+
+            return toOfferDocumentResponseDTO(saved);
+
+        } catch (java.io.IOException e) {
+            log.error("Failed to upload property offer document for offer {}", propertyOfferId, e);
+            throw new RuntimeException("Failed to upload document", e);
+        }
+    }
+
+    @Override
+    public List<OfferDocumentResponseDTO> getOfferDocuments(UUID offerId, UUID userId, boolean isBroker) {
+        Offer offer = offerRepository.findByOfferId(offerId)
+                .orElseThrow(() -> new NotFoundException("Offer not found"));
+
+        Transaction tx = repo.findByTransactionId(offer.getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
+
+        List<OfferDocument> documents = offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(offerId);
+
+        return documents.stream()
+                .map(this::toOfferDocumentResponseDTO)
+                .toList();
+    }
+
+    @Override
+    public List<OfferDocumentResponseDTO> getPropertyOfferDocuments(UUID propertyOfferId, UUID userId, boolean isBroker) {
+        PropertyOffer offer = propertyOfferRepository.findByPropertyOfferId(propertyOfferId)
+                .orElseThrow(() -> new NotFoundException("Property offer not found"));
+
+        Property property = propertyRepository.findByPropertyId(offer.getPropertyId())
+                .orElseThrow(() -> new NotFoundException("Property not found"));
+
+        Transaction tx = repo.findByTransactionId(property.getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
+
+        List<OfferDocument> documents = offerDocumentRepository.findByPropertyOfferIdOrderByCreatedAtDesc(propertyOfferId);
+
+        return documents.stream()
+                .map(this::toOfferDocumentResponseDTO)
+                .toList();
+    }
+
+    @Override
+    public String getOfferDocumentDownloadUrl(UUID documentId, UUID userId) {
+        OfferDocument document = offerDocumentRepository.findByDocumentId(documentId)
+                .orElseThrow(() -> new NotFoundException("Document not found"));
+
+        // Verify access via the parent offer
+        if (document.getOfferId() != null) {
+            Offer offer = offerRepository.findByOfferId(document.getOfferId())
+                    .orElseThrow(() -> new NotFoundException("Offer not found"));
+            Transaction tx = repo.findByTransactionId(offer.getTransactionId())
+                    .orElseThrow(() -> new NotFoundException("Transaction not found"));
+            TransactionAccessUtils.verifyTransactionAccess(tx, userId);
+        } else if (document.getPropertyOfferId() != null) {
+            PropertyOffer propertyOffer = propertyOfferRepository.findByPropertyOfferId(document.getPropertyOfferId())
+                    .orElseThrow(() -> new NotFoundException("Property offer not found"));
+            Property property = propertyRepository.findByPropertyId(propertyOffer.getPropertyId())
+                    .orElseThrow(() -> new NotFoundException("Property not found"));
+            Transaction tx = repo.findByTransactionId(property.getTransactionId())
+                    .orElseThrow(() -> new NotFoundException("Transaction not found"));
+            TransactionAccessUtils.verifyTransactionAccess(tx, userId);
+        }
+
+        return s3StorageService.generatePresignedUrl(document.getS3Key());
+    }
+
+    @Override
+    @Transactional
+    public void deleteOfferDocument(UUID documentId, UUID brokerId) {
+        OfferDocument document = offerDocumentRepository.findByDocumentId(documentId)
+                .orElseThrow(() -> new NotFoundException("Document not found"));
+
+        // Verify broker access via the parent offer
+        if (document.getOfferId() != null) {
+            Offer offer = offerRepository.findByOfferId(document.getOfferId())
+                    .orElseThrow(() -> new NotFoundException("Offer not found"));
+            Transaction tx = repo.findByTransactionId(offer.getTransactionId())
+                    .orElseThrow(() -> new NotFoundException("Transaction not found"));
+            TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+        } else if (document.getPropertyOfferId() != null) {
+            PropertyOffer propertyOffer = propertyOfferRepository.findByPropertyOfferId(document.getPropertyOfferId())
+                    .orElseThrow(() -> new NotFoundException("Property offer not found"));
+            Property property = propertyRepository.findByPropertyId(propertyOffer.getPropertyId())
+                    .orElseThrow(() -> new NotFoundException("Property not found"));
+            Transaction tx = repo.findByTransactionId(property.getTransactionId())
+                    .orElseThrow(() -> new NotFoundException("Transaction not found"));
+            TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
+        }
+
+        // Delete from S3
+        s3StorageService.deleteFile(document.getS3Key());
+
+        // Delete from database
+        offerDocumentRepository.delete(document);
+
+        log.info("Deleted offer document {} by broker {}", documentId, brokerId);
     }
 
     @Override
@@ -1092,15 +1627,21 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     private OfferResponseDTO toOfferResponseDTO(Offer offer, boolean includeBrokerNotes) {
+        List<OfferDocument> documents = offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(offer.getOfferId());
+        
         return OfferResponseDTO.builder()
                 .offerId(offer.getOfferId())
                 .transactionId(offer.getTransactionId())
                 .buyerName(offer.getBuyerName())
                 .offerAmount(offer.getOfferAmount())
                 .status(offer.getStatus())
+                .expiryDate(offer.getExpiryDate())
                 .notes(offer.getNotes())
                 .createdAt(offer.getCreatedAt())
                 .updatedAt(offer.getUpdatedAt())
+                .documents(documents.stream()
+                        .map(this::toOfferDocumentResponseDTO)
+                        .toList())
                 .build();
     }
 

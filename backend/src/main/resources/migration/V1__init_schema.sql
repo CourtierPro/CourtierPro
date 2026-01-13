@@ -399,6 +399,7 @@ CREATE TABLE IF NOT EXISTS offers (
     buyer_name VARCHAR(255) NOT NULL,
     offer_amount DECIMAL(15,2),
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    expiry_date DATE,
     notes TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -414,6 +415,95 @@ CREATE TABLE IF NOT EXISTS offers (
 CREATE INDEX IF NOT EXISTS idx_offers_transaction_id ON offers(transaction_id);
 CREATE INDEX IF NOT EXISTS idx_offers_offer_id ON offers(offer_id);
 CREATE INDEX IF NOT EXISTS idx_offers_status ON offers(status);
+CREATE INDEX IF NOT EXISTS idx_offers_expiry_date ON offers(expiry_date);
+
+-- =============================================================================
+-- PROPERTY OFFERS (for buyer transactions - tracking offers made on properties)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS property_offers (
+    id BIGSERIAL PRIMARY KEY,
+    property_offer_id UUID NOT NULL UNIQUE,
+    property_id UUID NOT NULL,
+    offer_round INTEGER NOT NULL DEFAULT 1,
+    offer_amount DECIMAL(15,2) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'OFFER_MADE',
+    counterparty_response VARCHAR(50),
+    expiry_date DATE,
+    notes TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    
+    CONSTRAINT fk_property_offers_property 
+        FOREIGN KEY (property_id) 
+        REFERENCES properties(property_id)
+        ON DELETE CASCADE,
+    CONSTRAINT chk_property_offer_status 
+        CHECK (status IN ('OFFER_MADE', 'COUNTERED', 'ACCEPTED', 'DECLINED', 'WITHDRAWN', 'EXPIRED')),
+    CONSTRAINT chk_counterparty_response 
+        CHECK (counterparty_response IS NULL OR counterparty_response IN ('PENDING', 'ACCEPTED', 'COUNTERED', 'DECLINED'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_property_offers_property_id ON property_offers(property_id);
+CREATE INDEX IF NOT EXISTS idx_property_offers_property_offer_id ON property_offers(property_offer_id);
+CREATE INDEX IF NOT EXISTS idx_property_offers_status ON property_offers(status);
+
+-- =============================================================================
+-- OFFER DOCUMENTS (for both sell-side offers and buy-side property_offers)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS offer_documents (
+    id BIGSERIAL PRIMARY KEY,
+    document_id UUID NOT NULL UNIQUE,
+    offer_id UUID,
+    property_offer_id UUID,
+    s3_key VARCHAR(1000) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(100),
+    size_bytes BIGINT,
+    uploaded_by UUID NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    
+    CONSTRAINT fk_offer_documents_offer 
+        FOREIGN KEY (offer_id) 
+        REFERENCES offers(offer_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_offer_documents_property_offer 
+        FOREIGN KEY (property_offer_id) 
+        REFERENCES property_offers(property_offer_id)
+        ON DELETE CASCADE,
+    CONSTRAINT chk_offer_document_parent 
+        CHECK (
+            (offer_id IS NOT NULL AND property_offer_id IS NULL) OR 
+            (offer_id IS NULL AND property_offer_id IS NOT NULL)
+        )
+);
+
+CREATE INDEX IF NOT EXISTS idx_offer_documents_offer_id ON offer_documents(offer_id);
+CREATE INDEX IF NOT EXISTS idx_offer_documents_property_offer_id ON offer_documents(property_offer_id);
+CREATE INDEX IF NOT EXISTS idx_offer_documents_document_id ON offer_documents(document_id);
+
+-- =============================================================================
+-- OFFER REVISIONS (for tracking sell-side offer negotiation history)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS offer_revisions (
+    id BIGSERIAL PRIMARY KEY,
+    revision_id UUID NOT NULL UNIQUE,
+    offer_id UUID NOT NULL,
+    revision_number INTEGER NOT NULL,
+    previous_amount DECIMAL(15,2),
+    new_amount DECIMAL(15,2),
+    previous_status VARCHAR(50),
+    new_status VARCHAR(50),
+    changed_by UUID NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    
+    CONSTRAINT fk_offer_revisions_offer 
+        FOREIGN KEY (offer_id) 
+        REFERENCES offers(offer_id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_offer_revisions_offer_id ON offer_revisions(offer_id);
+CREATE INDEX IF NOT EXISTS idx_offer_revisions_revision_id ON offer_revisions(revision_id);
 
 -- =============================================================================
 -- CONDITIONS (for all transactions - tracking conditional clauses)

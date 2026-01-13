@@ -1,6 +1,7 @@
 package com.example.courtierprobackend.transactions.datalayer.dto;
 
-import com.example.courtierprobackend.transactions.datalayer.enums.ReceivedOfferStatus;
+import com.example.courtierprobackend.transactions.datalayer.enums.BuyerOfferStatus;
+import com.example.courtierprobackend.transactions.datalayer.enums.CounterpartyResponse;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -13,17 +14,17 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class OfferResponseDTO {
+public class PropertyOfferResponseDTO {
 
-    private UUID offerId;
-    private UUID transactionId;
-    private String buyerName;
+    private UUID propertyOfferId;
+    private UUID propertyId;
+    private Integer offerRound;
     private BigDecimal offerAmount;
-    private ReceivedOfferStatus status;
+    private BuyerOfferStatus status;
+    private CounterpartyResponse counterpartyResponse;
     private LocalDate expiryDate;
     private String notes;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<OfferDocumentResponseDTO> documents;
 }
-

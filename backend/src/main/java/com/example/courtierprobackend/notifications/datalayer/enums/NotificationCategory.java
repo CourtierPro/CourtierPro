@@ -12,5 +12,10 @@ public enum NotificationCategory {
     BROADCAST,
     GENERAL,
     OFFER_RECEIVED,
-    PROPERTY_ADDED
+    OFFER_MADE,
+    OFFER_STATUS_CHANGED,
+    PROPERTY_ADDED,
+    OFFER_COUNTERED,
+    OFFER_EXPIRING
 }
+

@@ -1,6 +1,7 @@
 package com.example.courtierprobackend.transactions.datalayer;
 
-import com.example.courtierprobackend.transactions.datalayer.enums.ReceivedOfferStatus;
+import com.example.courtierprobackend.transactions.datalayer.enums.BuyerOfferStatus;
+import com.example.courtierprobackend.transactions.datalayer.enums.CounterpartyResponse;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -10,36 +11,40 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Represents an offer received on a sell-side transaction.
- * Sellers can receive multiple offers from potential buyers.
+ * Represents an offer made on a buy-side property.
+ * Tracks each offer round during negotiations for a specific property.
  */
 @Entity
-@Table(name = "offers")
+@Table(name = "property_offers")
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Offer {
+public class PropertyOffer {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "offer_id", nullable = false, unique = true)
-    private UUID offerId;
+    @Column(name = "property_offer_id", nullable = false, unique = true)
+    private UUID propertyOfferId;
 
-    @Column(name = "transaction_id", nullable = false)
-    private UUID transactionId;
+    @Column(name = "property_id", nullable = false)
+    private UUID propertyId;
 
-    @Column(name = "buyer_name", nullable = false)
-    private String buyerName;
+    @Column(name = "offer_round", nullable = false)
+    private Integer offerRound;
 
-    @Column(name = "offer_amount", precision = 15, scale = 2)
+    @Column(name = "offer_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal offerAmount;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private ReceivedOfferStatus status;
+    private BuyerOfferStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "counterparty_response")
+    private CounterpartyResponse counterpartyResponse;
 
     @Column(name = "expiry_date")
     private LocalDate expiryDate;
@@ -55,8 +60,8 @@ public class Offer {
 
     @PrePersist
     protected void onCreate() {
-        if (offerId == null) {
-            offerId = UUID.randomUUID();
+        if (propertyOfferId == null) {
+            propertyOfferId = UUID.randomUUID();
         }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
@@ -65,7 +70,10 @@ public class Offer {
             updatedAt = LocalDateTime.now();
         }
         if (status == null) {
-            status = ReceivedOfferStatus.PENDING;
+            status = BuyerOfferStatus.OFFER_MADE;
+        }
+        if (offerRound == null) {
+            offerRound = 1;
         }
     }
 
@@ -74,4 +82,3 @@ public class Offer {
         updatedAt = LocalDateTime.now();
     }
 }
-
