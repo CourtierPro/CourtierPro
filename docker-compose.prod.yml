@@ -33,6 +33,9 @@ services:
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      # --- FIX START: Tell Flyway where your SQL files are ---
+      SPRING_FLYWAY_LOCATIONS: classpath:migration
+      # --- FIX END ---
       DB_HOST: db
       DB_PORT: 5432
       DB_USER: ${DB_USER}
@@ -48,6 +51,11 @@ services:
       AWS_S3_BUCKET: ${AWS_S3_BUCKET}
       GMAIL_USERNAME: ${GMAIL_USERNAME}
       GMAIL_PASSWORD: ${GMAIL_PASSWORD}
+      GITHUB_APP_ID: ${GITHUB_APP_ID}
+      GITHUB_APP_INSTALLATION_ID: ${GITHUB_APP_INSTALLATION_ID}
+      GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY}
+      GITHUB_REPO_OWNER: ${GITHUB_REPO_OWNER}
+      GITHUB_REPO_NAME: ${GITHUB_REPO_NAME}
     depends_on:
       db:
         condition: service_healthy
