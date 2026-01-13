@@ -63,6 +63,11 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          # Force use of newer/standard ciphers
+          use_insecure_cipher: false
+          # Some older GitHub Actions runners need this for RSA keys on Ubuntu 24.04
+          fingerprint: ""
           source: "docker-compose.prod.yml,Caddyfile"
           target: "/home/${{ secrets.EC2_USER }}/app"
 
