@@ -509,20 +509,20 @@ class TransactionServiceImplTest {
         // Arrange
         UUID brokerUuid = UUID.randomUUID();
         List<Transaction> transactions = List.of(new Transaction(), new Transaction());
-        when(transactionRepository.findAllByFilters(eq(brokerUuid), any(), any(), any())).thenReturn(transactions);
+        when(transactionRepository.findAllByFilters(eq(brokerUuid), any(), any(), any(), anyBoolean())).thenReturn(transactions);
 
         // Act
         List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(brokerUuid, null, null, null);
 
         // Assert
         assertThat(result).hasSize(2);
-        verify(transactionRepository).findAllByFilters(eq(brokerUuid), any(), any(), any());
+        verify(transactionRepository).findAllByFilters(eq(brokerUuid), any(), any(), any(), anyBoolean());
     }
 
     @Test
     void getBrokerTransactions_withNoBrokerTransactions_returnsEmptyList() {
         // Arrange
-        when(transactionRepository.findAllByFilters(any(UUID.class), any(), any(), any())).thenReturn(List.of());
+        when(transactionRepository.findAllByFilters(any(UUID.class), any(), any(), any(), anyBoolean())).thenReturn(List.of());
 
         // Act
         List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(UUID.randomUUID(), null, null,
@@ -541,7 +541,7 @@ class TransactionServiceImplTest {
         transactionService.getBrokerTransactions(brokerUuid, "ACTIVE", "BUY", "BUYER_PREQUALIFY_FINANCIALLY");
 
         // Assert
-        verify(transactionRepository).findAllByFilters(eq(brokerUuid), eq(TransactionStatus.ACTIVE), any(), any());
+        verify(transactionRepository).findAllByFilters(eq(brokerUuid), eq(TransactionStatus.ACTIVE), any(), any(), anyBoolean());
     }
 
     @Test
@@ -553,7 +553,7 @@ class TransactionServiceImplTest {
         transactionService.getBrokerTransactions(brokerUuid, "INVALID_STATUS", null, null);
 
         // Assert
-        verify(transactionRepository).findAllByFilters(eq(brokerUuid), isNull(), isNull(), isNull());
+        verify(transactionRepository).findAllByFilters(eq(brokerUuid), isNull(), isNull(), isNull(), anyBoolean());
     }
 
     @Test
@@ -565,7 +565,7 @@ class TransactionServiceImplTest {
         transactionService.getBrokerTransactions(brokerUuid, null, "sell", "SELLER_INITIAL_CONSULTATION");
 
         // Assert
-        verify(transactionRepository).findAllByFilters(eq(brokerUuid), isNull(), any(), any());
+        verify(transactionRepository).findAllByFilters(eq(brokerUuid), isNull(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -577,7 +577,7 @@ class TransactionServiceImplTest {
         transactionService.getBrokerTransactions(brokerUuid, "invalid", "invalid", "invalid");
 
         // Assert
-        verify(transactionRepository).findAllByFilters(eq(brokerUuid), isNull(), isNull(), isNull());
+        verify(transactionRepository).findAllByFilters(eq(brokerUuid), isNull(), isNull(), isNull(), anyBoolean());
     }
 
     // ========== getBrokerClientTransactions Tests ==========
@@ -2511,30 +2511,30 @@ class TransactionServiceImplTest {
     void getBrokerTransactions_WithFilters_ReturnsFilteredTransactions() {
         // Arrange
         UUID brokerId = UUID.randomUUID();
-        when(transactionRepository.findAllByFilters(eq(brokerId), eq(com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus.ACTIVE), eq(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE), eq(com.example.courtierprobackend.transactions.datalayer.enums.BuyerStage.BUYER_SUBMIT_OFFER)))
-                .thenReturn(List.of(new Transaction()));
+        when(transactionRepository.findAllByFilters(eq(brokerId), eq(com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus.ACTIVE), eq(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE), eq(com.example.courtierprobackend.transactions.datalayer.enums.BuyerStage.BUYER_SUBMIT_OFFER), anyBoolean()))
+            .thenReturn(List.of(new Transaction()));
 
         // Act
         List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(brokerId, "ACTIVE", "BUYER_SUBMIT_OFFER", "BUY");
 
         // Assert
         assertThat(result).hasSize(1);
-        verify(transactionRepository).findAllByFilters(eq(brokerId), eq(com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus.ACTIVE), eq(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE), eq(com.example.courtierprobackend.transactions.datalayer.enums.BuyerStage.BUYER_SUBMIT_OFFER));
+        verify(transactionRepository).findAllByFilters(eq(brokerId), eq(com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus.ACTIVE), eq(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE), eq(com.example.courtierprobackend.transactions.datalayer.enums.BuyerStage.BUYER_SUBMIT_OFFER), anyBoolean());
     }
 
     @Test
     void getBrokerTransactions_NoFilters_ReturnsAll() {
         // Arrange
         UUID brokerId = UUID.randomUUID();
-        when(transactionRepository.findAllByFilters(eq(brokerId), isNull(), isNull(), isNull()))
-                .thenReturn(List.of(new Transaction(), new Transaction()));
+        when(transactionRepository.findAllByFilters(eq(brokerId), isNull(), isNull(), isNull(), anyBoolean()))
+            .thenReturn(List.of(new Transaction(), new Transaction()));
 
         // Act
         List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(brokerId, null, null, null);
 
         // Assert
         assertThat(result).hasSize(2);
-        verify(transactionRepository).findAllByFilters(eq(brokerId), isNull(), isNull(), isNull());
+        verify(transactionRepository).findAllByFilters(eq(brokerId), isNull(), isNull(), isNull(), anyBoolean());
     }
 
     @Test
@@ -2638,4 +2638,106 @@ class TransactionServiceImplTest {
         assertThatThrownBy(() -> transactionService.getByTransactionId(transactionId, otherUserId))
                 .isInstanceOf(ForbiddenException.class);
     }
+
+        // =================================================================================================
+        // ARCHIVE FEATURE TESTS
+        // =================================================================================================
+
+        @Test
+        void archiveTransaction_SuccessfullyArchives() {
+            UUID transactionId = UUID.randomUUID();
+            UUID brokerId = UUID.randomUUID();
+            Transaction tx = new Transaction();
+            tx.setTransactionId(transactionId);
+            tx.setBrokerId(brokerId);
+            tx.setArchived(false);
+
+            when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+            when(transactionRepository.save(any(Transaction.class))).thenReturn(tx);
+
+            transactionService.archiveTransaction(transactionId, brokerId);
+
+            assertThat(tx.getArchived()).isTrue();
+            assertThat(tx.getArchivedAt()).isNotNull();
+            assertThat(tx.getArchivedBy()).isEqualTo(brokerId);
+            verify(transactionRepository).save(tx);
+            verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE), contains("archived"), isNull());
+        }
+
+        @Test
+        void archiveTransaction_AlreadyArchived_ThrowsBadRequest() {
+            UUID transactionId = UUID.randomUUID();
+            UUID brokerId = UUID.randomUUID();
+            Transaction tx = new Transaction();
+            tx.setTransactionId(transactionId);
+            tx.setBrokerId(brokerId);
+            tx.setArchived(true);
+
+            when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+            assertThatThrownBy(() -> transactionService.archiveTransaction(transactionId, brokerId))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("already archived");
+        }
+
+        @Test
+        void unarchiveTransaction_SuccessfullyUnarchives() {
+            UUID transactionId = UUID.randomUUID();
+            UUID brokerId = UUID.randomUUID();
+            Transaction tx = new Transaction();
+            tx.setTransactionId(transactionId);
+            tx.setBrokerId(brokerId);
+            tx.setArchived(true);
+            tx.setArchivedAt(java.time.LocalDateTime.now());
+            tx.setArchivedBy(brokerId);
+
+            when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+            when(transactionRepository.save(any(Transaction.class))).thenReturn(tx);
+
+            transactionService.unarchiveTransaction(transactionId, brokerId);
+
+            assertThat(tx.getArchived()).isFalse();
+            assertThat(tx.getArchivedAt()).isNull();
+            assertThat(tx.getArchivedBy()).isNull();
+            verify(transactionRepository).save(tx);
+            verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE), contains("unarchived"), isNull());
+        }
+
+        @Test
+        void unarchiveTransaction_NotArchived_ThrowsBadRequest() {
+            UUID transactionId = UUID.randomUUID();
+            UUID brokerId = UUID.randomUUID();
+            Transaction tx = new Transaction();
+            tx.setTransactionId(transactionId);
+            tx.setBrokerId(brokerId);
+            tx.setArchived(false);
+
+            when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+            assertThatThrownBy(() -> transactionService.unarchiveTransaction(transactionId, brokerId))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("not archived");
+        }
+
+        @Test
+        void getArchivedTransactions_ReturnsArchivedList() {
+            UUID brokerId = UUID.randomUUID();
+            Transaction tx1 = new Transaction();
+            tx1.setTransactionId(UUID.randomUUID());
+            tx1.setBrokerId(brokerId);
+            tx1.setArchived(true);
+            Transaction tx2 = new Transaction();
+            tx2.setTransactionId(UUID.randomUUID());
+            tx2.setBrokerId(brokerId);
+            tx2.setArchived(true);
+
+            when(transactionRepository.findArchivedByBrokerId(brokerId)).thenReturn(List.of(tx1, tx2));
+            // Properly mock userAccountRepository to return Optional<UserAccount>
+            when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.of(new UserAccount()));
+
+            List<TransactionResponseDTO> result = transactionService.getArchivedTransactions(brokerId);
+
+            assertThat(result).hasSize(2);
+            verify(transactionRepository).findArchivedByBrokerId(brokerId);
+        }
 }
