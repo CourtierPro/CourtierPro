@@ -30,7 +30,7 @@ public class TransactionInfo {
     // Condition-related fields
     private String conditionType;
     private String conditionDescription;
-    private String conditionDeadline;
+    private java.time.LocalDate conditionDeadline;
     private String conditionPreviousStatus;
     private String conditionNewStatus;
 }

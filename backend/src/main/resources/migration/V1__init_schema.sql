@@ -115,12 +115,11 @@ CREATE TABLE IF NOT EXISTS timeline_entries (
     buyer_name VARCHAR(255),
     offer_amount NUMERIC(12, 2),
     offer_status VARCHAR(50),
-    -- Condition-related TransactionInfo fields
-    condition_type VARCHAR(100),
+    condition_deadline DATE,
+    condition_type VARCHAR(50),
     condition_description TEXT,
-    condition_deadline VARCHAR(100),
-    condition_previous_status VARCHAR(50),
-    condition_new_status VARCHAR(50),
+    condition_previous_status VARCHAR(20),
+    condition_new_status VARCHAR(20),
     -- Soft Delete Columns
     deleted_at TIMESTAMP,
     deleted_by UUID,

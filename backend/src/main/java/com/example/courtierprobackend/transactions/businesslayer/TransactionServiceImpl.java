@@ -1157,7 +1157,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .actorName(actorName)
                 .conditionType(saved.getType().name())
                 .conditionDescription(saved.getDescription())
-                .conditionDeadline(saved.getDeadlineDate() != null ? saved.getDeadlineDate().toString() : null)
+                .conditionDeadline(saved.getDeadlineDate())
                 .build();
         timelineService.addEntry(
                 transactionId,
@@ -1241,7 +1241,7 @@ public class TransactionServiceImpl implements TransactionService {
         TransactionInfo txInfo = TransactionInfo.builder()
                 .conditionType(saved.getType().name())
                 .conditionDescription(saved.getDescription())
-                .conditionDeadline(saved.getDeadlineDate() != null ? saved.getDeadlineDate().toString() : null)
+                .conditionDeadline(saved.getDeadlineDate())
                 .conditionPreviousStatus(statusChanged ? previousStatus.name() : null)
                 .conditionNewStatus(statusChanged ? dto.getStatus().name() : null)
                 .build();
