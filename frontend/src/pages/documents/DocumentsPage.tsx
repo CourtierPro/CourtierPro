@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
@@ -13,6 +13,8 @@ import { RequestDocumentModal } from "@/features/documents/components/RequestDoc
 import { UploadDocumentModal } from "@/features/documents/components/UploadDocumentModal";
 import { DocumentReviewModal } from "@/features/documents/components/DocumentReviewModal";
 import { DocumentList } from "@/features/documents/components/DocumentList";
+import { EditDocumentRequestModal } from "@/features/documents/components/EditDocumentRequestModal";
+import { useUpdateDocumentRequest } from "@/features/documents/api/mutations";
 import { useTranslation } from "react-i18next";
 import { StageDropdownSelector } from '@/features/documents/components/StageDropdownSelector';
 import { useStageOptions } from '@/features/documents/hooks/useStageOptions';
@@ -54,11 +56,44 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<DocumentRequest | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  // Edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingDocument, setEditingDocument] = useState<DocumentRequest | null>(null);
+
+  const updateDocumentRequestMutation = useUpdateDocumentRequest();
 
   const handleUploadClick = (document: DocumentRequest) => {
     setSelectedDocument(document);
     setIsUploadModalOpen(true);
   };
+
+  // Edit click handler
+  const handleEditClick = useCallback((document: DocumentRequest) => {
+    setEditingDocument(document);
+    setIsEditModalOpen(true);
+  }, []);
+
+  // Edit submit handler
+  const handleEditSubmit = useCallback(
+    (formValues: import('@/shared/schemas').RequestDocumentFormValues) => {
+      if (!editingDocument) return;
+      updateDocumentRequestMutation.mutate(
+        {
+          transactionId: editingDocument.transactionRef.transactionId,
+          requestId: editingDocument.requestId,
+          data: formValues,
+        },
+        {
+          onSuccess: () => {
+            setIsEditModalOpen(false);
+            setEditingDocument(null);
+            refetch();
+          },
+        }
+      );
+    },
+    [editingDocument, updateDocumentRequestMutation, refetch]
+  );
 
   const handleUploadSuccess = () => {
     refetch();
@@ -134,9 +169,29 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
           documents={filteredDocuments}
           onUpload={canUpload ? handleUploadClick : undefined}
           onReview={canReview ? handleReviewClick : undefined}
+          onEdit={canReview ? handleEditClick : undefined}
           focusDocumentId={focusDocumentId}
         />
       )}
+         {editingDocument && (
+            <EditDocumentRequestModal
+              isOpen={isEditModalOpen}
+              onClose={() => {
+                setIsEditModalOpen(false);
+                setEditingDocument(null);
+              }}
+              onSubmit={handleEditSubmit}
+              transactionType={transactionSide === 'BUY_SIDE' ? 'buy' : 'sell'}
+              initialValues={{
+                docType: editingDocument.docType,
+                customTitle: editingDocument.customTitle || '',
+                instructions: editingDocument.brokerNotes || '',
+                stage: editingDocument.stage,
+              }}
+            />
+          )}
+          
+      )
 
       <RequestDocumentModal
         isOpen={isModalOpen}

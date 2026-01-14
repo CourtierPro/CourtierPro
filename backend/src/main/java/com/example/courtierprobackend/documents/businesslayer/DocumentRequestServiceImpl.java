@@ -164,12 +164,25 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                 String message = messageSource.getMessage("notification.document.requested.message",
                                                 new Object[] { brokerName, displayDocName }, locale);
 
-                                notificationService.createNotification(
-                                                client.getId().toString(),
-                                                title,
-                                                message,
-                                                transactionId.toString(),
-                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REQUEST);
+                                                                // Add timeline entry for document request update (revision)
+                                                                // Fetch transaction to get brokerId for timeline entry
+                                                                Transaction txForTimeline = transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId())
+                                                                        .orElseThrow(() -> new NotFoundException("Transaction not found for timeline entry: " + request.getTransactionRef().getTransactionId()));
+                                                                timelineService.addEntry(
+                                                                        request.getTransactionRef().getTransactionId(),
+                                                                        txForTimeline.getBrokerId(),
+                                                                        TimelineEntryType.DOCUMENT_REQUESTED, // Or a new type if available, e.g. DOCUMENT_REQUEST_UPDATED
+                                                                        "Document request updated: " + (request.getCustomTitle() != null ? request.getCustomTitle() : request.getDocType()),
+                                                                        request.getDocType() != null ? request.getDocType().toString() : null
+                                                                );
+
+                                                                notificationService.createNotification(
+                                                                        client.getId().toString(),
+                                                                        title,
+                                                                        message,
+                                                                        transactionId.toString(),
+                                                                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REQUEST
+                                                                );
                         } catch (Exception e) {
                                 logger.error("Failed to send in-app notification for document request", e);
                         }
