@@ -26,7 +26,6 @@ export function TransactionOverviewCard({
   submittedDocumentCount = 0,
   onViewDetails,
 }: TransactionOverviewCardProps) {
-  const DEBUG_TIMELINE = true;
   const { t, i18n } = useTranslation("dashboard");
   const { t: tTx } = useTranslation("transactions");
   const locale = i18n.language === "fr" ? fr : enUS;
@@ -34,16 +33,6 @@ export function TransactionOverviewCard({
   const [panelType, setPanelType] = useState<"documents" | "transaction">("documents");
   const [animateRings, setAnimateRings] = useState(false);
 
-  // Debug logs for timeline visibility (development only)
-  useEffect(() => {
-    if (!DEBUG_TIMELINE) return;
-    // eslint-disable-next-line no-console
-    console.log("[Timeline] props", {
-      totalStages: transaction.totalStages,
-      currentStage: transaction.currentStage,
-      side: transaction.side,
-    });
-  }, [DEBUG_TIMELINE, transaction.totalStages, transaction.currentStage, transaction.side]);
 
   const getSideInfo = () => {
     if (transaction.side === "BUY_SIDE") {

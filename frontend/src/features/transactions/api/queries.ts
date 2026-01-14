@@ -37,7 +37,7 @@ export interface Transaction {
     };
     centrisNumber?: string;
     side: 'BUY_SIDE' | 'SELL_SIDE';
-    currentStage: number;
+    currentStage: string | number;
     totalStages: number;
     status: 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY';
     openedAt?: string;

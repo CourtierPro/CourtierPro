@@ -58,12 +58,15 @@ export function ClientDashboardPage() {
   }, []);
 
   // Initialize ack on first mount with current values to avoid first-load dot
+  // Only initialize after data is loaded to prevent false change indicators
   useEffect(() => {
-    ensureAckInit("active", kpis.global.activeTransactions);
-    ensureAckInit("needed", kpis.global.documentsNeeded);
-    ensureAckInit("submitted", kpis.global.documentsSubmitted);
+    if (!isLoading) {
+      ensureAckInit("active", kpis.global.activeTransactions);
+      ensureAckInit("needed", kpis.global.documentsNeeded);
+      ensureAckInit("submitted", kpis.global.documentsSubmitted);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isLoading]);
 
   // Recompute changed states when KPIs update
   useEffect(() => {
@@ -133,7 +136,16 @@ export function ClientDashboardPage() {
           infoButton={
             <Popover open={openActiveTransactions} onOpenChange={setOpenActiveTransactions}>
               <PopoverTrigger asChild>
-                <button className="p-1.5 hover:bg-orange-100 dark:hover:bg-orange-900/30 rounded-full transition-colors">
+                <button 
+                  className="p-1.5 hover:bg-orange-100 dark:hover:bg-orange-900/30 rounded-full transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (changedActive) {
+                      localStorage.setItem("kpi_client_active_ack", String(kpis.global.activeTransactions));
+                      setChangedActive(false);
+                    }
+                  }}
+                >
                   <Info className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                 </button>
               </PopoverTrigger>
@@ -162,7 +174,16 @@ export function ClientDashboardPage() {
           infoButton={
             <Popover open={openDocsNeeded} onOpenChange={setOpenDocsNeeded}>
               <PopoverTrigger asChild>
-                <button className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/30 rounded-full transition-colors">
+                <button 
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/30 rounded-full transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (changedNeeded) {
+                      localStorage.setItem("kpi_client_needed_ack", String(kpis.global.documentsNeeded));
+                      setChangedNeeded(false);
+                    }
+                  }}
+                >
                   <Info className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                 </button>
               </PopoverTrigger>
@@ -191,7 +212,16 @@ export function ClientDashboardPage() {
           infoButton={
             <Popover open={openDocsSubmitted} onOpenChange={setOpenDocsSubmitted}>
               <PopoverTrigger asChild>
-                <button className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition-colors">
+                <button 
+                  className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (changedSubmitted) {
+                      localStorage.setItem("kpi_client_submitted_ack", String(kpis.global.documentsSubmitted));
+                      setChangedSubmitted(false);
+                    }
+                  }}
+                >
                   <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </button>
               </PopoverTrigger>
