@@ -203,7 +203,7 @@ export function TransactionOverviewCard({
         setAnimateRings(false);
       };
     }
-  }, [expanded, panelType, ringSubmitted.percent, ringApproved.percent, ringRevision.percent]);
+  }, [expanded, panelType, submittedPercent, approvedPercent, revisionPercent]);
 
   const cardStyle = "bg-gradient-to-br from-orange-50/50 via-white to-white dark:from-orange-950/20 dark:via-background dark:to-background border-l-4 border-l-orange-500";
 
