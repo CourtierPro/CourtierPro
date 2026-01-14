@@ -57,7 +57,7 @@ export function TransactionOverviewCard({
   const stagesForSide = getStagesForSide(transaction.side);
   const totalStagesResolved = stagesForSide.length;
   const currentStageIndex = resolveStageIndex(
-    transaction.currentStage as unknown as string | number | undefined,
+    transaction.currentStage as string | number | undefined,
     stagesForSide
   );
 
@@ -75,7 +75,7 @@ export function TransactionOverviewCard({
   };
 
   const stageLabel = humanizeStageText(
-    transaction.currentStage as unknown as string | number | undefined,
+    transaction.currentStage as string | number | undefined,
     transaction.side
   );
   const stageValueDisplay =
@@ -217,10 +217,22 @@ export function TransactionOverviewCard({
                   const isCompleted = idx < currentStageIndex;
                   
                   return (
-                    <div key={`dot-${idx}`} className="relative flex flex-col items-center group cursor-pointer z-10">
+                    <div 
+                      key={`dot-${idx}`} 
+                      className="relative flex flex-col items-center group cursor-pointer z-10"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Stage ${idx + 1} of ${totalStagesResolved}: ${stageName}${isCurrent ? ' (current)' : isCompleted ? ' (completed)' : ''}`}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          // Could potentially trigger stage details or navigation here
+                        }
+                      }}
+                    >
                       <div className="relative">
                         {/* Stage number badge on hover - better contrast */}
-                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-300 z-20">
                           <span className="text-xs font-bold text-white bg-orange-600 dark:bg-orange-500 px-2 py-1 rounded-full shadow-md">
                             {idx + 1}
                           </span>
@@ -229,15 +241,15 @@ export function TransactionOverviewCard({
                         <div
                           className={`rounded-full transition-all duration-300 ${
                             isCurrent
-                              ? "w-3 h-3 bg-gradient-to-br from-orange-500 to-orange-600 dark:from-orange-400 dark:to-orange-500 group-hover:w-6 group-hover:h-6 group-hover:shadow-lg group-hover:shadow-orange-300 dark:group-hover:shadow-orange-900 group-hover:scale-125"
+                              ? "w-3 h-3 bg-gradient-to-br from-orange-500 to-orange-600 dark:from-orange-400 dark:to-orange-500 group-hover:w-6 group-hover:h-6 group-focus:w-6 group-focus:h-6 group-hover:shadow-lg group-hover:shadow-orange-300 dark:group-hover:shadow-orange-900 group-hover:scale-125 group-focus:scale-125"
                               : isCompleted
-                              ? "w-2.5 h-2.5 bg-orange-500 group-hover:w-5 group-hover:h-5 group-hover:shadow-md group-hover:scale-125"
-                              : "w-2.5 h-2.5 bg-gray-400 dark:bg-gray-600 group-hover:w-5 group-hover:h-5 group-hover:shadow-md group-hover:scale-125"
+                              ? "w-2.5 h-2.5 bg-orange-500 group-hover:w-5 group-hover:h-5 group-focus:w-5 group-focus:h-5 group-hover:shadow-md group-hover:scale-125 group-focus:scale-125"
+                              : "w-2.5 h-2.5 bg-gray-400 dark:bg-gray-600 group-hover:w-5 group-hover:h-5 group-focus:w-5 group-focus:h-5 group-hover:shadow-md group-hover:scale-125 group-focus:scale-125"
                           }`}
                         />
                       </div>
-                      {/* Stage name on hover - high z-index to appear above labels */}
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-3 text-xs leading-tight font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap absolute top-full pt-1 z-30 bg-white/90 dark:bg-slate-900/90 px-2 py-1 rounded shadow-sm">
+                      {/* Stage name on hover/focus - high z-index to appear above labels */}
+                      <span className="opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-300 mt-3 text-xs leading-tight font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap absolute top-full pt-1 z-30 bg-white/90 dark:bg-slate-900/90 px-2 py-1 rounded shadow-sm">
                         {stageName}
                       </span>
                     </div>

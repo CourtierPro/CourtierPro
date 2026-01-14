@@ -2,6 +2,20 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Custom keyframe animation for KPI dot pulse */
+@keyframes dotPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.4);
+  }
+}
+
+.kpi-dot-pulse {
+  animation: dotPulse 1.2s ease-in-out infinite;
+}
+
 :root {
   --background: oklch(1.0000 0 0);
   --foreground: oklch(0.2079 0.0399 265.7275);

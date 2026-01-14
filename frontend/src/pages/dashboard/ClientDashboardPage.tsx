@@ -65,10 +65,12 @@ export function ClientDashboardPage() {
       ensureAckInit("needed", kpis.global.documentsNeeded);
       ensureAckInit("submitted", kpis.global.documentsSubmitted);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading]);
+    // ensureAckInit is a stable function defined above, no need to include in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, kpis.global.activeTransactions, kpis.global.documentsNeeded, kpis.global.documentsSubmitted]);
 
   // Recompute changed states when KPIs update
+  // These setStates synchronize local UI state with external data - legitimate pattern
   useEffect(() => {
     setChangedActive(isChanged("active", kpis.global.activeTransactions));
   }, [kpis.global.activeTransactions, isChanged]);
@@ -81,31 +83,31 @@ export function ClientDashboardPage() {
 
   const recentNotifications = notifications?.slice(0, 5) || [];
 
-  const getDocumentCountByTransaction = (transactionId: string) => {
+  const getDocumentCountByTransaction = useCallback((transactionId: string) => {
     return clientDocuments.filter(
       d => d.transactionRef?.transactionId === transactionId
     ).length;
-  };
+  }, [clientDocuments]);
 
-  const getApprovedDocumentCountByTransaction = (transactionId: string) => {
+  const getApprovedDocumentCountByTransaction = useCallback((transactionId: string) => {
     return clientDocuments.filter(
       d => d.transactionRef?.transactionId === transactionId && d.status === 'APPROVED'
     ).length;
-  };
+  }, [clientDocuments]);
 
-  const getNeedsRevisionCountByTransaction = (transactionId: string) => {
+  const getNeedsRevisionCountByTransaction = useCallback((transactionId: string) => {
     return clientDocuments.filter(
       d => d.transactionRef?.transactionId === transactionId && d.status === 'NEEDS_REVISION'
     ).length;
-  };
+  }, [clientDocuments]);
 
-  const getSubmittedDocumentCountByTransaction = (transactionId: string) => {
+  const getSubmittedDocumentCountByTransaction = useCallback((transactionId: string) => {
     // Count docs currently considered "submitted": SUBMITTED or APPROVED (exclude NEEDS_REVISION)
     const submittedStatuses = ["SUBMITTED", "APPROVED"] as const;
     return clientDocuments.filter(
       d => d.transactionRef?.transactionId === transactionId && submittedStatuses.includes(d.status as typeof submittedStatuses[number])
     ).length;
-  };
+  }, [clientDocuments]);
 
   if (isLoading) {
     return <LoadingState message={t("loading")} />;
@@ -138,6 +140,7 @@ export function ClientDashboardPage() {
               <PopoverTrigger asChild>
                 <button 
                   className="p-1.5 hover:bg-orange-100 dark:hover:bg-orange-900/30 rounded-full transition-colors"
+                  aria-label="More information about active transactions"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (changedActive) {
@@ -176,6 +179,7 @@ export function ClientDashboardPage() {
               <PopoverTrigger asChild>
                 <button 
                   className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/30 rounded-full transition-colors"
+                  aria-label="More information about documents needed"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (changedNeeded) {
@@ -214,6 +218,7 @@ export function ClientDashboardPage() {
               <PopoverTrigger asChild>
                 <button 
                   className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition-colors"
+                  aria-label="More information about documents submitted"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (changedSubmitted) {
@@ -290,11 +295,19 @@ export function ClientDashboardPage() {
                   recentNotifications.length > 3 ? "max-h-64 overflow-y-auto pr-2" : ""
                 }`}
               >
-                {recentNotifications.slice(0, 5).map((notif) => (
+                {recentNotifications.map((notif) => (
                   <div 
                     key={notif.publicId} 
                     className="flex gap-3 text-sm cursor-pointer hover:opacity-80 transition-opacity"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => notif.relatedTransactionId && navigate(`/transactions/${notif.relatedTransactionId}`)}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ' ') && notif.relatedTransactionId) {
+                        e.preventDefault();
+                        navigate(`/transactions/${notif.relatedTransactionId}`);
+                      }
+                    }}
                   >
                     <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
                     <div className="flex-1">

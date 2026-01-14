@@ -27,31 +27,17 @@ export function KpiCard({ title, value, icon, infoButton, trend, className, onCl
     };
 
     return (
-        <>
-            <style>{`
-                @keyframes dotPulse {
-                    0%, 100% {
-                        transform: scale(1);
-                    }
-                    50% {
-                        transform: scale(1.4);
-                    }
-                }
-                .kpi-dot-pulse {
-                    animation: dotPulse 1.2s ease-in-out infinite;
-                }
-            `}</style>
-            <Card
-                className={cn(
-                    "overflow-hidden relative",
-                    onClick && "cursor-pointer transition hover:shadow-md",
-                    className
-                )}
-                onClick={onClick}
-                role={onClick ? "button" : undefined}
-                tabIndex={onClick ? 0 : undefined}
-                onKeyDown={handleKeyDown}
-            >
+        <Card
+            className={cn(
+                "overflow-hidden relative",
+                onClick && "cursor-pointer transition hover:shadow-md",
+                className
+            )}
+            onClick={onClick}
+            role={onClick ? "button" : undefined}
+            tabIndex={onClick ? 0 : undefined}
+            onKeyDown={handleKeyDown}
+        >
                 {changed && (
                     <span
                         aria-label="Updated"
@@ -85,6 +71,5 @@ export function KpiCard({ title, value, icon, infoButton, trend, className, onCl
                     </div>
                 </CardContent>
             </Card>
-        </>
     );
 }
