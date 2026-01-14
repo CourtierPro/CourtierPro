@@ -120,7 +120,7 @@ class BrokerControllerTest {
             when(transactionService.getBrokerClientTransactions(BROKER_ID, CLIENT_ID)).thenReturn(transactions);
 
             // Act
-            List<TransactionResponseDTO> result = controller.getClientTransactions(CLIENT_ID, request);
+            List<TransactionResponseDTO> result = controller.getClientTransactions(CLIENT_ID.toString(), request);
 
             // Assert
             assertThat(result).hasSize(2);
@@ -134,7 +134,7 @@ class BrokerControllerTest {
             when(transactionService.getBrokerClientTransactions(BROKER_ID, CLIENT_ID)).thenReturn(List.of());
 
             // Act
-            List<TransactionResponseDTO> result = controller.getClientTransactions(CLIENT_ID, request);
+            List<TransactionResponseDTO> result = controller.getClientTransactions(CLIENT_ID.toString(), request);
 
             // Assert
             assertThat(result).isEmpty();
@@ -148,7 +148,7 @@ class BrokerControllerTest {
             when(transactionService.getBrokerClientTransactions(BROKER_ID, CLIENT_ID)).thenReturn(List.of());
 
             // Act
-            controller.getClientTransactions(CLIENT_ID, request);
+            controller.getClientTransactions(CLIENT_ID.toString(), request);
 
             // Assert
             verify(transactionService, times(1)).getBrokerClientTransactions(BROKER_ID, CLIENT_ID);
@@ -187,7 +187,7 @@ class BrokerControllerTest {
             when(transactionService.getAllClientTransactions(CLIENT_ID)).thenReturn(transactions);
 
             // Act
-            List<TransactionResponseDTO> result = controller.getAllClientTransactions(CLIENT_ID);
+            List<TransactionResponseDTO> result = controller.getAllClientTransactions(CLIENT_ID.toString());
 
             // Assert
             assertThat(result).hasSize(2);
@@ -202,7 +202,7 @@ class BrokerControllerTest {
             when(transactionService.getAllClientTransactions(CLIENT_ID)).thenReturn(List.of());
 
             // Act
-            List<TransactionResponseDTO> result = controller.getAllClientTransactions(CLIENT_ID);
+            List<TransactionResponseDTO> result = controller.getAllClientTransactions(CLIENT_ID.toString());
 
             // Assert
             assertThat(result).isEmpty();
@@ -215,7 +215,7 @@ class BrokerControllerTest {
             when(transactionService.getAllClientTransactions(CLIENT_ID)).thenReturn(List.of());
 
             // Act
-            controller.getAllClientTransactions(CLIENT_ID);
+            controller.getAllClientTransactions(CLIENT_ID.toString());
 
             // Assert
             verify(transactionService, times(1)).getAllClientTransactions(CLIENT_ID);

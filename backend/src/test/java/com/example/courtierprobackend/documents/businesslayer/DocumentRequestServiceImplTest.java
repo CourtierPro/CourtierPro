@@ -181,6 +181,14 @@ class DocumentRequestServiceImplTest {
                                 anyString(),
                                 eq(transactionId.toString()),
                                 eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REQUEST));
+                // Verify timeline entry for creation
+                verify(timelineService, atLeastOnce()).addEntry(
+                        eq(transactionId),
+                        eq(brokerId),
+                        any(),
+                        contains("Document requested"),
+                        any()
+                );
         }
 
         @Test
@@ -833,6 +841,16 @@ class DocumentRequestServiceImplTest {
                 existingRequest.setDocType(DocumentTypeEnum.ID_VERIFICATION);
                 existingRequest.setCustomTitle("Old Title");
                 existingRequest.setSubmittedDocuments(new ArrayList<>());
+                // Set a valid TransactionRef to avoid NPE
+                UUID transactionId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+                existingRequest.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+                // Mock transactionRepository for timeline
+                Transaction tx = new Transaction();
+                UUID brokerId = UUID.randomUUID();
+                tx.setBrokerId(brokerId);
+                tx.setTransactionId(transactionId);
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(java.util.Optional.of(tx));
 
                 DocumentRequestRequestDTO updateDTO = new DocumentRequestRequestDTO();
                 updateDTO.setCustomTitle("New Title");
@@ -848,6 +866,14 @@ class DocumentRequestServiceImplTest {
                 assertThat(result).isNotNull();
                 assertThat(result.getCustomTitle()).isEqualTo("New Title");
                 assertThat(result.getBrokerNotes()).isEqualTo("Updated notes");
+                // Verify timeline entry for update (revision)
+                verify(timelineService, atLeastOnce()).addEntry(
+                        any(), // transactionId
+                        any(), // brokerId
+                        any(),
+                        contains("Document request updated"),
+                        any()
+                );
         }
 
         @Test
@@ -876,6 +902,16 @@ class DocumentRequestServiceImplTest {
                 existingRequest.setBrokerNotes("Original Notes");
                 existingRequest.setVisibleToClient(true);
                 existingRequest.setSubmittedDocuments(new ArrayList<>());
+                // Set a valid TransactionRef to avoid NPE
+                UUID transactionId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+                existingRequest.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+                // Mock transactionRepository for timeline
+                Transaction tx = new Transaction();
+                UUID brokerId = UUID.randomUUID();
+                tx.setBrokerId(brokerId);
+                tx.setTransactionId(transactionId);
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(java.util.Optional.of(tx));
 
                 DocumentRequestRequestDTO updateDTO = new DocumentRequestRequestDTO();
                 updateDTO.setCustomTitle("Updated Title");
@@ -1109,5 +1145,17 @@ class DocumentRequestServiceImplTest {
                 verify(notificationService, never()).createNotification(anyString(), anyString(), anyString(),
                                 anyString(),
                                 any());
+        }
+        // ========== Private Helper Tests ========== 
+        @Test
+        void isFrench_ReturnsTrueForFrVariants() throws Exception {
+                var method = service.getClass().getDeclaredMethod("isFrench", String.class);
+                method.setAccessible(true);
+                assertThat((Boolean) method.invoke(service, "fr")).isTrue();
+                assertThat((Boolean) method.invoke(service, "FR")).isTrue();
+                assertThat((Boolean) method.invoke(service, "Fr")).isTrue();
+                assertThat((Boolean) method.invoke(service, "fR")).isTrue();
+                assertThat((Boolean) method.invoke(service, "en")).isFalse();
+                assertThat((Boolean) method.invoke(service, (Object) null)).isFalse();
         }
 }

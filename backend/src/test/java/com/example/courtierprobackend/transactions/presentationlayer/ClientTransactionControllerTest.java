@@ -43,7 +43,7 @@ class ClientTransactionControllerTest {
                 .build();
         when(transactionService.getProperties(eq(transactionId), eq(clientId), eq(false))).thenReturn(List.of(property));
 
-        ResponseEntity<List<PropertyResponseDTO>> response = controller.getTransactionProperties(clientId, transactionId, request);
+        ResponseEntity<List<PropertyResponseDTO>> response = controller.getTransactionProperties(clientId.toString(), transactionId, request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).hasSize(1);
@@ -64,7 +64,7 @@ class ClientTransactionControllerTest {
                 .build();
         when(transactionService.getPropertyById(eq(propertyId), eq(clientId), eq(false))).thenReturn(property);
 
-        ResponseEntity<PropertyResponseDTO> response = controller.getPropertyById(clientId, transactionId, propertyId, request);
+        ResponseEntity<PropertyResponseDTO> response = controller.getPropertyById(clientId.toString(), transactionId, propertyId, request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getPropertyId()).isEqualTo(propertyId);
@@ -74,11 +74,14 @@ class ClientTransactionControllerTest {
     @Mock
     private TransactionService transactionService;
 
+    @Mock
+    private com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
+
     private ClientTransactionController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new ClientTransactionController(transactionService);
+        controller = new ClientTransactionController(transactionService, userAccountRepository);
     }
 
     // ========== getClientTransactions Tests ==========
@@ -99,7 +102,7 @@ class ClientTransactionControllerTest {
         when(transactionService.getClientTransactions(internalId)).thenReturn(List.of(transaction));
 
         // Act
-        ResponseEntity<List<TransactionResponseDTO>> response = controller.getClientTransactions(internalId, request);
+        ResponseEntity<List<TransactionResponseDTO>> response = controller.getClientTransactions(clientId, request);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -116,7 +119,7 @@ class ClientTransactionControllerTest {
         MockHttpServletRequest request = createRequestWithInternalId(internalId);
 
         // Act & Assert
-        assertThatThrownBy(() -> controller.getClientTransactions(UUID.fromString(otherClientId), request))
+        assertThatThrownBy(() -> controller.getClientTransactions(otherClientId, request))
                 .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
                 .hasMessageContaining("only access your own transactions");
         
@@ -129,7 +132,7 @@ class ClientTransactionControllerTest {
         String clientId = UUID.randomUUID().toString();
 
         // Act & Assert
-        assertThatThrownBy(() -> controller.getClientTransactions(UUID.fromString(clientId), null))
+        assertThatThrownBy(() -> controller.getClientTransactions(clientId, null))
                 .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
                 .hasMessageContaining("Unable to resolve user id");
         
@@ -144,7 +147,7 @@ class ClientTransactionControllerTest {
         // No internal ID set in request attributes
 
         // Act & Assert
-        assertThatThrownBy(() -> controller.getClientTransactions(UUID.fromString(clientId), request))
+        assertThatThrownBy(() -> controller.getClientTransactions(clientId, request))
                 .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
                 .hasMessageContaining("Unable to resolve user id");
         
@@ -161,7 +164,7 @@ class ClientTransactionControllerTest {
         when(transactionService.getClientTransactions(internalId)).thenReturn(List.of());
 
         // Act
-        ResponseEntity<List<TransactionResponseDTO>> response = controller.getClientTransactions(internalId, request);
+        ResponseEntity<List<TransactionResponseDTO>> response = controller.getClientTransactions(clientId, request);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -182,7 +185,7 @@ class ClientTransactionControllerTest {
         when(transactionService.getClientTransactions(internalId)).thenReturn(List.of(tx1, tx2, tx3));
 
         // Act
-        ResponseEntity<List<TransactionResponseDTO>> response = controller.getClientTransactions(internalId, request);
+        ResponseEntity<List<TransactionResponseDTO>> response = controller.getClientTransactions(clientId, request);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);

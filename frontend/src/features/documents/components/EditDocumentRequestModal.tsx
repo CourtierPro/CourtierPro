@@ -78,6 +78,7 @@ export function EditDocumentRequestModal({
   }, [selectedDocType]);
 
   const onFormSubmit = (data: RequestDocumentFormValues) => {
+    // Pass both the form data and brokerNotes as a separate argument for the parent to handle
     onSubmit(data);
     onClose();
   };
@@ -213,10 +214,10 @@ export function EditDocumentRequestModal({
             />
             <DialogFooter className="gap-4 sm:gap-4">
               <Button type="button" variant="outline" onClick={onClose}>
-                {t('cancel')}
+                {t('cancel', { ns: 'documents', defaultValue: 'Cancel' })}
               </Button>
               <Button type="submit" disabled={!form.formState.isValid} className="gap-2">
-                {t('save', 'Save')}
+                {t('edit', { ns: 'common', defaultValue: 'Edit' })}
               </Button>
             </DialogFooter>
           </form>

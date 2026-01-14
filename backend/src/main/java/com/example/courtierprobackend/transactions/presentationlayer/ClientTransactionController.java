@@ -4,6 +4,8 @@ import com.example.courtierprobackend.common.exceptions.ForbiddenException;
 import com.example.courtierprobackend.security.UserContextUtils;
 import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO;
@@ -29,21 +31,30 @@ import java.util.UUID;
 public class ClientTransactionController {
 
     private final TransactionService service;
+    private final UserAccountRepository userAccountRepository;
 
     /**
      * Resolves the internal client UUID from request attributes (set by UserContextFilter).
      * Validates that the path clientId matches the authenticated user's internal ID.
      */
-    private UUID resolveAndValidateClientId(HttpServletRequest request, UUID pathClientId) {
+    private UUID resolveAndValidateClientId(HttpServletRequest request, String pathClientId) {
         UUID internalId = UserContextUtils.resolveUserId(request);
-
-        // Security check: ensure the client can only access their own transactions
-        // The pathClientId from frontend should now match the internal UUID
-        if (!internalId.equals(pathClientId)) {
-            throw new ForbiddenException("You can only access your own transactions");
+        // Try to parse as UUID first
+        try {
+            UUID pathUuid = UUID.fromString(pathClientId);
+            if (!internalId.equals(pathUuid)) {
+                throw new ForbiddenException("You can only access your own transactions");
+            }
+            return internalId;
+        } catch (IllegalArgumentException e) {
+            // Not a UUID, try to resolve Auth0 ID to internal UUID
+            UserAccount account = userAccountRepository.findByAuth0UserId(pathClientId)
+                .orElseThrow(() -> new ForbiddenException("Invalid client ID: not found"));
+            if (!internalId.equals(account.getId())) {
+                throw new ForbiddenException("You can only access your own transactions");
+            }
+            return internalId;
         }
-
-        return internalId;
     }
 
     /**
@@ -52,7 +63,7 @@ public class ClientTransactionController {
      */
     @GetMapping("/{clientId}/transactions")
     public ResponseEntity<List<TransactionResponseDTO>> getClientTransactions(
-            @PathVariable UUID clientId,
+            @PathVariable String clientId,
             HttpServletRequest request
     ) {
         UUID validatedClientId = resolveAndValidateClientId(request, clientId);
@@ -66,7 +77,7 @@ public class ClientTransactionController {
      */
     @GetMapping("/{clientId}/transactions/{transactionId}/properties")
     public ResponseEntity<List<PropertyResponseDTO>> getTransactionProperties(
-            @PathVariable UUID clientId,
+            @PathVariable String clientId,
             @PathVariable UUID transactionId,
             HttpServletRequest request
     ) {
@@ -80,7 +91,7 @@ public class ClientTransactionController {
      */
     @GetMapping("/{clientId}/transactions/{transactionId}/properties/{propertyId}")
     public ResponseEntity<PropertyResponseDTO> getPropertyById(
-            @PathVariable UUID clientId,
+            @PathVariable String clientId,
             @PathVariable UUID transactionId,
             @PathVariable UUID propertyId,
             HttpServletRequest request
@@ -98,7 +109,7 @@ public class ClientTransactionController {
      */
     @GetMapping("/{clientId}/transactions/{transactionId}/offers")
     public ResponseEntity<List<OfferResponseDTO>> getTransactionOffers(
-            @PathVariable UUID clientId,
+            @PathVariable String clientId,
             @PathVariable UUID transactionId,
             HttpServletRequest request
     ) {
@@ -112,7 +123,7 @@ public class ClientTransactionController {
      */
     @GetMapping("/{clientId}/transactions/{transactionId}/offers/{offerId}")
     public ResponseEntity<OfferResponseDTO> getOfferById(
-            @PathVariable UUID clientId,
+            @PathVariable String clientId,
             @PathVariable UUID transactionId,
             @PathVariable UUID offerId,
             HttpServletRequest request

@@ -213,7 +213,62 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
 
                 request.setLastUpdatedAt(LocalDateTime.now());
 
-                return mapToResponseDTO(repository.save(request));
+                DocumentRequest savedRequest = repository.save(request);
+
+                // Add timeline entry for document request update (revision)
+                try {
+                        Transaction txForTimeline = transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId())
+                                .orElseThrow(() -> new NotFoundException("Transaction not found for timeline entry: " + request.getTransactionRef().getTransactionId()));
+                        timelineService.addEntry(
+                                request.getTransactionRef().getTransactionId(),
+                                txForTimeline.getBrokerId(),
+                                TimelineEntryType.DOCUMENT_REQUESTED, // Or a new type if available, e.g. DOCUMENT_REQUEST_UPDATED
+                                "Document request updated: " + (request.getCustomTitle() != null ? request.getCustomTitle() : request.getDocType()),
+                                request.getDocType() != null ? request.getDocType().toString() : null
+                        );
+
+                        // Send notification and email to client
+                        UserAccount client = resolveUserAccount(txForTimeline.getClientId()).orElse(null);
+                        UserAccount broker = resolveUserAccount(txForTimeline.getBrokerId()).orElse(null);
+                        if (client != null && broker != null) {
+                                String documentName = request.getCustomTitle() != null ? request.getCustomTitle() : request.getDocType().toString();
+                                String clientName = client.getFirstName() + " " + client.getLastName();
+                                String brokerName = broker.getFirstName() + " " + broker.getLastName();
+                                String docType = request.getDocType().toString();
+                                String clientLanguage = client.getPreferredLanguage();
+
+                                // Email (distinct message for edit)
+                                emailService.sendDocumentEditedNotification(
+                                        client.getEmail(),
+                                        clientName,
+                                        brokerName,
+                                        documentName,
+                                        docType,
+                                        clientLanguage
+                                );
+
+                                // In-app notification (distinct message for edit)
+                                Locale locale = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr") ? Locale.FRENCH : Locale.ENGLISH;
+                                String localizedDocType = messageSource.getMessage(
+                                        "document.type." + request.getDocType(), null,
+                                        request.getDocType().name(), locale);
+                                String displayDocName = request.getCustomTitle() != null ? request.getCustomTitle() : localizedDocType;
+                                String title = messageSource.getMessage("notification.document.edited.title", null, locale);
+                                String message = messageSource.getMessage("notification.document.edited.message",
+                                        new Object[] { brokerName, displayDocName }, locale);
+                                notificationService.createNotification(
+                                        client.getId().toString(),
+                                        title,
+                                        message,
+                                        request.getTransactionRef().getTransactionId().toString(),
+                                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REQUEST
+                                );
+                        }
+                } catch (Exception e) {
+                        logger.warn("Could not add timeline entry or send notification/email for document request update", e);
+                }
+
+                return mapToResponseDTO(savedRequest);
         }
 
         @Transactional
