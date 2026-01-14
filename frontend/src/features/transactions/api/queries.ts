@@ -28,6 +28,7 @@ export interface Transaction {
     transactionId: string;
     clientId: string;
     clientName: string;
+    brokerName?: string;
     propertyAddress: {
         street: string;
         city: string;
@@ -36,14 +37,13 @@ export interface Transaction {
     };
     centrisNumber?: string;
     side: 'BUY_SIDE' | 'SELL_SIDE';
-    currentStage: number;
+    currentStage: string | number;
     totalStages: number;
     status: 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY';
     openedAt?: string;
     openedDate?: string;
     notes?: string;
     brokerId?: string;
-    brokerName?: string;
     archived?: boolean;
     archivedAt?: string;
 }
@@ -212,7 +212,7 @@ export const offerKeys = {
     detail: (transactionId: string, offerId: string) => [...offerKeys.all(transactionId), offerId] as const,
 };
 
-export function useTransactionOffers(transactionId: string, clientId?: string) {
+export function useTransactionOffers(transactionId: string, enabled: boolean = true, clientId?: string) {
     return useQuery({
         queryKey: clientId
             ? [...offerKeys.all(transactionId), 'client', clientId] as const
@@ -225,7 +225,7 @@ export function useTransactionOffers(transactionId: string, clientId?: string) {
             const res = await axiosInstance.get<Offer[]>(url);
             return res.data;
         },
-        enabled: !!transactionId,
+        enabled: enabled && !!transactionId,
     });
 }
 
