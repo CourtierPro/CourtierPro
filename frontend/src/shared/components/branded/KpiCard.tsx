@@ -14,10 +14,9 @@ interface KpiCardProps {
     };
     className?: string;
     onClick?: () => void;
-    changed?: boolean;
 }
 
-export function KpiCard({ title, value, icon, infoButton, trend, className, onClick, changed }: KpiCardProps) {
+export function KpiCard({ title, value, icon, infoButton, trend, className, onClick }: KpiCardProps) {
     const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
         if (!onClick) return;
         if (event.key === "Enter" || event.key === " ") {
@@ -36,15 +35,8 @@ export function KpiCard({ title, value, icon, infoButton, trend, className, onCl
             onClick={onClick}
             role={onClick ? "button" : undefined}
             tabIndex={onClick ? 0 : undefined}
-            onKeyDown={handleKeyDown}
-        >
-                {changed && (
-                    <span
-                        aria-label="Updated"
-                        title="Updated"
-                        className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900 kpi-dot-pulse"
-                    />
-                )}
+                onKeyDown={handleKeyDown}
+            >
                 <CardContent className="p-6">
                     <div className="flex items-center justify-between space-y-0 pb-2">
                         <div className="flex items-center gap-2">

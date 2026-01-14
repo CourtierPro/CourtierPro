@@ -212,7 +212,7 @@ export const offerKeys = {
     detail: (transactionId: string, offerId: string) => [...offerKeys.all(transactionId), offerId] as const,
 };
 
-export function useTransactionOffers(transactionId: string, clientId?: string) {
+export function useTransactionOffers(transactionId: string, enabled: boolean = true, clientId?: string) {
     return useQuery({
         queryKey: clientId
             ? [...offerKeys.all(transactionId), 'client', clientId] as const
@@ -225,7 +225,7 @@ export function useTransactionOffers(transactionId: string, clientId?: string) {
             const res = await axiosInstance.get<Offer[]>(url);
             return res.data;
         },
-        enabled: !!transactionId,
+        enabled: enabled && !!transactionId,
     });
 }
 

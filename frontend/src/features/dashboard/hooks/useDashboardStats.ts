@@ -53,6 +53,8 @@ export function useClientDashboardStats(clientId: string) {
 
     const documentsNeeded = selectedDocuments.filter(d => d.status === 'REQUESTED');
     const documentsSubmitted = selectedDocuments.filter(d => d.status === 'SUBMITTED' || d.status === 'APPROVED');
+    // Placeholder offers count (client dashboard currently derives offer totals from per-transaction fetches)
+    const offersReceived = 0;
 
     return {
         transactions,
@@ -65,6 +67,7 @@ export function useClientDashboardStats(clientId: string) {
                 activeTransactions: activeTransactions.length,
                 documentsNeeded: documentsNeededGlobal.length,
                 documentsSubmitted: documentsSubmittedGlobal.length,
+                offersReceived,
             },
             selected: {
                 documentsNeeded: documentsNeeded.length,

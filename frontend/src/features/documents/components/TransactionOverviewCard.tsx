@@ -1,13 +1,54 @@
-import { ShoppingCart, Home as HomeIcon, ChevronRight, FileText } from "lucide-react";
+import { ShoppingCart, Home as HomeIcon, ChevronRight, FileText, DollarSign, AlertTriangle, Building2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import type { Transaction } from "@/features/transactions/api/queries";
+import { useTransactionOffers, useTransactionProperties } from "@/features/transactions/api/queries";
+import { useTransactionConditions } from "@/features/transactions/api/queries";
 import { format } from "date-fns";
 import { enUS, fr } from "date-fns/locale";
 import { getStageLabel, getStagesForSide, resolveStageIndex } from "@/shared/utils/stages";
+import type { PropertyOfferStatus, ReceivedOfferStatus } from "@/shared/api/types";
+
+/**
+ * Calculate deadline status based on days remaining.
+ * Returns: 'overdue' | 'urgent' (<=3 days) | 'warning' (<=7 days) | 'normal'
+ */
+function getDeadlineStatus(deadlineDate: string): 'overdue' | 'urgent' | 'warning' | 'normal' {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const deadline = new Date(deadlineDate);
+  deadline.setHours(0, 0, 0, 0);
+
+  const diffTime = deadline.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return 'overdue';
+  if (diffDays <= 3) return 'urgent';
+  if (diffDays <= 7) return 'warning';
+  return 'normal';
+}
+
+// Badge variant mapping for offer statuses (SELL_SIDE)
+const offerStatusVariantMap: Record<ReceivedOfferStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  PENDING: 'secondary',
+  UNDER_REVIEW: 'secondary',
+  COUNTERED: 'outline',
+  ACCEPTED: 'default',
+  DECLINED: 'destructive',
+};
+
+// Badge styling for property statuses (BUY_SIDE) - matching PropertyCard.tsx
+const propertyStatusConfig: Record<PropertyOfferStatus, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; className: string }> = {
+  OFFER_TO_BE_MADE: { variant: 'outline', className: 'border-muted-foreground text-muted-foreground' },
+  OFFER_MADE: { variant: 'secondary', className: 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30' },
+  COUNTERED: { variant: 'secondary', className: 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30' },
+  ACCEPTED: { variant: 'secondary', className: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' },
+  DECLINED: { variant: 'destructive', className: 'bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30' },
+};
 
 interface TransactionOverviewCardProps {
   transaction: Transaction;
@@ -30,8 +71,26 @@ export function TransactionOverviewCard({
   const { t: tTx } = useTranslation("transactions");
   const locale = i18n.language === "fr" ? fr : enUS;
   const [expanded, setExpanded] = useState(false);
-  const [panelType, setPanelType] = useState<"documents" | "transaction">("documents");
+  const [panelType, setPanelType] = useState<"documents" | "transaction" | "offers" | "properties">("documents");
   const [animateRings, setAnimateRings] = useState(false);
+
+  // Fetch offers for SELL_SIDE transactions
+  const shouldFetchOffers = transaction.side === "SELL_SIDE";
+  const { data: offersData = [] } = useTransactionOffers(
+    transaction.transactionId,
+    shouldFetchOffers,
+    transaction.clientId
+  );
+  const offers = offersData || [];
+
+  // Fetch properties for BUY_SIDE transactions
+  const shouldFetchProperties = transaction.side === "BUY_SIDE";
+  const { data: propertiesData = [] } = useTransactionProperties(
+    shouldFetchProperties ? transaction.transactionId : ""
+  );
+  const properties = propertiesData || [];
+
+  const { data: conditions = [] } = useTransactionConditions(transaction.transactionId);
 
 
   const getSideInfo = () => {
@@ -312,6 +371,50 @@ export function TransactionOverviewCard({
               : tTx("viewTransactionDetails", "View transaction details")}
             <ChevronRight className={`h-4 w-4 transition-transform ${expanded && panelType === "transaction" ? "translate-x-1" : ""}`} />
           </Button>
+
+          {transaction.side === "SELL_SIDE" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full hover:bg-green-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-2"
+              onClick={() => {
+                // Show offers panel
+                if (expanded && panelType === "offers") {
+                  setExpanded(false);
+                } else {
+                  setPanelType("offers");
+                  setExpanded(true);
+                }
+              }}
+            >
+              {expanded && panelType === "offers"
+                ? tTx("hideOffers", "Hide offers")
+                : tTx("viewOffers", "View offers")}
+              <DollarSign className={`h-4 w-4 transition-transform ${expanded && panelType === "offers" ? "translate-x-1" : ""}`} />
+            </Button>
+          )}
+
+          {transaction.side === "BUY_SIDE" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full hover:bg-blue-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-2"
+              onClick={() => {
+                // Show properties panel
+                if (expanded && panelType === "properties") {
+                  setExpanded(false);
+                } else {
+                  setPanelType("properties");
+                  setExpanded(true);
+                }
+              }}
+            >
+              {expanded && panelType === "properties"
+                ? tTx("hideProperties", "Hide properties")
+                : tTx("viewProperties", "View properties")}
+              <Building2 className={`h-4 w-4 transition-transform ${expanded && panelType === "properties" ? "translate-x-1" : ""}`} />
+            </Button>
+          )}
         </div>
 
         {expanded && (
@@ -350,6 +453,27 @@ export function TransactionOverviewCard({
                   <span>{documentCount}</span>
                 </div>
               </div>
+              <div className="rounded-lg border p-3 space-y-2">
+                <p className="font-semibold text-sm flex items-center gap-2">{tTx("conditions.title", "Conditions")}</p>
+                {conditions.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">{tTx("conditions.noConditions", "No conditions added.")}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {conditions.map((cond) => (
+                      <div key={cond.conditionId} className="text-xs border border-slate-200 dark:border-slate-700 rounded p-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold">{cond.customTitle || tTx(`conditionTypes.${cond.type}`, cond.type)}</span>
+                          <Badge variant={cond.status === "SATISFIED" ? "default" : cond.status === "FAILED" ? "destructive" : "secondary"} className="text-[10px]">
+                            {tTx(`conditionStatus.${cond.status}`, cond.status)}
+                          </Badge>
+                        </div>
+                        <div className="text-muted-foreground">{cond.description}</div>
+                        <div className="text-muted-foreground mt-1">{tTx("conditions.deadline", "Deadline")}: {cond.deadlineDate ? format(new Date(cond.deadlineDate), "PPP", { locale }) : "--"}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <Button variant="ghost" size="sm" onClick={() => onViewDetails?.(transaction.transactionId)}>
                 {tTx("openFullDetails", "Open full details")}
               </Button>
@@ -360,8 +484,7 @@ export function TransactionOverviewCard({
 
       {expanded && (
         <div
-          className="hidden lg:block absolute inset-y-0"
-          style={{ left: "calc(100% + 20px)", right: "20px", minWidth: "500px" }}
+          className="hidden lg:block absolute inset-y-0 left-[calc(100%+20px)] right-5 min-w-[500px]"
         >
           <div className="relative h-full flex flex-col">
             <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-5 h-5 rotate-45 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-900 shadow-sm" />
@@ -419,10 +542,134 @@ export function TransactionOverviewCard({
                   </div>
                 </div>
               </div>
+            ) : panelType === "offers" ? (
+              /* Offers Panel - Desktop */
+              <div className="absolute inset-0 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-900 shadow-lg rounded-xl px-8 py-6 overflow-y-auto">
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+                    <DollarSign className="w-5 h-5 text-green-600" /> {tTx("offers", "Offers")} ({offers.length})
+                  </h4>
+                  {offers.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground bg-slate-50/50 dark:bg-slate-900/50 rounded-lg border border-dashed border-slate-300 dark:border-slate-700">
+                      <DollarSign className="h-16 w-16 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm font-medium">{tTx("noOffers", "No offers received yet")}</p>
+                      <p className="text-xs mt-1 text-muted-foreground/70">{tTx("noOffersDesc", "Offers from potential buyers will appear here")}</p>
+                    </div>
+                  ) : (
+                    <div className={`space-y-3 ${offers.length > 2 ? "max-h-96 overflow-y-auto pr-2" : ""}`}>
+                      {offers.map((offer) => (
+                        <div 
+                          key={offer.offerId} 
+                          className="bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-800 dark:to-slate-800/50 p-5 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-orange-300 dark:hover:border-orange-700 transition-all shadow-sm hover:shadow-md"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-base text-slate-900 dark:text-slate-100">{offer.buyerName}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {tTx("receivedOn", "Received on")} {new Date(offer.createdAt).toLocaleDateString(locale.code)}
+                                </p>
+                              </div>
+                            </div>
+                            <Badge variant={offerStatusVariantMap[offer.status]} className="text-xs">
+                              {tTx(`offerStatus.${offer.status}`, offer.status)}
+                            </Badge>
+                          </div>
+                          {offer.offerAmount && (
+                            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-3">
+                              <p className="text-xs text-green-700 dark:text-green-300 mb-1">{tTx("offerAmount", "Offer Amount")}</p>
+                              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                ${offer.offerAmount.toLocaleString()}
+                              </p>
+                            </div>
+                          )}
+                          {offer.notes && (
+                            <div className="bg-slate-100 dark:bg-slate-900/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                              <p className="text-xs text-muted-foreground mb-1">{tTx("notes", "Notes")}</p>
+                              <p className="text-sm text-slate-700 dark:text-slate-300">{offer.notes}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : panelType === "properties" ? (
+              /* Properties Panel - Desktop */
+              <div className="absolute inset-0 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-900 shadow-lg rounded-xl px-8 py-6 overflow-y-auto">
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+                    <Building2 className="w-5 h-5 text-blue-600" /> {tTx("properties", "Properties")} ({properties.length})
+                  </h4>
+                  {properties.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground bg-slate-50/50 dark:bg-slate-900/50 rounded-lg border border-dashed border-slate-300 dark:border-slate-700">
+                      <Building2 className="h-16 w-16 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm font-medium">{tTx("noProperties", "No properties added yet")}</p>
+                      <p className="text-xs mt-1 text-muted-foreground/70">{tTx("noPropertiesDesc", "Properties you are considering will appear here")}</p>
+                    </div>
+                  ) : (
+                    <div className={`space-y-3 ${properties.length > 2 ? "max-h-96 overflow-y-auto pr-2" : ""}`}>
+                      {properties.map((property) => (
+                        <div 
+                          key={property.propertyId} 
+                          className="bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-800 dark:to-slate-800/50 p-5 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 transition-all shadow-sm hover:shadow-md"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-base text-slate-900 dark:text-slate-100 truncate">{property.address?.street || "Unknown"}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {property.address?.city}, {property.address?.province} {property.address?.postalCode}
+                                </p>
+                              </div>
+                            </div>
+                            <Badge 
+                              variant={propertyStatusConfig[property.offerStatus].variant} 
+                              className={`text-xs flex-shrink-0 ${propertyStatusConfig[property.offerStatus].className}`}
+                            >
+                              {tTx(`propertyStatus.${property.offerStatus}`, property.offerStatus)}
+                            </Badge>
+                          </div>
+                          {property.centrisNumber && (
+                            <div className="text-xs text-muted-foreground mb-3">
+                              <span className="font-medium">Centris: </span>{property.centrisNumber}
+                            </div>
+                          )}
+                          <div className="grid grid-cols-2 gap-3">
+                            {property.askingPrice && (
+                              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                                <p className="text-xs text-blue-700 dark:text-blue-300 mb-1">{tTx("askingPrice", "Asking Price")}</p>
+                                <p className="font-bold text-blue-600 dark:text-blue-400">
+                                  ${property.askingPrice.toLocaleString()}
+                                </p>
+                              </div>
+                            )}
+                            {property.offerAmount && (
+                              <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                                <p className="text-xs text-green-700 dark:text-green-300 mb-1">{tTx("offerAmount", "Offer Amount")}</p>
+                                <p className="font-bold text-green-600 dark:text-green-400">
+                                  ${property.offerAmount.toLocaleString()}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : (
               <div className="absolute inset-0 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-900 shadow-lg rounded-xl p-6 space-y-6 flex flex-col overflow-y-auto">
                 {/* Transaction Info Section */}
-                <div className="border-l-4 border-l-orange-500 pl-4">
+                <div className="border-l-4 border-l-orange-500 pl-4 w-full min-w-0">
                   <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                     <HomeIcon className="w-4 h-4 text-orange-600" /> {t("transaction.type", "Type")}
                   </h4>
@@ -462,6 +709,53 @@ export function TransactionOverviewCard({
                         <p className="font-medium text-sm leading-tight">{transaction.propertyAddress?.street || "--"}</p>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Conditions Section */}
+                <div className="border-l-4 border-l-orange-500 pl-4 w-full min-w-0">
+                  <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-orange-600" /> {tTx("conditions.title", "Conditions")}
+                  </h4>
+                  <div className="w-full min-w-0 max-h-80 overflow-y-auto pr-1 space-y-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg p-3">
+                    {conditions.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">{tTx("conditions.noConditions", "No conditions added.")}</p>
+                    ) : (
+                      conditions.map((cond) => {
+                        const deadlineStatus = cond.status === 'PENDING'
+                          ? getDeadlineStatus(cond.deadlineDate)
+                          : 'normal';
+                        const showOverdateBadge = cond.status === 'PENDING' && deadlineStatus === 'overdue';
+                        
+                        return (
+                          <div key={cond.conditionId} className="text-sm space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-semibold text-slate-800 dark:text-slate-100 flex-1 min-w-0">
+                                {cond.customTitle || tTx(`conditionTypes.${cond.type}`, cond.type)}
+                              </p>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                {showOverdateBadge && (
+                                  <Badge variant="destructive" className="text-xs flex items-center gap-1">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    {tTx("overdue", "Overdue")}
+                                  </Badge>
+                                )}
+                                <Badge variant={cond.status === "SATISFIED" ? "default" : cond.status === "FAILED" ? "destructive" : "secondary"} className="text-xs">
+                                  {tTx(`conditionStatus.${cond.status}`, cond.status)}
+                                </Badge>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{cond.description}</p>
+                            <div className="flex justify-between text-[11px] text-muted-foreground">
+                              <span>{tTx("conditions.deadline", "Deadline")}: {cond.deadlineDate ? format(new Date(cond.deadlineDate), "PPP", { locale }) : "--"}</span>
+                              {cond.satisfiedAt && (
+                                <span>{tTx("conditionSatisfied", "Satisfied")}: {format(new Date(cond.satisfiedAt), "PPP", { locale })}</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>

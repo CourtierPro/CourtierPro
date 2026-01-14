@@ -20,7 +20,7 @@ interface OfferListProps {
 
 export function OfferList({ transactionId, isReadOnly = false, clientId }: OfferListProps) {
     const { t } = useTranslation('transactions');
-    const { data: offers, isLoading, error, refetch } = useTransactionOffers(transactionId, clientId);
+    const { data: offers, isLoading, error, refetch } = useTransactionOffers(transactionId, true, clientId);
 
     const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);

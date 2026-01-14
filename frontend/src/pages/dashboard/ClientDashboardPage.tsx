@@ -4,8 +4,8 @@ import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
 import { KpiCard } from "@/shared/components/branded/KpiCard";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
-import { Home, FileCheck, Loader2, Inbox, CheckCircle2, Info } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { Home, FileCheck, Loader2, Inbox, CheckCircle2, Info, DollarSign, Building2 } from "lucide-react";
+import { useState, useCallback, useMemo } from "react";
 import {
   Popover,
   PopoverContent,
@@ -14,13 +14,16 @@ import {
 import { useClientDashboardStats } from "@/features/dashboard/hooks/useDashboardStats";
 import { TransactionOverviewCard } from "@/features/documents/components/TransactionOverviewCard";
 import { UpcomingAppointmentsWidget } from "@/features/dashboard/components/UpcomingAppointmentsWidget";
-import { useNotifications } from "@/features/notifications/api/notificationsApi";
+import { useNotifications, useMarkNotificationAsRead } from "@/features/notifications/api/notificationsApi";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { useCurrentUser } from "@/features/auth/api/useCurrentUser";
+import { useTransactionOffers, useTransactionProperties } from "@/features/transactions/api/queries";
 
 export function ClientDashboardPage() {
   const { t } = useTranslation("dashboard");
+  const { t: tNotifications } = useTranslation("notifications");
+  const { t: tTransactions } = useTranslation("transactions");
   const navigate = useNavigate();
   const { data: currentUser } = useCurrentUser();
   const clientId = currentUser?.id ?? "";
@@ -33,55 +36,41 @@ export function ClientDashboardPage() {
 
   const { data: notifications, isLoading: isNotificationsLoading } =
     useNotifications();
+  const { mutate: markAsRead } = useMarkNotificationAsRead();
+
+  const safeNotifications = useMemo(() => notifications ?? [], [notifications]);
 
   const [openDocsNeeded, setOpenDocsNeeded] = useState(false);
   const [openDocsSubmitted, setOpenDocsSubmitted] = useState(false);
   const [openActiveTransactions, setOpenActiveTransactions] = useState(false);
   // Grid-only view
 
-  // KPI change indicators (persistent until acknowledged)
-  const [changedActive, setChangedActive] = useState(false);
-  const [changedNeeded, setChangedNeeded] = useState(false);
-  const [changedSubmitted, setChangedSubmitted] = useState(false);
-
-  const ackKey = (key: string) => `kpi_client_${key}_ack`;
-  const ensureAckInit = (key: string, value: number) => {
-    const k = ackKey(key);
-    if (localStorage.getItem(k) === null) {
-      localStorage.setItem(k, String(value));
+  // Translate notification message
+  const getNotificationMessage = (notif: typeof safeNotifications[number]) => {
+    if (notif.messageKey) {
+      let params: Record<string, string> = {};
+      if (notif.params) {
+        try {
+          params = JSON.parse(notif.params);
+        } catch {
+          // Ignore parse errors
+        }
+      }
+      // Translate conditionType if present
+      if (params.conditionType) {
+        params.conditionType = tTransactions(`conditionTypes.${params.conditionType}`, { defaultValue: params.conditionType });
+      }
+      return tNotifications(notif.messageKey, params) || notif.message;
     }
+    return notif.message;
   };
-  const isChanged = useCallback((key: string, value: number) => {
-    const ack = localStorage.getItem(`kpi_client_${key}_ack`);
-    if (ack === null) return false;
-    return Number(ack) !== value;
-  }, []);
 
-  // Initialize ack on first mount with current values to avoid first-load dot
-  // Only initialize after data is loaded to prevent false change indicators
-  useEffect(() => {
-    if (!isLoading) {
-      ensureAckInit("active", kpis.global.activeTransactions);
-      ensureAckInit("needed", kpis.global.documentsNeeded);
-      ensureAckInit("submitted", kpis.global.documentsSubmitted);
-    }
-    // ensureAckInit is a stable function defined above, no need to include in deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, kpis.global.activeTransactions, kpis.global.documentsNeeded, kpis.global.documentsSubmitted]);
-
-  // Recompute changed states when KPIs update
-  // These setStates synchronize local UI state with external data - legitimate pattern
-  useEffect(() => {
-    setChangedActive(isChanged("active", kpis.global.activeTransactions));
-  }, [kpis.global.activeTransactions, isChanged]);
-  useEffect(() => {
-    setChangedNeeded(isChanged("needed", kpis.global.documentsNeeded));
-  }, [kpis.global.documentsNeeded, isChanged]);
-  useEffect(() => {
-    setChangedSubmitted(isChanged("submitted", kpis.global.documentsSubmitted));
-  }, [kpis.global.documentsSubmitted, isChanged]);
-
-  const recentNotifications = notifications?.slice(0, 5) || [];
+  const recentNotifications = useMemo(() => {
+    if (!safeNotifications.length) return [];
+    return [...safeNotifications]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5);
+  }, [safeNotifications]);
 
   const getDocumentCountByTransaction = useCallback((transactionId: string) => {
     return clientDocuments.filter(
@@ -109,6 +98,24 @@ export function ClientDashboardPage() {
     ).length;
   }, [clientDocuments]);
 
+  // Fallback offers count: fetch offers for the first SELL_SIDE transaction when backend KPI is missing
+  const firstSellSideTx = useMemo(() => transactions.find(tx => tx.side === "SELL_SIDE"), [transactions]);
+  const { data: offersForKpi = [] } = useTransactionOffers(
+    firstSellSideTx?.transactionId ?? "",
+    !!firstSellSideTx,
+    firstSellSideTx?.clientId
+  );
+
+  const offersCount = (kpis?.global?.offersReceived ?? 0) || offersForKpi.length;
+
+  // Fallback properties count: fetch properties for the first BUY_SIDE transaction
+  const firstBuySideTx = useMemo(() => transactions.find(tx => tx.side === "BUY_SIDE"), [transactions]);
+  const { data: propertiesForKpi = [] } = useTransactionProperties(
+    firstBuySideTx?.transactionId ?? ""
+  );
+
+  const propertiesCount = propertiesForKpi.length;
+
   if (isLoading) {
     return <LoadingState message={t("loading")} />;
   }
@@ -125,14 +132,87 @@ export function ClientDashboardPage() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {firstSellSideTx && (
+          <KpiCard
+            title={t("client.offers", "Offers")}
+            value={offersCount.toString()}
+            icon={<DollarSign className="w-4 h-4 text-green-600" />}
+            className="border border-green-200 border-l-4 border-l-green-500 bg-white shadow-sm"
+            onClick={() => {
+              // Find first sell-side transaction and navigate to offers tab
+              const sellSideTransaction = transactions?.find(tx => tx.side === "SELL_SIDE");
+              if (sellSideTransaction) {
+                navigate(`/transactions/${sellSideTransaction.transactionId}?tab=offers`);
+              }
+            }}
+            infoButton={
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button 
+                    className="p-1.5 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-full transition-colors"
+                    aria-label="More information about offers"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    <Info className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64">
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">{t("client.offers", "Offers")}</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {t("client.offersDesc", "Total offers received from potential buyers for your property.")}
+                    </p>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            }
+          />
+        )}
+        {firstBuySideTx && (
+          <KpiCard
+            title={t("client.properties", "Properties")}
+            value={propertiesCount.toString()}
+            icon={<Building2 className="w-4 h-4 text-blue-600" />}
+            className="border border-blue-200 border-l-4 border-l-blue-500 bg-white shadow-sm"
+            onClick={() => {
+              // Find first buy-side transaction and navigate to properties tab
+              const buySideTransaction = transactions?.find(tx => tx.side === "BUY_SIDE");
+              if (buySideTransaction) {
+                navigate(`/transactions/${buySideTransaction.transactionId}?tab=properties`);
+              }
+            }}
+            infoButton={
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button 
+                    className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition-colors"
+                    aria-label="More information about properties"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64">
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">{t("client.properties", "Properties")}</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {t("client.propertiesDesc", "Total properties you are considering for purchase.")}
+                    </p>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            }
+          />
+        )}
         <KpiCard
           title={t("client.activeTransactions")}
           value={kpis.global.activeTransactions.toString()}
           icon={<Home className="w-4 h-4" />}
-          changed={changedActive}
           onClick={() => {
-            localStorage.setItem("kpi_client_active_ack", String(kpis.global.activeTransactions));
-            setChangedActive(false);
             navigate("/my-transaction");
           }}
           infoButton={
@@ -143,10 +223,6 @@ export function ClientDashboardPage() {
                   aria-label="More information about active transactions"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (changedActive) {
-                      localStorage.setItem("kpi_client_active_ack", String(kpis.global.activeTransactions));
-                      setChangedActive(false);
-                    }
                   }}
                 >
                   <Info className="w-5 h-5 text-orange-600 dark:text-orange-400" />
@@ -168,10 +244,7 @@ export function ClientDashboardPage() {
           title={t("client.documentsNeeded")}
           value={kpis.global.documentsNeeded.toString()}
           icon={<FileCheck className="w-4 h-4" />}
-          changed={changedNeeded}
           onClick={() => {
-            localStorage.setItem("kpi_client_needed_ack", String(kpis.global.documentsNeeded));
-            setChangedNeeded(false);
             navigate("/my-documents");
           }}
           infoButton={
@@ -182,10 +255,6 @@ export function ClientDashboardPage() {
                   aria-label="More information about documents needed"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (changedNeeded) {
-                      localStorage.setItem("kpi_client_needed_ack", String(kpis.global.documentsNeeded));
-                      setChangedNeeded(false);
-                    }
                   }}
                 >
                   <Info className="w-5 h-5 text-slate-600 dark:text-slate-400" />
@@ -207,10 +276,7 @@ export function ClientDashboardPage() {
           title={t("client.documentsSubmitted")}
           value={kpis.global.documentsSubmitted.toString()}
           icon={<FileCheck className="w-4 h-4" />}
-          changed={changedSubmitted}
           onClick={() => {
-            localStorage.setItem("kpi_client_submitted_ack", String(kpis.global.documentsSubmitted));
-            setChangedSubmitted(false);
             navigate("/my-documents");
           }}
           infoButton={
@@ -221,10 +287,6 @@ export function ClientDashboardPage() {
                   aria-label="More information about documents submitted"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (changedSubmitted) {
-                      localStorage.setItem("kpi_client_submitted_ack", String(kpis.global.documentsSubmitted));
-                      setChangedSubmitted(false);
-                    }
                   }}
                 >
                   <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -301,17 +363,33 @@ export function ClientDashboardPage() {
                     className="flex gap-3 text-sm cursor-pointer hover:opacity-80 transition-opacity"
                     role="button"
                     tabIndex={0}
-                    onClick={() => notif.relatedTransactionId && navigate(`/transactions/${notif.relatedTransactionId}`)}
-                    onKeyDown={(e) => {
-                      if ((e.key === 'Enter' || e.key === ' ') && notif.relatedTransactionId) {
-                        e.preventDefault();
+                    onClick={() => {
+                      if (!notif.read) {
+                        markAsRead(notif.publicId);
+                      }
+                      if (notif.relatedTransactionId) {
                         navigate(`/transactions/${notif.relatedTransactionId}`);
                       }
                     }}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault();
+                        if (!notif.read) {
+                          markAsRead(notif.publicId);
+                        }
+                        if (notif.relatedTransactionId) {
+                          navigate(`/transactions/${notif.relatedTransactionId}`);
+                        }
+                      }
+                    }}
                   >
-                    <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
+                    <div 
+                      className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                        notif.read ? 'bg-gray-300' : 'bg-orange-500'
+                      }`} 
+                    />
                     <div className="flex-1">
-                      <p className="font-medium">{notif.message}</p>
+                      <p className="font-medium">{getNotificationMessage(notif)}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {new Date(notif.createdAt).toLocaleDateString()}
                       </p>

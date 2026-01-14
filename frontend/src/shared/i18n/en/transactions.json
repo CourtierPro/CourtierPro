@@ -430,5 +430,24 @@
   "awaitingReview": "Awaiting review",
   "viewDocumentDetails": "View document details",
   "viewTransactionDetails": "View transaction details",
-  "openFullDetails": "Open full details"
+  "viewOffers": "View offers",
+  "hideOffers": "Hide offers",
+  "offers": "Offers",
+  "noOffers": "No offers received yet",
+  "noOffersDesc": "Offers from potential buyers will appear here",
+  "viewProperties": "View properties",
+  "hideProperties": "Hide properties",
+  "properties": "Properties",
+  "noProperties": "No properties added yet",
+  "noPropertiesDesc": "Properties you are considering will appear here",
+  "askingPrice": "Asking Price",
+  "propertyStatus": {
+    "OFFER_TO_BE_MADE": "Offer to be made",
+    "OFFER_MADE": "Offer made",
+    "COUNTERED": "Countered",
+    "ACCEPTED": "Accepted",
+    "DECLINED": "Declined"
+  },
+  "openFullDetails": "Open full details",
+  "conditionSatisfied": "Satisfied"
 }

@@ -427,5 +427,24 @@
   "awaitingReview": "En attente d'examen",
   "viewDocumentDetails": "Voir les détails des documents",
   "viewTransactionDetails": "Voir les détails de la transaction",
-  "openFullDetails": "Ouvrir les détails complets"
+  "viewOffers": "Voir les offres",
+  "hideOffers": "Masquer les offres",
+  "offers": "Offres",
+  "noOffers": "Aucune offre reçue pour le moment",
+  "noOffersDesc": "Les offres des acheteurs potentiels apparaîtront ici",
+  "viewProperties": "Voir les propriétés",
+  "hideProperties": "Masquer les propriétés",
+  "properties": "Propriétés",
+  "noProperties": "Aucune propriété ajoutée pour le moment",
+  "noPropertiesDesc": "Les propriétés que vous envisagez d'acheter apparaîtront ici",
+  "askingPrice": "Prix demandé",
+  "propertyStatus": {
+    "OFFER_TO_BE_MADE": "Offre à faire",
+    "OFFER_MADE": "Offre faite",
+    "COUNTERED": "Contre-offre",
+    "ACCEPTED": "Acceptée",
+    "DECLINED": "Déclinée"
+  },
+  "openFullDetails": "Ouvrir les détails complets",
+  "conditionSatisfied": "Satisfaite"
 }
