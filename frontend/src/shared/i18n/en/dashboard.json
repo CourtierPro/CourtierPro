@@ -36,7 +36,12 @@
         "noNotificationsDesc": "You have no new notifications. We'll notify you when there are updates on your transactions.",
         "viewAllNotifications": "View all notifications",
         "unknownAddress": "Unknown Address",
-        "overdue": "overdue"
+        "overdue": "overdue",
+        "selectTransaction": "Select a transaction to view details",
+        "viewMode": {
+            "grid": "Grid",
+            "list": "List"
+        }
     },
     "appointments": {
         "title": "Upcoming Appointments",
@@ -66,6 +71,7 @@
         "documents": "documents",
         "approved": "approved",
         "viewDetails": "View Details",
+        "hideDetails": "Hide details",
         "buying": "Buying",
         "selling": "Selling",
         "opened": "Opened",
@@ -76,14 +82,29 @@
         "documentsReqDesc": "These are the documents your broker has requested for this transaction.",
         "noDocumentsReq": "No documents required for this transaction.",
         "submissionStatus": "Submission Status",
-        "submittedDesc": "Documents that have been approved and submitted to your broker."
+        "submittedDesc": "Documents that have been approved and submitted to your broker.",
+        "submitted": "Submitted",
+        "submittedLegend": "Documents submitted",
+        "needsRevision": "Needs revision",
+        "revisionLegend": "Pending fixes",
+        "approvedLegend": "Documents approved",
+        "needsRevisionLabel": "Needs Revision:"
     },
     "stage": {
         "1": "Stage 1",
         "2": "Stage 2",
         "3": "Stage 3",
         "4": "Stage 4",
-        "5": "Stage 5"
+        "5": "Stage 5",
+        "BUYER_PREQUALIFY_FINANCIALLY": "Buyer prequalify financially",
+        "BUYER_PREQUALIFY_FINALIZED": "Buyer prequalify finalized",
+        "SELLER_ACCEPT_OFFER": "Seller accept offer",
+        "BUYER_CONDITIONAL_OFFER": "Buyer conditional offer",
+        "BUYER_FINAL_OFFER": "Buyer final offer",
+        "INSPECTION_PERIOD": "Inspection period",
+        "FINANCING_APPROVAL": "Financing approval",
+        "FINAL_WALKTHROUGH": "Final walkthrough",
+        "CLOSING": "Closing"
     },
     "notifications": {
         "today": "Today",

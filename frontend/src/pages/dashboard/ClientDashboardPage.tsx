@@ -5,7 +5,7 @@ import { Section } from "@/shared/components/branded/Section";
 import { KpiCard } from "@/shared/components/branded/KpiCard";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { Home, FileCheck, Loader2, Inbox, CheckCircle2, Info } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Popover,
   PopoverContent,
@@ -37,6 +37,44 @@ export function ClientDashboardPage() {
   const [openDocsNeeded, setOpenDocsNeeded] = useState(false);
   const [openDocsSubmitted, setOpenDocsSubmitted] = useState(false);
   const [openActiveTransactions, setOpenActiveTransactions] = useState(false);
+  // Grid-only view
+
+  // KPI change indicators (persistent until acknowledged)
+  const [changedActive, setChangedActive] = useState(false);
+  const [changedNeeded, setChangedNeeded] = useState(false);
+  const [changedSubmitted, setChangedSubmitted] = useState(false);
+
+  const ackKey = (key: string) => `kpi_client_${key}_ack`;
+  const ensureAckInit = (key: string, value: number) => {
+    const k = ackKey(key);
+    if (localStorage.getItem(k) === null) {
+      localStorage.setItem(k, String(value));
+    }
+  };
+  const isChanged = useCallback((key: string, value: number) => {
+    const ack = localStorage.getItem(`kpi_client_${key}_ack`);
+    if (ack === null) return false;
+    return Number(ack) !== value;
+  }, []);
+
+  // Initialize ack on first mount with current values to avoid first-load dot
+  useEffect(() => {
+    ensureAckInit("active", kpis.global.activeTransactions);
+    ensureAckInit("needed", kpis.global.documentsNeeded);
+    ensureAckInit("submitted", kpis.global.documentsSubmitted);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Recompute changed states when KPIs update
+  useEffect(() => {
+    setChangedActive(isChanged("active", kpis.global.activeTransactions));
+  }, [kpis.global.activeTransactions, isChanged]);
+  useEffect(() => {
+    setChangedNeeded(isChanged("needed", kpis.global.documentsNeeded));
+  }, [kpis.global.documentsNeeded, isChanged]);
+  useEffect(() => {
+    setChangedSubmitted(isChanged("submitted", kpis.global.documentsSubmitted));
+  }, [kpis.global.documentsSubmitted, isChanged]);
 
   const recentNotifications = notifications?.slice(0, 5) || [];
 
@@ -49,6 +87,20 @@ export function ClientDashboardPage() {
   const getApprovedDocumentCountByTransaction = (transactionId: string) => {
     return clientDocuments.filter(
       d => d.transactionRef?.transactionId === transactionId && d.status === 'APPROVED'
+    ).length;
+  };
+
+  const getNeedsRevisionCountByTransaction = (transactionId: string) => {
+    return clientDocuments.filter(
+      d => d.transactionRef?.transactionId === transactionId && d.status === 'NEEDS_REVISION'
+    ).length;
+  };
+
+  const getSubmittedDocumentCountByTransaction = (transactionId: string) => {
+    // Count docs currently considered "submitted": SUBMITTED or APPROVED (exclude NEEDS_REVISION)
+    const submittedStatuses = ["SUBMITTED", "APPROVED"] as const;
+    return clientDocuments.filter(
+      d => d.transactionRef?.transactionId === transactionId && submittedStatuses.includes(d.status as typeof submittedStatuses[number])
     ).length;
   };
 
@@ -72,11 +124,17 @@ export function ClientDashboardPage() {
           title={t("client.activeTransactions")}
           value={kpis.global.activeTransactions.toString()}
           icon={<Home className="w-4 h-4" />}
+          changed={changedActive}
+          onClick={() => {
+            localStorage.setItem("kpi_client_active_ack", String(kpis.global.activeTransactions));
+            setChangedActive(false);
+            navigate("/my-transaction");
+          }}
           infoButton={
             <Popover open={openActiveTransactions} onOpenChange={setOpenActiveTransactions}>
               <PopoverTrigger asChild>
-                <button className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition-colors">
-                  <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <button className="p-1.5 hover:bg-orange-100 dark:hover:bg-orange-900/30 rounded-full transition-colors">
+                  <Info className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-64">
@@ -89,17 +147,23 @@ export function ClientDashboardPage() {
               </PopoverContent>
             </Popover>
           }
-          className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-950/20"
+          className="border-l-4 border-l-orange-500 bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/20"
         />
         <KpiCard
           title={t("client.documentsNeeded")}
           value={kpis.global.documentsNeeded.toString()}
           icon={<FileCheck className="w-4 h-4" />}
+          changed={changedNeeded}
+          onClick={() => {
+            localStorage.setItem("kpi_client_needed_ack", String(kpis.global.documentsNeeded));
+            setChangedNeeded(false);
+            navigate("/my-documents");
+          }}
           infoButton={
             <Popover open={openDocsNeeded} onOpenChange={setOpenDocsNeeded}>
               <PopoverTrigger asChild>
-                <button className="p-1.5 hover:bg-orange-100 dark:hover:bg-orange-900/30 rounded-full transition-colors">
-                  <Info className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                <button className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/30 rounded-full transition-colors">
+                  <Info className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-64">
@@ -112,17 +176,23 @@ export function ClientDashboardPage() {
               </PopoverContent>
             </Popover>
           }
-          className="border-l-4 border-l-orange-500 bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/20"
+          className="border-l-4 border-l-slate-500 bg-gradient-to-r from-slate-50/50 to-transparent dark:from-slate-950/20"
         />
         <KpiCard
           title={t("client.documentsSubmitted")}
           value={kpis.global.documentsSubmitted.toString()}
           icon={<FileCheck className="w-4 h-4" />}
+          changed={changedSubmitted}
+          onClick={() => {
+            localStorage.setItem("kpi_client_submitted_ack", String(kpis.global.documentsSubmitted));
+            setChangedSubmitted(false);
+            navigate("/my-documents");
+          }}
           infoButton={
             <Popover open={openDocsSubmitted} onOpenChange={setOpenDocsSubmitted}>
               <PopoverTrigger asChild>
-                <button className="p-1.5 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-full transition-colors">
-                  <Info className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <button className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition-colors">
+                  <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-64">
@@ -135,11 +205,14 @@ export function ClientDashboardPage() {
               </PopoverContent>
             </Popover>
           }
-          className="border-l-4 border-l-green-500 bg-gradient-to-r from-green-50/50 to-transparent dark:from-green-950/20"
+          className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-950/20"
         />
       </div>
 
-      <Section title={t("client.myTransactions")} description={t("client.myTransactionsDesc")}>
+      <Section 
+        title={t("client.myTransactions")} 
+        description={t("client.myTransactionsDesc")}
+      >
         {transactions.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
@@ -158,7 +231,8 @@ export function ClientDashboardPage() {
                 transaction={transaction}
                 documentCount={getDocumentCountByTransaction(transaction.transactionId)}
                 approvedDocumentCount={getApprovedDocumentCountByTransaction(transaction.transactionId)}
-                onViewDetails={(id: string) => navigate(`/dashboard/transactions/${id}`)}
+                needsRevisionCount={getNeedsRevisionCountByTransaction(transaction.transactionId)}
+                submittedDocumentCount={getSubmittedDocumentCountByTransaction(transaction.transactionId)}
               />
             ))}
           </div>
@@ -172,8 +246,8 @@ export function ClientDashboardPage() {
         
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Recent Activity</CardTitle>
-            <CardDescription>Latest updates from your transactions</CardDescription>
+            <CardTitle className="text-lg">{t("client.recentUpdates", "Recent Updates")}</CardTitle>
+            <CardDescription>{t("client.recentUpdatesDesc", "Latest notifications and updates for your transactions.")}</CardDescription>
           </CardHeader>
           <CardContent>
             {isNotificationsLoading ? (
@@ -181,12 +255,16 @@ export function ClientDashboardPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : recentNotifications.length > 0 ? (
-              <div className="space-y-4">
+              <div
+                className={`space-y-4 ${
+                  recentNotifications.length > 3 ? "max-h-64 overflow-y-auto pr-2" : ""
+                }`}
+              >
                 {recentNotifications.slice(0, 5).map((notif) => (
                   <div 
                     key={notif.publicId} 
                     className="flex gap-3 text-sm cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => notif.relatedTransactionId && navigate(`/dashboard/transactions/${notif.relatedTransactionId}`)}
+                    onClick={() => notif.relatedTransactionId && navigate(`/transactions/${notif.relatedTransactionId}`)}
                   >
                     <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
                     <div className="flex-1">
@@ -204,14 +282,14 @@ export function ClientDashboardPage() {
                     className="w-full mt-2"
                     onClick={() => navigate("/notifications")}
                   >
-                    View all notifications →
+                    {t("client.viewAllNotifications", "View all notifications")} →
                   </Button>
                 )}
               </div>
             ) : (
               <div className="text-center py-8">
                 <CheckCircle2 className="h-12 w-12 text-muted-foreground/50 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">All caught up!</p>
+                <p className="text-sm text-muted-foreground">{t("client.noNotificationsTitle", "All caught up!")}</p>
               </div>
             )}
           </CardContent>

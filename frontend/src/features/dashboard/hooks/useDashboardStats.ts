@@ -48,10 +48,11 @@ export function useClientDashboardStats(clientId: string) {
 
     const activeTransactions = transactions.filter(t => t.status === 'ACTIVE');
     const documentsNeededGlobal = clientDocuments.filter(d => d.status === 'REQUESTED');
-    const documentsSubmittedGlobal = clientDocuments.filter(d => d.status === 'SUBMITTED');
+    // Submitted = SUBMITTED or APPROVED (NEEDS_REVISION is excluded until resubmitted)
+    const documentsSubmittedGlobal = clientDocuments.filter(d => d.status === 'SUBMITTED' || d.status === 'APPROVED');
 
     const documentsNeeded = selectedDocuments.filter(d => d.status === 'REQUESTED');
-    const documentsSubmitted = selectedDocuments.filter(d => d.status === 'SUBMITTED');
+    const documentsSubmitted = selectedDocuments.filter(d => d.status === 'SUBMITTED' || d.status === 'APPROVED');
 
     return {
         transactions,

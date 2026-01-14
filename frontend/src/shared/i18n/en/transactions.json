@@ -426,5 +426,9 @@
     "delete": "Delete",
     "deleting": "Deleting...",
     "saving": "Saving..."
-  }
+  },
+  "awaitingReview": "Awaiting review",
+  "viewDocumentDetails": "View document details",
+  "viewTransactionDetails": "View transaction details",
+  "openFullDetails": "Open full details"
 }

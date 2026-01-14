@@ -28,6 +28,7 @@ export interface Transaction {
     transactionId: string;
     clientId: string;
     clientName: string;
+    brokerName?: string;
     propertyAddress: {
         street: string;
         city: string;

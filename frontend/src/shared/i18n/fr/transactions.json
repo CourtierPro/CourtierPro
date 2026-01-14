@@ -423,5 +423,9 @@
     "delete": "Supprimer",
     "deleting": "Suppression...",
     "saving": "Sauvegarde..."
-  }
+  },
+  "awaitingReview": "En attente d'examen",
+  "viewDocumentDetails": "Voir les détails des documents",
+  "viewTransactionDetails": "Voir les détails de la transaction",
+  "openFullDetails": "Ouvrir les détails complets"
 }

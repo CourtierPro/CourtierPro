@@ -36,12 +36,19 @@
         "noNotificationsDesc": "Vous n'avez aucune nouvelle notification. Nous vous informerons lors de mises à jour de vos transactions.",
         "viewAllNotifications": "Voir toutes les notifications",
         "unknownAddress": "Adresse inconnue",
-        "overdue": "en retard"
-    },    "appointments": {
+        "overdue": "en retard",
+        "selectTransaction": "Sélectionnez une transaction pour voir les détails",
+        "viewMode": {
+            "grid": "Grille",
+            "list": "Liste"
+        }
+    },
+    "appointments": {
         "title": "Rendez-vous à venir",
         "description": "Votre calendrier pour les 7 prochains jours.",
         "placeholder": "Calendrier (aucune donnée)..."
-    },    "admin": {
+    },
+    "admin": {
         "title": "Tableau de bord Admin",
         "subtitle": "Aperçu du système et gestion des utilisateurs.",
         "totalUsers": "Utilisateurs totaux",
@@ -64,6 +71,7 @@
         "documents": "documents",
         "approved": "approuvé",
         "viewDetails": "Voir les détails",
+        "hideDetails": "Masquer les détails",
         "buying": "Achat",
         "selling": "Vente",
         "opened": "Ouvert",
@@ -74,14 +82,29 @@
         "documentsReqDesc": "Ce sont les documents que votre courtier a demandés pour cette transaction.",
         "noDocumentsReq": "Aucun document requis pour cette transaction.",
         "submissionStatus": "État de la soumission",
-        "submittedDesc": "Documents qui ont été approuvés et soumis à votre courtier."
+        "submittedDesc": "Documents qui ont été approuvés et soumis à votre courtier.",
+        "submitted": "Soumis",
+        "submittedLegend": "Documents soumis",
+        "needsRevision": "Besoin de révision",
+        "revisionLegend": "Corrections en attente",
+        "approvedLegend": "Documents approuvés",
+        "needsRevisionLabel": "Besoin de révision :"
     },
     "stage": {
         "1": "Étape 1",
         "2": "Étape 2",
         "3": "Étape 3",
         "4": "Étape 4",
-        "5": "Étape 5"
+        "5": "Étape 5",
+        "BUYER_PREQUALIFY_FINANCIALLY": "Préqualification financière de l'acheteur",
+        "BUYER_PREQUALIFY_FINALIZED": "Préqualification finalisée (acheteur)",
+        "SELLER_ACCEPT_OFFER": "Le vendeur accepte l'offre",
+        "BUYER_CONDITIONAL_OFFER": "Offre conditionnelle (acheteur)",
+        "BUYER_FINAL_OFFER": "Offre finale (acheteur)",
+        "INSPECTION_PERIOD": "Période d'inspection",
+        "FINANCING_APPROVAL": "Approbation du financement",
+        "FINAL_WALKTHROUGH": "Visite finale",
+        "CLOSING": "Clôture"
     },
     "notifications": {
         "today": "Aujourd'hui",
