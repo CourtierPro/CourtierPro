@@ -44,7 +44,6 @@ export interface Transaction {
     openedDate?: string;
     notes?: string;
     brokerId?: string;
-    brokerName?: string;
     archived?: boolean;
     archivedAt?: string;
 }
