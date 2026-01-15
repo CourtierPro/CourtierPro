@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -90,18 +90,23 @@ export function AddPropertyModal({
         },
     });
 
+    // Watch offerStatus to conditionally disable offerAmount
+    const offerStatus = useWatch({ control: form.control, name: 'offerStatus' });
+    const isOfferToBeMade = offerStatus === 'OFFER_TO_BE_MADE';
+
     // Reset form when modal opens or existingProperty changes
     useEffect(() => {
         if (isOpen) {
             if (existingProperty) {
+                const status = existingProperty.offerStatus || 'OFFER_TO_BE_MADE';
                 form.reset({
                     street: existingProperty.address?.street || '',
                     city: existingProperty.address?.city || '',
                     province: existingProperty.address?.province || '',
                     postalCode: existingProperty.address?.postalCode || '',
                     askingPrice: existingProperty.askingPrice?.toString() || '',
-                    offerStatus: existingProperty.offerStatus || 'OFFER_TO_BE_MADE',
-                    offerAmount: existingProperty.offerAmount?.toString() || '',
+                    offerStatus: status,
+                    offerAmount: status === 'OFFER_TO_BE_MADE' ? '0' : (existingProperty.offerAmount?.toString() || ''),
                     centrisNumber: existingProperty.centrisNumber || '',
                     notes: existingProperty.notes || '',
                 });
@@ -113,7 +118,7 @@ export function AddPropertyModal({
                     postalCode: '',
                     askingPrice: '',
                     offerStatus: 'OFFER_TO_BE_MADE',
-                    offerAmount: '',
+                    offerAmount: '0',
                     centrisNumber: '',
                     notes: '',
                 });
@@ -121,7 +126,19 @@ export function AddPropertyModal({
         }
     }, [isOpen, existingProperty, form]);
 
+    // When status changes to OFFER_TO_BE_MADE, reset offerAmount to 0
+    useEffect(() => {
+        if (isOfferToBeMade) {
+            form.setValue('offerAmount', '0');
+        }
+    }, [isOfferToBeMade, form]);
+
     const onSubmit = async (data: PropertyFormValues) => {
+        // If status is OFFER_TO_BE_MADE, offerAmount should be 0 or undefined
+        const offerAmountValue = data.offerStatus === 'OFFER_TO_BE_MADE'
+            ? undefined
+            : (data.offerAmount ? parseFloat(data.offerAmount) : undefined);
+
         const payload: PropertyRequestDTO = {
             address: {
                 street: data.street,
@@ -131,7 +148,7 @@ export function AddPropertyModal({
             },
             askingPrice: data.askingPrice ? parseFloat(data.askingPrice) : undefined,
             offerStatus: data.offerStatus,
-            offerAmount: data.offerAmount ? parseFloat(data.offerAmount) : undefined,
+            offerAmount: offerAmountValue,
             centrisNumber: data.centrisNumber || undefined,
             notes: data.notes || undefined,
         };
@@ -242,6 +259,45 @@ export function AddPropertyModal({
                             />
                         </div>
 
+                        {/* Centris Number */}
+                        <FormField
+                            control={form.control}
+                            name="centrisNumber"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('centrisNumber')}</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} placeholder={t('centrisNumberPlaceholder')} />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Status */}
+                        <FormField
+                            control={form.control}
+                            name="offerStatus"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('offerStatusLabel')} <span className="text-destructive">*</span></FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('selectOfferStatus')} />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {offerStatusOptions.map((status) => (
+                                                <SelectItem key={status} value={status}>
+                                                    {t(`propertyOfferStatuses.${status}`)}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </FormItem>
+                            )}
+                        />
+
                         {/* Pricing Section */}
                         <div className="space-y-4 pt-4 border-t border-border">
                             <h4 className="text-sm font-medium text-muted-foreground">{t('pricingAndOffer')}</h4>
@@ -267,50 +323,18 @@ export function AddPropertyModal({
                                         <FormItem>
                                             <FormLabel>{t('offerAmount')}</FormLabel>
                                             <FormControl>
-                                                <Input {...field} type="number" placeholder="480000" />
+                                                <Input
+                                                    {...field}
+                                                    type="number"
+                                                    placeholder="480000"
+                                                    disabled={isOfferToBeMade}
+                                                    className={isOfferToBeMade ? 'bg-muted cursor-not-allowed' : ''}
+                                                />
                                             </FormControl>
                                         </FormItem>
                                     )}
                                 />
                             </div>
-
-                            {/* Centris Number Field */}
-                            <FormField
-                                control={form.control}
-                                name="centrisNumber"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('centrisNumber')}</FormLabel>
-                                        <FormControl>
-                                            <Input {...field} placeholder={t('centrisNumberPlaceholder')} />
-                                        </FormControl>
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="offerStatus"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('offerStatusLabel')} <span className="text-destructive">*</span></FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('selectOfferStatus')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {offerStatusOptions.map((status) => (
-                                                    <SelectItem key={status} value={status}>
-                                                        {t(`propertyOfferStatuses.${status}`)}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                )}
-                            />
                         </div>
 
                         {/* Notes Section */}

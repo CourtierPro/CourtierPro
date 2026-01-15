@@ -39,7 +39,8 @@ import com.example.courtierprobackend.audit.timeline_audit.businesslayer.Timelin
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
 import org.springframework.context.MessageSource;
 import java.util.Locale;
-import com.example.courtierprobackend.documents.datalayer.enums.StageEnum;
+import com.example.courtierprobackend.transactions.datalayer.DocumentConditionLink;
+import com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -54,6 +55,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         private final UserAccountRepository userAccountRepository;
         private final TimelineService timelineService;
         private final MessageSource messageSource;
+        private final DocumentConditionLinkRepository documentConditionLinkRepository;
 
         /**
          * Helper to find a UserAccount by internal UUID.
@@ -120,6 +122,18 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 request.setStage(requestDTO.getStage());
 
                 DocumentRequest savedRequest = repository.save(request);
+
+                // Save condition links if provided
+                if (requestDTO.getConditionIds() != null && !requestDTO.getConditionIds().isEmpty()) {
+                        for (UUID conditionId : requestDTO.getConditionIds()) {
+                                DocumentConditionLink link = DocumentConditionLink.builder()
+                                        .conditionId(conditionId)
+                                        .documentRequestId(savedRequest.getRequestId())
+                                        .build();
+                                documentConditionLinkRepository.save(link);
+                        }
+                }
+
                 // Add timeline entry for document requested
                 timelineService.addEntry(
                                 transactionId,
@@ -200,7 +214,21 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
 
                 request.setLastUpdatedAt(LocalDateTime.now());
 
-                return mapToResponseDTO(repository.save(request));
+                DocumentRequest savedRequest = repository.save(request);
+
+                // Update condition links if provided
+                if (requestDTO.getConditionIds() != null) {
+                        documentConditionLinkRepository.deleteByDocumentRequestId(requestId);
+                        for (UUID conditionId : requestDTO.getConditionIds()) {
+                                DocumentConditionLink link = DocumentConditionLink.builder()
+                                        .conditionId(conditionId)
+                                        .documentRequestId(savedRequest.getRequestId())
+                                        .build();
+                                documentConditionLinkRepository.save(link);
+                        }
+                }
+
+                return mapToResponseDTO(savedRequest);
         }
 
         @Transactional

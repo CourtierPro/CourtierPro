@@ -2,14 +2,17 @@ package com.example.courtierprobackend.transactions;
 
 import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
+import com.example.courtierprobackend.common.exceptions.ForbiddenException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionServiceImpl;
 import com.example.courtierprobackend.transactions.datalayer.Offer;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
+import com.example.courtierprobackend.transactions.datalayer.dto.ClientOfferDecisionDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.enums.ClientOfferDecision;
 import com.example.courtierprobackend.transactions.datalayer.enums.ReceivedOfferStatus;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus;
@@ -33,8 +36,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 /**
  * Unit tests for offer-related methods in TransactionServiceImpl.
@@ -69,6 +72,24 @@ class OfferServiceUnitTest {
 
     @Mock
     private TimelineService timelineService;
+
+    @Mock
+    private ConditionRepository conditionRepository;
+
+    @Mock
+    private PropertyOfferRepository propertyOfferRepository;
+
+    @Mock
+    private OfferDocumentRepository offerDocumentRepository;
+
+    @Mock
+    private OfferRevisionRepository offerRevisionRepository;
+
+    @Mock
+    private com.example.courtierprobackend.infrastructure.storage.S3StorageService s3StorageService;
+
+    @Mock
+    private DocumentConditionLinkRepository documentConditionLinkRepository;
 
     @InjectMocks
     private TransactionServiceImpl service;
@@ -113,6 +134,13 @@ class OfferServiceUnitTest {
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
+
+        // Default stub: offerDocumentRepository returns empty list
+        lenient().when(offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(any()))
+                .thenReturn(java.util.Collections.emptyList());
+        // Default stub: offerRevisionRepository returns null for max revision
+        lenient().when(offerRevisionRepository.findMaxRevisionNumberByOfferId(any()))
+                .thenReturn(null);
     }
 
     // ==================== getOffers Tests ====================
@@ -396,6 +424,218 @@ class OfferServiceUnitTest {
             assertThatThrownBy(() -> service.getOfferById(offerId, brokerId, true))
                     .isInstanceOf(NotFoundException.class)
                     .hasMessage("Offer not found");
+        }
+    }
+
+    // ==================== submitClientOfferDecision Tests ====================
+
+    @Nested
+    @DisplayName("submitClientOfferDecision")
+    class SubmitClientOfferDecisionTests {
+
+        @Test
+        @DisplayName("should submit accept decision successfully")
+        void submitClientOfferDecision_acceptDecision_succeeds() {
+            ClientOfferDecisionDTO request = ClientOfferDecisionDTO.builder()
+                    .decision(ClientOfferDecision.ACCEPT)
+                    .notes("I want to accept this offer")
+                    .build();
+
+            when(offerRepository.findByOfferId(offerId))
+                    .thenReturn(Optional.of(sampleOffer));
+            when(transactionRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.of(sellSideTransaction));
+            when(offerRepository.save(any(Offer.class)))
+                    .thenAnswer(inv -> inv.getArgument(0));
+
+            OfferResponseDTO result = service.submitClientOfferDecision(offerId, request, clientId);
+
+            assertThat(result.getClientDecision()).isEqualTo(ClientOfferDecision.ACCEPT);
+            assertThat(result.getClientDecisionNotes()).isEqualTo("I want to accept this offer");
+            assertThat(result.getClientDecisionAt()).isNotNull();
+            verify(offerRepository).save(any(Offer.class));
+            verify(timelineService).addEntry(any(), eq(clientId), any(), any(), isNull(), any());
+        }
+
+        @Test
+        @DisplayName("should submit decline decision successfully")
+        void submitClientOfferDecision_declineDecision_succeeds() {
+            ClientOfferDecisionDTO request = ClientOfferDecisionDTO.builder()
+                    .decision(ClientOfferDecision.DECLINE)
+                    .notes("Price too low")
+                    .build();
+
+            when(offerRepository.findByOfferId(offerId))
+                    .thenReturn(Optional.of(sampleOffer));
+            when(transactionRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.of(sellSideTransaction));
+            when(offerRepository.save(any(Offer.class)))
+                    .thenAnswer(inv -> inv.getArgument(0));
+
+            OfferResponseDTO result = service.submitClientOfferDecision(offerId, request, clientId);
+
+            assertThat(result.getClientDecision()).isEqualTo(ClientOfferDecision.DECLINE);
+            assertThat(result.getClientDecisionNotes()).isEqualTo("Price too low");
+        }
+
+        @Test
+        @DisplayName("should submit counter decision successfully")
+        void submitClientOfferDecision_counterDecision_succeeds() {
+            ClientOfferDecisionDTO request = ClientOfferDecisionDTO.builder()
+                    .decision(ClientOfferDecision.COUNTER)
+                    .notes("Would accept at $550,000")
+                    .build();
+
+            when(offerRepository.findByOfferId(offerId))
+                    .thenReturn(Optional.of(sampleOffer));
+            when(transactionRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.of(sellSideTransaction));
+            when(offerRepository.save(any(Offer.class)))
+                    .thenAnswer(inv -> inv.getArgument(0));
+
+            OfferResponseDTO result = service.submitClientOfferDecision(offerId, request, clientId);
+
+            assertThat(result.getClientDecision()).isEqualTo(ClientOfferDecision.COUNTER);
+            assertThat(result.getClientDecisionNotes()).isEqualTo("Would accept at $550,000");
+        }
+
+        @Test
+        @DisplayName("should submit decision without notes")
+        void submitClientOfferDecision_noNotes_succeeds() {
+            ClientOfferDecisionDTO request = ClientOfferDecisionDTO.builder()
+                    .decision(ClientOfferDecision.ACCEPT)
+                    .build();
+
+            when(offerRepository.findByOfferId(offerId))
+                    .thenReturn(Optional.of(sampleOffer));
+            when(transactionRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.of(sellSideTransaction));
+            when(offerRepository.save(any(Offer.class)))
+                    .thenAnswer(inv -> inv.getArgument(0));
+
+            OfferResponseDTO result = service.submitClientOfferDecision(offerId, request, clientId);
+
+            assertThat(result.getClientDecision()).isEqualTo(ClientOfferDecision.ACCEPT);
+            assertThat(result.getClientDecisionNotes()).isNull();
+        }
+
+        @Test
+        @DisplayName("should throw NotFoundException when offer not found")
+        void submitClientOfferDecision_offerNotFound_throws() {
+            ClientOfferDecisionDTO request = ClientOfferDecisionDTO.builder()
+                    .decision(ClientOfferDecision.ACCEPT)
+                    .build();
+
+            when(offerRepository.findByOfferId(offerId))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.submitClientOfferDecision(offerId, request, clientId))
+                    .isInstanceOf(NotFoundException.class)
+                    .hasMessage("Offer not found");
+        }
+
+        @Test
+        @DisplayName("should throw NotFoundException when transaction not found")
+        void submitClientOfferDecision_transactionNotFound_throws() {
+            ClientOfferDecisionDTO request = ClientOfferDecisionDTO.builder()
+                    .decision(ClientOfferDecision.ACCEPT)
+                    .build();
+
+            when(offerRepository.findByOfferId(offerId))
+                    .thenReturn(Optional.of(sampleOffer));
+            when(transactionRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.submitClientOfferDecision(offerId, request, clientId))
+                    .isInstanceOf(NotFoundException.class)
+                    .hasMessage("Transaction not found");
+        }
+
+        @Test
+        @DisplayName("should throw ForbiddenException when client is not transaction owner")
+        void submitClientOfferDecision_wrongClient_throws() {
+            UUID wrongClientId = UUID.randomUUID();
+            ClientOfferDecisionDTO request = ClientOfferDecisionDTO.builder()
+                    .decision(ClientOfferDecision.ACCEPT)
+                    .build();
+
+            when(offerRepository.findByOfferId(offerId))
+                    .thenReturn(Optional.of(sampleOffer));
+            when(transactionRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.of(sellSideTransaction));
+
+            assertThatThrownBy(() -> service.submitClientOfferDecision(offerId, request, wrongClientId))
+                    .isInstanceOf(ForbiddenException.class)
+                    .hasMessageContaining("do not have access");
+        }
+
+        @Test
+        @DisplayName("should throw BadRequestException for buy-side transaction")
+        void submitClientOfferDecision_buySide_throws() {
+            // Create an offer associated with buy-side transaction
+            sampleOffer.setTransactionId(buySideTransaction.getTransactionId());
+            buySideTransaction.setClientId(clientId);
+            
+            ClientOfferDecisionDTO request = ClientOfferDecisionDTO.builder()
+                    .decision(ClientOfferDecision.ACCEPT)
+                    .build();
+
+            when(offerRepository.findByOfferId(offerId))
+                    .thenReturn(Optional.of(sampleOffer));
+            when(transactionRepository.findByTransactionId(buySideTransaction.getTransactionId()))
+                    .thenReturn(Optional.of(buySideTransaction));
+
+            assertThatThrownBy(() -> service.submitClientOfferDecision(offerId, request, clientId))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("seller-side");
+        }
+
+        @Test
+        @DisplayName("should notify broker when client submits decision")
+        void submitClientOfferDecision_notifiesBroker() {
+            ClientOfferDecisionDTO request = ClientOfferDecisionDTO.builder()
+                    .decision(ClientOfferDecision.ACCEPT)
+                    .build();
+
+            when(offerRepository.findByOfferId(offerId))
+                    .thenReturn(Optional.of(sampleOffer));
+            when(transactionRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.of(sellSideTransaction));
+            when(offerRepository.save(any(Offer.class)))
+                    .thenAnswer(inv -> inv.getArgument(0));
+
+            service.submitClientOfferDecision(offerId, request, clientId);
+
+            verify(notificationService).createNotification(
+                    eq(brokerId.toString()),
+                    eq("notifications.clientOfferDecision.title"),
+                    eq("notifications.clientOfferDecision.message"),
+                    any(java.util.Map.class),
+                    eq(transactionId.toString()),
+                    any()
+            );
+        }
+
+        @Test
+        @DisplayName("should set clientDecisionAt timestamp")
+        void submitClientOfferDecision_setsTimestamp() {
+            ClientOfferDecisionDTO request = ClientOfferDecisionDTO.builder()
+                    .decision(ClientOfferDecision.DECLINE)
+                    .build();
+
+            when(offerRepository.findByOfferId(offerId))
+                    .thenReturn(Optional.of(sampleOffer));
+            when(transactionRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.of(sellSideTransaction));
+            when(offerRepository.save(any(Offer.class)))
+                    .thenAnswer(inv -> inv.getArgument(0));
+
+            OfferResponseDTO result = service.submitClientOfferDecision(offerId, request, clientId);
+
+            assertThat(result.getClientDecisionAt()).isNotNull();
+            // Verify timestamp is recent (within last minute)
+            assertThat(result.getClientDecisionAt())
+                    .isAfter(LocalDateTime.now().minusMinutes(1));
         }
     }
 }

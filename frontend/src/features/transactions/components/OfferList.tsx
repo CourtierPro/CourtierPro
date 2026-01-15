@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, DollarSign } from 'lucide-react';
+import { Plus, DollarSign, GripHorizontal } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
+import { Checkbox } from '@/shared/components/ui/checkbox';
 import { LoadingState } from '@/shared/components/branded/LoadingState';
 import { ErrorState } from '@/shared/components/branded/ErrorState';
 import { EmptyState } from '@/shared/components/branded/EmptyState';
@@ -9,6 +10,7 @@ import { Section } from '@/shared/components/branded/Section';
 import { OfferCard } from './OfferCard';
 import { OfferDetailModal } from './OfferDetailModal';
 import { AddOfferModal } from './AddOfferModal';
+import { OfferComparisonModal } from './OfferComparisonModal';
 import { useTransactionOffers } from '@/features/transactions/api/queries';
 import type { Offer } from '@/shared/api/types';
 
@@ -26,9 +28,43 @@ export function OfferList({ transactionId, isReadOnly = false, clientId }: Offer
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
+    // Comparison State
+    const [isComparing, setIsComparing] = useState(false);
+    const [selectedForComparison, setSelectedForComparison] = useState<string[]>([]);
+    const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
+
     const handleOfferClick = (offer: Offer) => {
-        setSelectedOffer(offer);
-        setIsDetailModalOpen(true);
+        if (isComparing) {
+            handleToggleSelection(offer.offerId);
+        } else {
+            setSelectedOffer(offer);
+            setIsDetailModalOpen(true);
+        }
+    };
+
+    const handleToggleSelection = (offerId: string) => {
+        setSelectedForComparison(prev => {
+            if (prev.includes(offerId)) {
+                return prev.filter(id => id !== offerId);
+            } else {
+                if (prev.length >= 3) return prev; // Limit to 3
+                return [...prev, offerId];
+            }
+        });
+    };
+
+    const handleStartComparison = () => {
+        setIsComparing(true);
+        setSelectedForComparison([]);
+    };
+
+    const handleCancelComparison = () => {
+        setIsComparing(false);
+        setSelectedForComparison([]);
+    };
+
+    const handleViewComparison = () => {
+        setIsComparisonModalOpen(true);
     };
 
     const handleCloseDetailModal = () => {
@@ -40,6 +76,8 @@ export function OfferList({ transactionId, isReadOnly = false, clientId }: Offer
     const sortedOffers = offers ? [...offers].sort((a, b) => {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }) : [];
+
+    const comparisonOffers = offers?.filter(o => selectedForComparison.includes(o.offerId)) || [];
 
     if (isLoading) {
         return <LoadingState message={t('loadingOffers')} />;
@@ -86,21 +124,74 @@ export function OfferList({ transactionId, isReadOnly = false, clientId }: Offer
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">{t('offers')}</h3>
-                {!isReadOnly && (
-                    <Button onClick={() => setIsAddModalOpen(true)} size="sm" className="gap-2">
-                        <Plus className="w-4 h-4" />
-                        {t('addOffer')}
-                    </Button>
-                )}
+                <div className="flex items-center gap-2">
+                    {isComparing ? (
+                        <>
+                            <span className="text-sm text-muted-foreground mr-2">
+                                {t('selectUpToThree', { count: selectedForComparison.length })}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleCancelComparison}
+                            >
+                                {t('cancel')}
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={handleViewComparison}
+                                disabled={selectedForComparison.length < 2}
+                            >
+                                {t('compareSelected')}
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            {offers.length > 1 && (
+                                <Button variant="ghost" size="sm" onClick={handleStartComparison}>
+                                    <GripHorizontal className="w-4 h-4 mr-2" />
+                                    {t('compare')}
+                                </Button>
+                            )}
+                            {!isReadOnly && (
+                                <Button onClick={() => setIsAddModalOpen(true)} size="sm" className="gap-2">
+                                    <Plus className="w-4 h-4" />
+                                    {t('addOffer')}
+                                </Button>
+                            )}
+                        </>
+                    )}
+                </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {sortedOffers.map((offer) => (
-                    <OfferCard
-                        key={offer.offerId}
-                        offer={offer}
-                        onClick={() => handleOfferClick(offer)}
-                    />
+                    <div key={offer.offerId} className="relative group">
+                        {isComparing && (
+                            <div className="absolute top-2 right-2 z-10">
+                                <Checkbox
+                                    checked={selectedForComparison.includes(offer.offerId)}
+                                    className="h-5 w-5 bg-background data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleSelection(offer.offerId);
+                                    }}
+                                />
+                            </div>
+                        )}
+                        <div
+                            className={`transition-all ${isComparing && selectedForComparison.includes(offer.offerId) ? 'ring-2 ring-primary rounded-lg' : ''}`}
+                            onClick={() => handleOfferClick(offer)}
+                        >
+                            <OfferCard
+                                offer={offer}
+                                onClick={undefined} // Handled by parent div
+                            />
+                            {isComparing && (
+                                <div className="absolute inset-0 bg-transparent cursor-pointer rounded-lg" />
+                            )}
+                        </div>
+                    </div>
                 ))}
             </div>
 
@@ -111,6 +202,14 @@ export function OfferList({ transactionId, isReadOnly = false, clientId }: Offer
                 offer={selectedOffer}
                 transactionId={transactionId}
                 isReadOnly={isReadOnly}
+                clientId={clientId}
+            />
+
+            {/* Comparison Modal */}
+            <OfferComparisonModal
+                isOpen={isComparisonModalOpen}
+                onClose={() => setIsComparisonModalOpen(false)}
+                offers={comparisonOffers}
             />
 
             {/* Add Modal (broker only) */}

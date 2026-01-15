@@ -257,6 +257,201 @@ public class EmailService {
         }
     }
 
+    // ==================== PROPERTY OFFER NOTIFICATIONS (BUY-SIDE) ====================
+
+    /**
+     * Send email notification when a property offer is made on behalf of a buyer client.
+     */
+    public void sendPropertyOfferMadeNotification(
+            String clientEmail,
+            String clientName,
+            String brokerName,
+            String propertyAddress,
+            String offerAmount,
+            int offerRound,
+            String clientLanguage) {
+        try {
+            boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
+
+            String subject = isFrench
+                    ? ("Offre soumise : " + propertyAddress)
+                    : ("Offer Made: " + propertyAddress);
+
+            String templatePath = isFrench
+                    ? "email-templates/property_offer_made_fr.html"
+                    : "email-templates/property_offer_made_en.html";
+
+            String htmlTemplate = loadTemplateFromClasspath(templatePath);
+
+            String emailBody = htmlTemplate
+                    .replace("{{subject}}", escapeHtml(subject))
+                    .replace("{{clientName}}", escapeHtml(clientName))
+                    .replace("{{brokerName}}", escapeHtml(brokerName))
+                    .replace("{{propertyAddress}}", escapeHtml(propertyAddress))
+                    .replace("{{offerAmount}}", escapeHtml(offerAmount))
+                    .replace("{{offerRound}}", String.valueOf(offerRound));
+
+            sendEmail(clientEmail, subject, emailBody);
+        } catch (IOException e) {
+            logger.error("Failed to load property offer made email template", e);
+        } catch (MessagingException e) {
+            logger.error("Failed to send property offer made notification to {}", clientEmail, e);
+        }
+    }
+
+    /**
+     * Send email notification when a property offer status changes (e.g., COUNTERED, ACCEPTED, DECLINED).
+     */
+    public void sendPropertyOfferStatusChangedNotification(
+            String clientEmail,
+            String clientName,
+            String brokerName,
+            String propertyAddress,
+            String previousStatus,
+            String newStatus,
+            String counterpartyResponse,
+            String clientLanguage) {
+        try {
+            boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
+
+            String translatedPreviousStatus = translateOfferStatus(previousStatus, isFrench);
+            String translatedNewStatus = translateOfferStatus(newStatus, isFrench);
+
+            String subject = isFrench
+                    ? ("Mise à jour de l'offre : " + propertyAddress)
+                    : ("Offer Update: " + propertyAddress);
+
+            String templatePath = isFrench
+                    ? "email-templates/property_offer_status_fr.html"
+                    : "email-templates/property_offer_status_en.html";
+
+            String htmlTemplate = loadTemplateFromClasspath(templatePath);
+
+            // Build counterparty response block if present
+            String counterpartyResponseBlock = "";
+            if (counterpartyResponse != null && !counterpartyResponse.isBlank()) {
+                String responseLabel = isFrench ? "Réponse du vendeur :" : "Seller's Response:";
+                counterpartyResponseBlock = "<div class=\"card\"><p class=\"label\">" + responseLabel + "</p>" +
+                        "<blockquote class=\"blockquote\">" + escapeHtml(counterpartyResponse) + "</blockquote></div>";
+            }
+
+            String emailBody = htmlTemplate
+                    .replace("{{subject}}", escapeHtml(subject))
+                    .replace("{{clientName}}", escapeHtml(clientName))
+                    .replace("{{brokerName}}", escapeHtml(brokerName))
+                    .replace("{{propertyAddress}}", escapeHtml(propertyAddress))
+                    .replace("{{previousStatus}}", escapeHtml(translatedPreviousStatus))
+                    .replace("{{newStatus}}", escapeHtml(translatedNewStatus))
+                    .replace("{{counterpartyResponseBlock}}", counterpartyResponseBlock);
+
+            sendEmail(clientEmail, subject, emailBody);
+        } catch (IOException e) {
+            logger.error("Failed to load property offer status email template", e);
+        } catch (MessagingException e) {
+            logger.error("Failed to send property offer status notification to {}", clientEmail, e);
+        }
+    }
+
+    // ==================== OFFER NOTIFICATIONS (SELL-SIDE) ====================
+
+    /**
+     * Send email notification when an offer is received on a seller client's property.
+     */
+    public void sendOfferReceivedNotification(
+            String clientEmail,
+            String clientName,
+            String brokerName,
+            String buyerName,
+            String offerAmount,
+            String clientLanguage) {
+        try {
+            boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
+
+            String subject = isFrench
+                    ? ("Nouvelle offre reçue de " + buyerName)
+                    : ("New Offer Received from " + buyerName);
+
+            String templatePath = isFrench
+                    ? "email-templates/offer_received_fr.html"
+                    : "email-templates/offer_received_en.html";
+
+            String htmlTemplate = loadTemplateFromClasspath(templatePath);
+
+            String emailBody = htmlTemplate
+                    .replace("{{subject}}", escapeHtml(subject))
+                    .replace("{{clientName}}", escapeHtml(clientName))
+                    .replace("{{brokerName}}", escapeHtml(brokerName))
+                    .replace("{{buyerName}}", escapeHtml(buyerName))
+                    .replace("{{offerAmount}}", escapeHtml(offerAmount));
+
+            sendEmail(clientEmail, subject, emailBody);
+        } catch (IOException e) {
+            logger.error("Failed to load offer received email template", e);
+        } catch (MessagingException e) {
+            logger.error("Failed to send offer received notification to {}", clientEmail, e);
+        }
+    }
+
+    /**
+     * Send email notification when an offer status changes on a seller client's property.
+     */
+    public void sendOfferStatusChangedNotification(
+            String clientEmail,
+            String clientName,
+            String brokerName,
+            String buyerName,
+            String previousStatus,
+            String newStatus,
+            String clientLanguage) {
+        try {
+            boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
+
+            String translatedPreviousStatus = translateOfferStatus(previousStatus, isFrench);
+            String translatedNewStatus = translateOfferStatus(newStatus, isFrench);
+
+            String subject = isFrench
+                    ? ("Mise à jour de l'offre de " + buyerName)
+                    : ("Offer Update from " + buyerName);
+
+            String templatePath = isFrench
+                    ? "email-templates/offer_status_fr.html"
+                    : "email-templates/offer_status_en.html";
+
+            String htmlTemplate = loadTemplateFromClasspath(templatePath);
+
+            String emailBody = htmlTemplate
+                    .replace("{{subject}}", escapeHtml(subject))
+                    .replace("{{clientName}}", escapeHtml(clientName))
+                    .replace("{{brokerName}}", escapeHtml(brokerName))
+                    .replace("{{buyerName}}", escapeHtml(buyerName))
+                    .replace("{{previousStatus}}", escapeHtml(translatedPreviousStatus))
+                    .replace("{{newStatus}}", escapeHtml(translatedNewStatus));
+
+            sendEmail(clientEmail, subject, emailBody);
+        } catch (IOException e) {
+            logger.error("Failed to load offer status email template", e);
+        } catch (MessagingException e) {
+            logger.error("Failed to send offer status notification to {}", clientEmail, e);
+        }
+    }
+
+    /**
+     * Translate offer status enum values to human-readable strings.
+     */
+    private String translateOfferStatus(String status, boolean isFrench) {
+        if (status == null) return "";
+        return switch (status) {
+            case "OFFER_MADE" -> isFrench ? "Offre soumise" : "Offer Made";
+            case "PENDING" -> isFrench ? "En attente" : "Pending";
+            case "COUNTERED" -> isFrench ? "Contre-offre" : "Countered";
+            case "ACCEPTED" -> isFrench ? "Acceptée" : "Accepted";
+            case "DECLINED" -> isFrench ? "Refusée" : "Declined";
+            case "WITHDRAWN" -> isFrench ? "Retirée" : "Withdrawn";
+            case "EXPIRED" -> isFrench ? "Expirée" : "Expired";
+            default -> status;
+        };
+    }
+
     private String translateDocumentType(String docType, boolean isFrench) {
         return switch (docType) {
             case "MORTGAGE_PRE_APPROVAL" -> isFrench ? "Pré-approbation hypothécaire" : "Mortgage Pre-Approval";

@@ -7,6 +7,9 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -23,5 +26,14 @@ public class OfferRequestDTO {
 
     private ReceivedOfferStatus status;
 
+    private LocalDate expiryDate;
+
     private String notes;
+
+    /**
+     * List of condition IDs to link to this offer.
+     */
+    private List<UUID> conditionIds;
 }
+
+

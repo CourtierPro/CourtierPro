@@ -269,6 +269,26 @@ export function useRemoveOffer() {
     });
 }
 
+// ==================== CLIENT OFFER DECISION MUTATION ====================
+
+import type { ClientOfferDecisionDTO, Offer as OfferType } from '@/shared/api/types';
+
+export function useSubmitOfferDecision() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ clientId, transactionId, offerId, data }: { clientId: string; transactionId: string; offerId: string; data: ClientOfferDecisionDTO }) => {
+            const res = await axiosInstance.put<OfferType>(`/clients/${clientId}/transactions/${transactionId}/offers/${offerId}/decision`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: offerKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: offerKeys.detail(variables.transactionId, variables.offerId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
 // ==================== CONDITION MUTATIONS ====================
 
 import { conditionKeys } from '@/features/transactions/api/queries';
@@ -330,6 +350,103 @@ export function useUpdateConditionStatus() {
         },
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: conditionKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+// ==================== PROPERTY OFFER MUTATIONS ====================
+
+import { propertyOfferKeys, offerDocumentKeys } from '@/features/transactions/api/queries';
+import type { PropertyOfferRequestDTO, PropertyOffer, OfferDocument } from '@/shared/api/types';
+
+export function useAddPropertyOffer() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ propertyId, data }: { propertyId: string; transactionId: string; data: PropertyOfferRequestDTO }) => {
+            const res = await axiosInstance.post<PropertyOffer>(`/transactions/properties/${propertyId}/offers`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: propertyOfferKeys.all(variables.propertyId) });
+            queryClient.invalidateQueries({ queryKey: propertyKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+export function useUpdatePropertyOffer() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ propertyId, propertyOfferId, data }: { propertyId: string; propertyOfferId: string; transactionId: string; data: PropertyOfferRequestDTO }) => {
+            const res = await axiosInstance.put<PropertyOffer>(`/transactions/properties/${propertyId}/offers/${propertyOfferId}`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: propertyOfferKeys.all(variables.propertyId) });
+            queryClient.invalidateQueries({ queryKey: propertyOfferKeys.detail(variables.propertyId, variables.propertyOfferId) });
+            queryClient.invalidateQueries({ queryKey: propertyKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+export function useUploadOfferDocument() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, offerId, file }: { transactionId: string; offerId: string; file: File }) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await axiosInstance.post<OfferDocument>(`/transactions/${transactionId}/offers/${offerId}/documents`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: offerDocumentKeys.all(variables.offerId) });
+            queryClient.invalidateQueries({ queryKey: offerKeys.detail(variables.transactionId, variables.offerId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+export function useUploadPropertyOfferDocument() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ propertyId, propertyOfferId, file }: { propertyId: string; propertyOfferId: string; transactionId: string; file: File }) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await axiosInstance.post<OfferDocument>(`/transactions/properties/${propertyId}/offers/${propertyOfferId}/documents`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: propertyOfferKeys.documents(variables.propertyOfferId) });
+            queryClient.invalidateQueries({ queryKey: propertyOfferKeys.all(variables.propertyId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+export function useDeleteOfferDocument() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ documentId }: { documentId: string; offerId?: string; propertyOfferId?: string; transactionId: string }) => {
+            await axiosInstance.delete(`/transactions/documents/${documentId}`);
+        },
+        onSuccess: (_data, variables) => {
+            if (variables.offerId) {
+                queryClient.invalidateQueries({ queryKey: offerDocumentKeys.all(variables.offerId) });
+            }
+            if (variables.propertyOfferId) {
+                queryClient.invalidateQueries({ queryKey: propertyOfferKeys.documents(variables.propertyOfferId) });
+            }
             queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
         },
     });

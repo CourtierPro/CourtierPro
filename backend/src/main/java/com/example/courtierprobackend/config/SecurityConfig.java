@@ -79,6 +79,19 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/transactions/*").hasAnyRole("BROKER", "CLIENT")
                         // Conditions: GET is accessible to both, modifications are broker-only (handled by @PreAuthorize)
                         .requestMatchers(HttpMethod.GET, "/transactions/*/conditions").hasAnyRole("BROKER", "CLIENT")
+                        // Offers: GET accessible to both, modifications are broker-only (handled by @PreAuthorize)
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/offers").hasAnyRole("BROKER", "CLIENT")
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/offers/*").hasAnyRole("BROKER", "CLIENT")
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/offers/*/documents").hasAnyRole("BROKER", "CLIENT")
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/offers/*/revisions").hasAnyRole("BROKER", "CLIENT")
+                        // Document download endpoint - accessible to both broker and client
+                        .requestMatchers(HttpMethod.GET, "/transactions/documents/*/download").hasAnyRole("BROKER", "CLIENT")
+                        // Property offer documents
+                        .requestMatchers(HttpMethod.GET, "/transactions/properties/*/offers").hasAnyRole("BROKER", "CLIENT")
+                        .requestMatchers(HttpMethod.GET, "/transactions/properties/*/offers/*/documents").hasAnyRole("BROKER", "CLIENT")
+                        // Unified documents endpoint - aggregates all document sources
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/all-documents").hasAnyRole("BROKER", "CLIENT")
+                        // Catch-all for other transaction endpoints - requires broker role
                         .requestMatchers("/transactions/**").hasRole("BROKER")
 
                         // Everything else must be authenticated

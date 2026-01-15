@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{subject}}</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .card { background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 16px 0; }
+    .highlight { background: #e8f5e9; padding: 15px; border-radius: 6px; border-left: 4px solid #4caf50; }
+    .muted { color: #777; font-size: 12px; }
+    .divider { border-top: 1px solid #eee; margin: 24px 0; }
+    .amount { font-size: 24px; font-weight: bold; color: #2c3e50; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 style="color:#2c3e50;">Offer Made on Property</h2>
+    <p>Hello {{clientName}},</p>
+    <p>Your broker <strong>{{brokerName}}</strong> has submitted an offer on your behalf:</p>
+    <div class="card">
+      <p style="margin:0 0 8px 0;"><strong>Property:</strong> {{propertyAddress}}</p>
+      <p style="margin:0;"><strong>Offer Round:</strong> #{{offerRound}}</p>
+    </div>
+    <div class="highlight">
+      <p style="margin:0;"><strong>Offer Amount:</strong></p>
+      <p class="amount" style="margin:8px 0 0 0;">{{offerAmount}}</p>
+    </div>
+    <p>You will be notified when there is a response from the seller.</p>
+    <p>Log in to CourtierPro to view details.</p>
+    <div class="divider"></div>
+    <p class="muted">Thanks,<br/>CourtierPro Team</p>
+  </div>
+</body>
+</html>

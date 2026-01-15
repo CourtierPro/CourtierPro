@@ -66,12 +66,15 @@ class DocumentRequestServiceImplTest {
         @Mock
         TimelineService timelineService;
 
+        @Mock
+        private com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository documentConditionLinkRepository;
+
         private DocumentRequestServiceImpl service;
 
         @BeforeEach
         void setUp() {
                 service = new DocumentRequestServiceImpl(repository, storageService, emailService, notificationService,
-                                transactionRepository, userAccountRepository, timelineService, messageSource);
+                                transactionRepository, userAccountRepository, timelineService, messageSource, documentConditionLinkRepository);
         }
 
         // ========== getDocumentsForTransaction Tests ==========
@@ -820,6 +823,7 @@ class DocumentRequestServiceImplTest {
                                 .isInstanceOf(ForbiddenException.class)
                                 .hasMessageContaining("You do not have access");
         }
+
 
         // ========== updateDocumentRequest Tests ==========
 

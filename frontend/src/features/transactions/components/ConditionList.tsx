@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Section } from '@/shared/components/branded/Section';
 import { ConditionCard } from './ConditionCard';
-import type { Condition } from '@/shared/api/types';
+import type { Condition, Offer, PropertyOffer } from '@/shared/api/types';
 
 interface ConditionListProps {
     conditions: Condition[];
@@ -11,6 +11,8 @@ interface ConditionListProps {
     onConditionClick?: (condition: Condition) => void;
     isLoading?: boolean;
     isReadOnly?: boolean;
+    offers?: Offer[];
+    propertyOffers?: PropertyOffer[];
 }
 
 export function ConditionList({
@@ -18,9 +20,22 @@ export function ConditionList({
     onAddClick,
     onConditionClick,
     isLoading,
-    isReadOnly
+    isReadOnly,
+    offers = [],
+    propertyOffers = [],
 }: ConditionListProps) {
     const { t } = useTranslation('transactions');
+
+    // Compute linked count for each condition
+    const getLinkedCount = (conditionId: string) => {
+        const linkedOfferCount = offers.filter(
+            offer => offer.conditions?.some(c => c.conditionId === conditionId)
+        ).length;
+        const linkedPropertyOfferCount = propertyOffers.filter(
+            po => po.conditions?.some(c => c.conditionId === conditionId)
+        ).length;
+        return linkedOfferCount + linkedPropertyOfferCount;
+    };
 
     if (isLoading) {
         return (
@@ -38,7 +53,7 @@ export function ConditionList({
             {!isReadOnly && (
                 <div className="flex justify-between items-center">
                     <h3 className="text-lg font-semibold">{t('conditions.title')}</h3>
-                    <Button onClick={onAddClick} size="sm" variant="outline">
+                    <Button onClick={onAddClick} size="sm">
                         <Plus className="w-4 h-4 mr-1" />
                         {t('conditions.addCondition')}
                     </Button>
@@ -50,13 +65,14 @@ export function ConditionList({
                     {t('conditions.noConditions')}
                 </Section>
             ) : (
-                <div className="space-y-2">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {conditions.map((condition) => (
                         <ConditionCard
                             key={condition.conditionId}
                             condition={condition}
                             onClick={() => onConditionClick?.(condition)}
                             isReadOnly={isReadOnly}
+                            linkedCount={getLinkedCount(condition.conditionId)}
                         />
                     ))}
                 </div>

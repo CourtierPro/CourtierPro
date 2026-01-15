@@ -15,6 +15,10 @@ import com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.ConditionResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.OfferRevisionResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus;
 
 import com.example.courtierprobackend.security.UserContextUtils;
@@ -27,6 +31,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Set;
@@ -338,8 +343,44 @@ public class TransactionController {
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             HttpServletRequest request) {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
-        service.setActiveProperty(transactionId, null, brokerId);
+        service.clearActiveProperty(transactionId, brokerId);
         return ResponseEntity.noContent().build();
+    }
+
+    // ==================== PROPERTY OFFER ENDPOINTS ====================
+
+    @GetMapping("/properties/{propertyId}/offers")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<List<PropertyOfferResponseDTO>> getPropertyOffers(
+            @PathVariable UUID propertyId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        boolean isBroker = UserContextUtils.isBroker(request);
+        return ResponseEntity.ok(service.getPropertyOffers(propertyId, userId, isBroker));
+    }
+
+    @PostMapping("/properties/{propertyId}/offers")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<PropertyOfferResponseDTO> addPropertyOffer(
+            @PathVariable UUID propertyId,
+            @Valid @RequestBody PropertyOfferRequestDTO dto,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.addPropertyOffer(propertyId, dto, brokerId));
+    }
+
+    @PutMapping("/properties/{propertyId}/offers/{propertyOfferId}")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<PropertyOfferResponseDTO> updatePropertyOffer(
+            @PathVariable UUID propertyId,
+            @PathVariable UUID propertyOfferId,
+            @Valid @RequestBody PropertyOfferRequestDTO dto,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.updatePropertyOffer(propertyId, propertyOfferId, dto, brokerId));
     }
 
     // ==================== OFFER ENDPOINTS ====================
@@ -402,6 +443,89 @@ public class TransactionController {
         return ResponseEntity.ok(service.getOfferById(offerId, userId, isBroker));
     }
 
+    @GetMapping("/{transactionId}/offers/{offerId}/revisions")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<List<OfferRevisionResponseDTO>> getOfferRevisions(
+            @PathVariable UUID transactionId,
+            @PathVariable UUID offerId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        boolean isBroker = UserContextUtils.isBroker(request);
+        return ResponseEntity.ok(service.getOfferRevisions(offerId, userId, isBroker));
+    }
+
+    // ==================== OFFER DOCUMENT ENDPOINTS ====================
+
+    @PostMapping("/{transactionId}/offers/{offerId}/documents")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<OfferDocumentResponseDTO> uploadOfferDocument(
+            @PathVariable UUID transactionId,
+            @PathVariable UUID offerId,
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.uploadOfferDocument(offerId, file, brokerId));
+    }
+
+    @PostMapping("/properties/{propertyId}/offers/{propertyOfferId}/documents")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<OfferDocumentResponseDTO> uploadPropertyOfferDocument(
+            @PathVariable UUID propertyId,
+            @PathVariable UUID propertyOfferId,
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.uploadPropertyOfferDocument(propertyOfferId, file, brokerId));
+    }
+
+    @GetMapping("/{transactionId}/offers/{offerId}/documents")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<List<OfferDocumentResponseDTO>> getOfferDocuments(
+            @PathVariable UUID transactionId,
+            @PathVariable UUID offerId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        boolean isBroker = UserContextUtils.isBroker(request);
+        return ResponseEntity.ok(service.getOfferDocuments(offerId, userId, isBroker));
+    }
+
+    @GetMapping("/properties/{propertyId}/offers/{propertyOfferId}/documents")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<List<OfferDocumentResponseDTO>> getPropertyOfferDocuments(
+            @PathVariable UUID propertyId,
+            @PathVariable UUID propertyOfferId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        boolean isBroker = UserContextUtils.isBroker(request);
+        return ResponseEntity.ok(service.getPropertyOfferDocuments(propertyOfferId, userId, isBroker));
+    }
+
+    @GetMapping("/documents/{documentId}/download")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<String> getOfferDocumentDownloadUrl(
+            @PathVariable UUID documentId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.getOfferDocumentDownloadUrl(documentId, userId));
+    }
+
+    @DeleteMapping("/documents/{documentId}")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<Void> deleteOfferDocument(
+            @PathVariable UUID documentId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        service.deleteOfferDocument(documentId, brokerId);
+        return ResponseEntity.noContent().build();
+    }
+
     // ==================== CONDITION ENDPOINTS ====================
 
     @GetMapping("/{transactionId}/conditions")
@@ -461,4 +585,18 @@ public class TransactionController {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
         return ResponseEntity.ok(service.updateConditionStatus(transactionId, conditionId, status, brokerId));
     }
+
+    // ==================== UNIFIED DOCUMENTS ENDPOINT ====================
+
+    @GetMapping("/{transactionId}/all-documents")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<List<com.example.courtierprobackend.transactions.datalayer.dto.UnifiedDocumentDTO>> getAllTransactionDocuments(
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        boolean isBroker = UserContextUtils.isBroker(request);
+        return ResponseEntity.ok(service.getAllTransactionDocuments(transactionId, userId, isBroker));
+    }
 }
+

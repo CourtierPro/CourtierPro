@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{subject}}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 16px 0;
+        }
+
+        .status-change {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .muted {
+            color: #777;
+            font-size: 12px;
+        }
+
+        .divider {
+            border-top: 1px solid #eee;
+            margin: 24px 0;
+        }
+
+        .status {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .blockquote {
+            background: #fafafa;
+            border-left: 3px solid #ccc;
+            padding: 10px 15px;
+            margin: 10px 0;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2 style="color:#2c3e50;">Property Offer Status Update</h2>
+        <p>Hello {{clientName}},</p>
+        <p>Your broker <strong>{{brokerName}}</strong> has updated the status of your offer:</p>
+        <div class="card">
+            <p style="margin:0;"><strong>Property:</strong> {{propertyAddress}}</p>
+        </div>
+        <div class="status-change">
+            <p style="margin:0 0 8px 0;">Status changed from <strong>{{previousStatus}}</strong> to:</p>
+            <p class="status" style="margin:0;">{{newStatus}}</p>
+        </div>
+        {{counterpartyResponseBlock}}
+        <p>Log in to CourtierPro to view details and next steps.</p>
+        <div class="divider"></div>
+        <p class="muted">Thanks,<br />CourtierPro Team</p>
+    </div>
+</body>
+
+</html>

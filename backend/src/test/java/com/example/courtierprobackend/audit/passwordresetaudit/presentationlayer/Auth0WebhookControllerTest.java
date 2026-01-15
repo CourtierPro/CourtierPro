@@ -3,7 +3,6 @@ package com.example.courtierprobackend.audit.passwordresetaudit.presentationlaye
 import com.example.courtierprobackend.audit.passwordresetaudit.businesslayer.PasswordResetAuditService;
 import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -23,9 +22,6 @@ class Auth0WebhookControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @MockBean
     private PasswordResetAuditService passwordResetAuditService;
