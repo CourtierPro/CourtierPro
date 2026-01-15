@@ -122,10 +122,11 @@
       "label": "Default language"
     },
     "templatesCard": {
-      "title": "Invitation email templates",
-      "description": "Configure the invitation emails sent to new users. Placeholders like {{name}} will be replaced with the user's name or email.",
-      "englishTitle": "English invitation",
-      "frenchTitle": "French invitation",
+      "title": "Email templates",
+      "description": "Configure system email templates. Templates support variables that will be automatically replaced.",
+      "selectType": "Select email template type",
+      "englishTitle": "English",
+      "frenchTitle": "French",
       "subject": "Subject",
       "body": "Email body",
       "subjectFr": "Subject",

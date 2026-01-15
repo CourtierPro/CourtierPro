@@ -141,25 +141,30 @@ public class EmailService {
             String translatedDocType = translateDocumentType(docType, isFrench);
             String displayName = documentName.equals(docType) ? translatedDocType : documentName;
 
-            String subject = isFrench ? ("Document soumis : " + displayName) : ("Document Submitted: " + displayName);
+            // Get settings for templates
+            OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
 
-            String templatePath = isFrench
-                    ? "email-templates/document_submitted_fr.html"
-                    : "email-templates/document_submitted_en.html";
+            String subject = isFrench ? settings.getDocumentSubmittedSubjectFr() : settings.getDocumentSubmittedSubjectEn();
+            String bodyText = isFrench ? settings.getDocumentSubmittedBodyFr() : settings.getDocumentSubmittedBodyEn();
 
-            String htmlTemplate = loadTemplateFromClasspath(templatePath);
+            // Fallback to defaults if not configured
+            if (subject == null || subject.isBlank()) {
+                subject = isFrench ? "Document soumis" : "Document Submitted";
+            }
+            if (bodyText == null || bodyText.isBlank()) {
+                bodyText = isFrench
+                        ? "Bonjour {{uploaderName}}, votre document {{documentName}} a été soumis pour la transaction {{transactionId}}."
+                        : "Hello {{uploaderName}}, your document {{documentName}} has been submitted for the transaction {{transactionId}}.";
+            }
 
-            String emailBody = htmlTemplate
-                    .replace("{{subject}}", escapeHtml(subject))
+            String emailBody = convertPlainTextToHtml(bodyText)
                     .replace("{{uploaderName}}", escapeHtml(uploaderName))
                     .replace("{{documentName}}", escapeHtml(displayName))
-                    .replace("{{transactionId}}",
-                            escapeHtml(request.getTransactionRef().getTransactionId().toString()));
+                    .replace("{{documentType}}", escapeHtml(translatedDocType))
+                    .replace("{{transactionId}}", escapeHtml(request.getTransactionRef().getTransactionId().toString()));
 
             sendEmail(brokerEmail, subject, emailBody);
-        } catch (IOException e) {
-            logger.error("Failed to load document submitted email template", e);
-        } catch (MessagingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             logger.error("Failed to send document submitted notification to {}", brokerEmail, e);
         }
     }
@@ -173,26 +178,30 @@ public class EmailService {
             String translatedDocType = translateDocumentType(docType, isFrench);
             String displayName = documentName.equals(docType) ? translatedDocType : documentName;
 
-            String subject = isFrench
-                    ? ("Document demandé : " + displayName)
-                    : ("Document Requested: " + displayName);
+            // Get settings for templates
+            OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
 
-            String templatePath = isFrench
-                    ? "email-templates/document_requested_fr.html"
-                    : "email-templates/document_requested_en.html";
+            String subject = isFrench ? settings.getDocumentRequestedSubjectFr() : settings.getDocumentRequestedSubjectEn();
+            String bodyText = isFrench ? settings.getDocumentRequestedBodyFr() : settings.getDocumentRequestedBodyEn();
 
-            String htmlTemplate = loadTemplateFromClasspath(templatePath);
+            // Fallback to defaults if not configured
+            if (subject == null || subject.isBlank()) {
+                subject = isFrench ? "Document demandé" : "Document Requested";
+            }
+            if (bodyText == null || bodyText.isBlank()) {
+                bodyText = isFrench
+                        ? "Bonjour {{clientName}}, {{brokerName}} a demandé le document {{documentName}}. Veuillez le soumettre dès que possible."
+                        : "Hello {{clientName}}, {{brokerName}} has requested the document {{documentName}}. Please submit it as soon as possible.";
+            }
 
-            String emailBody = htmlTemplate
-                    .replace("{{subject}}", escapeHtml(subject))
+            String emailBody = convertPlainTextToHtml(bodyText)
                     .replace("{{clientName}}", escapeHtml(clientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
-                    .replace("{{documentName}}", escapeHtml(displayName));
+                    .replace("{{documentName}}", escapeHtml(displayName))
+                    .replace("{{documentType}}", escapeHtml(translatedDocType));
 
             sendEmail(clientEmail, subject, emailBody);
-        } catch (IOException e) {
-            logger.error("Failed to load document requested email template", e);
-        } catch (MessagingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             logger.error("Failed to send document requested notification to {}", clientEmail, e);
         }
     }
@@ -246,46 +255,32 @@ public class EmailService {
 
             String displayName = documentName.equals(docType) ? translatedDocType : documentName;
 
-            String subject = isFrench ? ("Document vérifié : " + displayName) : ("Document Reviewed: " + displayName);
+            // Get settings for templates
+            OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
 
-            String templatePath = isFrench
-                    ? "email-templates/document_review_fr.html"
-                    : "email-templates/document_review_en.html";
+            String subject = isFrench ? settings.getDocumentReviewSubjectFr() : settings.getDocumentReviewSubjectEn();
+            String bodyText = isFrench ? settings.getDocumentReviewBodyFr() : settings.getDocumentReviewBodyEn();
 
-            String htmlTemplate = loadTemplateFromClasspath(templatePath);
-
-            String statusLine = isFrench
-                    ? (request.getStatus().toString().equalsIgnoreCase("NEEDS_REVISION")
-                            ? "Votre courtier <strong>" + escapeHtml(brokerName)
-                                    + "</strong> a demandé une révision pour le document suivant :"
-                            : "Votre courtier <strong>" + escapeHtml(brokerName)
-                                    + "</strong> a approuvé le document suivant :")
-                    : (request.getStatus().toString().equalsIgnoreCase("NEEDS_REVISION")
-                            ? "Your broker <strong>" + escapeHtml(brokerName)
-                                    + "</strong> requested a revision for the following document:"
-                            : "Your broker <strong>" + escapeHtml(brokerName)
-                                    + "</strong> approved the following document:");
-
-            String notesBlock = "";
-            if (request.getBrokerNotes() != null && !request.getBrokerNotes().isBlank()) {
-                notesBlock = isFrench
-                        ? "<div class=\"divider\"></div><div class=\"card\"><p class=\"label\">Notes :</p><blockquote class=\"blockquote\">"
-                                + escapeHtml(request.getBrokerNotes()) + "</blockquote></div>"
-                        : "<div class=\"divider\"></div><div class=\"card\"><p class=\"label\">Notes:</p><blockquote class=\"blockquote\">"
-                                + escapeHtml(request.getBrokerNotes()) + "</blockquote></div>";
+            // Fallback to defaults if not configured
+            if (subject == null || subject.isBlank()) {
+                subject = isFrench ? "Document examiné" : "Document Reviewed";
+            }
+            if (bodyText == null || bodyText.isBlank()) {
+                bodyText = isFrench
+                        ? "Bonjour, {{brokerName}} a examiné votre document {{documentName}} pour la transaction {{transactionId}}."
+                        : "Hello, {{brokerName}} has reviewed your document {{documentName}} for transaction {{transactionId}}.";
             }
 
-            String emailBody = htmlTemplate
-                    .replace("{{subject}}", escapeHtml(subject))
-                    .replace("{{statusLine}}", statusLine)
+            String emailBody = convertPlainTextToHtml(bodyText)
+                    .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{documentName}}", escapeHtml(displayName))
+                    .replace("{{documentType}}", escapeHtml(translatedDocType))
                     .replace("{{transactionId}}", escapeHtml(request.getTransactionRef().getTransactionId().toString()))
-                    .replace("{{notesBlock}}", notesBlock);
+                    .replace("{{status}}", escapeHtml(request.getStatus().toString()))
+                    .replace("{{brokerNotes}}", request.getBrokerNotes() != null ? escapeHtml(request.getBrokerNotes()) : "");
 
             sendEmail(clientEmail, subject, emailBody);
-        } catch (IOException e) {
-            logger.error("Failed to load document review email template", e);
-        } catch (MessagingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             logger.error("Failed to send document status notification to {}", clientEmail, e);
         }
     }
@@ -506,6 +501,9 @@ public class EmailService {
 
     private boolean sendEmail(String to, String subject, String body)
             throws MessagingException, UnsupportedEncodingException {
+        // Add footer to body
+        String bodyWithFooter = body + "\n\n" + getEmailFooter();
+
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
@@ -524,7 +522,7 @@ public class EmailService {
         message.setFrom(new InternetAddress(gmailUsername, "CourtierPro"));
         message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
         message.setSubject(subject);
-        message.setContent(body, "text/html; charset=utf-8");
+        message.setContent(bodyWithFooter, "text/html; charset=utf-8");
 
         Transport.send(message);
         logger.info("Email sent successfully to {}", to);
@@ -545,28 +543,32 @@ public class EmailService {
         try {
             boolean isFrench = language != null && language.equalsIgnoreCase("fr");
 
-            String subject = isFrench
-                    ? ("Mise à jour de transaction : " + transactionAddress)
-                    : ("Transaction Update: " + transactionAddress);
+            // Get settings for templates
+            OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
 
-            String templatePath = isFrench
-                    ? "email-templates/stage_update_fr.html"
-                    : "email-templates/stage_update_en.html";
+            String subject = isFrench ? settings.getStageUpdateSubjectFr() : settings.getStageUpdateSubjectEn();
+            String bodyText = isFrench ? settings.getStageUpdateBodyFr() : settings.getStageUpdateBodyEn();
 
-            String htmlTemplate = loadTemplateFromClasspath(templatePath);
+            // Fallback to defaults if not configured
+            if (subject == null || subject.isBlank()) {
+                subject = isFrench ? "Mise à jour de transaction" : "Transaction Update";
+            }
+            if (bodyText == null || bodyText.isBlank()) {
+                bodyText = isFrench
+                        ? "Bonjour {{clientName}}, votre transaction à {{transactionAddress}} a été mise à jour à {{newStage}}."
+                        : "Hello {{clientName}}, your transaction at {{transactionAddress}} has been updated to {{newStage}}.";
+            }
 
             String formattedStage = StageTranslationUtil.getTranslatedStage(newStage, language);
 
-            String emailBody = htmlTemplate
+            String emailBody = convertPlainTextToHtml(bodyText)
                     .replace("{{clientName}}", escapeHtml(clientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{transactionAddress}}", escapeHtml(transactionAddress))
                     .replace("{{newStage}}", escapeHtml(formattedStage));
 
             sendEmail(toEmail, subject, emailBody);
-        } catch (IOException e) {
-            logger.error("Failed to load stage update email template", e);
-        } catch (MessagingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             logger.error("Failed to send stage update email to {}", toEmail, e);
         }
     }
@@ -579,5 +581,48 @@ public class EmailService {
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;");
+    }
+
+    /**
+     * Converts plain text to HTML by:
+     * - Escaping HTML characters
+     * - Converting \n\n (double newline) to paragraph breaks
+     * - Converting \n (single newline) to line breaks
+     */
+    private String convertPlainTextToHtml(String plainText) {
+        if (plainText == null || plainText.isBlank()) {
+            return "";
+        }
+
+        // Escape HTML first to prevent XSS
+        String escaped = plainText
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+
+        // Convert double newlines to paragraph breaks
+        String html = escaped.replace("\n\n", "</p><p>");
+
+        // Convert single newlines to line breaks
+        html = html.replace("\n", "<br>");
+
+        // Wrap in paragraph tags
+        html = "<p>" + html + "</p>";
+
+        return html;
+    }
+
+    /**
+     * Generates a standard email footer
+     */
+    private String getEmailFooter() {
+        return "<hr style=\"border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;\">" +
+               "<p style=\"color: #666; font-size: 12px; line-height: 1.6;\">" +
+               "Merci,<br>" +
+               "Cordialement,<br>" +
+               "<strong>Équipe CourtierPro</strong>" +
+               "</p>";
     }
 }

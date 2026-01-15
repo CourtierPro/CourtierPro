@@ -122,10 +122,11 @@
       "label": "Langue par défaut"
     },
     "templatesCard": {
-      "title": "Modèles de courriels d’invitation",
-      "description": "Configurez les courriels d’invitation envoyés aux nouveaux utilisateurs. Les variables comme {{name}} seront remplacées par le nom ou le courriel de l’utilisateur.",
-      "englishTitle": "Invitation en anglais",
-      "frenchTitle": "Invitation en français",
+      "title": "Modèles de courriels",
+      "description": "Configurez les modèles de courriels système. Les modèles prennent en charge des variables qui seront automatiquement remplacées.",
+      "selectType": "Sélectionner le type de modèle de courriel",
+      "englishTitle": "Anglais",
+      "frenchTitle": "Français",
       "subject": "Sujet",
       "body": "Corps du courriel",
       "subjectFr": "Sujet",

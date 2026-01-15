@@ -4,10 +4,31 @@ import axiosInstance from "@/shared/api/axiosInstance";
 // Type of the organization settings payload
 export interface UpdateOrganizationSettingsRequest {
   defaultLanguage: string;
+  // Invite Template
   inviteSubjectEn: string;
   inviteBodyEn: string;
   inviteSubjectFr: string;
   inviteBodyFr: string;
+  // Document Submitted Template
+  documentSubmittedSubjectEn?: string;
+  documentSubmittedBodyEn?: string;
+  documentSubmittedSubjectFr?: string;
+  documentSubmittedBodyFr?: string;
+  // Document Requested Template
+  documentRequestedSubjectEn?: string;
+  documentRequestedBodyEn?: string;
+  documentRequestedSubjectFr?: string;
+  documentRequestedBodyFr?: string;
+  // Document Review Template
+  documentReviewSubjectEn?: string;
+  documentReviewBodyEn?: string;
+  documentReviewSubjectFr?: string;
+  documentReviewBodyFr?: string;
+  // Stage Update Template
+  stageUpdateSubjectEn?: string;
+  stageUpdateBodyEn?: string;
+  stageUpdateSubjectFr?: string;
+  stageUpdateBodyFr?: string;
 }
 
 // GET /api/admin/settings
