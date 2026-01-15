@@ -1480,7 +1480,7 @@ public class TransactionServiceImpl implements TransactionService {
                                 clientName.trim(),
                                 brokerName.trim(),
                                 saved.getBuyerName(),
-                                previousStatus.name(),
+                                previousStatus != null ? previousStatus.name() : "UNKNOWN",
                                 dto.getStatus().name(),
                                 clientLanguage);
                     }

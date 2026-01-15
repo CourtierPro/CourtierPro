@@ -380,5 +380,4 @@ class GitHubServiceTest {
             .isInstanceOf(RuntimeException.class)
             .hasMessageContaining("Failed to create GitHub issue");
     }
-    
 }

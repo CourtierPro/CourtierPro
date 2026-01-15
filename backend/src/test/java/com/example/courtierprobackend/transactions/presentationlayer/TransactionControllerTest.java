@@ -480,4 +480,20 @@ class TransactionControllerTest {
                                 .with(jwt()))
                                 .andExpect(status().isForbidden());
         }
+
+        @Test
+        @WithMockUser(roles = "BROKER")
+        void getTransactionTimeline_returnsList() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                String brokerId = brokerUuid.toString();
+                
+                when(timelineService.getTimelineForTransaction(txId)).thenReturn(List.of());
+
+                mockMvc.perform(get("/transactions/" + txId + "/timeline")
+                                .with(jwt())
+                                .header("x-broker-id", brokerId))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.length()").value(0));
+        }
 }

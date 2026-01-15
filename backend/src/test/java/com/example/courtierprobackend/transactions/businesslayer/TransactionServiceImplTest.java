@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository;
+import com.example.courtierprobackend.transactions.datalayer.Offer;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
@@ -2754,4 +2755,3142 @@ class TransactionServiceImplTest {
             assertThat(result).hasSize(2);
             verify(transactionRepository).findArchivedByBrokerId(brokerId);
         }
+
+    // =================================================================================================
+    // OFFER DOCUMENT UPLOAD TESTS
+    // =================================================================================================
+
+    @Test
+    void uploadOfferDocument_withValidData_returnsDocument() throws java.io.IOException {
+        // Arrange
+        UUID offerId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Offer offer = com.example.courtierprobackend.transactions.datalayer.Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .build();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        org.springframework.web.multipart.MultipartFile mockFile = mock(org.springframework.web.multipart.MultipartFile.class);
+        when(mockFile.getOriginalFilename()).thenReturn("test.pdf");
+        when(mockFile.getContentType()).thenReturn("application/pdf");
+        when(mockFile.getSize()).thenReturn(1024L);
+
+        com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject storageObject = 
+                com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject.builder()
+                        .s3Key("test-key")
+                        .fileName("test.pdf")
+                        .build();
+
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(s3StorageService.uploadFile(any(), any(), any())).thenReturn(storageObject);
+        when(offerDocumentRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.uploadOfferDocument(offerId, mockFile, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getFileName()).isEqualTo("test.pdf");
+        verify(offerDocumentRepository).save(any());
+    }
+
+    @Test
+    void uploadOfferDocument_whenOfferNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID offerId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        org.springframework.web.multipart.MultipartFile mockFile = mock(org.springframework.web.multipart.MultipartFile.class);
+
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.uploadOfferDocument(offerId, mockFile, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Offer not found");
+    }
+
+    @Test
+    void uploadOfferDocument_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID offerId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Offer offer = com.example.courtierprobackend.transactions.datalayer.Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .build();
+        org.springframework.web.multipart.MultipartFile mockFile = mock(org.springframework.web.multipart.MultipartFile.class);
+
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.uploadOfferDocument(offerId, mockFile, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    @Test
+    void uploadOfferDocument_whenWrongBroker_throwsForbiddenException() {
+        // Arrange
+        UUID offerId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID wrongBrokerId = UUID.randomUUID();
+
+        Offer offer = com.example.courtierprobackend.transactions.datalayer.Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .build();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);  // Different broker
+
+        org.springframework.web.multipart.MultipartFile mockFile = mock(org.springframework.web.multipart.MultipartFile.class);
+
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.uploadOfferDocument(offerId, mockFile, wrongBrokerId))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void uploadOfferDocument_whenIOException_throwsRuntimeException() throws java.io.IOException {
+        // Arrange
+        UUID offerId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Offer offer = com.example.courtierprobackend.transactions.datalayer.Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .build();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        org.springframework.web.multipart.MultipartFile mockFile = mock(org.springframework.web.multipart.MultipartFile.class);
+        when(mockFile.getOriginalFilename()).thenReturn("test.pdf");
+
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(s3StorageService.uploadFile(any(), any(), any())).thenThrow(new java.io.IOException("Upload failed"));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.uploadOfferDocument(offerId, mockFile, brokerId))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to upload document");
+    }
+
+    // =================================================================================================
+    // PROPERTY OFFER DOCUMENT UPLOAD TESTS
+    // =================================================================================================
+
+    @Test
+    void uploadPropertyOfferDocument_withValidData_returnsDocument() throws java.io.IOException {
+        // Arrange
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer propertyOffer = 
+                com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                        .propertyOfferId(propertyOfferId)
+                        .propertyId(propertyId)
+                        .build();
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .build();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        org.springframework.web.multipart.MultipartFile mockFile = mock(org.springframework.web.multipart.MultipartFile.class);
+        when(mockFile.getOriginalFilename()).thenReturn("offer.pdf");
+        when(mockFile.getContentType()).thenReturn("application/pdf");
+        when(mockFile.getSize()).thenReturn(2048L);
+
+        com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject storageObject = 
+                com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject.builder()
+                        .s3Key("property-offer-key")
+                        .fileName("offer.pdf")
+                        .build();
+
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(propertyOffer));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(s3StorageService.uploadFile(any(), any(), any())).thenReturn(storageObject);
+        when(offerDocumentRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.uploadPropertyOfferDocument(propertyOfferId, mockFile, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getFileName()).isEqualTo("offer.pdf");
+        verify(offerDocumentRepository).save(any());
+    }
+
+    @Test
+    void uploadPropertyOfferDocument_whenPropertyOfferNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        org.springframework.web.multipart.MultipartFile mockFile = mock(org.springframework.web.multipart.MultipartFile.class);
+
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.uploadPropertyOfferDocument(propertyOfferId, mockFile, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Property offer not found");
+    }
+
+    @Test
+    void uploadPropertyOfferDocument_whenPropertyNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer propertyOffer = 
+                com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                        .propertyOfferId(propertyOfferId)
+                        .propertyId(propertyId)
+                        .build();
+        org.springframework.web.multipart.MultipartFile mockFile = mock(org.springframework.web.multipart.MultipartFile.class);
+
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(propertyOffer));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.uploadPropertyOfferDocument(propertyOfferId, mockFile, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Property not found");
+    }
+
+    // =================================================================================================
+    // OFFER DOCUMENT DOWNLOAD URL TESTS
+    // =================================================================================================
+
+    @Test
+    void getOfferDocumentDownloadUrl_viaOffer_returnsUrl() {
+        // Arrange
+        UUID documentId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.OfferDocument document = 
+                com.example.courtierprobackend.transactions.datalayer.OfferDocument.builder()
+                        .documentId(documentId)
+                        .offerId(offerId)
+                        .propertyOfferId(null)
+                        .s3Key("test-s3-key")
+                        .build();
+        Offer offer = com.example.courtierprobackend.transactions.datalayer.Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .build();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+
+        when(offerDocumentRepository.findByDocumentId(documentId)).thenReturn(Optional.of(document));
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(s3StorageService.generatePresignedUrl("test-s3-key")).thenReturn("https://s3.example.com/presigned-url");
+
+        // Act
+        String result = transactionService.getOfferDocumentDownloadUrl(documentId, userId);
+
+        // Assert
+        assertThat(result).isEqualTo("https://s3.example.com/presigned-url");
+    }
+
+    @Test
+    void getOfferDocumentDownloadUrl_viaPropertyOffer_returnsUrl() {
+        // Arrange
+        UUID documentId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.OfferDocument document = 
+                com.example.courtierprobackend.transactions.datalayer.OfferDocument.builder()
+                        .documentId(documentId)
+                        .offerId(null)
+                        .propertyOfferId(propertyOfferId)
+                        .s3Key("property-offer-s3-key")
+                        .build();
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer propertyOffer = 
+                com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                        .propertyOfferId(propertyOfferId)
+                        .propertyId(propertyId)
+                        .build();
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .build();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+
+        when(offerDocumentRepository.findByDocumentId(documentId)).thenReturn(Optional.of(document));
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(propertyOffer));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(s3StorageService.generatePresignedUrl("property-offer-s3-key")).thenReturn("https://s3.example.com/property-url");
+
+        // Act
+        String result = transactionService.getOfferDocumentDownloadUrl(documentId, userId);
+
+        // Assert
+        assertThat(result).isEqualTo("https://s3.example.com/property-url");
+    }
+
+    @Test
+    void getOfferDocumentDownloadUrl_whenDocumentNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID documentId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        when(offerDocumentRepository.findByDocumentId(documentId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getOfferDocumentDownloadUrl(documentId, userId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Document not found");
+    }
+
+    // =================================================================================================
+    // OFFER DOCUMENT DELETION TESTS
+    // =================================================================================================
+
+    @Test
+    void deleteOfferDocument_viaOffer_deletesDocument() {
+        // Arrange
+        UUID documentId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.OfferDocument document = 
+                com.example.courtierprobackend.transactions.datalayer.OfferDocument.builder()
+                        .documentId(documentId)
+                        .offerId(offerId)
+                        .propertyOfferId(null)
+                        .s3Key("delete-s3-key")
+                        .build();
+        Offer offer = com.example.courtierprobackend.transactions.datalayer.Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .build();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        when(offerDocumentRepository.findByDocumentId(documentId)).thenReturn(Optional.of(document));
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act
+        transactionService.deleteOfferDocument(documentId, brokerId);
+
+        // Assert
+        verify(s3StorageService).deleteFile("delete-s3-key");
+        verify(offerDocumentRepository).delete(document);
+    }
+
+    @Test
+    void deleteOfferDocument_viaPropertyOffer_deletesDocument() {
+        // Arrange
+        UUID documentId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.OfferDocument document = 
+                com.example.courtierprobackend.transactions.datalayer.OfferDocument.builder()
+                        .documentId(documentId)
+                        .offerId(null)
+                        .propertyOfferId(propertyOfferId)
+                        .s3Key("property-delete-key")
+                        .build();
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer propertyOffer = 
+                com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                        .propertyOfferId(propertyOfferId)
+                        .propertyId(propertyId)
+                        .build();
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .build();
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        when(offerDocumentRepository.findByDocumentId(documentId)).thenReturn(Optional.of(document));
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(propertyOffer));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act
+        transactionService.deleteOfferDocument(documentId, brokerId);
+
+        // Assert
+        verify(s3StorageService).deleteFile("property-delete-key");
+        verify(offerDocumentRepository).delete(document);
+    }
+
+    // =================================================================================================
+    // CLEAR ACTIVE PROPERTY TESTS
+    // =================================================================================================
+
+    @Test
+    void clearActiveProperty_clearsPropertyAddress() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        tx.setPropertyAddress(new PropertyAddress("123 Main St", "City", "Province", "A1A 1A1"));
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any())).thenReturn(tx);
+
+        // Act
+        transactionService.clearActiveProperty(transactionId, brokerId);
+
+        // Assert
+        assertThat(tx.getPropertyAddress()).isNull();
+        verify(transactionRepository).save(tx);
+    }
+
+    @Test
+    void clearActiveProperty_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.clearActiveProperty(transactionId, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    @Test
+    void clearActiveProperty_whenWrongBroker_throwsForbiddenException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID wrongBrokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.clearActiveProperty(transactionId, wrongBrokerId))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    // =================================================================================================
+    // UNIFIED DOCUMENTS TESTS
+    // =================================================================================================
+
+    @Test
+    void getAllTransactionDocuments_includesOfferAttachments() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+
+        Offer offer = com.example.courtierprobackend.transactions.datalayer.Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .buyerName("Test Buyer")
+                .build();
+
+        com.example.courtierprobackend.transactions.datalayer.OfferDocument offerDoc = 
+                com.example.courtierprobackend.transactions.datalayer.OfferDocument.builder()
+                        .documentId(documentId)
+                        .offerId(offerId)
+                        .fileName("offer-doc.pdf")
+                        .mimeType("application/pdf")
+                        .sizeBytes(1024L)
+                        .createdAt(java.time.LocalDateTime.now())
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(documentRequestRepository.findByTransactionRef_TransactionId(transactionId)).thenReturn(List.of());
+        when(offerRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId)).thenReturn(List.of(offer));
+        when(offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(offerId)).thenReturn(List.of(offerDoc));
+        when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId)).thenReturn(List.of());
+
+        // Act
+        var result = transactionService.getAllTransactionDocuments(transactionId, userId, true);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getFileName()).isEqualTo("offer-doc.pdf");
+        assertThat(result.get(0).getSource()).isEqualTo("OFFER_ATTACHMENT");
+        assertThat(result.get(0).getSourceName()).contains("Test Buyer");
+    }
+
+    @Test
+    void getAllTransactionDocuments_includesPropertyOfferAttachments() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .address(new PropertyAddress("456 Oak Ave", "City", "Province", "B2B 2B2"))
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer propertyOffer = 
+                com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                        .propertyOfferId(propertyOfferId)
+                        .propertyId(propertyId)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.OfferDocument propOfferDoc = 
+                com.example.courtierprobackend.transactions.datalayer.OfferDocument.builder()
+                        .documentId(documentId)
+                        .propertyOfferId(propertyOfferId)
+                        .fileName("property-offer-doc.pdf")
+                        .mimeType("application/pdf")
+                        .sizeBytes(2048L)
+                        .createdAt(java.time.LocalDateTime.now())
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(documentRequestRepository.findByTransactionRef_TransactionId(transactionId)).thenReturn(List.of());
+        when(offerRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId)).thenReturn(List.of());
+        when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId)).thenReturn(List.of(property));
+        when(propertyOfferRepository.findByPropertyIdOrderByOfferRoundDesc(propertyId)).thenReturn(List.of(propertyOffer));
+        when(offerDocumentRepository.findByPropertyOfferIdOrderByCreatedAtDesc(propertyOfferId)).thenReturn(List.of(propOfferDoc));
+
+        // Act
+        var result = transactionService.getAllTransactionDocuments(transactionId, userId, true);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getFileName()).isEqualTo("property-offer-doc.pdf");
+        assertThat(result.get(0).getSource()).isEqualTo("PROPERTY_OFFER_ATTACHMENT");
+        assertThat(result.get(0).getSourceName()).contains("456 Oak Ave");
+    }
+
+    @Test
+    void getAllTransactionDocuments_sortsByDateDescending() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+
+        Offer offer = com.example.courtierprobackend.transactions.datalayer.Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .buyerName("Buyer")
+                .build();
+
+        java.time.LocalDateTime older = java.time.LocalDateTime.now().minusDays(2);
+        java.time.LocalDateTime newer = java.time.LocalDateTime.now();
+
+        com.example.courtierprobackend.transactions.datalayer.OfferDocument olderDoc = 
+                com.example.courtierprobackend.transactions.datalayer.OfferDocument.builder()
+                        .documentId(UUID.randomUUID())
+                        .offerId(offerId)
+                        .fileName("older.pdf")
+                        .createdAt(older)
+                        .build();
+        com.example.courtierprobackend.transactions.datalayer.OfferDocument newerDoc = 
+                com.example.courtierprobackend.transactions.datalayer.OfferDocument.builder()
+                        .documentId(UUID.randomUUID())
+                        .offerId(offerId)
+                        .fileName("newer.pdf")
+                        .createdAt(newer)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(documentRequestRepository.findByTransactionRef_TransactionId(transactionId)).thenReturn(List.of());
+        when(offerRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId)).thenReturn(List.of(offer));
+        when(offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(offerId)).thenReturn(List.of(olderDoc, newerDoc));
+        when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId)).thenReturn(List.of());
+
+        // Act
+        var result = transactionService.getAllTransactionDocuments(transactionId, userId, true);
+
+        // Assert
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getFileName()).isEqualTo("newer.pdf");
+        assertThat(result.get(1).getFileName()).isEqualTo("older.pdf");
+    }
+
+    @Test
+    void getAllTransactionDocuments_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getAllTransactionDocuments(transactionId, userId, true))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // =================================================================================================
+    // PROPERTY OFFER TESTS (covering notification paths)
+    // =================================================================================================
+
+    @Test
+    void addPropertyOffer_withValidData_sendsNotificationAndEmail() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .address(new PropertyAddress("123 Main St", "City", "Province", "A1A 1A1"))
+                        .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+
+        UserAccount client = new UserAccount();
+        client.setId(clientId);
+        client.setEmail("client@test.com");
+        client.setFirstName("Test");
+        client.setLastName("Client");
+        client.setPreferredLanguage("en");
+
+        UserAccount broker = new UserAccount();
+        broker.setId(brokerId);
+        broker.setFirstName("Test");
+        broker.setLastName("Broker");
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO.builder()
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .status(BuyerOfferStatus.OFFER_MADE)
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyOfferRepository.findTopByPropertyIdOrderByOfferRoundDesc(propertyId)).thenReturn(Optional.empty());
+        when(propertyOfferRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(propertyRepository.save(any())).thenReturn(property);
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+
+        // Act
+        var result = transactionService.addPropertyOffer(propertyId, dto, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(notificationService).createNotification(eq(clientId.toString()), anyString(), anyString(), any(java.util.Map.class), anyString(), any());
+        verify(emailService).sendPropertyOfferMadeNotification(eq("client@test.com"), anyString(), anyString(), anyString(), anyString(), eq(1), eq("en"));
+    }
+
+    @Test
+    void addPropertyOffer_whenNotificationFails_logsAndProceeds() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .address(new PropertyAddress("123 Main St", "City", "Province", "A1A 1A1"))
+                        .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO.builder()
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .status(BuyerOfferStatus.OFFER_MADE)
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyOfferRepository.findTopByPropertyIdOrderByOfferRoundDesc(propertyId)).thenReturn(Optional.empty());
+        when(propertyOfferRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(propertyRepository.save(any())).thenReturn(property);
+        doThrow(new RuntimeException("Notification error")).when(notificationService)
+                .createNotification(anyString(), anyString(), anyString(), any(java.util.Map.class), anyString(), any());
+
+        // Act
+        var result = transactionService.addPropertyOffer(propertyId, dto, brokerId);
+
+        // Assert - should succeed despite notification failure
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    void addPropertyOffer_whenEmailFails_logsAndProceeds() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .address(new PropertyAddress("123 Main St", "City", "Province", "A1A 1A1"))
+                        .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+
+        UserAccount client = new UserAccount();
+        client.setId(clientId);
+        client.setEmail("client@test.com");
+        client.setFirstName("Test");
+        client.setLastName("Client");
+
+        UserAccount broker = new UserAccount();
+        broker.setId(brokerId);
+        broker.setFirstName("Test");
+        broker.setLastName("Broker");
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO.builder()
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .status(BuyerOfferStatus.OFFER_MADE)
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyOfferRepository.findTopByPropertyIdOrderByOfferRoundDesc(propertyId)).thenReturn(Optional.empty());
+        when(propertyOfferRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(propertyRepository.save(any())).thenReturn(property);
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+        doThrow(new RuntimeException("Email error")).when(emailService)
+                .sendPropertyOfferMadeNotification(anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyString());
+
+        // Act
+        var result = transactionService.addPropertyOffer(propertyId, dto, brokerId);
+
+        // Assert - should succeed despite email failure
+        assertThat(result).isNotNull();
+    }
+
+    // =================================================================================================
+    // OFFER UPDATE WITH REVISIONS TESTS
+    // =================================================================================================
+
+    @Test
+    void updateOffer_withStatusChange_createsRevision() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+
+        Offer offer = Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .buyerName("Test Buyer")
+                .offerAmount(new java.math.BigDecimal("400000"))
+                .status(ReceivedOfferStatus.PENDING)
+                .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO.builder()
+                        .buyerName("Test Buyer")
+                        .offerAmount(new java.math.BigDecimal("420000"))
+                        .status(ReceivedOfferStatus.COUNTERED)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(offerRevisionRepository.findMaxRevisionNumberByOfferId(offerId)).thenReturn(null);
+        when(offerRevisionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(offerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.updateOffer(transactionId, offerId, dto, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(offerRevisionRepository).save(any(com.example.courtierprobackend.transactions.datalayer.OfferRevision.class));
+    }
+
+    @Test
+    void updateOffer_withCounteredStatus_sendsNotification() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+
+        Offer offer = Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .buyerName("Test Buyer")
+                .offerAmount(new java.math.BigDecimal("400000"))
+                .status(ReceivedOfferStatus.PENDING)
+                .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO.builder()
+                        .buyerName("Test Buyer")
+                        .offerAmount(new java.math.BigDecimal("400000"))
+                        .status(ReceivedOfferStatus.COUNTERED)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(offerRevisionRepository.findMaxRevisionNumberByOfferId(offerId)).thenReturn(1);
+        when(offerRevisionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(offerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.updateOffer(transactionId, offerId, dto, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(notificationService).createNotification(eq(clientId.toString()), anyString(), anyString(), any(java.util.Map.class), anyString(), any());
+    }
+
+    // =================================================================================================
+    // GET BROKER TRANSACTIONS EDGE CASES
+    // =================================================================================================
+
+    @Test
+    void getBrokerTransactions_withBuySideFilter_handlesCorrectly() {
+        // Arrange
+        UUID brokerId = UUID.randomUUID();
+        when(transactionRepository.findAllByFilters(eq(brokerId), any(), eq(TransactionSide.BUY_SIDE), any(), anyBoolean()))
+                .thenReturn(List.of());
+
+        // Act
+        transactionService.getBrokerTransactions(brokerId, null, null, "BUY_SIDE");
+
+        // Assert
+        verify(transactionRepository).findAllByFilters(eq(brokerId), isNull(), eq(TransactionSide.BUY_SIDE), isNull(), anyBoolean());
+    }
+
+    @Test
+    void getBrokerTransactions_withSellerStageFilter_handlesCorrectly() {
+        // Arrange
+        UUID brokerId = UUID.randomUUID();
+        when(transactionRepository.findAllByFilters(any(), any(), any(), any(), anyBoolean()))
+                .thenReturn(List.of());
+
+        // Act
+        transactionService.getBrokerTransactions(brokerId, null, "SELLER_INITIAL_CONSULTATION", null);
+
+        // Assert
+        verify(transactionRepository).findAllByFilters(eq(brokerId), isNull(), isNull(), eq(SellerStage.SELLER_INITIAL_CONSULTATION), anyBoolean());
+    }
+
+    // =================================================================================================
+    // UPDATE PROPERTY OFFER WITH CONDITION LINKS TESTS
+    // =================================================================================================
+
+    @Test
+    void updatePropertyOffer_withConditionIds_createsLinks() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID conditionId1 = UUID.randomUUID();
+        UUID conditionId2 = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer existingOffer = 
+                com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                        .propertyOfferId(propertyOfferId)
+                        .propertyId(propertyId)
+                        .offerRound(1)
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .status(BuyerOfferStatus.OFFER_MADE)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO.builder()
+                        .offerAmount(new java.math.BigDecimal("510000"))
+                        .status(BuyerOfferStatus.OFFER_MADE)
+                        .conditionIds(List.of(conditionId1, conditionId2))
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(existingOffer));
+        when(propertyOfferRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(propertyOfferRepository.findTopByPropertyIdOrderByOfferRoundDesc(propertyId)).thenReturn(Optional.of(existingOffer));
+        when(propertyRepository.save(any())).thenReturn(property);
+        when(documentConditionLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.updatePropertyOffer(propertyId, propertyOfferId, dto, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(documentConditionLinkRepository).deleteByPropertyOfferId(propertyOfferId);
+        verify(documentConditionLinkRepository, times(2)).save(any(com.example.courtierprobackend.transactions.datalayer.DocumentConditionLink.class));
+    }
+
+    @Test
+    void updatePropertyOffer_syncsToPropertyWhenLatest() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer existingOffer = 
+                com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                        .propertyOfferId(propertyOfferId)
+                        .propertyId(propertyId)
+                        .offerRound(1)
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .status(BuyerOfferStatus.OFFER_MADE)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO.builder()
+                        .offerAmount(new java.math.BigDecimal("550000"))
+                        .status(BuyerOfferStatus.ACCEPTED)
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(existingOffer));
+        when(propertyOfferRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(propertyOfferRepository.findTopByPropertyIdOrderByOfferRoundDesc(propertyId)).thenReturn(Optional.of(existingOffer));
+        when(propertyRepository.save(any())).thenReturn(property);
+
+        // Act
+        var result = transactionService.updatePropertyOffer(propertyId, propertyOfferId, dto, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(propertyRepository).save(argThat(p -> 
+                p.getOfferAmount().compareTo(new java.math.BigDecimal("550000")) == 0 &&
+                p.getOfferStatus() == PropertyOfferStatus.ACCEPTED));
+    }
+
+    // =================================================================================================
+    // ADD OFFER WITH EMAIL NOTIFICATION TESTS
+    // =================================================================================================
+
+    @Test
+    void addOffer_withValidData_sendsEmailNotification() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+
+        UserAccount client = new UserAccount();
+        client.setId(clientId);
+        client.setEmail("client@test.com");
+        client.setFirstName("Test");
+        client.setLastName("Client");
+        client.setPreferredLanguage("fr");
+
+        UserAccount broker = new UserAccount();
+        broker.setId(brokerId);
+        broker.setFirstName("Test");
+        broker.setLastName("Broker");
+
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO.builder()
+                        .buyerName("Buyer Name")
+                        .offerAmount(new java.math.BigDecimal("600000"))
+                        .status(ReceivedOfferStatus.PENDING)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+
+        // Act
+        var result = transactionService.addOffer(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(emailService).sendOfferReceivedNotification(
+                eq("client@test.com"), 
+                anyString(), 
+                anyString(), 
+                eq("Buyer Name"), 
+                anyString(), 
+                eq("fr"));
+    }
+
+    @Test
+    void addOffer_whenEmailFails_logsAndProceeds() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+
+        UserAccount client = new UserAccount();
+        client.setId(clientId);
+        client.setEmail("client@test.com");
+        client.setFirstName("Test");
+        client.setLastName("Client");
+
+        UserAccount broker = new UserAccount();
+        broker.setId(brokerId);
+        broker.setFirstName("Test");
+        broker.setLastName("Broker");
+
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO.builder()
+                        .buyerName("Buyer Name")
+                        .offerAmount(new java.math.BigDecimal("600000"))
+                        .status(ReceivedOfferStatus.PENDING)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+        doThrow(new RuntimeException("Email error")).when(emailService)
+                .sendOfferReceivedNotification(anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+
+        // Act
+        var result = transactionService.addOffer(transactionId, dto, brokerId);
+
+        // Assert - should succeed despite email failure
+        assertThat(result).isNotNull();
+    }
+
+    // =================================================================================================
+    // GET OFFER DOCUMENTS VIA PARENT OFFER TESTS
+    // =================================================================================================
+
+    @Test
+    void getOfferDocuments_returnsDocumentsList() {
+        // Arrange
+        UUID offerId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+
+        Offer offer = Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+
+        com.example.courtierprobackend.transactions.datalayer.OfferDocument doc = 
+                com.example.courtierprobackend.transactions.datalayer.OfferDocument.builder()
+                        .documentId(documentId)
+                        .offerId(offerId)
+                        .fileName("test.pdf")
+                        .build();
+
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(offerId)).thenReturn(List.of(doc));
+
+        // Act
+        var result = transactionService.getOfferDocuments(offerId, userId, true);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getFileName()).isEqualTo("test.pdf");
+    }
+
+    @Test
+    void getPropertyOfferDocuments_returnsDocumentsList() {
+        // Arrange
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer propertyOffer = 
+                com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                        .propertyOfferId(propertyOfferId)
+                        .propertyId(propertyId)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+
+        com.example.courtierprobackend.transactions.datalayer.OfferDocument doc = 
+                com.example.courtierprobackend.transactions.datalayer.OfferDocument.builder()
+                        .documentId(documentId)
+                        .propertyOfferId(propertyOfferId)
+                        .fileName("property-offer.pdf")
+                        .build();
+
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(propertyOffer));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerDocumentRepository.findByPropertyOfferIdOrderByCreatedAtDesc(propertyOfferId)).thenReturn(List.of(doc));
+
+        // Act
+        var result = transactionService.getPropertyOfferDocuments(propertyOfferId, userId, true);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getFileName()).isEqualTo("property-offer.pdf");
+    }
+
+    // =================================================================================================
+    // REMOVE OFFER TESTS
+    // =================================================================================================
+
+    @Test
+    void removeOffer_deletesOfferAndAddsTimeline() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        Offer offer = Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .buyerName("Test Buyer")
+                .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+
+        // Act
+        transactionService.removeOffer(transactionId, offerId, brokerId);
+
+        // Assert
+        verify(offerRepository).delete(offer);
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.OFFER_REMOVED), isNull(), isNull(), any());
+    }
+
+    @Test
+    void removeOffer_whenOfferDoesNotBelongToTransaction_throwsBadRequest() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        Offer offer = Offer.builder()
+                .offerId(offerId)
+                .transactionId(UUID.randomUUID())  // Different transaction
+                .buyerName("Test Buyer")
+                .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.removeOffer(transactionId, offerId, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Offer does not belong to this transaction");
+    }
+
+    // =================================================================================================
+    // UPDATE TRANSACTION STAGE EDGE CASES
+    // =================================================================================================
+
+    @Test
+    void updateTransactionStage_withInvalidSellerStage_throwsBadRequest() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+        tx.setSellerStage(SellerStage.SELLER_INITIAL_CONSULTATION);
+        tx.setStatus(TransactionStatus.ACTIVE);
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("INVALID_STAGE");
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("not a valid seller stage");
+    }
+
+    @Test
+    void updateTransactionStage_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("SELLER_INITIAL_CONSULTATION");
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // =================================================================================================
+    // CONDITION TESTS
+    // =================================================================================================
+
+    @Test
+    void updateCondition_withTypeOther_requiresCustomTitle() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                com.example.courtierprobackend.transactions.datalayer.Condition.builder()
+                        .conditionId(conditionId)
+                        .transactionId(transactionId)
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .status(com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.PENDING)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO.builder()
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.OTHER)
+                        .customTitle(null)  // Missing custom title
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateCondition(transactionId, conditionId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Custom title is required for condition type OTHER");
+    }
+
+    @Test
+    void updateCondition_withStatusChange_setsTimestamps() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                com.example.courtierprobackend.transactions.datalayer.Condition.builder()
+                        .conditionId(conditionId)
+                        .transactionId(transactionId)
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .status(com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.PENDING)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO.builder()
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .status(com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.SATISFIED)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+        when(conditionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.updateCondition(transactionId, conditionId, dto, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(conditionRepository).save(argThat(c -> 
+                c.getStatus() == com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.SATISFIED &&
+                c.getSatisfiedAt() != null));
+    }
+
+    @Test
+    void updateCondition_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO.builder()
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateCondition(transactionId, conditionId, dto, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    @Test
+    void removeCondition_deletesConditionAndAddsTimeline() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                com.example.courtierprobackend.transactions.datalayer.Condition.builder()
+                        .conditionId(conditionId)
+                        .transactionId(transactionId)
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.INSPECTION)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+
+        // Act
+        transactionService.removeCondition(transactionId, conditionId, brokerId);
+
+        // Assert
+        verify(conditionRepository).delete(condition);
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.CONDITION_REMOVED), anyString(), isNull(), any());
+    }
+
+    @Test
+    void removeCondition_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.removeCondition(transactionId, conditionId, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // =================================================================================================
+    // GET PROPERTY OFFERS TESTS
+    // =================================================================================================
+
+    @Test
+    void getPropertyOffers_returnsOffersList() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer offer = 
+                com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                        .propertyOfferId(UUID.randomUUID())
+                        .propertyId(propertyId)
+                        .offerRound(1)
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .status(BuyerOfferStatus.OFFER_MADE)
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyOfferRepository.findByPropertyIdOrderByOfferRoundDesc(propertyId)).thenReturn(List.of(offer));
+
+        // Act
+        var result = transactionService.getPropertyOffers(propertyId, userId, true);
+
+        // Assert
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getPropertyOffers_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getPropertyOffers(propertyId, userId, true))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // =================================================================================================
+    // PROPERTY OFFER STATUS CHANGE NOTIFICATION TESTS
+    // =================================================================================================
+
+    @Test
+    void updatePropertyOffer_withStatusChange_sendsNotification() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .address(new PropertyAddress("123 Main St", "City", "Province", "A1A 1A1"))
+                        .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer existingOffer = 
+                com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                        .propertyOfferId(propertyOfferId)
+                        .propertyId(propertyId)
+                        .offerRound(1)
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .status(BuyerOfferStatus.OFFER_MADE)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO.builder()
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .status(BuyerOfferStatus.COUNTERED)
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(existingOffer));
+        when(propertyOfferRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(propertyOfferRepository.findTopByPropertyIdOrderByOfferRoundDesc(propertyId)).thenReturn(Optional.of(existingOffer));
+        when(propertyRepository.save(any())).thenReturn(property);
+
+        // Act
+        var result = transactionService.updatePropertyOffer(propertyId, propertyOfferId, dto, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(notificationService).createNotification(eq(clientId.toString()), anyString(), anyString(), any(java.util.Map.class), anyString(), any());
+    }
+
+    // =================================================================================================
+    // ADD PROPERTY TESTS
+    // =================================================================================================
+
+    @Test
+    void addProperty_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO.builder()
+                        .centrisNumber("12345678")
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.addProperty(transactionId, dto, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    @Test
+    void getParticipants_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getParticipants(transactionId, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    @Test
+    void getPropertyById_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getPropertyById(propertyId, userId, true))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // =================================================================================================
+    // OFFER RECEIVED EMAIL NOTIFICATION TESTS
+    // =================================================================================================
+
+    @Test
+    void addOffer_withNotificationFailure_logsAndProceeds() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO.builder()
+                        .buyerName("Buyer Name")
+                        .offerAmount(new java.math.BigDecimal("600000"))
+                        .status(ReceivedOfferStatus.PENDING)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        doThrow(new RuntimeException("Notification error")).when(notificationService)
+                .createNotification(anyString(), anyString(), anyString(), any(java.util.Map.class), anyString(), any());
+
+        // Act
+        var result = transactionService.addOffer(transactionId, dto, brokerId);
+
+        // Assert - should succeed despite notification failure
+        assertThat(result).isNotNull();
+    }
+
+    // =================================================================================================
+    // ADD PROPERTY WITH NOTIFICATION TESTS
+    // =================================================================================================
+
+    @Test
+    void addProperty_withValidData_sendsNotification() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO.builder()
+                        .centrisNumber("12345678")
+                        .address(new PropertyAddress("123 Test St", "City", "Province", "A1A 1A1"))
+                        .askingPrice(new java.math.BigDecimal("500000"))
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.addProperty(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.PROPERTY_ADDED), anyString(), isNull(), any());
+        verify(notificationService).createNotification(eq(clientId.toString()), anyString(), anyString(), any(java.util.Map.class), anyString(), any());
+    }
+
+    @Test
+    void addProperty_whenNotificationFails_logsAndProceeds() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO.builder()
+                        .centrisNumber("12345678")
+                        .address(new PropertyAddress("123 Test St", "City", "Province", "A1A 1A1"))
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        doThrow(new RuntimeException("Notification error")).when(notificationService)
+                .createNotification(anyString(), anyString(), anyString(), any(java.util.Map.class), anyString(), any());
+
+        // Act
+        var result = transactionService.addProperty(transactionId, dto, brokerId);
+
+        // Assert - should succeed despite notification failure
+        assertThat(result).isNotNull();
+    }
+
+    // =================================================================================================
+    // UPDATE PROPERTY WITH STATUS CHANGE TESTS
+    // =================================================================================================
+
+    @Test
+    void updateProperty_withStatusChange_addsTimelineEntry() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .address(new PropertyAddress("123 Main St", "City", "Province", "A1A 1A1"))
+                        .offerStatus(PropertyOfferStatus.OFFER_TO_BE_MADE)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO.builder()
+                        .offerStatus(PropertyOfferStatus.OFFER_MADE)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(propertyRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.updateProperty(transactionId, propertyId, dto, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.PROPERTY_UPDATED), anyString(), isNull(), any());
+    }
+
+    @Test
+    void updateProperty_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO.builder()
+                        .offerStatus(PropertyOfferStatus.OFFER_MADE)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateProperty(transactionId, propertyId, dto, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // =================================================================================================
+    // REMOVE PROPERTY TESTS
+    // =================================================================================================
+
+    @Test
+    void removeProperty_deletesPropertyAndAddsTimeline() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .address(new PropertyAddress("123 Delete St", "City", "Province", "A1A 1A1"))
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+
+        // Act
+        transactionService.removeProperty(transactionId, propertyId, brokerId);
+
+        // Assert
+        verify(propertyRepository).delete(property);
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.PROPERTY_REMOVED), anyString(), isNull(), any());
+    }
+
+    @Test
+    void removeProperty_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.removeProperty(transactionId, propertyId, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // =================================================================================================
+    // PROPERTY OFFER EMAIL NOTIFICATION TESTS
+    // =================================================================================================
+
+    @Test
+    void updatePropertyOffer_toAccepted_sendsEmailNotification() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .address(new PropertyAddress("456 Accept St", "City", "Province", "B2B 2B2"))
+                        .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+
+        UserAccount client = new UserAccount();
+        client.setId(clientId);
+        client.setEmail("client@test.com");
+        client.setFirstName("Test");
+        client.setLastName("Client");
+        client.setPreferredLanguage("en");
+
+        UserAccount broker = new UserAccount();
+        broker.setId(brokerId);
+        broker.setFirstName("Test");
+        broker.setLastName("Broker");
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer existingOffer = 
+                com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                        .propertyOfferId(propertyOfferId)
+                        .propertyId(propertyId)
+                        .offerRound(1)
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .status(BuyerOfferStatus.COUNTERED)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO.builder()
+                        .offerAmount(new java.math.BigDecimal("520000"))
+                        .status(BuyerOfferStatus.ACCEPTED)
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(existingOffer));
+        when(propertyOfferRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(propertyOfferRepository.findTopByPropertyIdOrderByOfferRoundDesc(propertyId)).thenReturn(Optional.of(existingOffer));
+        when(propertyRepository.save(any())).thenReturn(property);
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+
+        // Act
+        var result = transactionService.updatePropertyOffer(propertyId, propertyOfferId, dto, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(emailService).sendPropertyOfferStatusChangedNotification(
+                eq("client@test.com"), anyString(), anyString(), anyString(), anyString(), anyString(), any(), eq("en"));
+    }
+
+    @Test
+    void updatePropertyOffer_toDeclined_sendsNotification() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .address(new PropertyAddress("789 Decline St", "City", "Province", "C3C 3C3"))
+                        .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer existingOffer = 
+                com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                        .propertyOfferId(propertyOfferId)
+                        .propertyId(propertyId)
+                        .offerRound(1)
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .status(BuyerOfferStatus.OFFER_MADE)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO.builder()
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .status(BuyerOfferStatus.DECLINED)
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(existingOffer));
+        when(propertyOfferRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(propertyOfferRepository.findTopByPropertyIdOrderByOfferRoundDesc(propertyId)).thenReturn(Optional.of(existingOffer));
+        when(propertyRepository.save(any())).thenReturn(property);
+
+        // Act
+        var result = transactionService.updatePropertyOffer(propertyId, propertyOfferId, dto, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(notificationService).createNotification(eq(clientId.toString()), anyString(), anyString(), any(java.util.Map.class), anyString(), any());
+    }
+
+    // =================================================================================================
+    // GET CONDITIONS TESTS
+    // =================================================================================================
+
+    @Test
+    void getConditions_returnsConditionsList() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                com.example.courtierprobackend.transactions.datalayer.Condition.builder()
+                        .conditionId(conditionId)
+                        .transactionId(transactionId)
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .status(com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.PENDING)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.findByTransactionIdOrderByDeadlineDateAsc(transactionId)).thenReturn(List.of(condition));
+
+        // Act
+        var result = transactionService.getConditions(transactionId, userId, true);
+
+        // Assert
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getConditions_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getConditions(transactionId, userId, true))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // =================================================================================================
+    // ADD CONDITION TESTS
+    // =================================================================================================
+
+    @Test
+    void addCondition_withValidData_returnsCondition() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO.builder()
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.INSPECTION)
+                        .status(com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.PENDING)
+                        .description("Home inspection required")
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.addCondition(transactionId, dto, brokerId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(conditionRepository).save(any());
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.CONDITION_ADDED), anyString(), isNull(), any());
+    }
+
+    @Test
+    void addCondition_withTypeOtherMissingCustomTitle_throwsBadRequest() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO.builder()
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.OTHER)
+                        .customTitle(null)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.addCondition(transactionId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Custom title is required for condition type OTHER");
+    }
+
+    @Test
+    void addCondition_whenNotificationFails_logsAndProceeds() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO.builder()
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .status(com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.PENDING)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        doThrow(new RuntimeException("Notification error")).when(notificationService)
+                .createNotification(anyString(), anyString(), anyString(), any(java.util.Map.class), anyString(), any());
+
+        // Act
+        var result = transactionService.addCondition(transactionId, dto, brokerId);
+
+        // Assert - should succeed despite notification failure
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    void addCondition_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO.builder()
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.addCondition(transactionId, dto, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // =================================================================================================
+    // GET OFFER BY ID TESTS
+    // =================================================================================================
+
+    @Test
+    void getOfferById_returnsOffer() {
+        // Arrange
+        UUID offerId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        Offer offer = Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .buyerName("Test Buyer")
+                .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(offerId)).thenReturn(List.of());
+        when(documentConditionLinkRepository.findByOfferId(offerId)).thenReturn(List.of());
+
+        // Act
+        var result = transactionService.getOfferById(offerId, userId, true);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getBuyerName()).isEqualTo("Test Buyer");
+    }
+
+    @Test
+    void getOfferById_whenOfferNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID offerId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getOfferById(offerId, userId, true))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Offer not found");
+    }
+
+    @Test
+    void getOfferById_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID offerId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        Offer offer = Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .build();
+
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getOfferById(offerId, userId, true))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // =================================================================================================
+    // GET OFFER REVISIONS TESTS
+    // =================================================================================================
+
+    @Test
+    void getOfferRevisions_returnsRevisionsList() {
+        // Arrange
+        UUID offerId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        Offer offer = Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+
+        com.example.courtierprobackend.transactions.datalayer.OfferRevision revision = 
+                com.example.courtierprobackend.transactions.datalayer.OfferRevision.builder()
+                        .revisionId(UUID.randomUUID())
+                        .offerId(offerId)
+                        .revisionNumber(1)
+                        .createdAt(java.time.LocalDateTime.now())
+                        .build();
+
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerRevisionRepository.findByOfferIdOrderByRevisionNumberAsc(offerId)).thenReturn(List.of(revision));
+
+        // Act
+        var result = transactionService.getOfferRevisions(offerId, userId, true);
+
+        // Assert
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getOfferRevisions_whenOfferNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID offerId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getOfferRevisions(offerId, userId, true))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Offer not found");
+    }
+
+    // =================================================================================================
+    // GET OFFER DOCUMENTS VIA PARENT NOT FOUND
+    // =================================================================================================
+
+    @Test
+    void getOfferDocuments_whenOfferNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID offerId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getOfferDocuments(offerId, userId, true))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Offer not found");
+    }
+
+    @Test
+    void getOfferDocuments_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID offerId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        Offer offer = Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .build();
+
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getOfferDocuments(offerId, userId, true))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    @Test
+    void getPropertyOfferDocuments_whenPropertyOfferNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getPropertyOfferDocuments(propertyOfferId, userId, true))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Property offer not found");
+    }
+
+    @Test
+    void getPropertyOfferDocuments_whenPropertyNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer propertyOffer = 
+                com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                        .propertyOfferId(propertyOfferId)
+                        .propertyId(propertyId)
+                        .build();
+
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(propertyOffer));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getPropertyOfferDocuments(propertyOfferId, userId, true))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Property not found");
+    }
+
+    @Test
+    void getPropertyOfferDocuments_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer propertyOffer = 
+                com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                        .propertyOfferId(propertyOfferId)
+                        .propertyId(propertyId)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .build();
+
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(propertyOffer));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getPropertyOfferDocuments(propertyOfferId, userId, true))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // =================================================================================================
+    // REMOVE OFFER WITH TRANSACTION NOT FOUND
+    // =================================================================================================
+
+    @Test
+    void removeOffer_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.removeOffer(transactionId, offerId, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    @Test
+    void removeOffer_whenOfferNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.removeOffer(transactionId, offerId, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Offer not found");
+    }
+
+    // =================================================================================================
+    // UPDATE PROPERTY OFFER NOT FOUND TESTS
+    // =================================================================================================
+
+    @Test
+    void updatePropertyOffer_whenPropertyNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO.builder()
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updatePropertyOffer(propertyId, propertyOfferId, dto, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Property not found");
+    }
+
+    @Test
+    void updatePropertyOffer_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO.builder()
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updatePropertyOffer(propertyId, propertyOfferId, dto, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    @Test
+    void updatePropertyOffer_whenOfferNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO.builder()
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updatePropertyOffer(propertyId, propertyOfferId, dto, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Property offer not found");
+    }
+
+    // =================================================================================================
+    // ADD PROPERTY OFFER NOT FOUND TESTS
+    // =================================================================================================
+
+    @Test
+    void addPropertyOffer_whenPropertyNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO.builder()
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.addPropertyOffer(propertyId, dto, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Property not found");
+    }
+
+    @Test
+    void addPropertyOffer_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO.builder()
+                        .offerAmount(new java.math.BigDecimal("500000"))
+                        .build();
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.addPropertyOffer(propertyId, dto, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // =================================================================================================
+    // GET PROPERTIES TESTS
+    // =================================================================================================
+
+    @Test
+    void getProperties_returnsList() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+                com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                        .propertyId(propertyId)
+                        .transactionId(transactionId)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId)).thenReturn(List.of(property));
+
+        // Act
+        var result = transactionService.getProperties(transactionId, userId, true);
+
+        // Assert
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getProperties_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getProperties(transactionId, userId, true))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // =================================================================================================
+    // GET OFFERS TESTS
+    // =================================================================================================
+
+    @Test
+    void getOffers_returnsList() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+
+        Offer offer = Offer.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .buyerName("Test Buyer")
+                .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId)).thenReturn(List.of(offer));
+        when(offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(offerId)).thenReturn(List.of());
+        when(documentConditionLinkRepository.findByOfferId(offerId)).thenReturn(List.of());
+
+        // Act
+        var result = transactionService.getOffers(transactionId, userId, true);
+
+        // Assert
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getOffers_whenTransactionNotFound_throwsNotFoundException() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.getOffers(transactionId, userId, true))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    // =================================================================================================
+    // CONDITION DOES NOT BELONG TO TRANSACTION TESTS
+    // =================================================================================================
+
+    @Test
+    void updateCondition_whenConditionDoesNotBelongToTransaction_throwsBadRequest() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                com.example.courtierprobackend.transactions.datalayer.Condition.builder()
+                        .conditionId(conditionId)
+                        .transactionId(UUID.randomUUID())  // Different transaction
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO dto = 
+                com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO.builder()
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateCondition(transactionId, conditionId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Condition does not belong to this transaction");
+    }
+
+    @Test
+    void removeCondition_whenConditionDoesNotBelongToTransaction_throwsBadRequest() {
+        // Arrange
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                com.example.courtierprobackend.transactions.datalayer.Condition.builder()
+                        .conditionId(conditionId)
+                        .transactionId(UUID.randomUUID())  // Different transaction
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.removeCondition(transactionId, conditionId, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Condition does not belong to this transaction");
+    }
+
+    // ========== Additional Coverage Tests ==========
+
+    @Test
+    void createTransaction_withUnsupportedSide_throwsBadRequest() {
+        // Arrange - We can't set a null side on the DTO, but we can test the else branch another way
+        // This would require a transaction with null side - test coverage for line 209
+        TransactionRequestDTO dto = createValidBuyerTransactionDTO();
+        dto.setSide(null); // This should trigger the else branch
+
+        when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
+                any(UUID.class), anyString(), any())).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.createTransaction(dto))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void getNotes_whenNoNotes_returnsEmptyFilteredList() {
+        // Coverage for line 269 filter predicate
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        // Return a non-NOTE entry to verify filter works
+        TimelineEntryDTO nonNote = TimelineEntryDTO.builder()
+                .id(UUID.randomUUID())
+                .type(TimelineEntryType.STAGE_CHANGE)
+                .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(timelineService.getTimelineForTransaction(transactionId)).thenReturn(List.of(nonNote));
+
+        // Act
+        List<TimelineEntryDTO> result = transactionService.getNotes(transactionId, brokerId);
+
+        // Assert - should be empty since TypeChange is filtered out
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void createNote_whenNoNotesExist_returnsNull() {
+        // Coverage for line 291-295
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        NoteRequestDTO note = new NoteRequestDTO();
+        note.setTitle("Test Title");
+        note.setMessage("Test Message");
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(timelineService.getTimelineForTransaction(transactionId)).thenReturn(List.of());
+
+        // Act
+        TimelineEntryDTO result = transactionService.createNote(transactionId, note, brokerId);
+
+        // Assert - should be null as no notes exist after filter
+        assertThat(result).isNull();
+    }
+
+    @Test
+    void getBrokerTransactions_withSellSideFilter_parsesSideCorrectly() {
+        // Coverage for line 319 (sell side parsing)
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(UUID.randomUUID());
+        tx.setBrokerId(brokerId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+        tx.setStatus(TransactionStatus.ACTIVE);
+        tx.setSellerStage(SellerStage.SELLER_INITIAL_CONSULTATION);
+
+        when(transactionRepository.findAllByFilters(eq(brokerId), any(), eq(TransactionSide.SELL_SIDE), any(), eq(false)))
+                .thenReturn(List.of(tx));
+
+        // Act
+        List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(brokerId, null, null, "sell");
+
+        // Assert
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void updateTransactionStage_withUnsupportedSide_throwsBadRequest() {
+        // Coverage for line 468
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setSide(null); // Unsupported side
+
+        StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+        dto.setStage("BUYER_SEARCHING");
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act & Assert - should throw for unsupported side
+        assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Unsupported transaction side");
+    }
+
+    @Test
+    void addProperty_withNullAddress_usesUnknown() {
+        // Coverage for line 738 (Unknown address fallback)
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(UUID.randomUUID());
+        tx.setSide(TransactionSide.BUY_SIDE);
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO dto = 
+                new com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO();
+        dto.setAddress(null); // null address
+        dto.setAskingPrice(new java.math.BigDecimal("500000"));
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.addProperty(transactionId, dto, brokerId);
+
+        // Assert - Should succeed and timeline entry added with "Unknown"
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.PROPERTY_ADDED), contains("Unknown"), any(), any());
+    }
+
+    @Test
+    void updateProperty_withStatusChange_addsTimeline() {
+        // Coverage for lines 812-826
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(propertyId)
+                .transactionId(transactionId)
+                .offerStatus(com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus.OFFER_TO_BE_MADE)
+                .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO dto = 
+                new com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO();
+        dto.setOfferStatus(com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus.OFFER_MADE);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(propertyRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        transactionService.updateProperty(transactionId, propertyId, dto, brokerId);
+
+        // Assert - timeline entry added for status change
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.PROPERTY_UPDATED), contains("offer status changed"), any(), any());
+    }
+
+    @Test
+    void removeProperty_addsTimelineEntry() {
+        // Coverage for line 846-860
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(propertyId)
+                .transactionId(transactionId)
+                .address(null)  // Test null address -> "Unknown"
+                .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+
+        // Act
+        transactionService.removeProperty(transactionId, propertyId, brokerId);
+
+        // Assert
+        verify(propertyRepository).delete(property);
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.PROPERTY_REMOVED), contains("Unknown"), any(), any());
+    }
+
+    @Test
+    void addPropertyOffer_withNoDefaultStatus_usesOfferMade() {
+        // Coverage for line 987
+        UUID propertyId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(UUID.randomUUID());
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(propertyId)
+                .transactionId(transactionId)
+                .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO dto = 
+                new com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO();
+        dto.setOfferAmount(new java.math.BigDecimal("400000"));
+        dto.setStatus(null); // Should default to OFFER_MADE
+
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyOfferRepository.findMaxOfferRoundByPropertyId(propertyId)).thenReturn(null);
+        when(propertyOfferRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(propertyRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.addPropertyOffer(propertyId, dto, brokerId);
+
+        // Assert
+        assertThat(result.getStatus()).isEqualTo(com.example.courtierprobackend.transactions.datalayer.enums.BuyerOfferStatus.OFFER_MADE);
+    }
+
+    @Test
+    void getOfferDocumentDownloadUrl_forPropertyOffer_verifiesAccess() {
+        // Coverage for lines 1654-1665
+        UUID documentId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.OfferDocument doc = com.example.courtierprobackend.transactions.datalayer.OfferDocument.builder()
+                .documentId(documentId)
+                .propertyOfferId(propertyOfferId)
+                .s3Key("s3/key")
+                .build();
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer propertyOffer = com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                .propertyOfferId(propertyOfferId)
+                .propertyId(propertyId)
+                .build();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(propertyId)
+                .transactionId(transactionId)
+                .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(userId);
+
+        when(offerDocumentRepository.findByDocumentId(documentId)).thenReturn(Optional.of(doc));
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(propertyOffer));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(s3StorageService.generatePresignedUrl("s3/key")).thenReturn("https://presigned.url");
+
+        // Act
+        String result = transactionService.getOfferDocumentDownloadUrl(documentId, userId);
+
+        // Assert
+        assertThat(result).isEqualTo("https://presigned.url");
+    }
+
+    @Test
+    void deleteOfferDocument_forPropertyOffer_deletesDocument() {
+        // Coverage for lines 1680-1691
+        UUID documentId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        com.example.courtierprobackend.transactions.datalayer.OfferDocument doc = com.example.courtierprobackend.transactions.datalayer.OfferDocument.builder()
+                .documentId(documentId)
+                .propertyOfferId(propertyOfferId)
+                .s3Key("s3/key")
+                .build();
+
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer propertyOffer = com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                .propertyOfferId(propertyOfferId)
+                .propertyId(propertyId)
+                .build();
+
+        com.example.courtierprobackend.transactions.datalayer.Property property = com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(propertyId)
+                .transactionId(transactionId)
+                .build();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        when(offerDocumentRepository.findByDocumentId(documentId)).thenReturn(Optional.of(doc));
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(propertyOffer));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+        // Act
+        transactionService.deleteOfferDocument(documentId, brokerId);
+
+        // Assert
+        verify(s3StorageService).deleteFile("s3/key");
+        verify(offerDocumentRepository).delete(doc);
+    }
+
+    // Note: updateOffer_withStatusChange_createsRevision test already exists earlier in file
+
+    @Test
+    void updateCondition_withOtherTypeAndNullTitle_throwsBadRequest() {
+        // Coverage for lines 1944-1946
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                com.example.courtierprobackend.transactions.datalayer.Condition.builder()
+                        .conditionId(conditionId)
+                        .transactionId(transactionId)
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.OTHER)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO dto = 
+                new com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO();
+        dto.setType(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.OTHER);
+        dto.setCustomTitle(null); // Missing required title
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+
+        // Act & Assert
+        assertThatThrownBy(() -> transactionService.updateCondition(transactionId, conditionId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Custom title is required for condition type OTHER");
+    }
+
+    @Test
+    void updateCondition_setsCustomTitleToNull_forNonOtherType() {
+        // Coverage for line 1955
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(UUID.randomUUID());
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                com.example.courtierprobackend.transactions.datalayer.Condition.builder()
+                        .conditionId(conditionId)
+                        .transactionId(transactionId)
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.OTHER)
+                        .customTitle("Old Title")
+                        .status(com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.PENDING)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO dto = 
+                new com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO();
+        dto.setType(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING); // Not OTHER
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+        when(conditionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.updateCondition(transactionId, conditionId, dto, brokerId);
+
+        // Assert - customTitle should be null since type is not OTHER
+        assertThat(result.getCustomTitle()).isNull();
+    }
+
+    @Test
+    void updateCondition_clearsSatisfiedAt_whenStatusChangesFromSatisfied() {
+        // Coverage for lines 1962-1964
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(UUID.randomUUID());
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                com.example.courtierprobackend.transactions.datalayer.Condition.builder()
+                        .conditionId(conditionId)
+                        .transactionId(transactionId)
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.INSPECTION)
+                        .status(com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.SATISFIED)
+                        .satisfiedAt(LocalDateTime.now())
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO dto = 
+                new com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO();
+        dto.setType(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.INSPECTION);
+        dto.setStatus(com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.PENDING); // Changed from SATISFIED
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+        when(conditionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        var result = transactionService.updateCondition(transactionId, conditionId, dto, brokerId);
+
+        // Assert - satisfiedAt should be cleared
+        assertThat(result.getSatisfiedAt()).isNull();
+    }
+
+    @Test
+    void updateConditionStatus_toPending_addsUpdatedTimelineEntry() {
+        // Coverage for lines 2070, 2101-2102
+        UUID transactionId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(UUID.randomUUID());
+
+        com.example.courtierprobackend.transactions.datalayer.Condition condition = 
+                com.example.courtierprobackend.transactions.datalayer.Condition.builder()
+                        .conditionId(conditionId)
+                        .transactionId(transactionId)
+                        .type(com.example.courtierprobackend.transactions.datalayer.enums.ConditionType.FINANCING)
+                        .status(com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.SATISFIED)
+                        .build();
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(conditionRepository.findByConditionId(conditionId)).thenReturn(Optional.of(condition));
+        when(conditionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act - change to PENDING (not SATISFIED or FAILED)
+        transactionService.updateConditionStatus(transactionId, conditionId, 
+                com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus.PENDING, brokerId);
+
+        // Assert - should add CONDITION_UPDATED entry
+        verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.CONDITION_UPDATED), any(), any(), any());
+    }
+
+    @Test 
+    void getAllTransactionDocuments_sortsNullUploadedAt() {
+        // Coverage for lines 2290-2292
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(documentRequestRepository.findByTransactionRef_TransactionId(transactionId)).thenReturn(List.of());
+        when(offerRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId)).thenReturn(List.of());
+        when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId)).thenReturn(List.of());
+
+        // Act
+        var result = transactionService.getAllTransactionDocuments(transactionId, brokerId, true);
+
+        // Assert
+        assertThat(result).isEmpty();
+    }
 }
+

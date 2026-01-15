@@ -185,7 +185,7 @@ export function OfferList({ transactionId, isReadOnly = false, clientId }: Offer
                         >
                             <OfferCard
                                 offer={offer}
-                                onClick={() => { }} // Handled by parent div
+                                onClick={undefined} // Handled by parent div
                             />
                             {isComparing && (
                                 <div className="absolute inset-0 bg-transparent cursor-pointer rounded-lg" />
