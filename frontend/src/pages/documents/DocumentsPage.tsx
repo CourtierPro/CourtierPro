@@ -77,24 +77,24 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
   const handleEditSubmit = useCallback(
     (formValues: import('@/shared/schemas').RequestDocumentFormValues) => {
       if (!editingDocument) return;
-      // Map instructions to brokerNotes for backend compatibility
-      updateDocumentRequestMutation.mutate(
-        {
-          transactionId: editingDocument.transactionRef.transactionId,
-          requestId: editingDocument.requestId,
-          data: {
-            ...formValues,
-            brokerNotes: formValues.instructions,
+        const { instructions, ...restFormValues } = formValues;
+        updateDocumentRequestMutation.mutate(
+          {
+            transactionId: editingDocument.transactionRef.transactionId,
+            requestId: editingDocument.requestId,
+            data: {
+              ...restFormValues,
+              brokerNotes: instructions,
+            },
           },
-        },
-        {
-          onSuccess: () => {
-            setIsEditModalOpen(false);
-            setEditingDocument(null);
-            refetch();
-          },
-        }
-      );
+          {
+            onSuccess: () => {
+              setIsEditModalOpen(false);
+              setEditingDocument(null);
+              refetch();
+            },
+          }
+        );
     },
     [editingDocument, updateDocumentRequestMutation, refetch]
   );

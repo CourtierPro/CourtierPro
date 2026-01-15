@@ -1,4 +1,6 @@
+
 package com.example.courtierprobackend.user.presentationlayer.controller;
+import com.example.courtierprobackend.common.exceptions.BadRequestException;
 
 import com.example.courtierprobackend.security.UserContextUtils;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
@@ -45,7 +47,7 @@ public class BrokerController {
         try {
             clientUuid = UUID.fromString(clientId);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid clientId format: must be UUID");
+            throw new BadRequestException("Invalid clientId format: must be UUID");
         }
         return transactionService.getBrokerClientTransactions(brokerId, clientUuid);
     }
@@ -63,7 +65,7 @@ public class BrokerController {
         try {
             clientUuid = UUID.fromString(clientId);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid clientId format: must be UUID");
+            throw new BadRequestException("Invalid clientId format: must be UUID");
         }
         return transactionService.getAllClientTransactions(clientUuid);
     }

@@ -32,7 +32,6 @@ interface EditDocumentRequestModalProps {
   onClose: () => void;
   onSubmit: (data: RequestDocumentFormValues) => void;
   transactionType: 'buy' | 'sell';
-  // currentStage prop is unused, so remove it
   initialValues: RequestDocumentFormValues;
 }
 
@@ -78,7 +77,7 @@ export function EditDocumentRequestModal({
   }, [selectedDocType]);
 
   const onFormSubmit = (data: RequestDocumentFormValues) => {
-    // Pass both the form data and brokerNotes as a separate argument for the parent to handle
+    // Submit the form data; the parent (DocumentsPage) handles any brokerNotes mapping
     onSubmit(data);
     onClose();
   };
