@@ -111,7 +111,7 @@ export function EditDocumentRequestModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t('editTitle', 'Edit Document Request')}</DialogTitle>
+          <DialogTitle>{t('editDocumentRequest')}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-6 py-4">
@@ -217,7 +217,7 @@ export function EditDocumentRequestModal({
                 {t('cancel', { ns: 'documents', defaultValue: 'Cancel' })}
               </Button>
               <Button type="submit" disabled={!form.formState.isValid} className="gap-2">
-                {t('edit', { ns: 'common', defaultValue: 'Edit' })}
+                {t('edit')}
               </Button>
             </DialogFooter>
           </form>

@@ -26,6 +26,34 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class BrokerControllerTest {
+    @Nested
+    @DisplayName("GET /api/broker/clients/{clientId}/transactions - invalid clientId")
+    class GetClientTransactionsInvalidIdTests {
+        @Test
+        void getClientTransactions_InvalidClientId_ThrowsIllegalArgumentException() {
+            String invalidClientId = "not-a-uuid";
+            when(request.getAttribute("internalUserId")).thenReturn(BROKER_ID);
+            Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(() ->
+                controller.getClientTransactions(invalidClientId, request)
+            );
+            assertThat(thrown).isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid clientId format: must be UUID");
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/broker/clients/{clientId}/all-transactions - invalid clientId")
+    class GetAllClientTransactionsInvalidIdTests {
+        @Test
+        void getAllClientTransactions_InvalidClientId_ThrowsIllegalArgumentException() {
+            String invalidClientId = "not-a-uuid";
+            Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(() ->
+                controller.getAllClientTransactions(invalidClientId)
+            );
+            assertThat(thrown).isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid clientId format: must be UUID");
+        }
+    }
 
     @Mock
     private UserProvisioningService service;
