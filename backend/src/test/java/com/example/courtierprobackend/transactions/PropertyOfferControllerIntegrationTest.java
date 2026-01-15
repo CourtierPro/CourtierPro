@@ -1,7 +1,6 @@
 package com.example.courtierprobackend.transactions;
 
 import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
-import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.common.exceptions.GlobalExceptionHandler;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.security.UserContextFilter;
@@ -69,7 +68,6 @@ class PropertyOfferControllerIntegrationTest {
         @Test
         @DisplayName("should return property offers - 200")
         void getPropertyOffers_asBroker_returns200() throws Exception {
-            UUID transactionId = UUID.randomUUID();
             UUID propertyId = UUID.randomUUID();
             UUID brokerId = UUID.randomUUID();
 
@@ -102,7 +100,6 @@ class PropertyOfferControllerIntegrationTest {
         @Test
         @DisplayName("should add property offer - 201")
         void addPropertyOffer_validRequest_returns201() throws Exception {
-            UUID transactionId = UUID.randomUUID();
             UUID propertyId = UUID.randomUUID();
             UUID brokerId = UUID.randomUUID();
 
@@ -137,7 +134,6 @@ class PropertyOfferControllerIntegrationTest {
         @Test
         @DisplayName("should return 400 when property not found")
         void addPropertyOffer_propertyNotFound_returns404() throws Exception {
-            UUID transactionId = UUID.randomUUID();
             UUID propertyId = UUID.randomUUID();
             UUID brokerId = UUID.randomUUID();
 
@@ -168,7 +164,6 @@ class PropertyOfferControllerIntegrationTest {
         @Test
         @DisplayName("should update property offer - 200")
         void updatePropertyOffer_validRequest_returns200() throws Exception {
-            UUID transactionId = UUID.randomUUID();
             UUID propertyId = UUID.randomUUID();
             UUID propertyOfferId = UUID.randomUUID();
             UUID brokerId = UUID.randomUUID();

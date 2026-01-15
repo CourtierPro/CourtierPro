@@ -1,6 +1,5 @@
 package com.example.courtierprobackend.transactions.datalayer;
 
-import com.example.courtierprobackend.transactions.datalayer.enums.ReceivedOfferStatus;
 import jakarta.persistence.*;
 import lombok.*;
 

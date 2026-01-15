@@ -585,4 +585,18 @@ public class TransactionController {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
         return ResponseEntity.ok(service.updateConditionStatus(transactionId, conditionId, status, brokerId));
     }
+
+    // ==================== UNIFIED DOCUMENTS ENDPOINT ====================
+
+    @GetMapping("/{transactionId}/all-documents")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<List<com.example.courtierprobackend.transactions.datalayer.dto.UnifiedDocumentDTO>> getAllTransactionDocuments(
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        boolean isBroker = UserContextUtils.isBroker(request);
+        return ResponseEntity.ok(service.getAllTransactionDocuments(transactionId, userId, isBroker));
+    }
 }
+

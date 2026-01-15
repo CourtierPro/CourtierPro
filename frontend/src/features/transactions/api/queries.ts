@@ -301,11 +301,17 @@ export function usePropertyOfferDocuments(propertyOfferId: string) {
     });
 }
 
-export function useOfferDocuments(transactionId: string, offerId: string) {
+export function useOfferDocuments(transactionId: string, offerId: string, clientId?: string) {
     return useQuery({
-        queryKey: offerDocumentKeys.all(offerId),
+        queryKey: clientId
+            ? [...offerDocumentKeys.all(offerId), 'client', clientId] as const
+            : offerDocumentKeys.all(offerId),
         queryFn: async () => {
-            const res = await axiosInstance.get<OfferDocument[]>(`/transactions/${transactionId}/offers/${offerId}/documents`);
+            // Use client-specific endpoint if clientId is provided
+            const url = clientId
+                ? `/clients/${clientId}/transactions/${transactionId}/offers/${offerId}/documents`
+                : `/transactions/${transactionId}/offers/${offerId}/documents`;
+            const res = await axiosInstance.get<OfferDocument[]>(url);
             return res.data;
         },
         enabled: !!transactionId && !!offerId,
@@ -322,3 +328,26 @@ export function useOfferRevisions(transactionId: string, offerId: string) {
         enabled: !!transactionId && !!offerId,
     });
 }
+
+// ==================== UNIFIED DOCUMENTS QUERY ====================
+
+import type { UnifiedDocument } from '@/shared/api/types';
+
+export const allDocumentKeys = {
+    all: (transactionId: string) => ['allTransactionDocuments', transactionId] as const,
+};
+
+export function useAllTransactionDocuments(transactionId: string, clientId?: string) {
+    return useQuery({
+        queryKey: clientId
+            ? [...allDocumentKeys.all(transactionId), 'client', clientId] as const
+            : allDocumentKeys.all(transactionId),
+        queryFn: async () => {
+            // Use same endpoint for both broker and client - access control is server-side
+            const res = await axiosInstance.get<UnifiedDocument[]>(`/transactions/${transactionId}/all-documents`);
+            return res.data;
+        },
+        enabled: !!transactionId,
+    });
+}
+

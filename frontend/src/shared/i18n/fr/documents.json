@@ -113,5 +113,8 @@
         "documentApproved": "Document approuvé avec succès",
         "revisionRequested": "Révision demandée avec succès",
         "documentRequested": "Document demandé avec succès"
-    }
+    },
+    "noPropertySelected": "Aucune propriété sélectionnée",
+    "reupload": "Retéléverser",
+    "allStages": "Toutes les étapes"
 }

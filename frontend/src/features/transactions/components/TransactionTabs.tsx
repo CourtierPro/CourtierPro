@@ -7,8 +7,7 @@ import { Button } from "@/shared/components/ui/button";
 import { EmptyState } from "@/shared/components/branded/EmptyState";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/components/ui/tabs";
-import { type Transaction } from '@/features/transactions/api/queries';
-import { useTransactionConditions } from '@/features/transactions/api/queries';
+import { type Transaction, useTransactionConditions, useTransactionOffers } from '@/features/transactions/api/queries';
 import { DocumentsPage } from '@/pages/documents/DocumentsPage';
 import { Calendar } from 'lucide-react';
 import { TransactionTimeline } from './TransactionTimeline';
@@ -17,7 +16,8 @@ import { OfferList } from './OfferList';
 import { ParticipantsList } from './ParticipantsList';
 import { ConditionList } from './ConditionList';
 import { AddConditionModal } from './AddConditionModal';
-import type { Condition } from '@/shared/api/types';
+import { ConditionDetailModal } from './ConditionDetailModal';
+import type { Condition, Offer, PropertyOffer } from '@/shared/api/types';
 
 interface TransactionTabsProps {
   transaction: Transaction;
@@ -66,19 +66,50 @@ export function TransactionTabs({
 
   // Conditions state
   const { data: conditions = [], isLoading: isLoadingConditions } = useTransactionConditions(transaction.transactionId);
-  const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
+  const [isConditionAddModalOpen, setIsConditionAddModalOpen] = useState(false);
+  const [isConditionDetailModalOpen, setIsConditionDetailModalOpen] = useState(false);
   const [selectedCondition, setSelectedCondition] = useState<Condition | undefined>(undefined);
+
+  // Fetch offers for linked conditions display (sell-side transactions)
+  const { data: offers = [] } = useTransactionOffers(
+    isSellerTransaction ? transaction.transactionId : '',
+  );
 
   const handleAddCondition = () => {
     setSelectedCondition(undefined);
-    setIsConditionModalOpen(true);
+    setIsConditionAddModalOpen(true);
   };
 
   const handleConditionClick = (condition: Condition) => {
-    if (!isReadOnly) {
-      setSelectedCondition(condition);
-      setIsConditionModalOpen(true);
-    }
+    setSelectedCondition(condition);
+    setIsConditionDetailModalOpen(true);
+  };
+
+  const handleEditCondition = () => {
+    // Close detail modal and open edit modal
+    setIsConditionDetailModalOpen(false);
+    setIsConditionAddModalOpen(true);
+  };
+
+  // Navigation from linked items - navigate to offers tab
+  const handleLinkedOfferClick = (_offer: Offer) => {
+    setIsConditionDetailModalOpen(false);
+    handleTabChange('offers');
+  };
+
+  // Navigation from linked items - navigate to properties tab
+  const handleLinkedPropertyOfferClick = (_offer: PropertyOffer) => {
+    setIsConditionDetailModalOpen(false);
+    handleTabChange('properties');
+  };
+
+  // Get linked items for the selected condition
+  const getLinkedItemsForCondition = (conditionId: string) => {
+    const linkedOffers = offers.filter(
+      offer => offer.conditions?.some(c => c.conditionId === conditionId)
+    );
+    // TODO: Add propertyOffers when available for buy-side
+    return { linkedOffers, linkedPropertyOffers: [] as PropertyOffer[] };
   };
 
 
@@ -234,10 +265,27 @@ export function TransactionTabs({
           onConditionClick={handleConditionClick}
           isLoading={isLoadingConditions}
           isReadOnly={isReadOnly}
+          offers={offers}
         />
+        
+        {/* Condition Detail Modal */}
+        <ConditionDetailModal
+          isOpen={isConditionDetailModalOpen}
+          onClose={() => setIsConditionDetailModalOpen(false)}
+          condition={selectedCondition ?? null}
+          transactionId={transaction.transactionId}
+          linkedOffers={selectedCondition ? getLinkedItemsForCondition(selectedCondition.conditionId).linkedOffers : []}
+          linkedPropertyOffers={selectedCondition ? getLinkedItemsForCondition(selectedCondition.conditionId).linkedPropertyOffers : []}
+          onEdit={handleEditCondition}
+          onOfferClick={handleLinkedOfferClick}
+          onPropertyOfferClick={handleLinkedPropertyOfferClick}
+          isReadOnly={isReadOnly}
+        />
+
+        {/* Add/Edit Condition Modal */}
         <AddConditionModal
-          open={isConditionModalOpen}
-          onOpenChange={setIsConditionModalOpen}
+          open={isConditionAddModalOpen}
+          onOpenChange={setIsConditionAddModalOpen}
           transactionId={transaction.transactionId}
           existingCondition={selectedCondition}
         />

@@ -202,6 +202,7 @@ export function OfferList({ transactionId, isReadOnly = false, clientId }: Offer
                 offer={selectedOffer}
                 transactionId={transactionId}
                 isReadOnly={isReadOnly}
+                clientId={clientId}
             />
 
             {/* Comparison Modal */}

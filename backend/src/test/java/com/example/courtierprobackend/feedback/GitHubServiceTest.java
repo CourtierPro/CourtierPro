@@ -4,14 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.*;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.Instant;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,25 +53,6 @@ class GitHubServiceTest {
         gitHubService = new GitHubService(restTemplate, objectMapper);
         ReflectionTestUtils.setField(gitHubService, "repoOwner", "TestOwner");
         ReflectionTestUtils.setField(gitHubService, "repoName", "TestRepo");
-    }
-
-    private void configureGitHubApp() {
-        ReflectionTestUtils.setField(gitHubService, "appId", "12345");
-        ReflectionTestUtils.setField(gitHubService, "installationId", "67890");
-        ReflectionTestUtils.setField(gitHubService, "privateKeyPem", TEST_PRIVATE_KEY);
-    }
-
-    private void mockAccessTokenResponse() {
-        Map<String, Object> tokenResponse = Map.of(
-                "token", "ghs_test_installation_token",
-                "expires_at", Instant.now().plusSeconds(3600).toString()
-        );
-        when(restTemplate.exchange(
-                contains("/app/installations/"),
-                eq(HttpMethod.POST),
-                any(HttpEntity.class),
-                eq(Map.class)
-        )).thenReturn(ResponseEntity.ok(tokenResponse));
     }
 
     @Test

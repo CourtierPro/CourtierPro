@@ -8,6 +8,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -26,4 +28,9 @@ public class PropertyOfferRequestDTO {
     private LocalDate expiryDate;
 
     private String notes;
+
+    /**
+     * List of condition IDs to link to this property offer.
+     */
+    private List<UUID> conditionIds;
 }

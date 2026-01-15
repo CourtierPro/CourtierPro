@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { FileText, Download, Trash2, Upload } from 'lucide-react';
+import { FileText, Download, Trash2, Upload, Eye, CheckCircle, XCircle, ArrowLeftRight, Clock, FileCheck, ChevronDown, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import axiosInstance from '@/shared/api/axiosInstance';
 
@@ -44,11 +44,13 @@ import {
     AlertDialogTitle,
 } from '@/shared/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
+import { Separator } from '@/shared/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/components/ui/collapsible';
 
 import { useUpdateOffer, useRemoveOffer, useUploadOfferDocument, useDeleteOfferDocument } from '@/features/transactions/api/mutations';
 import { useOfferDocuments } from '@/features/transactions/api/queries';
 import { OfferRevisionList } from './OfferRevisionList';
-import type { Offer, ReceivedOfferStatus, OfferDocument } from '@/shared/api/types';
+import type { Offer, ReceivedOfferStatus, OfferDocument, ClientOfferDecision } from '@/shared/api/types';
 
 interface OfferDetailModalProps {
     isOpen: boolean;
@@ -56,6 +58,7 @@ interface OfferDetailModalProps {
     offer: Offer | null;
     transactionId: string;
     isReadOnly?: boolean;
+    clientId?: string;
 }
 
 const offerSchema = z.object({
@@ -64,6 +67,7 @@ const offerSchema = z.object({
         (val) => parseFloat(val) > 0,
         { message: 'offerAmountMustBePositive' }
     ),
+    expiryDate: z.string().optional(),
     status: z.enum(['PENDING', 'UNDER_REVIEW', 'COUNTERED', 'ACCEPTED', 'DECLINED']),
     notes: z.string().optional(),
 });
@@ -86,21 +90,34 @@ const statusVariantMap: Record<ReceivedOfferStatus, 'default' | 'secondary' | 'd
     DECLINED: 'destructive',
 };
 
+const decisionIconMap: Record<ClientOfferDecision, React.ReactNode> = {
+    ACCEPT: <CheckCircle className="w-4 h-4" />,
+    DECLINE: <XCircle className="w-4 h-4" />,
+    COUNTER: <ArrowLeftRight className="w-4 h-4" />,
+};
+
+const decisionVariantMap: Record<ClientOfferDecision, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    ACCEPT: 'default',
+    DECLINE: 'destructive',
+    COUNTER: 'outline',
+};
+
+
 export function OfferDetailModal({
     isOpen,
     onClose,
     offer,
     transactionId,
     isReadOnly = false,
+    clientId,
 }: OfferDetailModalProps) {
     const { t } = useTranslation('transactions');
     const { mutate: updateOffer, isPending: isUpdating } = useUpdateOffer();
     const { mutate: removeOffer, isPending: isDeleting } = useRemoveOffer();
     const { mutate: uploadDocument, isPending: isUploading } = useUploadOfferDocument();
     const { mutate: deleteDocument, isPending: isDeletingDoc } = useDeleteOfferDocument();
-
-    // Fetch documents
-    const { data: documents } = useOfferDocuments(transactionId, offer?.offerId || '');
+    // Fetch documents - use client endpoint if clientId is provided
+    const { data: documents } = useOfferDocuments(transactionId, offer?.offerId || '', clientId);
 
     const [isEditing, setIsEditing] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -114,6 +131,7 @@ export function OfferDetailModal({
             form.reset({
                 buyerName: offer.buyerName,
                 offerAmount: offer.offerAmount?.toString() || '',
+                expiryDate: offer.expiryDate ? format(new Date(offer.expiryDate), 'yyyy-MM-dd') : '',
                 status: offer.status,
                 notes: offer.notes || '',
             });
@@ -139,6 +157,7 @@ export function OfferDetailModal({
                 data: {
                     buyerName: data.buyerName,
                     offerAmount: data.offerAmount ? parseFloat(data.offerAmount) : undefined,
+                    expiryDate: data.expiryDate || undefined,
                     status: data.status,
                     notes: data.notes || undefined,
                 },
@@ -287,6 +306,20 @@ export function OfferDetailModal({
 
                                         <FormField
                                             control={form.control}
+                                            name="expiryDate"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('expiryDate')}</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} type="date" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
                                             name="status"
                                             render={({ field }) => (
                                                 <FormItem>
@@ -354,6 +387,15 @@ export function OfferDetailModal({
                                                 {t(`receivedOfferStatuses.${offer.status}`)}
                                             </Badge>
                                         </div>
+                                        {offer.expiryDate && (
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-muted-foreground">{t('expiryDate')}</span>
+                                                <span className="font-medium flex items-center gap-2">
+                                                    <Clock className="w-4 h-4 text-muted-foreground" />
+                                                    {format(new Date(offer.expiryDate), 'MMM d, yyyy')}
+                                                </span>
+                                            </div>
+                                        )}
                                         {offer.notes && (
                                             <div className="pt-2 border-t">
                                                 <span className="text-sm text-muted-foreground block mb-1">
@@ -362,7 +404,79 @@ export function OfferDetailModal({
                                                 <p className="text-sm">{offer.notes}</p>
                                             </div>
                                         )}
+                                        {/* Linked Conditions */}
+                                        {offer.conditions && offer.conditions.length > 0 && (
+                                            <div className="pt-3 border-t">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <FileCheck className="w-4 h-4 text-blue-500" />
+                                                    <span className="text-sm font-medium">
+                                                        {t('linkedConditions')} ({offer.conditions.length})
+                                                    </span>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {offer.conditions.map((condition) => (
+                                                        <Collapsible key={condition.conditionId}>
+                                                            <CollapsibleTrigger className="w-full group">
+                                                                <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors cursor-pointer">
+                                                                    <div className="flex-1 text-left">
+                                                                        <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                                                                            {condition.customTitle || t(`conditionTypes.${condition.type}`)}
+                                                                        </p>
+                                                                        <div className="flex items-center gap-3 mt-1">
+                                                                            <span className="flex items-center gap-1 text-xs text-blue-700 dark:text-blue-300">
+                                                                                <Calendar className="w-3 h-3" />
+                                                                                {condition.deadlineDate}
+                                                                            </span>
+                                                                            <Badge 
+                                                                                variant={condition.status === 'SATISFIED' ? 'default' : condition.status === 'FAILED' ? 'destructive' : 'secondary'}
+                                                                                className="text-xs px-1.5 py-0"
+                                                                            >
+                                                                                {t(`conditionStatus.${condition.status}`)}
+                                                                            </Badge>
+                                                                        </div>
+                                                                    </div>
+                                                                    <ChevronDown className="w-4 h-4 text-blue-500 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                                                </div>
+                                                            </CollapsibleTrigger>
+                                                            <CollapsibleContent>
+                                                                <div className="px-3 py-2 mt-1 bg-muted/50 rounded-b-lg border-x border-b border-border text-sm text-muted-foreground">
+                                                                    {condition.description || t('conditions.noDescription', 'No description provided.')}
+                                                                </div>
+                                                            </CollapsibleContent>
+                                                        </Collapsible>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
+
+                                    {/* Show existing client decision if any (historical data) */}
+                                    {offer.clientDecision && (
+                                        <>
+                                            <Separator />
+                                            <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                                                <div className="flex items-center gap-2">
+                                                    {decisionIconMap[offer.clientDecision]}
+                                                    <span className="font-semibold">{t('clientHasDecided')}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant={decisionVariantMap[offer.clientDecision]}>
+                                                        {t(`clientOfferDecisions.${offer.clientDecision}`)}
+                                                    </Badge>
+                                                    {offer.clientDecisionAt && (
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {format(new Date(offer.clientDecisionAt), 'MMM d, yyyy HH:mm')}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {offer.clientDecisionNotes && (
+                                                    <p className="text-sm text-muted-foreground mt-2">
+                                                        "{offer.clientDecisionNotes}"
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
 
                                     {!isReadOnly && (
                                         <div className="flex justify-between gap-2 pt-4 border-t">
@@ -427,11 +541,20 @@ export function OfferDetailModal({
                                                 <div className="min-w-0">
                                                     <p className="font-medium text-sm truncate">{doc.fileName}</p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        {format(new Date(doc.uploadedAt), 'MMM d, yyyy')} • {(doc.fileSize ? (doc.fileSize / 1024).toFixed(0) : '?')} KB
+                                                        {doc.createdAt ? format(new Date(doc.createdAt), 'MMM d, yyyy') : '-'} • {doc.sizeBytes ? (doc.sizeBytes / 1024).toFixed(0) : (doc.fileSize ? (doc.fileSize / 1024).toFixed(0) : '?')} KB
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8"
+                                                    onClick={() => handleDownload(doc)}
+                                                    title={t('view')}
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"

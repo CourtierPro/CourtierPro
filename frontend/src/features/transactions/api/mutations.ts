@@ -269,6 +269,26 @@ export function useRemoveOffer() {
     });
 }
 
+// ==================== CLIENT OFFER DECISION MUTATION ====================
+
+import type { ClientOfferDecisionDTO, Offer as OfferType } from '@/shared/api/types';
+
+export function useSubmitOfferDecision() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ clientId, transactionId, offerId, data }: { clientId: string; transactionId: string; offerId: string; data: ClientOfferDecisionDTO }) => {
+            const res = await axiosInstance.put<OfferType>(`/clients/${clientId}/transactions/${transactionId}/offers/${offerId}/decision`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: offerKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: offerKeys.detail(variables.transactionId, variables.offerId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
 // ==================== CONDITION MUTATIONS ====================
 
 import { conditionKeys } from '@/features/transactions/api/queries';
@@ -360,7 +380,7 @@ export function useUpdatePropertyOffer() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ propertyId, propertyOfferId, data, transactionId }: { propertyId: string; propertyOfferId: string; transactionId: string; data: PropertyOfferRequestDTO }) => {
+        mutationFn: async ({ propertyId, propertyOfferId, data }: { propertyId: string; propertyOfferId: string; transactionId: string; data: PropertyOfferRequestDTO }) => {
             const res = await axiosInstance.put<PropertyOffer>(`/transactions/properties/${propertyId}/offers/${propertyOfferId}`, data);
             return res.data;
         },

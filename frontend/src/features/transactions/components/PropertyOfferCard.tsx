@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/shared/components/ui/badge';
 import { Section } from '@/shared/components/branded/Section';
-import { FileText, Calendar } from 'lucide-react';
+import { FileText, Calendar, FileCheck } from 'lucide-react';
 import type { PropertyOffer, BuyerOfferStatus } from '@/shared/api/types';
 import { format } from 'date-fns';
 
@@ -12,8 +12,7 @@ interface PropertyOfferCardProps {
 }
 
 const statusConfig: Record<BuyerOfferStatus, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; className: string }> = {
-    DRAFT: { variant: 'outline', className: 'border-dashed border-muted-foreground text-muted-foreground' },
-    SUBMITTED: { variant: 'secondary', className: 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30' },
+    OFFER_MADE: { variant: 'secondary', className: 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30' },
     COUNTERED: { variant: 'secondary', className: 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30' },
     ACCEPTED: { variant: 'secondary', className: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' },
     DECLINED: { variant: 'destructive', className: 'bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30' },
@@ -57,6 +56,12 @@ export function PropertyOfferCard({ offer, onClick, isActive }: PropertyOfferCar
                             <Badge variant="outline" className="text-xs gap-1">
                                 <FileText className="w-3 h-3" />
                                 {offer.documents.length}
+                            </Badge>
+                        )}
+                        {offer.conditions && offer.conditions.length > 0 && (
+                            <Badge variant="outline" className="text-xs gap-1 border-blue-500/50 text-blue-600 dark:text-blue-400">
+                                <FileCheck className="w-3 h-3" />
+                                {offer.conditions.length}
                             </Badge>
                         )}
                     </div>

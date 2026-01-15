@@ -1,6 +1,5 @@
 package com.example.courtierprobackend.transactions.businesslayer;
 
-import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntry;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
 import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
 import com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO;
@@ -29,7 +28,6 @@ import com.example.courtierprobackend.transactions.datalayer.repositories.Transa
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,7 +35,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import org.mockito.ArgumentCaptor;
 
 /**
  * Unit tests for TransactionServiceImpl.
@@ -96,13 +93,19 @@ class TransactionServiceImplTest {
     @Mock
     private com.example.courtierprobackend.infrastructure.storage.S3StorageService s3StorageService;
 
+    @Mock
+    private com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository documentRequestRepository;
+
+    @Mock
+    private com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository documentConditionLinkRepository;
+
 
     @BeforeEach
     void setup() {
         transactionService = new TransactionServiceImpl(transactionRepository, pinnedTransactionRepository,
                 userAccountRepository, emailService,
                 notificationService, timelineService, participantRepository, propertyRepository, offerRepository, conditionRepository,
-                propertyOfferRepository, offerDocumentRepository, offerRevisionRepository, s3StorageService);
+                propertyOfferRepository, offerDocumentRepository, offerRevisionRepository, s3StorageService, documentRequestRepository, documentConditionLinkRepository);
         lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
     }
 
@@ -1302,8 +1305,6 @@ class TransactionServiceImplTest {
         StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
         dto.setStage("BUYER_FINANCING_FINALIZED");
         dto.setNote(customNote);
-
-        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
 
         // Act
         TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto, brokerUuid);

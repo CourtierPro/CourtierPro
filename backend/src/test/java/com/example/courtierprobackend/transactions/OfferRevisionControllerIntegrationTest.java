@@ -54,7 +54,6 @@ class OfferRevisionControllerIntegrationTest {
     private UserAccountRepository userAccountRepository;
 
     private static final SimpleGrantedAuthority ROLE_BROKER = new SimpleGrantedAuthority("ROLE_BROKER");
-    private static final SimpleGrantedAuthority ROLE_CLIENT = new SimpleGrantedAuthority("ROLE_CLIENT");
 
     @Nested
     @DisplayName("GET /transactions/{transactionId}/offers/{offerId}/revisions")

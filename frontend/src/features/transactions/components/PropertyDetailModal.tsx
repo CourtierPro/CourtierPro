@@ -81,7 +81,7 @@ export function PropertyDetailModal({
     return (
         <>
             <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-                <DialogContent className="max-w-xl">
+                <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <MapPin className="w-5 h-5 text-primary" />
@@ -97,13 +97,13 @@ export function PropertyDetailModal({
                         </DialogDescription>
                     </DialogHeader>
 
-                    <Tabs defaultValue="details" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
+                    <Tabs defaultValue="details" className="w-full flex-1 flex flex-col min-h-0">
+                        <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
                             <TabsTrigger value="details">{t('details')}</TabsTrigger>
                             <TabsTrigger value="offers">{t('offerHistory')}</TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="details" className="space-y-4 py-4">
+                        <TabsContent value="details" className="space-y-4 py-4 flex-1 overflow-y-auto">
                             {/* Address Section */}
                             <div className="space-y-2">
                                 <h4 className="text-sm font-medium text-muted-foreground">{t('address')}</h4>
@@ -164,7 +164,7 @@ export function PropertyDetailModal({
                             )}
                         </TabsContent>
 
-                        <TabsContent value="offers" className="py-4">
+                        <TabsContent value="offers" className="py-4 flex-1 overflow-y-auto">
                             <PropertyOfferList
                                 transactionId={transactionId}
                                 propertyId={property.propertyId}

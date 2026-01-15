@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { FileText, Download, Trash2, Upload, Calendar } from 'lucide-react';
+import { FileText, Download, Trash2, Upload, Calendar, Eye, FileCheck, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import axiosInstance from '@/shared/api/axiosInstance';
 
@@ -35,6 +35,7 @@ import {
 } from '@/shared/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Separator } from '@/shared/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/components/ui/collapsible';
 
 import { useUpdatePropertyOffer, useUploadPropertyOfferDocument, useDeleteOfferDocument } from '@/features/transactions/api/mutations';
 import type { PropertyOffer, BuyerOfferStatus, OfferDocument } from '@/shared/api/types';
@@ -54,15 +55,14 @@ const offerSchema = z.object({
         { message: 'offerAmountMustBePositive' }
     ),
     expiryDate: z.string().optional(),
-    status: z.enum(['DRAFT', 'SUBMITTED', 'COUNTERED', 'ACCEPTED', 'DECLINED', 'EXPIRED', 'WITHDRAWN']),
+    status: z.enum(['OFFER_MADE', 'COUNTERED', 'ACCEPTED', 'DECLINED', 'EXPIRED', 'WITHDRAWN']),
     notes: z.string().optional(),
 });
 
 type PropertyOfferFormData = z.infer<typeof offerSchema>;
 
 const BUYER_OFFER_STATUSES: BuyerOfferStatus[] = [
-    'DRAFT',
-    'SUBMITTED',
+    'OFFER_MADE',
     'COUNTERED',
     'ACCEPTED',
     'DECLINED',
@@ -71,8 +71,7 @@ const BUYER_OFFER_STATUSES: BuyerOfferStatus[] = [
 ];
 
 const statusVariantMap: Record<BuyerOfferStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    DRAFT: 'outline',
-    SUBMITTED: 'secondary',
+    OFFER_MADE: 'secondary',
     COUNTERED: 'secondary',
     ACCEPTED: 'default',
     DECLINED: 'destructive',
@@ -346,6 +345,54 @@ export function PropertyOfferDetailModal({
                                     </>
                                 )}
 
+                                {/* Linked Conditions */}
+                                {offer.conditions && offer.conditions.length > 0 && (
+                                    <>
+                                        <Separator />
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <FileCheck className="w-4 h-4 text-blue-500" />
+                                                <span className="text-sm font-medium">
+                                                    {t('linkedConditions')} ({offer.conditions.length})
+                                                </span>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {offer.conditions.map((condition) => (
+                                                    <Collapsible key={condition.conditionId}>
+                                                        <CollapsibleTrigger className="w-full group">
+                                                            <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors cursor-pointer">
+                                                                <div className="flex-1 text-left">
+                                                                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                                                                        {condition.customTitle || t(`conditionTypes.${condition.type}`)}
+                                                                    </p>
+                                                                    <div className="flex items-center gap-3 mt-1">
+                                                                        <span className="flex items-center gap-1 text-xs text-blue-700 dark:text-blue-300">
+                                                                            <Calendar className="w-3 h-3" />
+                                                                            {condition.deadlineDate}
+                                                                        </span>
+                                                                        <Badge 
+                                                                            variant={condition.status === 'SATISFIED' ? 'default' : condition.status === 'FAILED' ? 'destructive' : 'secondary'}
+                                                                            className="text-xs px-1.5 py-0"
+                                                                        >
+                                                                            {t(`conditionStatus.${condition.status}`)}
+                                                                        </Badge>
+                                                                    </div>
+                                                                </div>
+                                                                <ChevronDown className="w-4 h-4 text-blue-500 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                                            </div>
+                                                        </CollapsibleTrigger>
+                                                        <CollapsibleContent>
+                                                            <div className="px-3 py-2 mt-1 bg-muted/50 rounded-b-lg border-x border-b border-border text-sm text-muted-foreground">
+                                                                {condition.description || t('conditions.noDescription', 'No description provided.')}
+                                                            </div>
+                                                        </CollapsibleContent>
+                                                    </Collapsible>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
                                 {!isReadOnly && (
                                     <div className="pt-4 flex justify-end">
                                         <Button onClick={() => setIsEditing(true)} variant="outline">
@@ -403,11 +450,20 @@ export function PropertyOfferDetailModal({
                                             <div className="min-w-0">
                                                 <p className="font-medium text-sm truncate">{doc.fileName}</p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {format(new Date(doc.uploadedAt), 'MMM d, yyyy')} • {(doc.fileSize / 1024).toFixed(0)} KB
+                                                    {doc.createdAt ? format(new Date(doc.createdAt), 'MMM d, yyyy') : '-'} • {doc.sizeBytes ? (doc.sizeBytes / 1024).toFixed(0) : ((doc.fileSize ?? 0) / 1024).toFixed(0)} KB
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() => handleDownload(doc)}
+                                                title={t('view')}
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="icon"

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/sha
 import { Badge } from '@/shared/components/ui/badge';
 import { formatDateTime } from '@/shared/utils/date';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Bell, AlertCircle, CheckCircle, Info, Sparkles, XCircle, Home, DollarSign } from 'lucide-react';
+import { FileText, Bell, AlertCircle, CheckCircle, Info, Sparkles, XCircle, Home, DollarSign, FileCheck, ArrowLeftRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { NotificationType, NotificationCategory, type NotificationResponseDTO } from '../api/notificationsApi';
 import { cn } from '@/shared/utils/utils';
@@ -77,7 +77,14 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
             case NotificationCategory.PROPERTY_ADDED:
                 return <Home className="w-4 h-4 text-emerald-500" />;
             case NotificationCategory.OFFER_RECEIVED:
+            case NotificationCategory.OFFER_MADE:
+            case NotificationCategory.OFFER_STATUS_CHANGED:
                 return <DollarSign className="w-4 h-4 text-green-600" />;
+            case NotificationCategory.OFFER_COUNTERED:
+                return <ArrowLeftRight className="w-4 h-4 text-amber-500" />;
+            case NotificationCategory.CONDITION_ADDED:
+            case NotificationCategory.CONDITION_STATUS_CHANGED:
+                return <FileCheck className="w-4 h-4 text-blue-500" />;
             default:
                 return <Bell className="w-4 h-4 text-foreground/60" />;
         }
@@ -109,11 +116,30 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
                 ] as NotificationCategory[]
             ).includes(notification.category);
 
-            // Navigate to offers tab for offer notifications
-            const isOfferRelated = notification.category === NotificationCategory.OFFER_RECEIVED;
+            // Navigate to offers tab for offer notifications (sell side)
+            const isOfferRelated = (
+                [
+                    NotificationCategory.OFFER_RECEIVED,
+                ] as NotificationCategory[]
+            ).includes(notification.category);
 
-            // Navigate to properties tab for property notifications
-            const isPropertyRelated = notification.category === NotificationCategory.PROPERTY_ADDED;
+            // Navigate to properties tab for property/property offer notifications (buy side)
+            const isPropertyRelated = (
+                [
+                    NotificationCategory.PROPERTY_ADDED,
+                    NotificationCategory.OFFER_MADE,
+                    NotificationCategory.OFFER_STATUS_CHANGED,
+                    NotificationCategory.OFFER_COUNTERED,
+                ] as NotificationCategory[]
+            ).includes(notification.category);
+
+            // Navigate to conditions tab for condition notifications
+            const isConditionRelated = (
+                [
+                    NotificationCategory.CONDITION_ADDED,
+                    NotificationCategory.CONDITION_STATUS_CHANGED,
+                ] as NotificationCategory[]
+            ).includes(notification.category);
 
             const targetUrl = isDocumentRelated
                 ? `/transactions/${notification.relatedTransactionId}?tab=documents`
@@ -121,7 +147,9 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
                     ? `/transactions/${notification.relatedTransactionId}?tab=offers`
                     : isPropertyRelated
                         ? `/transactions/${notification.relatedTransactionId}?tab=properties`
-                        : `/transactions/${notification.relatedTransactionId}`;
+                        : isConditionRelated
+                            ? `/transactions/${notification.relatedTransactionId}?tab=conditions`
+                            : `/transactions/${notification.relatedTransactionId}`;
 
             navigate(targetUrl);
         }

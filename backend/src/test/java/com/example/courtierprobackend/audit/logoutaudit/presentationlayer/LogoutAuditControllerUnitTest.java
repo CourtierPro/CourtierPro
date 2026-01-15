@@ -11,13 +11,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -153,7 +151,7 @@ class LogoutAuditControllerUnitTest {
         when(logoutAuditService.getLogoutEventsByReason(LogoutAuditEvent.LogoutReason.FORCED)).thenReturn(List.of());
 
         // Act
-        ResponseEntity<List<LogoutAuditEvent>> response = controller.getLogoutEventsByReason("forced");
+        controller.getLogoutEventsByReason("forced");
 
         // Assert
         verify(logoutAuditService).getLogoutEventsByReason(LogoutAuditEvent.LogoutReason.FORCED);

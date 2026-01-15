@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { Upload, X, FileText } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -28,7 +30,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/shared/components/ui/select';
-import { useAddOffer } from '@/features/transactions/api/mutations';
+import { useAddOffer, useUploadOfferDocument } from '@/features/transactions/api/mutations';
+import { ConditionSelector } from './ConditionSelector';
 import type { ReceivedOfferStatus } from '@/shared/api/types';
 
 interface AddOfferModalProps {
@@ -43,6 +46,7 @@ const offerSchema = z.object({
         (val) => parseFloat(val) > 0,
         { message: 'offerAmountMustBePositive' }
     ),
+    expiryDate: z.string().optional(),
     status: z.enum(['PENDING', 'UNDER_REVIEW', 'COUNTERED', 'ACCEPTED', 'DECLINED']),
     notes: z.string().optional(),
 });
@@ -59,45 +63,79 @@ const OFFER_STATUSES: ReceivedOfferStatus[] = [
 
 export function AddOfferModal({ isOpen, onClose, transactionId }: AddOfferModalProps) {
     const { t } = useTranslation('transactions');
-    const { mutate: addOffer, isPending } = useAddOffer();
+    const { mutateAsync: addOffer, isPending: isAddingOffer } = useAddOffer();
+    const { mutateAsync: uploadDocument, isPending: isUploading } = useUploadOfferDocument();
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [selectedConditionIds, setSelectedConditionIds] = useState<string[]>([]);
+
+    const isPending = isAddingOffer || isUploading;
 
     const form = useForm<OfferFormData>({
         resolver: zodResolver(offerSchema),
         defaultValues: {
             buyerName: '',
             offerAmount: '',
+            expiryDate: '',
             status: 'PENDING',
             notes: '',
         },
     });
 
-    const onSubmit = (data: OfferFormData) => {
-        addOffer(
-            {
+    const onSubmit = async (data: OfferFormData) => {
+        try {
+            // Create the offer first
+            const createdOffer = await addOffer({
                 transactionId,
                 data: {
                     buyerName: data.buyerName,
                     offerAmount: data.offerAmount ? parseFloat(data.offerAmount) : undefined,
+                    expiryDate: data.expiryDate || undefined,
                     status: data.status,
                     notes: data.notes || undefined,
+                    conditionIds: selectedConditionIds.length > 0 ? selectedConditionIds : undefined,
                 },
-            },
-            {
-                onSuccess: () => {
+            });
+
+            // If a file was selected, upload it to the newly created offer
+            if (selectedFile && createdOffer.offerId) {
+                try {
+                    await uploadDocument({
+                        transactionId,
+                        offerId: createdOffer.offerId,
+                        file: selectedFile,
+                    });
                     toast.success(t('offerAdded'));
-                    form.reset();
-                    onClose();
-                },
-                onError: (error) => {
-                    toast.error(t('errorAddingOffer') + ': ' + error.message);
-                },
+                } catch {
+                    // Offer was created but document upload failed
+                    toast.warning(t('offerAdded') + ' - ' + t('errorUploadingDocument'));
+                }
+            } else {
+                toast.success(t('offerAdded'));
             }
-        );
+
+            form.reset();
+            setSelectedFile(null);
+            setSelectedConditionIds([]);
+            onClose();
+        } catch (error) {
+            toast.error(t('errorAddingOffer') + ': ' + (error as Error).message);
+        }
     };
 
     const handleClose = () => {
         form.reset();
+        setSelectedFile(null);
         onClose();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setSelectedFile(e.target.files[0]);
+        }
+    };
+
+    const handleRemoveFile = () => {
+        setSelectedFile(null);
     };
 
     return (
@@ -142,6 +180,20 @@ export function AddOfferModal({ isOpen, onClose, transactionId }: AddOfferModalP
 
                         <FormField
                             control={form.control}
+                            name="expiryDate"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('expiryDate')}</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} type="date" />
+                                    </FormControl>
+                                    <FormMessage>{form.formState.errors.expiryDate?.message && t(form.formState.errors.expiryDate.message)}</FormMessage>
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
                             name="status"
                             render={({ field }) => (
                                 <FormItem>
@@ -162,6 +214,57 @@ export function AddOfferModal({ isOpen, onClose, transactionId }: AddOfferModalP
                                     </Select>
                                 </FormItem>
                             )}
+                        />
+
+                        {/* File Upload */}
+                        <div className="space-y-2">
+                            <FormLabel>{t('attachOfferDocument')}</FormLabel>
+                            {selectedFile ? (
+                                <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/30">
+                                    <FileText className="w-4 h-4 text-primary" />
+                                    <span className="text-sm flex-1 truncate">{selectedFile.name}</span>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={handleRemoveFile}
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="relative">
+                                    <input
+                                        type="file"
+                                        id="offer-document-upload"
+                                        className="hidden"
+                                        onChange={handleFileChange}
+                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        asChild
+                                        className="cursor-pointer w-full"
+                                    >
+                                        <label htmlFor="offer-document-upload">
+                                            <Upload className="w-4 h-4 mr-2" />
+                                            {t('uploadDocument')}
+                                        </label>
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Condition Selection */}
+                        <ConditionSelector
+                            transactionId={transactionId}
+                            selectedConditionIds={selectedConditionIds}
+                            onChange={setSelectedConditionIds}
+                            disabled={isPending}
+                            showCreateButton
                         />
 
                         <FormField
@@ -196,3 +299,4 @@ export function AddOfferModal({ isOpen, onClose, transactionId }: AddOfferModalP
         </Dialog>
     );
 }
+

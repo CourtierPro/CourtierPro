@@ -115,11 +115,13 @@ CREATE TABLE IF NOT EXISTS timeline_entries (
     buyer_name VARCHAR(255),
     offer_amount NUMERIC(12, 2),
     offer_status VARCHAR(50),
-    condition_deadline DATE,
+    -- Condition-related TransactionInfo fields
     condition_type VARCHAR(50),
+    condition_custom_title VARCHAR(255),
     condition_description TEXT,
-    condition_previous_status VARCHAR(20),
-    condition_new_status VARCHAR(20),
+    condition_deadline VARCHAR(255),
+    condition_previous_status VARCHAR(50),
+    condition_new_status VARCHAR(50),
     -- Soft Delete Columns
     deleted_at TIMESTAMP,
     deleted_by UUID,
@@ -401,6 +403,10 @@ CREATE TABLE IF NOT EXISTS offers (
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
     expiry_date DATE,
     notes TEXT,
+    -- Client decision fields for sell-side client review workflow
+    client_decision VARCHAR(50),
+    client_decision_at TIMESTAMP,
+    client_decision_notes TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     
@@ -409,13 +415,16 @@ CREATE TABLE IF NOT EXISTS offers (
         REFERENCES transactions(transaction_id)
         ON DELETE CASCADE,
     CONSTRAINT chk_sell_offer_status 
-        CHECK (status IN ('PENDING', 'UNDER_REVIEW', 'COUNTERED', 'ACCEPTED', 'DECLINED'))
+        CHECK (status IN ('PENDING', 'UNDER_REVIEW', 'COUNTERED', 'ACCEPTED', 'DECLINED')),
+    CONSTRAINT chk_client_decision 
+        CHECK (client_decision IS NULL OR client_decision IN ('ACCEPT', 'DECLINE', 'COUNTER'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_offers_transaction_id ON offers(transaction_id);
 CREATE INDEX IF NOT EXISTS idx_offers_offer_id ON offers(offer_id);
 CREATE INDEX IF NOT EXISTS idx_offers_status ON offers(status);
 CREATE INDEX IF NOT EXISTS idx_offers_expiry_date ON offers(expiry_date);
+CREATE INDEX IF NOT EXISTS idx_offers_client_decision ON offers(client_decision);
 
 -- =============================================================================
 -- PROPERTY OFFERS (for buyer transactions - tracking offers made on properties)
@@ -536,3 +545,47 @@ CREATE INDEX IF NOT EXISTS idx_conditions_transaction_id ON conditions(transacti
 CREATE INDEX IF NOT EXISTS idx_conditions_condition_id ON conditions(condition_id);
 CREATE INDEX IF NOT EXISTS idx_conditions_deadline_date ON conditions(deadline_date);
 CREATE INDEX IF NOT EXISTS idx_conditions_status ON conditions(status);
+
+-- =============================================================================
+-- DOCUMENT CONDITIONS (links conditions to offers/property offers/document requests)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS document_conditions (
+    id BIGSERIAL PRIMARY KEY,
+    condition_id UUID NOT NULL,
+    offer_id UUID,
+    property_offer_id UUID,
+    document_request_id UUID,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    
+    CONSTRAINT fk_document_conditions_condition 
+        FOREIGN KEY (condition_id) 
+        REFERENCES conditions(condition_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_document_conditions_offer 
+        FOREIGN KEY (offer_id) 
+        REFERENCES offers(offer_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_document_conditions_property_offer 
+        FOREIGN KEY (property_offer_id) 
+        REFERENCES property_offers(property_offer_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_document_conditions_request 
+        FOREIGN KEY (document_request_id) 
+        REFERENCES document_requests(request_id)
+        ON DELETE CASCADE,
+    -- Exactly one of offer_id, property_offer_id, document_request_id must be set
+    CONSTRAINT chk_document_conditions_one_source
+        CHECK (
+            (offer_id IS NOT NULL AND property_offer_id IS NULL AND document_request_id IS NULL) OR
+            (offer_id IS NULL AND property_offer_id IS NOT NULL AND document_request_id IS NULL) OR
+            (offer_id IS NULL AND property_offer_id IS NULL AND document_request_id IS NOT NULL)
+        ),
+    -- Prevent duplicate links
+    CONSTRAINT uq_document_conditions_unique_link
+        UNIQUE (condition_id, offer_id, property_offer_id, document_request_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_conditions_condition_id ON document_conditions(condition_id);
+CREATE INDEX IF NOT EXISTS idx_document_conditions_offer_id ON document_conditions(offer_id);
+CREATE INDEX IF NOT EXISTS idx_document_conditions_property_offer_id ON document_conditions(property_offer_id);
+CREATE INDEX IF NOT EXISTS idx_document_conditions_document_request_id ON document_conditions(document_request_id);

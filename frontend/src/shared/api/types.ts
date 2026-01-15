@@ -66,6 +66,7 @@ export interface TransactionInfo {
   offerStatus?: string;
   // Condition-related fields
   conditionType?: string;
+  conditionCustomTitle?: string;
   conditionDescription?: string;
   conditionDeadline?: string;
   conditionPreviousStatus?: string;
@@ -139,6 +140,8 @@ export type ReceivedOfferStatus =
   | 'ACCEPTED'
   | 'DECLINED';
 
+export type ClientOfferDecision = 'ACCEPT' | 'DECLINE' | 'COUNTER';
+
 export interface Offer {
   offerId: string;
   transactionId: string;
@@ -147,7 +150,12 @@ export interface Offer {
   status: ReceivedOfferStatus;
   notes?: string;
   expiryDate?: string;
+  // Client decision fields
+  clientDecision?: ClientOfferDecision;
+  clientDecisionAt?: string;
+  clientDecisionNotes?: string;
   documents?: OfferDocument[];
+  conditions?: Condition[];
   createdAt: string;
   updatedAt: string;
 }
@@ -158,23 +166,39 @@ export interface OfferRequestDTO {
   status: ReceivedOfferStatus;
   expiryDate?: string;
   notes?: string;
+  conditionIds?: string[];
+}
+
+export interface ClientOfferDecisionDTO {
+  decision: ClientOfferDecision;
+  notes?: string;
 }
 
 // ==================== OFFER DOCUMENT TYPES ====================
 
 export interface OfferDocument {
   documentId: string;
-  offerId?: string;
-  propertyOfferId?: string;
-  s3Key: string;
   fileName: string;
   mimeType?: string;
   sizeBytes?: number;
   fileSize?: number; // Kept for compatibility if backend sends this
-  uploadedBy: string;
-  downloadUrl?: string;
-  uploadedAt: string;
   createdAt: string;
+}
+
+// ==================== UNIFIED DOCUMENT TYPES ====================
+
+export type DocumentSource = 'CLIENT_UPLOAD' | 'OFFER_ATTACHMENT' | 'PROPERTY_OFFER_ATTACHMENT';
+
+export interface UnifiedDocument {
+  documentId: string;
+  fileName: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  uploadedAt: string;
+  source: DocumentSource;
+  sourceId: string;
+  sourceName: string;
+  status?: string;
 }
 
 // ==================== OFFER REVISION TYPES ====================
@@ -193,8 +217,7 @@ export interface OfferRevision {
 // ==================== PROPERTY OFFER TYPES (for buyer transactions) ====================
 
 export type BuyerOfferStatus =
-  | 'DRAFT'
-  | 'SUBMITTED'
+  | 'OFFER_MADE'
   | 'COUNTERED'
   | 'ACCEPTED'
   | 'DECLINED'
@@ -218,6 +241,7 @@ export interface PropertyOffer {
   expiryDate?: string;
   notes?: string;
   documents: OfferDocument[];
+  conditions?: Condition[];
   createdAt: string;
   updatedAt: string;
 }
@@ -228,6 +252,7 @@ export interface PropertyOfferRequestDTO {
   counterpartyResponse?: CounterpartyResponse;
   expiryDate?: string;
   notes?: string;
+  conditionIds?: string[];
 }
 
 // ==================== CONDITION TYPES ====================

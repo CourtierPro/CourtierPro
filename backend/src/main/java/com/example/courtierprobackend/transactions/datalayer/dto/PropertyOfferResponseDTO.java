@@ -27,4 +27,5 @@ public class PropertyOfferResponseDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<OfferDocumentResponseDTO> documents;
+    private List<ConditionResponseDTO> conditions;
 }

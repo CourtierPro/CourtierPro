@@ -6,7 +6,6 @@ import com.example.courtierprobackend.documents.presentationlayer.models.Documen
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentReviewRequestDTO;
 import com.example.courtierprobackend.security.UserContextUtils;
-import com.example.courtierprobackend.security.UserContextFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +14,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 

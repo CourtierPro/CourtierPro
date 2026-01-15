@@ -7,7 +7,8 @@ export interface CreateDocumentRequestDTO {
     expectedFrom: DocumentPartyEnum;
     visibleToClient?: boolean;
     brokerNotes?: string;
-    stage: string; // Add stage field
+    stage: string;
+    conditionIds?: string[];
 }
 
 export interface UpdateDocumentRequestDTO {

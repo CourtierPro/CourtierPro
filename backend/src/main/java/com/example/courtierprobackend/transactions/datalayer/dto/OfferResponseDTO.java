@@ -1,5 +1,6 @@
 package com.example.courtierprobackend.transactions.datalayer.dto;
 
+import com.example.courtierprobackend.transactions.datalayer.enums.ClientOfferDecision;
 import com.example.courtierprobackend.transactions.datalayer.enums.ReceivedOfferStatus;
 import lombok.*;
 
@@ -22,8 +23,15 @@ public class OfferResponseDTO {
     private ReceivedOfferStatus status;
     private LocalDate expiryDate;
     private String notes;
+    
+    // Client decision fields
+    private ClientOfferDecision clientDecision;
+    private LocalDateTime clientDecisionAt;
+    private String clientDecisionNotes;
+    
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<OfferDocumentResponseDTO> documents;
+    private List<ConditionResponseDTO> conditions;
 }
 

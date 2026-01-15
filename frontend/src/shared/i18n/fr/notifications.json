@@ -22,5 +22,12 @@
     "notifications.conditionFailed.title": "Condition non satisfaite",
     "notifications.conditionFailed.message": "La condition {{conditionType}} a été marquée comme non satisfaite.",
     "notifications.conditionStatusChanged.title": "Statut de condition modifié",
-    "notifications.conditionStatusChanged.message": "Le statut de la condition {{conditionType}} a été changé à {{status}}."
+    "notifications.conditionStatusChanged.message": "Le statut de la condition {{conditionType}} a été changé à {{status}}.",
+    "notifications.propertyOfferMade.title": "Nouvelle offre de propriété faite",
+    "notifications.propertyOfferMade.message": "Une offre de {{offerAmount}} a été faite sur la propriété au {{address}}.",
+    "notifications.offerStatusChanged.title": "Statut de l'offre mis à jour",
+    "notifications.offerStatusChanged.message": "Le statut de l'offre a été changé à {{status}}.",
+    "notifications.offerCountered.title": "Contre-offre reçue",
+    "notifications.offerCountered.message": "Une contre-offre a été reçue pour votre offre sur {{address}}.",
+    "transactionDeletedMessage": "Cette transaction a été annulée ou supprimée."
 }

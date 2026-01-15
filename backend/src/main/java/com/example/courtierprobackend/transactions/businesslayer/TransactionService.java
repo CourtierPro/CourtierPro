@@ -84,6 +84,9 @@ public interface TransactionService {
 
     OfferResponseDTO getOfferById(UUID offerId, UUID userId, boolean isBroker);
 
+    // Client offer decision (for seller transactions - client review workflow)
+    OfferResponseDTO submitClientOfferDecision(UUID offerId, ClientOfferDecisionDTO dto, UUID clientId);
+
     // Offer Revisions (for seller transaction offer history)
     List<OfferRevisionResponseDTO> getOfferRevisions(UUID offerId, UUID userId, boolean isBroker);
 
@@ -118,5 +121,7 @@ public interface TransactionService {
     void unarchiveTransaction(UUID transactionId, UUID brokerId);
 
     List<TransactionResponseDTO> getArchivedTransactions(UUID brokerId);
+    // Unified Documents (aggregates all document sources)
+    List<UnifiedDocumentDTO> getAllTransactionDocuments(UUID transactionId, UUID userId, boolean isBroker);
 }
 

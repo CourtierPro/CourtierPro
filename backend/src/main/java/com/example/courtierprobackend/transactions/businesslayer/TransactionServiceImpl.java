@@ -55,6 +55,7 @@ import com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequest
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.ClientOfferDecisionDTO;
 import com.example.courtierprobackend.transactions.datalayer.Condition;
 import com.example.courtierprobackend.transactions.datalayer.repositories.ConditionRepository;
 import com.example.courtierprobackend.transactions.datalayer.dto.ConditionRequestDTO;
@@ -62,7 +63,6 @@ import com.example.courtierprobackend.transactions.datalayer.dto.ConditionRespon
 import com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus;
 import com.example.courtierprobackend.transactions.datalayer.enums.ConditionType;
 import com.example.courtierprobackend.transactions.datalayer.enums.BuyerOfferStatus;
-import com.example.courtierprobackend.transactions.datalayer.enums.CounterpartyResponse;
 import com.example.courtierprobackend.transactions.datalayer.PropertyOffer;
 import com.example.courtierprobackend.transactions.datalayer.OfferDocument;
 import com.example.courtierprobackend.transactions.datalayer.OfferRevision;
@@ -74,6 +74,9 @@ import com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRe
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferRevisionResponseDTO;
 import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject;
+import com.example.courtierprobackend.transactions.datalayer.dto.UnifiedDocumentDTO;
+import com.example.courtierprobackend.transactions.datalayer.DocumentConditionLink;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -111,6 +114,8 @@ public class TransactionServiceImpl implements TransactionService {
     private final OfferDocumentRepository offerDocumentRepository;
     private final OfferRevisionRepository offerRevisionRepository;
     private final S3StorageService s3StorageService;
+    private final com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository documentRequestRepository;
+    private final com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository documentConditionLinkRepository;
 
     private String lookupUserName(UUID userId) {
         if (userId == null) {
@@ -989,6 +994,17 @@ public class TransactionServiceImpl implements TransactionService {
 
         PropertyOffer saved = propertyOfferRepository.save(offer);
 
+        // Save condition links if provided
+        if (dto.getConditionIds() != null && !dto.getConditionIds().isEmpty()) {
+            for (UUID conditionId : dto.getConditionIds()) {
+                DocumentConditionLink link = DocumentConditionLink.builder()
+                        .conditionId(conditionId)
+                        .propertyOfferId(saved.getPropertyOfferId())
+                        .build();
+                documentConditionLinkRepository.save(link);
+            }
+        }
+
         // Sync latest offer to Property entity
         property.setOfferAmount(saved.getOfferAmount());
         property.setOfferStatus(toPropertyOfferStatus(saved.getStatus()));
@@ -1066,6 +1082,18 @@ public class TransactionServiceImpl implements TransactionService {
 
         PropertyOffer saved = propertyOfferRepository.save(offer);
 
+        // Update condition links if provided
+        if (dto.getConditionIds() != null) {
+            documentConditionLinkRepository.deleteByPropertyOfferId(propertyOfferId);
+            for (UUID conditionId : dto.getConditionIds()) {
+                DocumentConditionLink link = DocumentConditionLink.builder()
+                        .conditionId(conditionId)
+                        .propertyOfferId(saved.getPropertyOfferId())
+                        .build();
+                documentConditionLinkRepository.save(link);
+            }
+        }
+
         // If this is the latest offer, sync to Property entity
         PropertyOffer latestOffer = propertyOfferRepository.findTopByPropertyIdOrderByOfferRoundDesc(propertyId).orElse(null);
         if (latestOffer != null && latestOffer.getPropertyOfferId().equals(saved.getPropertyOfferId())) {
@@ -1132,6 +1160,14 @@ public class TransactionServiceImpl implements TransactionService {
     private PropertyOfferResponseDTO toPropertyOfferResponseDTO(PropertyOffer offer) {
         List<OfferDocument> documents = offerDocumentRepository.findByPropertyOfferIdOrderByCreatedAtDesc(offer.getPropertyOfferId());
         
+        // Fetch linked conditions
+        List<DocumentConditionLink> conditionLinks = documentConditionLinkRepository.findByPropertyOfferId(offer.getPropertyOfferId());
+        List<ConditionResponseDTO> conditions = conditionLinks.stream()
+                .map(link -> conditionRepository.findByConditionId(link.getConditionId()))
+                .filter(java.util.Optional::isPresent)
+                .map(opt -> toConditionResponseDTO(opt.get(), true))
+                .toList();
+        
         return PropertyOfferResponseDTO.builder()
                 .propertyOfferId(offer.getPropertyOfferId())
                 .propertyId(offer.getPropertyId())
@@ -1146,6 +1182,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .documents(documents.stream()
                         .map(this::toOfferDocumentResponseDTO)
                         .toList())
+                .conditions(conditions)
                 .build();
     }
 
@@ -1206,6 +1243,17 @@ public class TransactionServiceImpl implements TransactionService {
                 .build();
 
         Offer saved = offerRepository.save(offer);
+
+        // Save condition links if provided
+        if (dto.getConditionIds() != null && !dto.getConditionIds().isEmpty()) {
+            for (UUID conditionId : dto.getConditionIds()) {
+                DocumentConditionLink link = DocumentConditionLink.builder()
+                        .conditionId(conditionId)
+                        .offerId(saved.getOfferId())
+                        .build();
+                documentConditionLinkRepository.save(link);
+            }
+        }
 
         // Add timeline entry for offer received
         String actorName = lookupUserName(brokerId);
@@ -1297,6 +1345,18 @@ public class TransactionServiceImpl implements TransactionService {
 
         Offer saved = offerRepository.save(offer);
 
+        // Update condition links if provided
+        if (dto.getConditionIds() != null) {
+            documentConditionLinkRepository.deleteByOfferId(offerId);
+            for (UUID conditionId : dto.getConditionIds()) {
+                DocumentConditionLink link = DocumentConditionLink.builder()
+                        .conditionId(conditionId)
+                        .offerId(saved.getOfferId())
+                        .build();
+                documentConditionLinkRepository.save(link);
+            }
+        }
+
         // Add timeline entry for status changes
         if (statusChanged) {
             String actorName = lookupUserName(brokerId);
@@ -1385,17 +1445,15 @@ public class TransactionServiceImpl implements TransactionService {
 
         try {
             String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed";
-            String uniqueId = UUID.randomUUID().toString();
-            String s3Key = String.format("offers/%s/%s_%s", offerId, uniqueId, originalFilename);
 
-            // Upload to S3 using the storage service
-            s3StorageService.uploadFile(file, offer.getTransactionId(), offerId);
+            // Upload to S3 using the storage service - use the returned StorageObject which has the actual s3Key
+            StorageObject storageObject = s3StorageService.uploadFile(file, offer.getTransactionId(), offerId);
 
             OfferDocument document = OfferDocument.builder()
                     .documentId(UUID.randomUUID())
                     .offerId(offerId)
                     .propertyOfferId(null)
-                    .s3Key(s3Key)
+                    .s3Key(storageObject.getS3Key())
                     .fileName(originalFilename)
                     .mimeType(file.getContentType())
                     .sizeBytes(file.getSize())
@@ -1404,19 +1462,6 @@ public class TransactionServiceImpl implements TransactionService {
                     .build();
 
             OfferDocument saved = offerDocumentRepository.save(document);
-
-            // Add timeline entry
-            String actorName = lookupUserName(brokerId);
-            TransactionInfo info = TransactionInfo.builder()
-                    .actorName(actorName)
-                    .build();
-            timelineService.addEntry(
-                    tx.getTransactionId(),
-                    brokerId,
-                    TimelineEntryType.OFFER_DOCUMENT_UPLOADED,
-                    "Document uploaded to offer: " + originalFilename,
-                    null,
-                    info);
 
             return toOfferDocumentResponseDTO(saved);
 
@@ -1442,17 +1487,15 @@ public class TransactionServiceImpl implements TransactionService {
 
         try {
             String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed";
-            String uniqueId = UUID.randomUUID().toString();
-            String s3Key = String.format("property-offers/%s/%s_%s", propertyOfferId, uniqueId, originalFilename);
 
-            // Upload to S3
-            s3StorageService.uploadFile(file, tx.getTransactionId(), propertyOfferId);
+            // Upload to S3 - use the returned StorageObject which has the actual s3Key
+            StorageObject storageObject = s3StorageService.uploadFile(file, tx.getTransactionId(), propertyOfferId);
 
             OfferDocument document = OfferDocument.builder()
                     .documentId(UUID.randomUUID())
                     .offerId(null)
                     .propertyOfferId(propertyOfferId)
-                    .s3Key(s3Key)
+                    .s3Key(storageObject.getS3Key())
                     .fileName(originalFilename)
                     .mimeType(file.getContentType())
                     .sizeBytes(file.getSize())
@@ -1461,21 +1504,6 @@ public class TransactionServiceImpl implements TransactionService {
                     .build();
 
             OfferDocument saved = offerDocumentRepository.save(document);
-
-            // Add timeline entry
-            String address = property.getAddress() != null ? property.getAddress().getStreet() : "Unknown";
-            String actorName = lookupUserName(brokerId);
-            TransactionInfo info = TransactionInfo.builder()
-                    .actorName(actorName)
-                    .address(address)
-                    .build();
-            timelineService.addEntry(
-                    tx.getTransactionId(),
-                    brokerId,
-                    TimelineEntryType.OFFER_DOCUMENT_UPLOADED,
-                    "Document uploaded to property offer #" + offer.getOfferRound() + ": " + originalFilename,
-                    null,
-                    info);
 
             return toOfferDocumentResponseDTO(saved);
 
@@ -1626,8 +1654,77 @@ public class TransactionServiceImpl implements TransactionService {
         return toOfferResponseDTO(offer, isBroker);
     }
 
+    @Override
+    @Transactional
+    public OfferResponseDTO submitClientOfferDecision(UUID offerId, ClientOfferDecisionDTO dto, UUID clientId) {
+        Offer offer = offerRepository.findByOfferId(offerId)
+                .orElseThrow(() -> new NotFoundException("Offer not found"));
+
+        Transaction tx = repo.findByTransactionId(offer.getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        // Verify client owns this transaction
+        TransactionAccessUtils.verifyClientAccess(tx, clientId);
+
+        // Only SELL_SIDE transactions can have client decisions on offers
+        if (tx.getSide() != TransactionSide.SELL_SIDE) {
+            throw new BadRequestException("Client decisions can only be made on seller-side offers");
+        }
+
+        // Update the offer with client's decision
+        offer.setClientDecision(dto.getDecision());
+        offer.setClientDecisionAt(LocalDateTime.now());
+        offer.setClientDecisionNotes(dto.getNotes());
+        
+        Offer saved = offerRepository.save(offer);
+
+        // Add timeline entry for client decision
+        String clientName = lookupUserName(clientId);
+        TransactionInfo info = TransactionInfo.builder()
+                .actorName(clientName)
+                .buyerName(offer.getBuyerName())
+                .offerAmount(offer.getOfferAmount())
+                .offerStatus(dto.getDecision().name())
+                .build();
+        timelineService.addEntry(
+                tx.getTransactionId(),
+                clientId,
+                TimelineEntryType.OFFER_UPDATED,
+                "Client " + clientName + " indicated decision: " + dto.getDecision().name() + " on offer from " + offer.getBuyerName(),
+                null,
+                info);
+
+        // Notify broker about client's decision
+        try {
+            notificationService.createNotification(
+                    tx.getBrokerId().toString(),
+                    "notifications.clientOfferDecision.title",
+                    "notifications.clientOfferDecision.message",
+                    java.util.Map.of(
+                            "clientName", clientName,
+                            "buyerName", offer.getBuyerName(),
+                            "decision", dto.getDecision().name(),
+                            "offerAmount", String.format("$%,.0f", offer.getOfferAmount())
+                    ),
+                    tx.getTransactionId().toString(),
+                    com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.OFFER_MADE);
+        } catch (Exception e) {
+            log.error("Failed to send client offer decision notification for offer {}", offerId, e);
+        }
+
+        return toOfferResponseDTO(saved, false);
+    }
+
     private OfferResponseDTO toOfferResponseDTO(Offer offer, boolean includeBrokerNotes) {
         List<OfferDocument> documents = offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(offer.getOfferId());
+        
+        // Fetch linked conditions
+        List<DocumentConditionLink> conditionLinks = documentConditionLinkRepository.findByOfferId(offer.getOfferId());
+        List<ConditionResponseDTO> conditions = conditionLinks.stream()
+                .map(link -> conditionRepository.findByConditionId(link.getConditionId()))
+                .filter(java.util.Optional::isPresent)
+                .map(opt -> toConditionResponseDTO(opt.get(), includeBrokerNotes))
+                .toList();
         
         return OfferResponseDTO.builder()
                 .offerId(offer.getOfferId())
@@ -1637,11 +1734,15 @@ public class TransactionServiceImpl implements TransactionService {
                 .status(offer.getStatus())
                 .expiryDate(offer.getExpiryDate())
                 .notes(offer.getNotes())
+                .clientDecision(offer.getClientDecision())
+                .clientDecisionAt(offer.getClientDecisionAt())
+                .clientDecisionNotes(offer.getClientDecisionNotes())
                 .createdAt(offer.getCreatedAt())
                 .updatedAt(offer.getUpdatedAt())
                 .documents(documents.stream()
                         .map(this::toOfferDocumentResponseDTO)
                         .toList())
+                .conditions(conditions)
                 .build();
     }
 
@@ -1698,6 +1799,7 @@ public class TransactionServiceImpl implements TransactionService {
         TransactionInfo txInfo = TransactionInfo.builder()
                 .actorName(actorName)
                 .conditionType(saved.getType().name())
+                .conditionCustomTitle(saved.getCustomTitle())
                 .conditionDescription(saved.getDescription())
                 .conditionDeadline(saved.getDeadlineDate())
                 .build();
@@ -1782,6 +1884,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
         TransactionInfo txInfo = TransactionInfo.builder()
                 .conditionType(saved.getType().name())
+                .conditionCustomTitle(saved.getCustomTitle())
                 .conditionDescription(saved.getDescription())
                 .conditionDeadline(saved.getDeadlineDate())
                 .conditionPreviousStatus(statusChanged ? previousStatus.name() : null)
@@ -1815,6 +1918,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         String typeName = getConditionTypeName(condition);
         String conditionTypeName = condition.getType().name();
+        String customTitle = condition.getCustomTitle();
 
         conditionRepository.delete(condition);
 
@@ -1822,6 +1926,7 @@ public class TransactionServiceImpl implements TransactionService {
         String description = "Condition removed: " + typeName;
         TransactionInfo txInfo = TransactionInfo.builder()
                 .conditionType(conditionTypeName)
+                .conditionCustomTitle(customTitle)
                 .build();
         timelineService.addEntry(
                 transactionId,
@@ -1874,6 +1979,7 @@ public class TransactionServiceImpl implements TransactionService {
         String description = "Condition " + typeName + " status changed: " + previousStatus + " → " + status;
         TransactionInfo txInfo = TransactionInfo.builder()
                 .conditionType(saved.getType().name())
+                .conditionCustomTitle(saved.getCustomTitle())
                 .conditionDescription(saved.getDescription())
                 .conditionPreviousStatus(previousStatus.name())
                 .conditionNewStatus(status.name())
@@ -2005,4 +2111,96 @@ public class TransactionServiceImpl implements TransactionService {
                 .map(tx -> EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId())))
                 .toList();
     }
+    // ==================== UNIFIED DOCUMENTS ====================
+
+    @Override
+    public List<UnifiedDocumentDTO> getAllTransactionDocuments(UUID transactionId, UUID userId, boolean isBroker) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId);
+
+        List<UnifiedDocumentDTO> allDocuments = new ArrayList<>();
+
+        // 1. Get DocumentRequests (client uploads) with their latest submitted document
+        List<com.example.courtierprobackend.documents.datalayer.DocumentRequest> docRequests = 
+                documentRequestRepository.findByTransactionRef_TransactionId(transactionId);
+        for (var docRequest : docRequests) {
+            // Only include if there's a submitted document
+            if (docRequest.getSubmittedDocuments() != null && !docRequest.getSubmittedDocuments().isEmpty()) {
+                // Get the latest submitted document
+                var latestSubmission = docRequest.getSubmittedDocuments().stream()
+                        .max((a, b) -> a.getUploadedAt().compareTo(b.getUploadedAt()))
+                        .orElse(null);
+                if (latestSubmission != null && latestSubmission.getStorageObject() != null) {
+                    String sourceName = docRequest.getCustomTitle() != null 
+                            ? docRequest.getCustomTitle() 
+                            : (docRequest.getDocType() != null ? docRequest.getDocType().name() : "Document");
+                    allDocuments.add(UnifiedDocumentDTO.builder()
+                            .documentId(latestSubmission.getDocumentId())
+                            .fileName(latestSubmission.getStorageObject().getFileName())
+                            .mimeType(latestSubmission.getStorageObject().getMimeType())
+                            .sizeBytes(latestSubmission.getStorageObject().getSizeBytes())
+                            .uploadedAt(latestSubmission.getUploadedAt())
+                            .source("CLIENT_UPLOAD")
+                            .sourceId(docRequest.getRequestId())
+                            .sourceName(sourceName)
+                            .status(docRequest.getStatus() != null ? docRequest.getStatus().name() : null)
+                            .build());
+                }
+            }
+        }
+
+        // 2. Get OfferDocuments (sell-side offers)
+        List<Offer> offers = offerRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId);
+        for (Offer offer : offers) {
+            List<OfferDocument> offerDocs = offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(offer.getOfferId());
+            for (OfferDocument doc : offerDocs) {
+                allDocuments.add(UnifiedDocumentDTO.builder()
+                        .documentId(doc.getDocumentId())
+                        .fileName(doc.getFileName())
+                        .mimeType(doc.getMimeType())
+                        .sizeBytes(doc.getSizeBytes())
+                        .uploadedAt(doc.getCreatedAt())
+                        .source("OFFER_ATTACHMENT")
+                        .sourceId(offer.getOfferId())
+                        .sourceName("Offer - " + offer.getBuyerName())
+                        .status(null)
+                        .build());
+            }
+        }
+
+        // 3. Get PropertyOffer documents (buy-side property offers)
+        List<Property> properties = propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId);
+        for (Property property : properties) {
+            List<PropertyOffer> propertyOffers = propertyOfferRepository.findByPropertyIdOrderByOfferRoundDesc(property.getPropertyId());
+            for (PropertyOffer propertyOffer : propertyOffers) {
+                List<OfferDocument> propOfferDocs = offerDocumentRepository.findByPropertyOfferIdOrderByCreatedAtDesc(propertyOffer.getPropertyOfferId());
+                for (OfferDocument doc : propOfferDocs) {
+                    String propAddress = property.getAddress() != null ? property.getAddress().getStreet() : "Property";
+                    allDocuments.add(UnifiedDocumentDTO.builder()
+                            .documentId(doc.getDocumentId())
+                            .fileName(doc.getFileName())
+                            .mimeType(doc.getMimeType())
+                            .sizeBytes(doc.getSizeBytes())
+                            .uploadedAt(doc.getCreatedAt())
+                            .source("PROPERTY_OFFER_ATTACHMENT")
+                            .sourceId(propertyOffer.getPropertyOfferId())
+                            .sourceName("Property Offer - " + propAddress)
+                            .status(null)
+                            .build());
+                }
+            }
+        }
+
+        // Sort by uploadedAt descending (most recent first)
+        allDocuments.sort((a, b) -> {
+            if (a.getUploadedAt() == null && b.getUploadedAt() == null) return 0;
+            if (a.getUploadedAt() == null) return 1;
+            if (b.getUploadedAt() == null) return -1;
+            return b.getUploadedAt().compareTo(a.getUploadedAt());
+        });
+
+        return allDocuments;
+    }
 }
+
