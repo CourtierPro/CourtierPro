@@ -409,6 +409,7 @@
   "timelineType.OFFER_DOCUMENT_UPLOADED": "Offer Document Uploaded",
   "timeline.propertyOfferMade": "Offer made for {{address}} at {{amount}}",
   "timeline.propertyOfferUpdated": "Offer updated for {{address}} to {{amount}}",
+  "timeline.propertyOfferStatusChanged": "Offer for {{address}} status changed from {{fromStatus}} to {{toStatus}}",
   "timeline.createdNoteNoAddress": "Transaction created for {{clientName}}.",
   "conditions": {
     "tab": "Conditions",
@@ -472,6 +473,7 @@
   "openFullDetails": "Open full details",
   "conditionSatisfied": "Satisfied",
   "offerRound": "Round {{round}}",
+  "propertyOfferRound": "Offer Round {{round}}",
   "makeOffer": "Make Offer",
   "makePropertyOffer": "Make an Offer",
   "makePropertyOfferDescription": "Create a new offer for this property to submit to the seller.",

@@ -17,7 +17,7 @@ import { ParticipantsList } from './ParticipantsList';
 import { ConditionList } from './ConditionList';
 import { AddConditionModal } from './AddConditionModal';
 import { ConditionDetailModal } from './ConditionDetailModal';
-import type { Condition, Offer, PropertyOffer } from '@/shared/api/types';
+import type { Condition, PropertyOffer } from '@/shared/api/types';
 
 interface TransactionTabsProps {
   transaction: Transaction;
@@ -92,13 +92,13 @@ export function TransactionTabs({
   };
 
   // Navigation from linked items - navigate to offers tab
-  const handleLinkedOfferClick = (_offer: Offer) => {
+  const handleLinkedOfferClick = () => {
     setIsConditionDetailModalOpen(false);
     handleTabChange('offers');
   };
 
   // Navigation from linked items - navigate to properties tab
-  const handleLinkedPropertyOfferClick = (_offer: PropertyOffer) => {
+  const handleLinkedPropertyOfferClick = () => {
     setIsConditionDetailModalOpen(false);
     handleTabChange('properties');
   };
@@ -267,7 +267,7 @@ export function TransactionTabs({
           isReadOnly={isReadOnly}
           offers={offers}
         />
-        
+
         {/* Condition Detail Modal */}
         <ConditionDetailModal
           isOpen={isConditionDetailModalOpen}

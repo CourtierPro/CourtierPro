@@ -345,5 +345,195 @@ class EmailServiceTest {
         String result = ReflectionTestUtils.invokeMethod(emailService, "translateDocumentType", "UNKNOWN_TYPE", true);
         assertThat(result).isEqualTo("UNKNOWN_TYPE");
     }
+
+    // ==================== PROPERTY OFFER EMAIL TESTS ====================
+
+    @Test
+    void sendPropertyOfferMadeNotification_SendsEmail() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendPropertyOfferMadeNotification(
+                    "client@example.com",
+                    "John Client",
+                    "Jane Broker",
+                    "123 Main St",
+                    "$500,000",
+                    1,
+                    "en");
+
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    @Test
+    void sendPropertyOfferMadeNotification_French_UsesFrenchTemplate() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendPropertyOfferMadeNotification(
+                    "client@example.com",
+                    "Jean Client",
+                    "Marie Courtier",
+                    "123 Rue Principale",
+                    "$500,000",
+                    1,
+                    "fr");
+
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(captor.capture()), times(1));
+            Message message = captor.getValue();
+            try {
+                assertThat(message.getSubject()).contains("Offre soumise");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Test
+    void sendPropertyOfferMadeNotification_MessagingException_LogsError() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            transportMock.when(() -> Transport.send(any())).thenThrow(new jakarta.mail.MessagingException("Fail"));
+
+            // Should not throw
+            emailService.sendPropertyOfferMadeNotification(
+                    "client@example.com", "Client", "Broker", "Address", "$100", 1, "en");
+
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    @Test
+    void sendPropertyOfferStatusChangedNotification_SendsEmail() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendPropertyOfferStatusChangedNotification(
+                    "client@example.com",
+                    "John Client",
+                    "Jane Broker",
+                    "123 Main St",
+                    "OFFER_MADE",
+                    "COUNTERED",
+                    "Please consider $480,000",
+                    "en");
+
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    @Test
+    void sendPropertyOfferStatusChangedNotification_MessagingException_LogsError() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            transportMock.when(() -> Transport.send(any())).thenThrow(new jakarta.mail.MessagingException("Fail"));
+
+            // Should not throw
+            emailService.sendPropertyOfferStatusChangedNotification(
+                    "client@example.com", "Client", "Broker", "Address",
+                    "OFFER_MADE", "ACCEPTED", null, "en");
+
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    // ==================== OFFER EMAIL TESTS (SELL-SIDE) ====================
+
+    @Test
+    void sendOfferReceivedNotification_SendsEmail() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendOfferReceivedNotification(
+                    "seller@example.com",
+                    "John Seller",
+                    "Jane Broker",
+                    "Bob Buyer",
+                    "$450,000",
+                    "en");
+
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    @Test
+    void sendOfferReceivedNotification_French_UsesFrenchTemplate() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendOfferReceivedNotification(
+                    "seller@example.com",
+                    "Jean Vendeur",
+                    "Marie Courtier",
+                    "Pierre Acheteur",
+                    "$450,000",
+                    "fr");
+
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(captor.capture()), times(1));
+            Message message = captor.getValue();
+            try {
+                assertThat(message.getSubject()).contains("Nouvelle offre");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Test
+    void sendOfferReceivedNotification_MessagingException_LogsError() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            transportMock.when(() -> Transport.send(any())).thenThrow(new jakarta.mail.MessagingException("Fail"));
+
+            // Should not throw
+            emailService.sendOfferReceivedNotification(
+                    "seller@example.com", "Seller", "Broker", "Buyer", "$100", "en");
+
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    @Test
+    void sendOfferStatusChangedNotification_SendsEmail() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendOfferStatusChangedNotification(
+                    "seller@example.com",
+                    "John Seller",
+                    "Jane Broker",
+                    "Bob Buyer",
+                    "PENDING",
+                    "ACCEPTED",
+                    "en");
+
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    @Test
+    void sendOfferStatusChangedNotification_MessagingException_LogsError() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            transportMock.when(() -> Transport.send(any())).thenThrow(new jakarta.mail.MessagingException("Fail"));
+
+            // Should not throw
+            emailService.sendOfferStatusChangedNotification(
+                    "seller@example.com", "Seller", "Broker", "Buyer",
+                    "PENDING", "DECLINED", "en");
+
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    // ==================== OFFER STATUS TRANSLATION TESTS ====================
+
+    @Test
+    void translateOfferStatus_ReturnsTranslation() {
+        String result = ReflectionTestUtils.invokeMethod(emailService, "translateOfferStatus", "ACCEPTED", false);
+        assertThat(result).isEqualTo("Accepted");
+
+        String resultFr = ReflectionTestUtils.invokeMethod(emailService, "translateOfferStatus", "ACCEPTED", true);
+        assertThat(resultFr).isEqualTo("Acceptée");
+    }
+
+    @Test
+    void translateOfferStatus_UnknownStatus_ReturnsOriginal() {
+        String result = ReflectionTestUtils.invokeMethod(emailService, "translateOfferStatus", "UNKNOWN_STATUS", true);
+        assertThat(result).isEqualTo("UNKNOWN_STATUS");
+    }
+
+    @Test
+    void translateOfferStatus_NullStatus_ReturnsEmptyString() {
+        String result = ReflectionTestUtils.invokeMethod(emailService, "translateOfferStatus", (String) null, false);
+        assertThat(result).isEqualTo("");
+    }
 }
 

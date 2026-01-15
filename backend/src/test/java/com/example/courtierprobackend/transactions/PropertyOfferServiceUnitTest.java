@@ -2,6 +2,7 @@ package com.example.courtierprobackend.transactions;
 
 import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.value_object.TransactionInfo;
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.email.EmailService;
@@ -429,6 +430,117 @@ class PropertyOfferServiceUnitTest {
             assertThatThrownBy(() -> service.updatePropertyOffer(propertyId, propertyOfferId, request, brokerId))
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("does not belong");
+        }
+
+        @Test
+        @DisplayName("should include previousOfferStatus in timeline entry when status changes")
+        void updatePropertyOffer_statusChange_includesPreviousStatusInTimeline() {
+            // Initial status is OFFER_MADE (set in sampleOffer)
+            PropertyOfferRequestDTO request = PropertyOfferRequestDTO.builder()
+                    .offerAmount(new BigDecimal("485000"))
+                    .status(BuyerOfferStatus.ACCEPTED)
+                    .build();
+
+            when(propertyRepository.findByPropertyId(propertyId))
+                    .thenReturn(Optional.of(sampleProperty));
+            when(transactionRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.of(buySideTransaction));
+            when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId))
+                    .thenReturn(Optional.of(sampleOffer));
+            when(propertyOfferRepository.save(any(PropertyOffer.class)))
+                    .thenAnswer(inv -> inv.getArgument(0));
+
+            service.updatePropertyOffer(propertyId, propertyOfferId, request, brokerId);
+
+            // Capture the TransactionInfo argument
+            org.mockito.ArgumentCaptor<TransactionInfo> infoCaptor = org.mockito.ArgumentCaptor.forClass(TransactionInfo.class);
+            org.mockito.ArgumentCaptor<String> noteCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+            
+            verify(timelineService).addEntry(
+                    eq(transactionId),
+                    eq(brokerId),
+                    eq(TimelineEntryType.PROPERTY_OFFER_UPDATED),
+                    noteCaptor.capture(),
+                    isNull(),
+                    infoCaptor.capture()
+            );
+            
+            // Verify the note contains both statuses
+            assertThat(noteCaptor.getValue()).contains("OFFER_MADE").contains("ACCEPTED");
+            
+            // Verify TransactionInfo has correct previous and current status
+            TransactionInfo capturedInfo = infoCaptor.getValue();
+            assertThat(capturedInfo.getPreviousOfferStatus()).isEqualTo("OFFER_MADE");
+            assertThat(capturedInfo.getOfferStatus()).isEqualTo("ACCEPTED");
+        }
+
+        @Test
+        @DisplayName("should not create timeline entry when status unchanged")
+        void updatePropertyOffer_noStatusChange_noTimelineEntry() {
+            // Same status as existing (OFFER_MADE)
+            PropertyOfferRequestDTO request = PropertyOfferRequestDTO.builder()
+                    .offerAmount(new BigDecimal("485000"))
+                    .status(BuyerOfferStatus.OFFER_MADE)  // Same as current
+                    .notes("Updated notes")
+                    .build();
+
+            when(propertyRepository.findByPropertyId(propertyId))
+                    .thenReturn(Optional.of(sampleProperty));
+            when(transactionRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.of(buySideTransaction));
+            when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId))
+                    .thenReturn(Optional.of(sampleOffer));
+            when(propertyOfferRepository.save(any(PropertyOffer.class)))
+                    .thenAnswer(inv -> inv.getArgument(0));
+
+            service.updatePropertyOffer(propertyId, propertyOfferId, request, brokerId);
+
+            // Verify no timeline entry created for non-status changes
+            verify(timelineService, never()).addEntry(any(), any(), eq(TimelineEntryType.PROPERTY_OFFER_UPDATED), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("should include previousOfferStatus COUNTERED when changing from countered to accepted")
+        void updatePropertyOffer_counteredToAccepted_includesPreviousStatus() {
+            // Set initial status to COUNTERED
+            sampleOffer.setStatus(BuyerOfferStatus.COUNTERED);
+
+            PropertyOfferRequestDTO request = PropertyOfferRequestDTO.builder()
+                    .offerAmount(new BigDecimal("500000"))
+                    .status(BuyerOfferStatus.ACCEPTED)
+                    .build();
+
+            when(propertyRepository.findByPropertyId(propertyId))
+                    .thenReturn(Optional.of(sampleProperty));
+            when(transactionRepository.findByTransactionId(transactionId))
+                    .thenReturn(Optional.of(buySideTransaction));
+            when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId))
+                    .thenReturn(Optional.of(sampleOffer));
+            when(propertyOfferRepository.save(any(PropertyOffer.class)))
+                    .thenAnswer(inv -> inv.getArgument(0));
+
+            service.updatePropertyOffer(propertyId, propertyOfferId, request, brokerId);
+
+            // Capture the TransactionInfo argument
+            org.mockito.ArgumentCaptor<TransactionInfo> infoCaptor = org.mockito.ArgumentCaptor.forClass(TransactionInfo.class);
+            org.mockito.ArgumentCaptor<String> noteCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+            
+            verify(timelineService).addEntry(
+                    eq(transactionId),
+                    eq(brokerId),
+                    eq(TimelineEntryType.PROPERTY_OFFER_UPDATED),
+                    noteCaptor.capture(),
+                    isNull(),
+                    infoCaptor.capture()
+            );
+            
+            // Verify the note contains both statuses
+            assertThat(noteCaptor.getValue()).contains("COUNTERED").contains("ACCEPTED");
+            
+            // Verify TransactionInfo has correct previous and current status
+            TransactionInfo capturedInfo = infoCaptor.getValue();
+            assertThat(capturedInfo.getPreviousOfferStatus()).isEqualTo("COUNTERED");
+            assertThat(capturedInfo.getOfferStatus()).isEqualTo("ACCEPTED");
         }
     }
 }

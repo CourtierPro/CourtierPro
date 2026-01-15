@@ -115,6 +115,7 @@ CREATE TABLE IF NOT EXISTS timeline_entries (
     buyer_name VARCHAR(255),
     offer_amount NUMERIC(12, 2),
     offer_status VARCHAR(50),
+    previous_offer_status VARCHAR(50),
     -- Condition-related TransactionInfo fields
     condition_type VARCHAR(50),
     condition_custom_title VARCHAR(255),

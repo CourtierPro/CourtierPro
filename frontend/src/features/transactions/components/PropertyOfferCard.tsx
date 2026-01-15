@@ -4,6 +4,7 @@ import { Section } from '@/shared/components/branded/Section';
 import { FileText, Calendar, FileCheck } from 'lucide-react';
 import type { PropertyOffer, BuyerOfferStatus } from '@/shared/api/types';
 import { format } from 'date-fns';
+import { parseLocalDate } from '@/shared/utils/date';
 
 interface PropertyOfferCardProps {
     offer: PropertyOffer;
@@ -35,7 +36,9 @@ export function PropertyOfferCard({ offer, onClick, isActive }: PropertyOfferCar
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return '-';
-        return format(new Date(dateString), 'MMM d, yyyy');
+        const date = parseLocalDate(dateString);
+        if (!date) return '-';
+        return format(date, 'MMM d, yyyy');
     };
 
     return (

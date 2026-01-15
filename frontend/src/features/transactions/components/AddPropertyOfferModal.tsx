@@ -110,7 +110,8 @@ export function AddPropertyOfferModal({ isOpen, onClose, transactionId, property
                                     form.reset();
                                     setSelectedConditionIds([]);
                                     setSelectedFile(null);
-                                    onClose();
+                                    // Use requestAnimationFrame to ensure modal closes after render cycle
+                                    requestAnimationFrame(() => onClose());
                                 },
                                 onError: (error) => {
                                     toast.success(t('offerAdded'));
@@ -118,7 +119,7 @@ export function AddPropertyOfferModal({ isOpen, onClose, transactionId, property
                                     form.reset();
                                     setSelectedConditionIds([]);
                                     setSelectedFile(null);
-                                    onClose();
+                                    requestAnimationFrame(() => onClose());
                                 },
                             }
                         );
@@ -127,7 +128,8 @@ export function AddPropertyOfferModal({ isOpen, onClose, transactionId, property
                         form.reset();
                         setSelectedConditionIds([]);
                         setSelectedFile(null);
-                        onClose();
+                        // Use requestAnimationFrame to ensure modal closes after render cycle
+                        requestAnimationFrame(() => onClose());
                     }
                 },
                 onError: (error) => {

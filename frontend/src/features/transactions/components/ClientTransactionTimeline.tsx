@@ -132,7 +132,7 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                             {/* Show info for CREATED using transactionInfo and i18n */}
                                             {entry.type === 'CREATED' && entry.transactionInfo && (
                                                 <p className="text-sm text-muted-foreground mt-1">
-                                                    {entry.transactionInfo.address && entry.transactionInfo.address.trim() !== '' 
+                                                    {entry.transactionInfo.address && entry.transactionInfo.address.trim() !== ''
                                                         ? t('timeline.createdNote', {
                                                             clientName: entry.transactionInfo.clientName,
                                                             address: entry.transactionInfo.address
@@ -176,7 +176,7 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                             {entry.type.startsWith('PROPERTY_OFFER_') && entry.transactionInfo && (
                                                 <p className="text-sm text-muted-foreground mt-1">
                                                     {(() => {
-                                                        const { address, offerAmount } = entry.transactionInfo;
+                                                        const { address, offerAmount, previousOfferStatus, offerStatus } = entry.transactionInfo;
                                                         const formatCurrency = (amount?: number) => {
                                                             if (!amount) return '';
                                                             return new Intl.NumberFormat('en-CA', {
@@ -192,6 +192,17 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                                             });
                                                         }
                                                         if (entry.type === 'PROPERTY_OFFER_UPDATED') {
+                                                            // Show status change with from/to if we have both statuses
+                                                            if (previousOfferStatus && offerStatus) {
+                                                                const fromStatus = t(`buyerOfferStatuses.${previousOfferStatus}`, { defaultValue: previousOfferStatus });
+                                                                const toStatus = t(`buyerOfferStatuses.${offerStatus}`, { defaultValue: offerStatus });
+                                                                return t('timeline.propertyOfferStatusChanged', {
+                                                                    address: address || t('unknownAddress'),
+                                                                    fromStatus,
+                                                                    toStatus,
+                                                                });
+                                                            }
+                                                            // Fallback to old format if no previous status
                                                             return t('timeline.propertyOfferUpdated', {
                                                                 address: address || t('unknownAddress'),
                                                                 amount: formatCurrency(offerAmount),

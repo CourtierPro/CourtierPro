@@ -1045,6 +1045,29 @@ public class TransactionServiceImpl implements TransactionService {
             log.error("Failed to send property offer notification for property {}", propertyId, e);
         }
 
+        // Send email notification to client
+        try {
+            UserAccount client = userAccountRepository.findById(tx.getClientId()).orElse(null);
+            UserAccount broker = userAccountRepository.findById(tx.getBrokerId()).orElse(null);
+            if (client != null && broker != null) {
+                String clientName = (client.getFirstName() != null ? client.getFirstName() : "") + " " +
+                        (client.getLastName() != null ? client.getLastName() : "");
+                String brokerName = (broker.getFirstName() != null ? broker.getFirstName() : "") + " " +
+                        (broker.getLastName() != null ? broker.getLastName() : "");
+                String clientLanguage = client.getPreferredLanguage() != null ? client.getPreferredLanguage() : "en";
+                emailService.sendPropertyOfferMadeNotification(
+                        client.getEmail(),
+                        clientName.trim(),
+                        brokerName.trim(),
+                        address,
+                        String.format("$%,.0f", saved.getOfferAmount()),
+                        nextRound,
+                        clientLanguage);
+            }
+        } catch (Exception e) {
+            log.error("Failed to send property offer email notification for property {}", propertyId, e);
+        }
+
         return toPropertyOfferResponseDTO(saved);
     }
 
@@ -1111,13 +1134,14 @@ public class TransactionServiceImpl implements TransactionService {
                     .actorName(actorName)
                     .address(address)
                     .offerAmount(saved.getOfferAmount())
+                    .previousOfferStatus(previousStatus.name())
                     .offerStatus(saved.getStatus().name())
                     .build();
             timelineService.addEntry(
                     tx.getTransactionId(),
                     brokerId,
                     TimelineEntryType.PROPERTY_OFFER_UPDATED,
-                    "Offer #" + saved.getOfferRound() + " on " + address + " status changed to " + saved.getStatus(),
+                    "Offer #" + saved.getOfferRound() + " on " + address + " status changed from " + previousStatus + " to " + saved.getStatus(),
                     null,
                     info);
 
@@ -1140,6 +1164,30 @@ public class TransactionServiceImpl implements TransactionService {
                                 : com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.OFFER_STATUS_CHANGED);
                 } catch (Exception e) {
                     log.error("Failed to send property offer status notification for property {}", propertyId, e);
+                }
+
+                // Send email notification to client
+                try {
+                    UserAccount client = userAccountRepository.findById(tx.getClientId()).orElse(null);
+                    UserAccount broker = userAccountRepository.findById(tx.getBrokerId()).orElse(null);
+                    if (client != null && broker != null) {
+                        String clientName = (client.getFirstName() != null ? client.getFirstName() : "") + " " +
+                                (client.getLastName() != null ? client.getLastName() : "");
+                        String brokerName = (broker.getFirstName() != null ? broker.getFirstName() : "") + " " +
+                                (broker.getLastName() != null ? broker.getLastName() : "");
+                        String clientLanguage = client.getPreferredLanguage() != null ? client.getPreferredLanguage() : "en";
+                        emailService.sendPropertyOfferStatusChangedNotification(
+                                client.getEmail(),
+                                clientName.trim(),
+                                brokerName.trim(),
+                                address,
+                                previousStatus.name(),
+                                saved.getStatus().name(),
+                                offer.getCounterpartyResponse() != null ? offer.getCounterpartyResponse().name() : null,
+                                clientLanguage);
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to send property offer status email notification for property {}", propertyId, e);
                 }
             }
         }
@@ -1286,6 +1334,28 @@ public class TransactionServiceImpl implements TransactionService {
             log.error("Failed to send offer notification for transaction {}", transactionId, e);
         }
 
+        // Send email notification to client
+        try {
+            UserAccount client = userAccountRepository.findById(tx.getClientId()).orElse(null);
+            UserAccount broker = userAccountRepository.findById(tx.getBrokerId()).orElse(null);
+            if (client != null && broker != null) {
+                String clientName = (client.getFirstName() != null ? client.getFirstName() : "") + " " +
+                        (client.getLastName() != null ? client.getLastName() : "");
+                String brokerName = (broker.getFirstName() != null ? broker.getFirstName() : "") + " " +
+                        (broker.getLastName() != null ? broker.getLastName() : "");
+                String clientLanguage = client.getPreferredLanguage() != null ? client.getPreferredLanguage() : "en";
+                emailService.sendOfferReceivedNotification(
+                        client.getEmail(),
+                        clientName.trim(),
+                        brokerName.trim(),
+                        saved.getBuyerName(),
+                        String.format("$%,.0f", saved.getOfferAmount()),
+                        clientLanguage);
+            }
+        } catch (Exception e) {
+            log.error("Failed to send offer received email notification for transaction {}", transactionId, e);
+        }
+
         return toOfferResponseDTO(saved, true);
     }
 
@@ -1393,6 +1463,29 @@ public class TransactionServiceImpl implements TransactionService {
                                 : com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.OFFER_STATUS_CHANGED);
                 } catch (Exception e) {
                     log.error("Failed to send offer status notification for transaction {}", transactionId, e);
+                }
+
+                // Send email notification to client
+                try {
+                    UserAccount client = userAccountRepository.findById(tx.getClientId()).orElse(null);
+                    UserAccount broker = userAccountRepository.findById(tx.getBrokerId()).orElse(null);
+                    if (client != null && broker != null) {
+                        String clientName = (client.getFirstName() != null ? client.getFirstName() : "") + " " +
+                                (client.getLastName() != null ? client.getLastName() : "");
+                        String brokerName = (broker.getFirstName() != null ? broker.getFirstName() : "") + " " +
+                                (broker.getLastName() != null ? broker.getLastName() : "");
+                        String clientLanguage = client.getPreferredLanguage() != null ? client.getPreferredLanguage() : "en";
+                        emailService.sendOfferStatusChangedNotification(
+                                client.getEmail(),
+                                clientName.trim(),
+                                brokerName.trim(),
+                                saved.getBuyerName(),
+                                previousStatus.name(),
+                                dto.getStatus().name(),
+                                clientLanguage);
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to send offer status email notification for transaction {}", transactionId, e);
                 }
             }
         }

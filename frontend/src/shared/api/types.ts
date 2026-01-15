@@ -64,6 +64,7 @@ export interface TransactionInfo {
   buyerName?: string;
   offerAmount?: number;
   offerStatus?: string;
+  previousOfferStatus?: string;
   // Condition-related fields
   conditionType?: string;
   conditionCustomTitle?: string;

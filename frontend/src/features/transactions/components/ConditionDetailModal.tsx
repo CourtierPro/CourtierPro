@@ -54,11 +54,11 @@ const offerStatusVariantMap: Record<ReceivedOfferStatus, 'default' | 'secondary'
 };
 
 const propertyOfferStatusVariantMap: Record<BuyerOfferStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    DRAFT: 'secondary',
-    SUBMITTED: 'secondary',
+    OFFER_MADE: 'secondary',
     COUNTERED: 'outline',
     ACCEPTED: 'default',
-    REJECTED: 'destructive',
+    DECLINED: 'destructive',
+    EXPIRED: 'destructive',
     WITHDRAWN: 'outline',
 };
 
@@ -321,7 +321,7 @@ export function ConditionDetailModal({
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center gap-2">
                                                                 <span className="font-medium truncate text-sm">
-                                                                    {offer.propertyAddress || t('unknownProperty')}
+                                                                    {t('propertyOfferRound', { round: offer.offerRound })}
                                                                 </span>
                                                                 <Badge variant={propertyOfferStatusVariantMap[offer.status]} className="text-xs">
                                                                     {t(`buyerOfferStatuses.${offer.status}`)}
@@ -332,10 +332,10 @@ export function ConditionDetailModal({
                                                                     <DollarSign className="w-3 h-3" />
                                                                     {formatCurrency(offer.offerAmount)}
                                                                 </span>
-                                                                {offer.offerDate && (
+                                                                {offer.createdAt && (
                                                                     <span className="flex items-center gap-1 text-xs">
                                                                         <Calendar className="w-3 h-3" />
-                                                                        {format(new Date(offer.offerDate), 'MMM d, yyyy')}
+                                                                        {format(new Date(offer.createdAt), 'MMM d, yyyy')}
                                                                     </span>
                                                                 )}
                                                             </div>
