@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS timeline_entries (
     condition_type VARCHAR(50),
     condition_custom_title VARCHAR(255),
     condition_description TEXT,
-    condition_deadline VARCHAR(255),
+    condition_deadline DATE,
     condition_previous_status VARCHAR(50),
     condition_new_status VARCHAR(50),
     -- Soft Delete Columns
