@@ -336,7 +336,6 @@ public class DashboardController {
                             .side(side)
                             .currentStage(currentStage)
                             .docType(entry.getDocType())
-                            .status(null) // Document status would need additional lookup if needed
                             .transactionInfo(entry.getTransactionInfo())
                             .seen(isSeen)
                             .build();

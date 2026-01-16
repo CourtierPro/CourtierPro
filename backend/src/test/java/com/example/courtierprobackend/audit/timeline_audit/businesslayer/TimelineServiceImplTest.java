@@ -262,5 +262,50 @@ class TimelineServiceImplTest {
         verify(repository).save(captor.capture());
         assertThat(captor.getValue().isVisibleToClient()).isTrue();
     }
+
+    // ========== getRecentEntriesForTransactionsPaged Tests ==========
+
+    @Test
+    void getRecentEntriesForTransactionsPaged_WithNullSet_ReturnsEmptyPage() {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        org.springframework.data.domain.Page<TimelineEntryDTO> result = service.getRecentEntriesForTransactionsPaged(null, pageable);
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isZero();
+    }
+
+    @Test
+    void getRecentEntriesForTransactionsPaged_WithEmptySet_ReturnsEmptyPage() {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        org.springframework.data.domain.Page<TimelineEntryDTO> result = service.getRecentEntriesForTransactionsPaged(java.util.Set.of(), pageable);
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isZero();
+    }
+
+    @Test
+    void getRecentEntriesForTransactionsPaged_WithValidSet_ReturnsPagedResults() {
+        UUID txId = UUID.randomUUID();
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        
+        TimelineEntry entry = TimelineEntry.builder()
+                .id(UUID.randomUUID())
+                .transactionId(txId)
+                .timestamp(java.time.Instant.now())
+                .build();
+        TimelineEntryDTO dto = TimelineEntryDTO.builder().id(entry.getId()).build();
+        
+        org.springframework.data.domain.Page<TimelineEntry> entryPage = new org.springframework.data.domain.PageImpl<>(
+                List.of(entry), pageable, 1);
+        
+        when(repository.findByTransactionIdInOrderByTimestampDesc(java.util.Set.of(txId), pageable))
+                .thenReturn(entryPage);
+        when(mapper.toDTO(entry)).thenReturn(dto);
+        
+        org.springframework.data.domain.Page<TimelineEntryDTO> result = 
+                service.getRecentEntriesForTransactionsPaged(java.util.Set.of(txId), pageable);
+        
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0)).isEqualTo(dto);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
 }
 

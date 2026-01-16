@@ -58,9 +58,8 @@ export interface RecentActivity {
     clientName: string;
     side: 'BUY_SIDE' | 'SELL_SIDE' | '';
     currentStage: string;
-    // Document-specific fields
+    // Document-specific field
     docType: string | null;
-    status: string | null;
     // Full transaction info for event-specific details
     transactionInfo: TransactionInfo | null;
     // Whether this activity has been seen by the broker

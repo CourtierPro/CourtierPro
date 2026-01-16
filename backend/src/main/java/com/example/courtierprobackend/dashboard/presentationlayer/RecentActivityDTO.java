@@ -32,9 +32,8 @@ public class RecentActivityDTO {
     private String side;
     private String currentStage;
     
-    // Document-specific fields
+    // Document-specific field
     private String docType;
-    private String status;
     
     // Full transaction info for event-specific details (stage changes, offers, conditions, etc.)
     private TransactionInfo transactionInfo;

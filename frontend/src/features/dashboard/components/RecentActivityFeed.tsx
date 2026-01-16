@@ -45,8 +45,7 @@ export function RecentActivityFeed({ className }: RecentActivityFeedProps) {
         }
     };
 
-    const handleCheckboxChange = (activityId: string, checked: boolean, e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleCheckboxChange = (activityId: string, checked: boolean) => {
         setSelectedIds(prev => {
             const next = new Set(prev);
             if (checked) {
@@ -125,7 +124,6 @@ export function RecentActivityFeed({ className }: RecentActivityFeedProps) {
             return (
                 <p className="text-sm text-muted-foreground mt-1">
                     {tDoc(`types.${activity.docType}`)}
-                    {activity.status ? ` — ${tDoc(`status.${activity.status}`)}` : ''}
                 </p>
             );
         }
@@ -418,8 +416,8 @@ export function RecentActivityFeed({ className }: RecentActivityFeedProps) {
                                 <div
                                     key={activity.activityId}
                                     className={`flex gap-4 rounded-lg transition-colors ${isUnseen
-                                            ? 'bg-primary/5 border-l-4 border-l-primary'
-                                            : ''
+                                        ? 'bg-primary/5 border-l-4 border-l-primary'
+                                        : ''
                                         }`}
                                 >
                                     {/* Checkbox for unseen items */}
@@ -431,7 +429,7 @@ export function RecentActivityFeed({ className }: RecentActivityFeedProps) {
                                             <Checkbox
                                                 checked={isSelected}
                                                 onCheckedChange={(checked) =>
-                                                    handleCheckboxChange(activity.activityId, checked as boolean, { stopPropagation: () => { } } as React.MouseEvent)
+                                                    handleCheckboxChange(activity.activityId, checked as boolean)
                                                 }
                                             />
                                         </div>
@@ -460,7 +458,7 @@ export function RecentActivityFeed({ className }: RecentActivityFeedProps) {
                                                     <div className="flex items-center gap-2 mb-3 flex-wrap">
                                                         <h3 className={`font-semibold ${isUnseen ? 'text-primary' : ''}`}>
                                                             {isDocumentEvent && activity.docType && String(activity.type) === 'DOCUMENT_REQUEST_UPDATED'
-                                                                ? `${tTx('documents:requestDocument')} : ${tDoc('edited')}`
+                                                                ? `${tDoc('requestDocument')} : ${tDoc('edited')}`
                                                                 : isDocumentEvent && activity.docType
                                                                     ? `${getEventTypeLabel(activity.type as Parameters<typeof getEventTypeLabel>[0], tTx)} : ${tDoc(`types.${activity.docType}`)}`
                                                                     : getEventTypeLabel(activity.type as Parameters<typeof getEventTypeLabel>[0], tTx)}
