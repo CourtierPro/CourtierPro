@@ -4,11 +4,14 @@ import { Section } from "@/shared/components/branded/Section";
 import { KpiCard } from "@/shared/components/branded/KpiCard";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { Users, ShieldCheck, Activity, AlertTriangle, Database } from "lucide-react";
+import { Button } from "@/shared/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { useAdminDashboardStats } from "@/features/dashboard/hooks/useDashboardStats";
 
 export function AdminDashboardPage() {
   const { t } = useTranslation("dashboard");
   const { data: stats, isLoading } = useAdminDashboardStats();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return <LoadingState message={t("loading")} />;
@@ -20,8 +23,6 @@ export function AdminDashboardPage() {
         title={t("admin.title")}
         subtitle={t("admin.subtitle")}
       />
-
-
       {/* High-level system metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
@@ -40,38 +41,39 @@ export function AdminDashboardPage() {
           icon={<Activity className="w-4 h-4" />}
         />
       </div>
-
       {/* Quick access admin tools */}
       <div className="flex flex-wrap gap-4 mt-2">
-        <button
+        <Button
+          type="button"
+          aria-label="Navigate to Resource Removal page"
           className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded shadow"
-          onClick={() => window.location.assign("/admin/resources")}
+          onClick={() => navigate("/admin/resources")}
         >
           <Database className="w-4 h-4" />
           {t("admin.resourceRemoval", "Resource Removal")}
-        </button>
-        <button
+        </Button>
+        <Button
+          type="button"
+          aria-label="Navigate to Audit Logs page"
           className="flex items-center gap-2 px-4 py-2 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded shadow"
-          onClick={() => window.location.assign("/admin/login-audit")}
+          onClick={() => navigate("/admin/login-audit")}
         >
           <ShieldCheck className="w-4 h-4" />
           {t("admin.auditLogs", "Audit Logs")}
-        </button>
+        </Button>
       </div>
 
       {/* Recent admin actions */}
-      <Section title={t("admin.recentActions", "Recent Admin Actions")} description={t("admin.recentActionsDesc", "Latest actions performed by admins.")}> 
+      <Section title={t("admin.recentActions", "Recent Admin Actions")} description={t("admin.recentActionsDesc", "Latest actions performed by admins.")}>
         <div className="text-sm text-muted-foreground">{t("admin.recentActionsPlaceholder", "No recent actions to display.")}</div>
       </Section>
-
       {/* System alerts */}
-      <Section title={t("admin.systemAlerts", "System Alerts")} description={t("admin.systemAlertsDesc", "Critical system alerts and warnings.")}> 
+      <Section title={t("admin.systemAlerts", "System Alerts")} description={t("admin.systemAlertsDesc", "Critical system alerts and warnings.")}>
         <div className="flex items-center gap-2 text-red-600">
           <AlertTriangle className="w-5 h-5" />
           <span>{t("admin.systemAlertsPlaceholder", "No critical alerts.")}</span>
         </div>
       </Section>
-
       {/* System logs (read-only, monitoring) */}
       <Section title={t("admin.systemLogs")} description={t("admin.systemLogsDesc")}> 
         <div className="text-sm text-muted-foreground">{t("admin.logsPlaceholder")}</div>
