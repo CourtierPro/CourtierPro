@@ -95,10 +95,12 @@ export function CreateAppointmentModal({
   const timeSlots = getTimeSlots();
 
   const filteredClients = useMemo(() =>
-    clients.filter(client =>
-      client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-      client.email.toLowerCase().includes(clientSearchTerm.toLowerCase())
-    ), [clients, clientSearchTerm]);
+    clients.filter(client => {
+      const name = client.name ? client.name.toLowerCase() : '';
+      const email = client.email ? client.email.toLowerCase() : '';
+      const search = clientSearchTerm ? clientSearchTerm.toLowerCase() : '';
+      return name.includes(search) || email.includes(search);
+    }), [clients, clientSearchTerm]);
 
   const getClientDetails = (clientId: string): ClientDisplay | undefined => {
     return clients.find(c => c.id === clientId);

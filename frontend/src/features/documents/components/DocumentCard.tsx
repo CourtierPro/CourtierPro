@@ -17,11 +17,12 @@ interface DocumentCardProps {
     document: DocumentRequest;
     onUpload?: (document: DocumentRequest, file?: File) => void;
     onReview?: (document: DocumentRequest) => void;
+    onEdit?: (document: DocumentRequest) => void;
     isFocused?: boolean;
     showBrokerNotes?: boolean;
 }
 
-export function DocumentCard({ document, onUpload, onReview, isFocused, showBrokerNotes = true }: DocumentCardProps) {
+export function DocumentCard({ document, onUpload, onReview, onEdit, isFocused, showBrokerNotes = true }: DocumentCardProps) {
     const { t, i18n } = useTranslation('documents');
     const [isLoadingView, setIsLoadingView] = useState(false);
     const title = formatDocumentTitle(document, t);
@@ -168,6 +169,11 @@ export function DocumentCard({ document, onUpload, onReview, isFocused, showBrok
                         </Badge>
 
                         <div className="flex gap-2">
+                            {onEdit && (
+                                <Button size="sm" variant="outline" onClick={() => onEdit(document)} className="gap-2">
+                                    ✏️ {t('edit', 'Edit')}
+                                </Button>
+                            )}
                             {document.submittedDocuments.length > 0 && (
                                 <Button
                                     size="sm"

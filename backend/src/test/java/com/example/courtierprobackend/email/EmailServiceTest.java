@@ -29,6 +29,223 @@ import static org.mockito.Mockito.*;
  * Mocks OrganizationSettingsService and Transport.send() to test email logic without sending real emails.
  */
 class EmailServiceTest {
+    @Test
+    void sendDocumentSubmittedNotification_French_Subject() {
+        DocumentRequest request = new DocumentRequest();
+        request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+        request.setCustomTitle("Preuve de revenu");
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendDocumentSubmittedNotification(request, "courtier@mail.com", "Jean Courtier", "Preuve de revenu", "PAY_STUBS", "fr");
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(captor.capture()), times(1));
+            Message message = captor.getValue();
+            assertThat(message.getSubject()).contains("Document soumis :");
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    @Test
+    void sendDocumentSubmittedNotification_English_Subject() {
+        DocumentRequest request = new DocumentRequest();
+        request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+        request.setCustomTitle("Proof of Income");
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendDocumentSubmittedNotification(request, "broker@mail.com", "John Broker", "Proof of Income", "PAY_STUBS", "en");
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(captor.capture()), times(1));
+            Message message = captor.getValue();
+            assertThat(message.getSubject()).contains("Document Submitted:");
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    @Test
+    void sendDocumentStatusUpdatedNotification_French_Revision_WithNotes() {
+        DocumentRequest request = new DocumentRequest();
+        request.setCustomTitle("Relevé bancaire");
+        request.setStatus(DocumentStatusEnum.NEEDS_REVISION);
+        request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+        request.setBrokerNotes("Veuillez renvoyer les 3 derniers mois.");
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendDocumentStatusUpdatedNotification(
+                request,
+                "client@example.com",
+                "Jean Courtier",
+                "Relevé bancaire",
+                "BANK_STATEMENT",
+                "fr"
+            );
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(captor.capture()), times(1));
+            Message message = captor.getValue();
+            String body = (String) ((MimeMessage) message).getContent();
+            assertThat(body).contains("Votre courtier <strong>Jean Courtier</strong> a demandé une révision pour le document suivant :");
+            assertThat(body).contains("Veuillez renvoyer les 3 derniers mois.");
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    @Test
+    void sendDocumentStatusUpdatedNotification_French_Revision_WithoutNotes() {
+        DocumentRequest request = new DocumentRequest();
+        request.setCustomTitle("Relevé bancaire");
+        request.setStatus(DocumentStatusEnum.NEEDS_REVISION);
+        request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+        request.setBrokerNotes("");
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendDocumentStatusUpdatedNotification(
+                request,
+                "client@example.com",
+                "Jean Courtier",
+                "Relevé bancaire",
+                "BANK_STATEMENT",
+                "fr"
+            );
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(captor.capture()), times(1));
+            Message message = captor.getValue();
+            String body = (String) ((MimeMessage) message).getContent();
+            assertThat(body).contains("Votre courtier <strong>Jean Courtier</strong> a demandé une révision pour le document suivant :");
+            assertThat(body).doesNotContain("Notes");
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    @Test
+    void sendDocumentStatusUpdatedNotification_French_Approved_WithNotes() {
+        DocumentRequest request = new DocumentRequest();
+        request.setCustomTitle("Relevé bancaire");
+        request.setStatus(DocumentStatusEnum.APPROVED);
+        request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+        request.setBrokerNotes("Tout est en ordre.");
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendDocumentStatusUpdatedNotification(
+                request,
+                "client@example.com",
+                "Jean Courtier",
+                "Relevé bancaire",
+                "BANK_STATEMENT",
+                "fr"
+            );
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(captor.capture()), times(1));
+            Message message = captor.getValue();
+            String body = (String) ((MimeMessage) message).getContent();
+            assertThat(body).contains("Votre courtier <strong>Jean Courtier</strong> a approuvé le document suivant :");
+            assertThat(body).contains("Tout est en ordre.");
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    @Test
+    void sendDocumentStatusUpdatedNotification_French_Approved_WithoutNotes() {
+        DocumentRequest request = new DocumentRequest();
+        request.setCustomTitle("Relevé bancaire");
+        request.setStatus(DocumentStatusEnum.APPROVED);
+        request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+        request.setBrokerNotes("");
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendDocumentStatusUpdatedNotification(
+                request,
+                "client@example.com",
+                "Jean Courtier",
+                "Relevé bancaire",
+                "BANK_STATEMENT",
+                "fr"
+            );
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(captor.capture()), times(1));
+            Message message = captor.getValue();
+            String body = (String) ((MimeMessage) message).getContent();
+            assertThat(body).contains("Votre courtier <strong>Jean Courtier</strong> a approuvé le document suivant :");
+            assertThat(body).doesNotContain("Notes");
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    @Test
+    void translateDocumentType_AllTypes_EnglishAndFrench() {
+        String[] docTypes = {
+            "MORTGAGE_PRE_APPROVAL", "MORTGAGE_APPROVAL", "PROOF_OF_FUNDS", "ID_VERIFICATION",
+            "EMPLOYMENT_LETTER", "PAY_STUBS", "CREDIT_REPORT", "CERTIFICATE_OF_LOCATION",
+            "PROMISE_TO_PURCHASE", "INSPECTION_REPORT", "INSURANCE_LETTER", "BANK_STATEMENT", "OTHER"
+        };
+        for (String docType : docTypes) {
+            String en = ReflectionTestUtils.invokeMethod(emailService, "translateDocumentType", docType, false);
+            String fr = ReflectionTestUtils.invokeMethod(emailService, "translateDocumentType", docType, true);
+            assertThat(en).isNotBlank();
+            assertThat(fr).isNotBlank();
+        }
+        // Unknown type returns original
+        String unknown = ReflectionTestUtils.invokeMethod(emailService, "translateDocumentType", "SOMETHING_UNKNOWN", true);
+        assertThat(unknown).isEqualTo("SOMETHING_UNKNOWN");
+    }
+
+
+    @Test
+    void sendDocumentEditedNotification_SendsEmail_English() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendDocumentEditedNotification(
+                "client@example.com",
+                "Client Name",
+                "Broker Name",
+                "Tax Return",
+                "PAY_STUBS",
+                "en"
+            );
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    @Test
+    void sendDocumentEditedNotification_SendsEmail_French() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendDocumentEditedNotification(
+                "client@example.com",
+                "Client Name",
+                "Broker Name",
+                "Tax Return",
+                "PAY_STUBS",
+                "fr"
+            );
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    @Test
+    void sendDocumentEditedNotification_MessagingException_LogsError() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            transportMock.when(() -> Transport.send(any())).thenThrow(new jakarta.mail.MessagingException("Fail"));
+            // Should not throw
+            emailService.sendDocumentEditedNotification(
+                "client@example.com",
+                "Client Name",
+                "Broker Name",
+                "Tax Return",
+                "PAY_STUBS",
+                "en"
+            );
+            transportMock.verify(() -> Transport.send(any()), times(1));
+        }
+    }
+
+    
+    @Test
+    void sendDocumentRequestedNotification_French_Subject() {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendDocumentRequestedNotification("client@example.com", "Client Name", "Broker Name", "ID Document", "ID_VERIFICATION", "fr");
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(captor.capture()), times(1));
+            Message message = captor.getValue();
+            assertThat(message.getSubject()).contains("Document demandé :");
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+
+    @Test
+    void sendStageUpdateEmail_French_Subject() {
+        when(organizationSettingsService.getSettings()).thenReturn(createSettings("fr", null, null, "Mise à jour de transaction", "Corps"));
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            ReflectionTestUtils.invokeMethod(emailService, "sendStageUpdateEmail", "user@example.com", "Client", "Broker", "123 Rue Principale", "OFFER", "fr");
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(captor.capture()), times(1));
+            Message message = captor.getValue();
+            assertThat(message.getSubject()).contains("Mise à jour de transaction :");
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
 
     @Mock
     private OrganizationSettingsService organizationSettingsService;

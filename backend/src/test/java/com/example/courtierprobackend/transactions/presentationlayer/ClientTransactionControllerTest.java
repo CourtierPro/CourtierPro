@@ -38,6 +38,131 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class ClientTransactionControllerTest {
+
+    @Test
+    void getTransactionOffers_NotUuid_AccountMatchesInternalId_Succeeds() {
+        String notUuid = "not-a-uuid";
+        UUID internalId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(internalId);
+        com.example.courtierprobackend.user.dataaccesslayer.UserAccount account = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(account.getId()).thenReturn(internalId);
+        when(userAccountRepository.findByAuth0UserId(notUuid)).thenReturn(java.util.Optional.of(account));
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO offer = com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO.builder()
+                .offerId(UUID.randomUUID())
+                .transactionId(UUID.randomUUID())
+                .build();
+        when(transactionService.getOffers(any(), eq(internalId), eq(false))).thenReturn(List.of(offer));
+
+        ResponseEntity<List<com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO>> response = controller.getTransactionOffers(notUuid, offer.getTransactionId(), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().get(0).getOfferId()).isEqualTo(offer.getOfferId());
+    }
+
+    @Test
+    void getOfferById_NotUuid_AccountMatchesInternalId_Succeeds() {
+        String notUuid = "not-a-uuid";
+        UUID internalId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(internalId);
+        com.example.courtierprobackend.user.dataaccesslayer.UserAccount account = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(account.getId()).thenReturn(internalId);
+        when(userAccountRepository.findByAuth0UserId(notUuid)).thenReturn(java.util.Optional.of(account));
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO offer = com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO.builder()
+                .offerId(UUID.randomUUID())
+                .transactionId(UUID.randomUUID())
+                .build();
+        when(transactionService.getOfferById(eq(offer.getOfferId()), eq(internalId), eq(false))).thenReturn(offer);
+
+        ResponseEntity<com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO> response = controller.getOfferById(notUuid, offer.getTransactionId(), offer.getOfferId(), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getOfferId()).isEqualTo(offer.getOfferId());
+    }
+
+    @Test
+    void getTransactionOffers_WithValidRequest_ReturnsOffers() {
+        UUID clientId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(clientId);
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO offer = com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO.builder()
+                .offerId(UUID.randomUUID())
+                .transactionId(transactionId)
+                .build();
+        when(transactionService.getOffers(eq(transactionId), eq(clientId), eq(false))).thenReturn(List.of(offer));
+
+        ResponseEntity<List<com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO>> response = controller.getTransactionOffers(clientId.toString(), transactionId, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().get(0).getOfferId()).isEqualTo(offer.getOfferId());
+        verify(transactionService).getOffers(transactionId, clientId, false);
+    }
+
+    @Test
+    void getOfferById_WithValidRequest_ReturnsOffer() {
+        UUID clientId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(clientId);
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO offer = com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO.builder()
+                .offerId(offerId)
+                .transactionId(transactionId)
+                .build();
+        when(transactionService.getOfferById(eq(offerId), eq(clientId), eq(false))).thenReturn(offer);
+
+        ResponseEntity<com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO> response = controller.getOfferById(clientId.toString(), transactionId, offerId, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getOfferId()).isEqualTo(offerId);
+        verify(transactionService).getOfferById(offerId, clientId, false);
+    }
+
+        @Test
+        void getTransactionOffers_NotUuid_NotFound_ThrowsForbidden() {
+            String notUuid = "not-a-uuid";
+            MockHttpServletRequest request = createRequestWithInternalId(UUID.randomUUID());
+            when(userAccountRepository.findByAuth0UserId(notUuid)).thenReturn(java.util.Optional.empty());
+            assertThatThrownBy(() -> controller.getTransactionOffers(notUuid, UUID.randomUUID(), request))
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
+                .hasMessageContaining("Invalid client ID: not found");
+        }
+
+        @Test
+        void getTransactionOffers_NotUuid_InternalIdMismatch_ThrowsForbidden() {
+            String notUuid = "not-a-uuid";
+            UUID internalId = UUID.randomUUID();
+            MockHttpServletRequest request = createRequestWithInternalId(internalId);
+            com.example.courtierprobackend.user.dataaccesslayer.UserAccount account = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+            when(account.getId()).thenReturn(UUID.randomUUID()); // mismatch
+            when(userAccountRepository.findByAuth0UserId(notUuid)).thenReturn(java.util.Optional.of(account));
+            assertThatThrownBy(() -> controller.getTransactionOffers(notUuid, UUID.randomUUID(), request))
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
+                .hasMessageContaining("only access your own transactions");
+        }
+
+        @Test
+        void getOfferById_NotUuid_NotFound_ThrowsForbidden() {
+            String notUuid = "not-a-uuid";
+            MockHttpServletRequest request = createRequestWithInternalId(UUID.randomUUID());
+            when(userAccountRepository.findByAuth0UserId(notUuid)).thenReturn(java.util.Optional.empty());
+            assertThatThrownBy(() -> controller.getOfferById(notUuid, UUID.randomUUID(), UUID.randomUUID(), request))
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
+                .hasMessageContaining("Invalid client ID: not found");
+        }
+
+        @Test
+        void getOfferById_NotUuid_InternalIdMismatch_ThrowsForbidden() {
+            String notUuid = "not-a-uuid";
+            UUID internalId = UUID.randomUUID();
+            MockHttpServletRequest request = createRequestWithInternalId(internalId);
+            com.example.courtierprobackend.user.dataaccesslayer.UserAccount account = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+            when(account.getId()).thenReturn(UUID.randomUUID()); // mismatch
+            when(userAccountRepository.findByAuth0UserId(notUuid)).thenReturn(java.util.Optional.of(account));
+            assertThatThrownBy(() -> controller.getOfferById(notUuid, UUID.randomUUID(), UUID.randomUUID(), request))
+                .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
+                .hasMessageContaining("only access your own transactions");
+        }
     // ========== getTransactionProperties & getPropertyById Tests ========== 
 
     @Test
@@ -52,7 +177,7 @@ class ClientTransactionControllerTest {
                 .build();
         when(transactionService.getProperties(eq(transactionId), eq(clientId), eq(false))).thenReturn(List.of(property));
 
-        ResponseEntity<List<PropertyResponseDTO>> response = controller.getTransactionProperties(clientId, transactionId, request);
+        ResponseEntity<List<PropertyResponseDTO>> response = controller.getTransactionProperties(clientId.toString(), transactionId, request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).hasSize(1);
@@ -73,7 +198,7 @@ class ClientTransactionControllerTest {
                 .build();
         when(transactionService.getPropertyById(eq(propertyId), eq(clientId), eq(false))).thenReturn(property);
 
-        ResponseEntity<PropertyResponseDTO> response = controller.getPropertyById(clientId, transactionId, propertyId, request);
+        ResponseEntity<PropertyResponseDTO> response = controller.getPropertyById(clientId.toString(), transactionId, propertyId, request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getPropertyId()).isEqualTo(propertyId);
@@ -83,11 +208,14 @@ class ClientTransactionControllerTest {
     @Mock
     private TransactionService transactionService;
 
+    @Mock
+    private com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
+
     private ClientTransactionController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new ClientTransactionController(transactionService);
+        controller = new ClientTransactionController(transactionService, userAccountRepository);
     }
 
     // ========== getClientTransactions Tests ==========
@@ -97,17 +225,16 @@ class ClientTransactionControllerTest {
         // Arrange
         UUID internalId = UUID.randomUUID();
         MockHttpServletRequest request = createRequestWithInternalId(internalId);
-        
+        String clientId = internalId.toString();
         UUID txId = UUID.randomUUID();
         TransactionResponseDTO transaction = TransactionResponseDTO.builder()
                 .transactionId(txId)
                 .clientId(internalId)
                 .build();
-        
         when(transactionService.getClientTransactions(internalId)).thenReturn(List.of(transaction));
 
         // Act
-        ResponseEntity<List<TransactionResponseDTO>> response = controller.getClientTransactions(internalId, request);
+        ResponseEntity<List<TransactionResponseDTO>> response = controller.getClientTransactions(clientId, request);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -124,7 +251,7 @@ class ClientTransactionControllerTest {
         MockHttpServletRequest request = createRequestWithInternalId(internalId);
 
         // Act & Assert
-        assertThatThrownBy(() -> controller.getClientTransactions(UUID.fromString(otherClientId), request))
+        assertThatThrownBy(() -> controller.getClientTransactions(otherClientId, request))
                 .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
                 .hasMessageContaining("only access your own transactions");
         
@@ -137,7 +264,7 @@ class ClientTransactionControllerTest {
         String clientId = UUID.randomUUID().toString();
 
         // Act & Assert
-        assertThatThrownBy(() -> controller.getClientTransactions(UUID.fromString(clientId), null))
+        assertThatThrownBy(() -> controller.getClientTransactions(clientId, null))
                 .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
                 .hasMessageContaining("Unable to resolve user id");
         
@@ -152,7 +279,7 @@ class ClientTransactionControllerTest {
         // No internal ID set in request attributes
 
         // Act & Assert
-        assertThatThrownBy(() -> controller.getClientTransactions(UUID.fromString(clientId), request))
+        assertThatThrownBy(() -> controller.getClientTransactions(clientId, request))
                 .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
                 .hasMessageContaining("Unable to resolve user id");
         
@@ -164,11 +291,11 @@ class ClientTransactionControllerTest {
         // Arrange
         UUID internalId = UUID.randomUUID();
         MockHttpServletRequest request = createRequestWithInternalId(internalId);
-        
+        String clientId = internalId.toString();
         when(transactionService.getClientTransactions(internalId)).thenReturn(List.of());
 
         // Act
-        ResponseEntity<List<TransactionResponseDTO>> response = controller.getClientTransactions(internalId, request);
+        ResponseEntity<List<TransactionResponseDTO>> response = controller.getClientTransactions(clientId, request);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -180,15 +307,14 @@ class ClientTransactionControllerTest {
         // Arrange
         UUID internalId = UUID.randomUUID();
         MockHttpServletRequest request = createRequestWithInternalId(internalId);
-        
+        String clientId = internalId.toString();
         TransactionResponseDTO tx1 = TransactionResponseDTO.builder().transactionId(UUID.randomUUID()).clientId(internalId).build();
         TransactionResponseDTO tx2 = TransactionResponseDTO.builder().transactionId(UUID.randomUUID()).clientId(internalId).build();
         TransactionResponseDTO tx3 = TransactionResponseDTO.builder().transactionId(UUID.randomUUID()).clientId(internalId).build();
-        
         when(transactionService.getClientTransactions(internalId)).thenReturn(List.of(tx1, tx2, tx3));
 
         // Act
-        ResponseEntity<List<TransactionResponseDTO>> response = controller.getClientTransactions(internalId, request);
+        ResponseEntity<List<TransactionResponseDTO>> response = controller.getClientTransactions(clientId, request);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -231,7 +357,7 @@ class ClientTransactionControllerTest {
 
             // Act
             ResponseEntity<OfferResponseDTO> response = controller.submitOfferDecision(
-                    internalId, transactionId, offerId, decisionDTO, request);
+                    internalId.toString(), transactionId, offerId, decisionDTO, request);
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -266,7 +392,7 @@ class ClientTransactionControllerTest {
 
             // Act
             ResponseEntity<OfferResponseDTO> response = controller.submitOfferDecision(
-                    internalId, transactionId, offerId, decisionDTO, request);
+                    internalId.toString(), transactionId, offerId, decisionDTO, request);
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -298,7 +424,7 @@ class ClientTransactionControllerTest {
 
             // Act
             ResponseEntity<OfferResponseDTO> response = controller.submitOfferDecision(
-                    internalId, transactionId, offerId, decisionDTO, request);
+                    internalId.toString(), transactionId, offerId, decisionDTO, request);
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -321,7 +447,7 @@ class ClientTransactionControllerTest {
 
             // Act & Assert
             assertThatThrownBy(() -> controller.submitOfferDecision(
-                    differentClientId, transactionId, offerId, decisionDTO, request))
+                    differentClientId.toString(), transactionId, offerId, decisionDTO, request))
                     .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
                     .hasMessageContaining("only access your own transactions");
 
@@ -343,7 +469,7 @@ class ClientTransactionControllerTest {
 
             // Act & Assert
             assertThatThrownBy(() -> controller.submitOfferDecision(
-                    clientId, transactionId, offerId, decisionDTO, request))
+                    clientId.toString(), transactionId, offerId, decisionDTO, request))
                     .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
                     .hasMessageContaining("Unable to resolve user id");
 
@@ -374,7 +500,7 @@ class ClientTransactionControllerTest {
 
             // Act
             ResponseEntity<OfferResponseDTO> response = controller.submitOfferDecision(
-                    internalId, transactionId, offerId, decisionDTO, request);
+                    internalId.toString(), transactionId, offerId, decisionDTO, request);
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);

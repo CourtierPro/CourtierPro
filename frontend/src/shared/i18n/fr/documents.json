@@ -1,4 +1,8 @@
 {
+    "edited": "Modifié",
+    "Edit": "Modifier",
+    "edit": "Modifier",
+    "editDocumentRequest": "Modifier la demande de document",
     "title": "Documents",
     "documentTitle": "Titre du document",
     "documentTitlePlaceholder": "ex. : Preuve de revenu supplémentaire",

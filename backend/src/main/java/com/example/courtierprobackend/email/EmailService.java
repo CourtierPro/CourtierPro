@@ -197,6 +197,39 @@ public class EmailService {
         }
     }
 
+        public void sendDocumentEditedNotification(String clientEmail, String clientName, String brokerName,
+                String documentName, String docType, String clientLanguage) {
+            try {
+                boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
+
+                // Translate document type based on client's language
+                String translatedDocType = translateDocumentType(docType, isFrench);
+                String displayName = documentName.equals(docType) ? translatedDocType : documentName;
+
+                String subject = isFrench
+                        ? ("Document modifié : " + displayName)
+                        : ("Document Edited: " + displayName);
+
+                String templatePath = isFrench
+                        ? "email-templates/document_edited_fr.html"
+                        : "email-templates/document_edited_en.html";
+
+                String htmlTemplate = loadTemplateFromClasspath(templatePath);
+
+                String emailBody = htmlTemplate
+                        .replace("{{subject}}", escapeHtml(subject))
+                        .replace("{{clientName}}", escapeHtml(clientName))
+                        .replace("{{brokerName}}", escapeHtml(brokerName))
+                        .replace("{{documentName}}", escapeHtml(displayName));
+
+                sendEmail(clientEmail, subject, emailBody);
+            } catch (IOException e) {
+                logger.error("Failed to load document edited email template", e);
+            } catch (MessagingException e) {
+                logger.error("Failed to send document edited notification to {}", clientEmail, e);
+            }
+        }
+
     public void sendDocumentStatusUpdatedNotification(
             DocumentRequest request,
             String clientEmail,

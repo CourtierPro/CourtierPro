@@ -1,6 +1,21 @@
+import { updateDocumentRequest } from './documentsApi';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentKeys } from '@/features/documents/api/queries';
 import { createDocumentRequest, submitDocument, reviewDocument, type CreateDocumentRequestDTO } from './documentsApi.ts';
+
+import type { UpdateDocumentRequestDTO } from './documentsApi';
+export function useUpdateDocumentRequest() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ transactionId, requestId, data }: { transactionId: string; requestId: string; data: UpdateDocumentRequestDTO }) => {
+            return updateDocumentRequest(transactionId, requestId, data);
+        },
+        onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: ['documents', transactionId] });
+            queryClient.invalidateQueries({ queryKey: ['documents'] });
+        },
+    });
+}
 
 
 export function useRequestDocument() {

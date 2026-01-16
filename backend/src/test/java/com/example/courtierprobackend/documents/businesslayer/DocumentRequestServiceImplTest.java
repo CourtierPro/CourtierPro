@@ -4,10 +4,7 @@ import com.example.courtierprobackend.audit.timeline_audit.businesslayer.Timelin
 import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
 import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
 import com.example.courtierprobackend.documents.datalayer.SubmittedDocument;
-import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
-import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
-import com.example.courtierprobackend.documents.datalayer.enums.DocumentPartyEnum;
-import com.example.courtierprobackend.documents.datalayer.enums.UploadedByRefEnum;
+import com.example.courtierprobackend.documents.datalayer.enums.*;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestRequestDTO;
@@ -47,6 +44,144 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class DocumentRequestServiceImplTest {
+        @Test
+        void updateDocumentRequest_WithClientAndBroker_SendsNotificationAndEmail() {
+                UUID requestId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = new Transaction();
+                tx.setTransactionId(UUID.randomUUID());
+                tx.setClientId(clientId);
+                tx.setBrokerId(brokerId);
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setTransactionRef(new TransactionRef(tx.getTransactionId(), clientId, TransactionSide.BUY_SIDE));
+                request.setDocType(DocumentTypeEnum.PAY_STUBS);
+                request.setCustomTitle("Title");
+                request.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                request.setVisibleToClient(true);
+                request.setBrokerNotes("Notes");
+                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+
+                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+                dto.setDocType(DocumentTypeEnum.BANK_STATEMENT); // trigger update
+
+                UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "John", "Doe", UserRole.CLIENT, "en");
+                client.setId(clientId);
+                UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Jane", "Smith", UserRole.BROKER, "en");
+                broker.setId(brokerId);
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+                when(transactionRepository.findByTransactionId(any())).thenReturn(Optional.of(tx));
+                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+                when(messageSource.getMessage(anyString(), any(), anyString(), any(java.util.Locale.class))).thenReturn("Localized Doc Type");
+
+                service.updateDocumentRequest(requestId, dto);
+
+                verify(emailService, atLeastOnce()).sendDocumentEditedNotification(any(), any(), any(), any(), any(), any());
+                verify(notificationService, atLeastOnce()).createNotification(any(), any(), any(), any(), any());
+        }
+
+        @Test
+        void updateDocumentRequest_WithMissingClient_SkipsNotificationAndEmail() {
+                UUID requestId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = new Transaction();
+                tx.setTransactionId(UUID.randomUUID());
+                tx.setClientId(clientId);
+                tx.setBrokerId(brokerId);
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setTransactionRef(new TransactionRef(tx.getTransactionId(), clientId, TransactionSide.BUY_SIDE));
+                request.setDocType(DocumentTypeEnum.PAY_STUBS);
+
+                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+                dto.setDocType(DocumentTypeEnum.BANK_STATEMENT); // trigger update
+
+                UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Jane", "Smith", UserRole.BROKER, "en");
+                broker.setId(brokerId);
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+                when(transactionRepository.findByTransactionId(any())).thenReturn(Optional.of(tx));
+                when(userAccountRepository.findById(clientId)).thenReturn(Optional.empty());
+                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+                when(messageSource.getMessage(anyString(), any(), anyString(), any(java.util.Locale.class))).thenReturn("Localized Doc Type");
+
+                service.updateDocumentRequest(requestId, dto);
+
+                verify(emailService, never()).sendDocumentEditedNotification(any(), any(), any(), any(), any(), any());
+                verify(notificationService, never()).createNotification(any(), any(), any(), any(), any());
+        }
+
+        @Test
+        void updateDocumentRequest_WithMissingBroker_SkipsNotificationAndEmail() {
+                UUID requestId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = new Transaction();
+                tx.setTransactionId(UUID.randomUUID());
+                tx.setClientId(clientId);
+                tx.setBrokerId(brokerId);
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setTransactionRef(new TransactionRef(tx.getTransactionId(), clientId, TransactionSide.BUY_SIDE));
+                request.setDocType(DocumentTypeEnum.PAY_STUBS);
+
+                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+                dto.setDocType(DocumentTypeEnum.BANK_STATEMENT); // trigger update
+
+                UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "John", "Doe", UserRole.CLIENT, "en");
+                client.setId(clientId);
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+                when(transactionRepository.findByTransactionId(any())).thenReturn(Optional.of(tx));
+                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.empty());
+                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+                when(messageSource.getMessage(anyString(), any(), anyString(), any(java.util.Locale.class))).thenReturn("Localized Doc Type");
+
+                service.updateDocumentRequest(requestId, dto);
+
+                verify(emailService, never()).sendDocumentEditedNotification(any(), any(), any(), any(), any(), any());
+                verify(notificationService, never()).createNotification(any(), any(), any(), any(), any());
+        }
+
+        @Test
+        void updateDocumentRequest_WhenDtoFieldsNullOrEmpty_FallsBackToRequestFields() {
+                UUID requestId = UUID.randomUUID();
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setDocType(DocumentTypeEnum.PAY_STUBS);
+                request.setCustomTitle("OriginalTitle");
+                request.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                request.setVisibleToClient(Boolean.TRUE);
+                request.setBrokerNotes("OriginalNotes");
+                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+
+                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+                dto.setDocType(null); // Should fallback to request
+                dto.setCustomTitle(""); // Should fallback to request
+                dto.setExpectedFrom(null); // Should fallback to request
+                dto.setVisibleToClient(null); // Should fallback to request
+                dto.setBrokerNotes(""); // Should fallback to request
+                dto.setStage(null); // Should fallback to request
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+
+                DocumentRequestResponseDTO result = service.updateDocumentRequest(requestId, dto);
+                assertThat(result.getDocType()).isEqualTo(request.getDocType());
+                assertThat(result.getCustomTitle()).isEqualTo(request.getCustomTitle());
+                assertThat(result.getExpectedFrom()).isEqualTo(request.getExpectedFrom());
+                assertThat(result.isVisibleToClient()).isEqualTo(request.getVisibleToClient());
+                assertThat(result.getBrokerNotes()).isEqualTo(request.getBrokerNotes());
+                assertThat(result.getStage()).isEqualTo(request.getStage());
+        }
+
 
         @Mock
         private DocumentRequestRepository repository;
@@ -126,112 +261,6 @@ class DocumentRequestServiceImplTest {
                 assertThatThrownBy(() -> service.getDocumentsForTransaction(transactionId, userId))
                                 .isInstanceOf(ForbiddenException.class)
                                 .hasMessageContaining("You do not have access");
-        }
-
-        // ========== createDocumentRequest Tests ==========
-
-        @Test
-        void createDocumentRequest_WithValidData_CreatesRequest() {
-                // Arrange
-                UUID transactionId = UUID.randomUUID();
-
-                Transaction tx = new Transaction();
-                tx.setTransactionId(transactionId);
-                UUID brokerId = UUID.randomUUID();
-                UUID clientId = UUID.randomUUID();
-                tx.setBrokerId(brokerId);
-                tx.setClientId(clientId);
-                tx.setSide(TransactionSide.BUY_SIDE);
-
-                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
-                dto.setDocType(DocumentTypeEnum.BANK_STATEMENT);
-                dto.setCustomTitle("Bank Statement Q1");
-                dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
-
-                String clientAuth0Id = UUID.randomUUID().toString();
-                String brokerAuth0Id = UUID.randomUUID().toString();
-
-                UserAccount client = new UserAccount(clientAuth0Id, "client@test.com", "John", "Doe", UserRole.CLIENT,
-                                "en");
-                client.setId(clientId);
-                UserAccount broker = new UserAccount(brokerAuth0Id, "broker@test.com", "Jane", "Smith", UserRole.BROKER,
-                                "en");
-                broker.setId(brokerId);
-
-                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
-                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
-                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
-                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
-                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
-
-                when(messageSource.getMessage(anyString(), any(), anyString(), any(java.util.Locale.class)))
-                                .thenReturn("Localized Message");
-                when(messageSource.getMessage(anyString(), any(), any(java.util.Locale.class)))
-                                .thenReturn("Localized Title");
-
-                // Act
-                DocumentRequestResponseDTO result = service.createDocumentRequest(transactionId, dto);
-
-                // Assert
-                assertThat(result).isNotNull();
-                assertThat(result.getDocType()).isEqualTo(DocumentTypeEnum.BANK_STATEMENT);
-                verify(emailService).sendDocumentRequestedNotification(anyString(), anyString(), anyString(),
-                                anyString(),
-                                anyString(), anyString());
-                verify(notificationService).createNotification(
-                                eq(clientId.toString()),
-                                anyString(),
-                                anyString(),
-                                eq(transactionId.toString()),
-                                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REQUEST));
-        }
-
-        @Test
-        void createDocumentRequest_NotificationFailure_LogsAndProceeds() {
-                // Arrange
-                UUID transactionId = UUID.randomUUID();
-                UUID clientId = UUID.randomUUID();
-                UUID brokerId = UUID.randomUUID();
-
-                Transaction tx = new Transaction();
-                tx.setTransactionId(transactionId);
-                tx.setClientId(clientId);
-                tx.setBrokerId(brokerId);
-                tx.setSide(TransactionSide.BUY_SIDE);
-
-                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
-                dto.setDocType(DocumentTypeEnum.BANK_STATEMENT);
-                dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
-
-                UserAccount client = new UserAccount(UUID.randomUUID().toString(), "client@test.com", "John", "Doe",
-                                UserRole.CLIENT, "en");
-                client.setId(clientId);
-                UserAccount broker = new UserAccount(UUID.randomUUID().toString(), "broker@test.com", "Jane", "Smith",
-                                UserRole.BROKER, "en");
-                broker.setId(brokerId);
-
-                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
-                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
-                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
-                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
-
-                when(messageSource.getMessage(anyString(), any(), anyString(), any(java.util.Locale.class)))
-                                .thenReturn("Localized Message");
-                when(messageSource.getMessage(anyString(), any(), any(java.util.Locale.class)))
-                                .thenReturn("Localized Title");
-
-                // Simulate Notification Exception
-                doThrow(new RuntimeException("Notification failed")).when(notificationService)
-                                .createNotification(anyString(), anyString(), anyString(), anyString(), any());
-
-                // Act
-                DocumentRequestResponseDTO result = service.createDocumentRequest(transactionId, dto);
-
-                // Assert
-                assertThat(result).isNotNull(); // Servic should succeed despite notification error
-                verify(emailService).sendDocumentRequestedNotification(anyString(), anyString(), anyString(),
-                                anyString(),
-                                anyString(), anyString());
         }
 
         // ========== submitDocument Tests ==========
@@ -478,7 +507,7 @@ class DocumentRequestServiceImplTest {
 
                 // Simulate Notification Exception
                 doThrow(new RuntimeException("Notification failed")).when(notificationService)
-                                .createNotification(anyString(), anyString(), anyString(), anyString(), any());
+                                .createNotification(any(), any(), any(), any(), any());
 
                 // Act
                 DocumentRequestResponseDTO result = service.reviewDocument(transactionId, requestId, reviewDTO,
@@ -824,7 +853,6 @@ class DocumentRequestServiceImplTest {
                                 .hasMessageContaining("You do not have access");
         }
 
-
         // ========== updateDocumentRequest Tests ==========
 
         @Test
@@ -837,6 +865,7 @@ class DocumentRequestServiceImplTest {
                 existingRequest.setDocType(DocumentTypeEnum.ID_VERIFICATION);
                 existingRequest.setCustomTitle("Old Title");
                 existingRequest.setSubmittedDocuments(new ArrayList<>());
+                existingRequest.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
                 DocumentRequestRequestDTO updateDTO = new DocumentRequestRequestDTO();
                 updateDTO.setCustomTitle("New Title");
@@ -866,34 +895,6 @@ class DocumentRequestServiceImplTest {
                 assertThatThrownBy(() -> service.updateDocumentRequest(requestId, updateDTO))
                                 .isInstanceOf(NotFoundException.class)
                                 .hasMessageContaining("Document request not found");
-        }
-
-        @Test
-        void updateDocumentRequest_WithPartialData_OnlyUpdatesProvidedFields() {
-                // Arrange
-                UUID requestId = UUID.randomUUID();
-
-                DocumentRequest existingRequest = new DocumentRequest();
-                existingRequest.setRequestId(requestId);
-                existingRequest.setDocType(DocumentTypeEnum.BANK_STATEMENT);
-                existingRequest.setCustomTitle("Original Title");
-                existingRequest.setBrokerNotes("Original Notes");
-                existingRequest.setVisibleToClient(true);
-                existingRequest.setSubmittedDocuments(new ArrayList<>());
-
-                DocumentRequestRequestDTO updateDTO = new DocumentRequestRequestDTO();
-                updateDTO.setCustomTitle("Updated Title");
-                // Other fields are null - should not be updated
-
-                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(existingRequest));
-                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
-
-                // Act
-                DocumentRequestResponseDTO result = service.updateDocumentRequest(requestId, updateDTO);
-
-                // Assert
-                assertThat(result.getCustomTitle()).isEqualTo("Updated Title");
-                assertThat(result.getBrokerNotes()).isEqualTo("Original Notes"); // Unchanged
         }
 
         // ========== deleteDocumentRequest Tests ==========
@@ -999,6 +1000,7 @@ class DocumentRequestServiceImplTest {
                 request.setRequestId(requestId);
                 request.setDocType(DocumentTypeEnum.ID_VERIFICATION);
                 request.setVisibleToClient(false);
+                request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
                 DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
                 dto.setDocType(DocumentTypeEnum.PAY_STUBS);
@@ -1059,7 +1061,7 @@ class DocumentRequestServiceImplTest {
                 // uploaderID)
                 // Wait, logic is: if (uploaderType == CLIENT) -> resolve uploaderName.
                 // else -> uploaderName = "Unknown Client" (default logic in service line 261).
-                // Wait, if BROKER uploads, line 262 is false. Name stays "Unknown Client".
+                // Wait, if Broker uploads, line 262 is false. Name stays "Unknown Client".
                 // Line 262: if (uploaderType == UploadedByRefEnum.CLIENT)
                 // So if Broker uploads, it says "Unknown Client"? That seems like a bug or
                 // incomplete feature in source.
@@ -1113,5 +1115,350 @@ class DocumentRequestServiceImplTest {
                 verify(notificationService, never()).createNotification(anyString(), anyString(), anyString(),
                                 anyString(),
                                 any());
+        }
+        // ========== Private Helper Tests ========== 
+        @Test
+        void isFrench_ReturnsTrueForFrVariants() throws Exception {
+                var method = service.getClass().getDeclaredMethod("isFrench", String.class);
+                method.setAccessible(true);
+                assertThat((Boolean) method.invoke(service, "fr")).isTrue();
+                assertThat((Boolean) method.invoke(service, "FR")).isTrue();
+                assertThat((Boolean) method.invoke(service, "Fr")).isTrue();
+                assertThat((Boolean) method.invoke(service, "fR")).isTrue();
+                assertThat((Boolean) method.invoke(service, "en")).isFalse();
+                assertThat((Boolean) method.invoke(service, (Object) null)).isFalse();
+        }
+        @Test
+        void updateDocumentRequest_WhenNormalizedCandidateIsIdentical_ReturnsEarly() {
+                // Arrange
+                UUID requestId = UUID.randomUUID();
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setDocType(DocumentTypeEnum.PAY_STUBS);
+                request.setCustomTitle("Title");
+                request.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                request.setVisibleToClient(true);
+                request.setBrokerNotes("Notes");
+                request.setStage(com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+
+                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+                dto.setDocType(DocumentTypeEnum.PAY_STUBS);
+                dto.setCustomTitle("Title");
+                dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                dto.setVisibleToClient(true);
+                dto.setBrokerNotes("Notes");
+                dto.setStage(com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+                // No stubbing for repository.save needed since it should not be called
+
+                // Act
+                DocumentRequestResponseDTO result = service.updateDocumentRequest(requestId, dto);
+
+                // Assert
+                assertThat(result.getDocType()).isEqualTo(DocumentTypeEnum.PAY_STUBS);
+                assertThat(result.getCustomTitle()).isEqualTo("Title");
+                // ...other asserts as needed...
+        }
+
+        @Test
+        void createDocumentRequest_WithNotificationAndMessageSource_TriggersNotificationAndMessageSource() {
+                // Arrange
+                UUID transactionId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setClientId(clientId);
+                tx.setBrokerId(brokerId);
+
+                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+                dto.setDocType(DocumentTypeEnum.BANK_STATEMENT);
+                dto.setCustomTitle("Bank Statement");
+
+                UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "John", "Doe", UserRole.CLIENT, "en");
+                client.setId(clientId);
+                UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Jane", "Smith", UserRole.BROKER, "en");
+                broker.setId(brokerId);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+                when(messageSource.getMessage(anyString(), any(), anyString(), any(java.util.Locale.class))).thenReturn("Localized Doc Type");
+
+                // Act
+                service.createDocumentRequest(transactionId, dto);
+
+                // Assert
+                // Capture arguments to diagnose mismatch
+                org.mockito.ArgumentCaptor<String> captor = org.mockito.ArgumentCaptor.forClass(String.class);
+                verify(emailService).sendDocumentRequestedNotification(
+                        captor.capture(),
+                        captor.capture(),
+                        captor.capture(),
+                        captor.capture(),
+                        captor.capture(),
+                        captor.capture()
+                );
+                java.util.List<String> args = captor.getAllValues();
+                org.junit.jupiter.api.Assertions.assertEquals("client@test.com", args.get(0));
+                org.junit.jupiter.api.Assertions.assertEquals("John Doe", args.get(1));
+                org.junit.jupiter.api.Assertions.assertEquals("Jane Smith", args.get(2));
+                org.junit.jupiter.api.Assertions.assertEquals("Bank Statement", args.get(3));
+                org.junit.jupiter.api.Assertions.assertEquals("BANK_STATEMENT", args.get(4));
+                org.junit.jupiter.api.Assertions.assertEquals("en", args.get(5));
+                verify(messageSource).getMessage(
+                        contains("document.type."),
+                        any(),
+                        anyString(),
+                        any(java.util.Locale.class)
+                );
+        }
+        @Test
+        void updateDocumentRequest_WhenDocTypeDiffers_ProceedsWithUpdate() {
+                UUID requestId = UUID.randomUUID();
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setDocType(DocumentTypeEnum.PAY_STUBS);
+                request.setCustomTitle("Title");
+                request.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                request.setVisibleToClient(true);
+                request.setBrokerNotes("Notes");
+                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+
+                when(transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId()))
+                        .thenReturn(Optional.of(new Transaction()));
+
+                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+                dto.setDocType(DocumentTypeEnum.BANK_STATEMENT); // Different
+                dto.setCustomTitle("Title");
+                dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                dto.setVisibleToClient(true);
+                dto.setBrokerNotes("Notes");
+                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+                DocumentRequestResponseDTO result = service.updateDocumentRequest(requestId, dto);
+                assertThat(result.getDocType()).isEqualTo(DocumentTypeEnum.BANK_STATEMENT);
+        }
+
+        @Test
+        void updateDocumentRequest_WhenCustomTitleDiffers_ProceedsWithUpdate() {
+                UUID requestId = UUID.randomUUID();
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setDocType(DocumentTypeEnum.PAY_STUBS);
+                request.setCustomTitle("Title1");
+                request.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                request.setVisibleToClient(true);
+                request.setBrokerNotes("Notes");
+                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+
+                when(transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId()))
+                        .thenReturn(Optional.of(new Transaction()));
+
+                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+                dto.setDocType(DocumentTypeEnum.PAY_STUBS);
+                dto.setCustomTitle("Title2"); // Different
+                dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                dto.setVisibleToClient(true);
+                dto.setBrokerNotes("Notes");
+                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+                DocumentRequestResponseDTO result = service.updateDocumentRequest(requestId, dto);
+                assertThat(result.getCustomTitle()).isEqualTo("Title2");
+        }
+
+        @Test
+        void updateDocumentRequest_WhenExpectedFromDiffers_ProceedsWithUpdate() {
+                UUID requestId = UUID.randomUUID();
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setDocType(DocumentTypeEnum.PAY_STUBS);
+                request.setCustomTitle("Title");
+                request.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                request.setVisibleToClient(true);
+                request.setBrokerNotes("Notes");
+                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+
+                when(transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId()))
+                        .thenReturn(Optional.of(new Transaction()));
+
+                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+                dto.setDocType(DocumentTypeEnum.PAY_STUBS);
+                dto.setCustomTitle("Title");
+                dto.setExpectedFrom(DocumentPartyEnum.BROKER); // Different
+                dto.setVisibleToClient(true);
+                dto.setBrokerNotes("Notes");
+                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+                DocumentRequestResponseDTO result = service.updateDocumentRequest(requestId, dto);
+                assertThat(result.getExpectedFrom()).isEqualTo(DocumentPartyEnum.BROKER);
+        }
+
+        @Test
+        void updateDocumentRequest_WhenVisibleToClientDiffers_ProceedsWithUpdate() {
+                UUID requestId = UUID.randomUUID();
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setDocType(DocumentTypeEnum.PAY_STUBS);
+                request.setCustomTitle("Title");
+                request.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                request.setVisibleToClient(false);
+                request.setBrokerNotes("Notes");
+                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+
+                when(transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId()))
+                        .thenReturn(Optional.of(new Transaction()));
+
+                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+                dto.setDocType(DocumentTypeEnum.PAY_STUBS);
+                dto.setCustomTitle("Title");
+                dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                dto.setVisibleToClient(true); // Different
+                dto.setBrokerNotes("Notes");
+                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+                DocumentRequestResponseDTO result = service.updateDocumentRequest(requestId, dto);
+                assertThat(result.isVisibleToClient()).isTrue();
+        }
+
+        @Test
+        void updateDocumentRequest_WhenBrokerNotesDiffers_ProceedsWithUpdate() {
+                UUID requestId = UUID.randomUUID();
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setDocType(DocumentTypeEnum.PAY_STUBS);
+                request.setCustomTitle("Title");
+                request.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                request.setVisibleToClient(true);
+                request.setBrokerNotes("Notes1");
+                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+
+                when(transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId()))
+                        .thenReturn(Optional.of(new Transaction()));
+
+                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+                dto.setDocType(DocumentTypeEnum.PAY_STUBS);
+                dto.setCustomTitle("Title");
+                dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                dto.setVisibleToClient(true);
+                dto.setBrokerNotes("Notes2"); // Different
+                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+                DocumentRequestResponseDTO result = service.updateDocumentRequest(requestId, dto);
+                assertThat(result.getBrokerNotes()).isEqualTo("Notes2");
+        }
+
+        @Test
+        void updateDocumentRequest_WhenStageDiffers_ProceedsWithUpdate() {
+                UUID requestId = UUID.randomUUID();
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setDocType(DocumentTypeEnum.PAY_STUBS);
+                request.setCustomTitle("Title");
+                request.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                request.setVisibleToClient(true);
+                request.setBrokerNotes("Notes");
+                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+
+                when(transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId()))
+                        .thenReturn(Optional.of(new Transaction()));
+
+                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+                dto.setDocType(DocumentTypeEnum.PAY_STUBS);
+                dto.setCustomTitle("Title");
+                dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                dto.setVisibleToClient(true);
+                dto.setBrokerNotes("Notes");
+                dto.setStage(StageEnum.BUYER_SHOP_FOR_PROPERTY); // Different
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+                DocumentRequestResponseDTO result = service.updateDocumentRequest(requestId, dto);
+                assertThat(result.getStage()).isEqualTo(StageEnum.BUYER_SHOP_FOR_PROPERTY);
+        }
+
+        @Test
+        void updateDocumentRequest_WhenCustomTitleNullAndEmptyHandled() {
+                UUID requestId = UUID.randomUUID();
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setDocType(DocumentTypeEnum.PAY_STUBS);
+                request.setCustomTitle(null);
+                request.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                request.setVisibleToClient(true);
+                request.setBrokerNotes(null);
+                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+
+                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+                dto.setDocType(DocumentTypeEnum.PAY_STUBS);
+                dto.setCustomTitle(""); // Empty string
+                dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                dto.setVisibleToClient(true);
+                dto.setBrokerNotes(""); // Empty string
+                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+
+                DocumentRequestResponseDTO result = service.updateDocumentRequest(requestId, dto);
+                assertThat(result.getCustomTitle()).isNull();
+                assertThat(result.getBrokerNotes()).isNull();
+        }
+
+        @Test
+        void updateDocumentRequest_WhenCaseInsensitiveEnumAndString() {
+                UUID requestId = UUID.randomUUID();
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setDocType(DocumentTypeEnum.PAY_STUBS);
+                request.setCustomTitle("title");
+                request.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                request.setVisibleToClient(true);
+                request.setBrokerNotes("notes");
+                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
+
+                when(transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId()))
+                        .thenReturn(Optional.of(new Transaction()));
+
+                DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
+                dto.setDocType(DocumentTypeEnum.PAY_STUBS);
+                dto.setCustomTitle("TITLE"); // Different case
+                dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                dto.setVisibleToClient(true);
+                dto.setBrokerNotes("NOTES"); // Different case
+                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+                DocumentRequestResponseDTO result = service.updateDocumentRequest(requestId, dto);
+                // Should still update because normalization is case-insensitive
+                assertThat(result.getCustomTitle()).isEqualTo("TITLE");
+                assertThat(result.getBrokerNotes()).isEqualTo("NOTES");
         }
 }

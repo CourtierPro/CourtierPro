@@ -1,4 +1,5 @@
 {
+  "timeline.documentDetailsUpdatedNote": "Broker {{brokerName}} updated the document request",
   "title": "All Transactions",
   "subtitle": "Track and manage client transactions across stages",
   "archivedTransactions": "Archived Transactions",

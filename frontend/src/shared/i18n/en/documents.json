@@ -1,4 +1,8 @@
 {
+    "edited": "Edited",
+    "Edit": "Edit",
+    "edit": "Edit",
+    "editDocumentRequest": "Edit Document Request",
     "title": "Documents",
     "subtitle": "Manage all your transaction documents in one place.",
     "requestDocument": "Request Document",

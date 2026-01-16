@@ -1,4 +1,6 @@
+
 package com.example.courtierprobackend.user.presentationlayer.controller;
+import com.example.courtierprobackend.common.exceptions.BadRequestException;
 
 import com.example.courtierprobackend.security.UserContextUtils;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
@@ -36,11 +38,18 @@ public class BrokerController {
      */
     @GetMapping("/{clientId}/transactions")
     public List<TransactionResponseDTO> getClientTransactions(
-            @PathVariable UUID clientId,
+            @PathVariable String clientId,
             HttpServletRequest request
     ) {
         UUID brokerId = UserContextUtils.resolveUserId(request);
-        return transactionService.getBrokerClientTransactions(brokerId, clientId);
+        // Convert clientId to UUID if possible, else throw error (for now, expect UUID)
+        UUID clientUuid;
+        try {
+            clientUuid = UUID.fromString(clientId);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Invalid clientId format: must be UUID");
+        }
+        return transactionService.getBrokerClientTransactions(brokerId, clientUuid);
     }
 
     /**
@@ -50,8 +59,14 @@ public class BrokerController {
      */
     @GetMapping("/{clientId}/all-transactions")
     public List<TransactionResponseDTO> getAllClientTransactions(
-            @PathVariable UUID clientId
+            @PathVariable String clientId
     ) {
-        return transactionService.getAllClientTransactions(clientId);
+        UUID clientUuid;
+        try {
+            clientUuid = UUID.fromString(clientId);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Invalid clientId format: must be UUID");
+        }
+        return transactionService.getAllClientTransactions(clientUuid);
     }
 }

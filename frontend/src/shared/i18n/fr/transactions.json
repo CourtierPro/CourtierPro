@@ -1,4 +1,5 @@
 {
+  "timeline.documentDetailsUpdatedNote": "Le courtier {{brokerName}} a mis à jour la demande de document",
   "title": "Toutes les Transactions",
   "subtitle": "Suivre et gérer les transactions des clients à toutes les étapes",
   "archivedTransactions": "Transactions Archivées",
