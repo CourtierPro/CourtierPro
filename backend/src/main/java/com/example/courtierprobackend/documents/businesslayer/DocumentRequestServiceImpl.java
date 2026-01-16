@@ -41,7 +41,8 @@ import com.example.courtierprobackend.audit.timeline_audit.businesslayer.Timelin
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
 import org.springframework.context.MessageSource;
 import java.util.Locale;
-import com.example.courtierprobackend.documents.datalayer.enums.StageEnum;
+import com.example.courtierprobackend.transactions.datalayer.DocumentConditionLink;
+import com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -56,12 +57,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         private final UserAccountRepository userAccountRepository;
         private final TimelineService timelineService;
         private final MessageSource messageSource;
-        // ...existing code...
-        // Fix: requestId is undefined here. This block should be inside a method that receives requestId as a parameter. If this is a helper or misplaced, comment it out or move to the correct method. For now, comment out to avoid build error.
-        // DocumentRequest request = repository.findByRequestId(requestId)
-        //         .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
-
-        // ...existing code...
+        private final DocumentConditionLinkRepository documentConditionLinkRepository;
 
         /**
          * Helper to find a UserAccount by internal UUID.
@@ -128,6 +124,18 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 request.setStage(requestDTO.getStage());
 
                 DocumentRequest savedRequest = repository.save(request);
+
+                // Save condition links if provided
+                if (requestDTO.getConditionIds() != null && !requestDTO.getConditionIds().isEmpty()) {
+                        for (UUID conditionId : requestDTO.getConditionIds()) {
+                                DocumentConditionLink link = DocumentConditionLink.builder()
+                                        .conditionId(conditionId)
+                                        .documentRequestId(savedRequest.getRequestId())
+                                        .build();
+                                documentConditionLinkRepository.save(link);
+                        }
+                }
+
                 // Add timeline entry for document requested
                 timelineService.addEntry(
                                 transactionId,
@@ -302,6 +310,20 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                     }
                 } catch (Exception e) {
                     logger.warn("Could not add timeline entry or send notification/email for document request update", e);
+                }
+
+                DocumentRequest savedRequest = repository.save(request);
+
+                // Update condition links if provided
+                if (requestDTO.getConditionIds() != null) {
+                        documentConditionLinkRepository.deleteByDocumentRequestId(requestId);
+                        for (UUID conditionId : requestDTO.getConditionIds()) {
+                                DocumentConditionLink link = DocumentConditionLink.builder()
+                                        .conditionId(conditionId)
+                                        .documentRequestId(savedRequest.getRequestId())
+                                        .build();
+                                documentConditionLinkRepository.save(link);
+                        }
                 }
 
                 return mapToResponseDTO(savedRequest);

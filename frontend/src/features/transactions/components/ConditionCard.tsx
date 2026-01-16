@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Calendar, FileCheck, AlertTriangle } from 'lucide-react';
+import { Calendar, FileCheck, AlertTriangle, Link2 } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { Section } from '@/shared/components/branded/Section';
 import type { Condition, ConditionStatus, ConditionType } from '@/shared/api/types';
@@ -8,6 +8,7 @@ interface ConditionCardProps {
     condition: Condition;
     onClick?: () => void;
     isReadOnly?: boolean;
+    linkedCount?: number;
 }
 
 const statusVariantMap: Record<ConditionStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -50,7 +51,12 @@ const deadlineBadgeStyles: Record<'overdue' | 'urgent' | 'warning' | 'normal', s
     normal: '',
 };
 
-export function ConditionCard({ condition, onClick, isReadOnly }: ConditionCardProps) {
+export function ConditionCard({ 
+    condition, 
+    onClick, 
+    isReadOnly, 
+    linkedCount = 0,
+}: ConditionCardProps) {
     const { t, i18n } = useTranslation('transactions');
 
     const getConditionTitle = (type: ConditionType, customTitle?: string) => {
@@ -121,9 +127,20 @@ export function ConditionCard({ condition, onClick, isReadOnly }: ConditionCardP
                         )}
                     </div>
                 </div>
-                <Badge variant={statusVariantMap[condition.status]}>
-                    {t(`conditionStatus.${condition.status}`)}
-                </Badge>
+                <div className="flex flex-col items-end gap-1">
+                    <Badge variant={statusVariantMap[condition.status]}>
+                        {t(`conditionStatus.${condition.status}`)}
+                    </Badge>
+                    {linkedCount > 0 && (
+                        <Badge 
+                            variant="outline" 
+                            className="text-xs gap-1 border-blue-500/50 text-blue-600 dark:text-blue-400"
+                        >
+                            <Link2 className="w-3 h-3" />
+                            {t('linkedToOffers', { count: linkedCount })}
+                        </Badge>
+                    )}
+                </div>
             </div>
         </Section>
     );

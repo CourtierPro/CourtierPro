@@ -776,4 +776,47 @@ class AdminResourceServiceImplTest {
                                 anyString(),
                                 any());
         }
+
+        @Test
+        void buildDocumentRequestSnapshot_JsonProcessingException_ReturnsEmptyJson()
+                        throws com.fasterxml.jackson.core.JsonProcessingException {
+                ObjectMapper mockMapper = mock(ObjectMapper.class);
+                AdminResourceServiceImpl errorService = new AdminResourceServiceImpl(
+                                transactionRepository,
+                                documentRequestRepository,
+                                timelineEntryRepository,
+                                auditRepository,
+                                s3StorageService,
+                                mockMapper,
+                                userAccountRepository,
+                                notificationService);
+
+                // Use doAnswer to conditionally fail only for the Map (snapshot) and succeed for List (cascaded)
+                // The snapshot argument is a Map<String, Object>
+                when(mockMapper.writeValueAsString(any())).thenAnswer(invocation -> {
+                        Object arg = invocation.getArgument(0);
+                        if (arg instanceof java.util.Map) {
+                                throw new com.fasterxml.jackson.core.JsonProcessingException("Fail") {
+                                };
+                        }
+                        if (arg instanceof java.util.List) {
+                                return "[]";
+                        }
+                        return "{}";
+                });
+
+                UUID reqId = UUID.randomUUID();
+                DocumentRequest docReq = createTestDocumentRequest(reqId);
+                when(documentRequestRepository.findByRequestIdIncludingDeleted(reqId)).thenReturn(Optional.of(docReq));
+                when(documentRequestRepository.save(any())).thenReturn(docReq);
+
+                errorService.deleteResource(AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId, UUID.randomUUID());
+
+                // Verify audit log IS saved, and snapshot is "{}"
+                org.mockito.ArgumentCaptor<AdminDeletionAuditLog> captor = org.mockito.ArgumentCaptor
+                                .forClass(AdminDeletionAuditLog.class);
+                verify(auditRepository).save(captor.capture());
+                assertThat(captor.getValue().getResourceSnapshot()).isEqualTo("{}");
+        }
 }
+

@@ -1,6 +1,5 @@
 package com.example.courtierprobackend.notifications.presentationlayer;
 
-import com.example.courtierprobackend.notifications.presentationlayer.BroadcastRequestDTO;
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

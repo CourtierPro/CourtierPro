@@ -1,6 +1,5 @@
 package com.example.courtierprobackend.transactions.datalayer.dto;
 
-import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
 import com.example.courtierprobackend.transactions.datalayer.enums.PropertyOfferStatus;
 import lombok.*;
 

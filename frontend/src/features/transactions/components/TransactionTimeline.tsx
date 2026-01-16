@@ -144,10 +144,15 @@ export function TransactionTimeline({ transactionId }: TransactionTimelineProps)
                                             {/* Show info for CREATED using transactionInfo and i18n */}
                                             {entry.type === 'CREATED' && entry.transactionInfo && (
                                                 <p className="text-sm text-muted-foreground mt-1">
-                                                    {t('timeline.createdNote', {
-                                                        clientName: entry.transactionInfo.clientName,
-                                                        address: entry.transactionInfo.address
-                                                    })}
+                                                    {entry.transactionInfo.address && entry.transactionInfo.address.trim() !== ''
+                                                        ? t('timeline.createdNote', {
+                                                            clientName: entry.transactionInfo.clientName,
+                                                            address: entry.transactionInfo.address
+                                                        })
+                                                        : t('timeline.createdNoteNoAddress', {
+                                                            clientName: entry.transactionInfo.clientName
+                                                        })
+                                                    }
                                                 </p>
                                             )}
                                             {/* Show info for STAGE_CHANGE using transactionInfo and i18n, always translate stage */}
@@ -175,6 +180,46 @@ export function TransactionTimeline({ transactionId }: TransactionTimelineProps)
                                                         if (entry.type === 'PROPERTY_ADDED') return t('timeline.propertyAdded', { address });
                                                         if (entry.type === 'PROPERTY_UPDATED') return t('timeline.propertyUpdated', { address });
                                                         if (entry.type === 'PROPERTY_REMOVED') return t('timeline.propertyRemoved', { address });
+                                                        return '';
+                                                    })()}
+                                                </p>
+                                            )}
+                                            {/* Show info for PROPERTY_OFFER events */}
+                                            {entry.type.startsWith('PROPERTY_OFFER_') && entry.transactionInfo && (
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    {(() => {
+                                                        const { address, offerAmount, previousOfferStatus, offerStatus } = entry.transactionInfo;
+                                                        const formatCurrency = (amount?: number) => {
+                                                            if (!amount) return '';
+                                                            return new Intl.NumberFormat('en-CA', {
+                                                                style: 'currency',
+                                                                currency: 'CAD',
+                                                                maximumFractionDigits: 0,
+                                                            }).format(amount);
+                                                        };
+                                                        if (entry.type === 'PROPERTY_OFFER_MADE') {
+                                                            return t('timeline.propertyOfferMade', {
+                                                                address: address || t('unknownAddress'),
+                                                                amount: formatCurrency(offerAmount),
+                                                            });
+                                                        }
+                                                        if (entry.type === 'PROPERTY_OFFER_UPDATED') {
+                                                            // Show status change with from/to if we have both statuses
+                                                            if (previousOfferStatus && offerStatus) {
+                                                                const fromStatus = t(`buyerOfferStatuses.${previousOfferStatus}`, { defaultValue: previousOfferStatus });
+                                                                const toStatus = t(`buyerOfferStatuses.${offerStatus}`, { defaultValue: offerStatus });
+                                                                return t('timeline.propertyOfferStatusChanged', {
+                                                                    address: address || t('unknownAddress'),
+                                                                    fromStatus,
+                                                                    toStatus,
+                                                                });
+                                                            }
+                                                            // Fallback to old format if no previous status
+                                                            return t('timeline.propertyOfferUpdated', {
+                                                                address: address || t('unknownAddress'),
+                                                                amount: formatCurrency(offerAmount),
+                                                            });
+                                                        }
                                                         return '';
                                                     })()}
                                                 </p>
@@ -218,7 +263,12 @@ export function TransactionTimeline({ transactionId }: TransactionTimelineProps)
                                                     {(() => {
                                                         // Get condition type from metadata, fallback to parsing from note for legacy entries
                                                         const getConditionType = () => {
+                                                            // If type is OTHER and custom title exists, use custom title
                                                             const typeFromMetadata = entry.transactionInfo?.conditionType;
+                                                            const customTitle = entry.transactionInfo?.conditionCustomTitle;
+                                                            if (typeFromMetadata === 'OTHER' && customTitle) {
+                                                                return customTitle;
+                                                            }
                                                             if (typeFromMetadata) {
                                                                 return t(`conditionTypes.${typeFromMetadata}`, { defaultValue: typeFromMetadata });
                                                             }

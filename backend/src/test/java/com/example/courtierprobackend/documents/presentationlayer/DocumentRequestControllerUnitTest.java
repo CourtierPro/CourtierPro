@@ -15,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -218,7 +217,6 @@ class DocumentRequestControllerUnitTest {
         UUID txId = UUID.randomUUID();
         UUID reqId = UUID.randomUUID();
         UUID internalId = UUID.randomUUID();
-        String userId = internalId.toString();
         Jwt jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .subject("auth0|broker123")

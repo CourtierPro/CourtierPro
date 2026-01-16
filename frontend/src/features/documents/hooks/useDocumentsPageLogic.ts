@@ -13,8 +13,8 @@ export function useDocumentsPageLogic(transactionId: string) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { handleError } = useErrorHandler();
 
-    // Adapt signature to accept stage parameter
-    const handleRequestDocument = async (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string) => {
+    // Adapt signature to accept stage and conditionIds parameters
+    const handleRequestDocument = async (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string, conditionIds: string[] = []) => {
         try {
             await requestDocument.mutateAsync({
                 transactionId,
@@ -24,7 +24,8 @@ export function useDocumentsPageLogic(transactionId: string) {
                     expectedFrom: DocumentPartyEnum.BUYER, // Defaulting to BUYER, should be dynamic based on transaction
                     visibleToClient: true,
                     brokerNotes: instructions, // Mapping instructions to brokerNotes for now
-                    stage: stage // Add stage field
+                    stage: stage,
+                    conditionIds: conditionIds.length > 0 ? conditionIds : undefined
                 }
             });
             setIsModalOpen(false);

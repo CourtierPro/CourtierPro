@@ -40,4 +40,17 @@ public class TransactionAccessUtils {
             throw new ForbiddenException("You do not have access to this transaction");
         }
     }
+
+    /**
+     * Verifies that the given user ID matches the Client ID of the transaction.
+     *
+     * @param tx The transaction to check.
+     * @param clientId The ID of the client attempting access.
+     * @throws ForbiddenException if user is not the client.
+     */
+    public static void verifyClientAccess(Transaction tx, UUID clientId) {
+        if (clientId == null || tx.getClientId() == null || !tx.getClientId().equals(clientId)) {
+            throw new ForbiddenException("You do not have access to this transaction");
+        }
+    }
 }

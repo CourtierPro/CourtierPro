@@ -1,10 +1,12 @@
 package com.example.courtierprobackend.transactions.datalayer;
 
+import com.example.courtierprobackend.transactions.datalayer.enums.ClientOfferDecision;
 import com.example.courtierprobackend.transactions.datalayer.enums.ReceivedOfferStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -40,8 +42,22 @@ public class Offer {
     @Column(name = "status", nullable = false)
     private ReceivedOfferStatus status;
 
+    @Column(name = "expiry_date")
+    private LocalDate expiryDate;
+
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
+
+    // Client decision fields - for client review workflow
+    @Enumerated(EnumType.STRING)
+    @Column(name = "client_decision")
+    private ClientOfferDecision clientDecision;
+
+    @Column(name = "client_decision_at")
+    private LocalDateTime clientDecisionAt;
+
+    @Column(name = "client_decision_notes", columnDefinition = "TEXT")
+    private String clientDecisionNotes;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

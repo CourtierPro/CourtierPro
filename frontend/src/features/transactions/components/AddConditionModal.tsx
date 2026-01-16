@@ -14,12 +14,14 @@ interface AddConditionModalProps {
     onOpenChange: (open: boolean) => void;
     transactionId: string;
     existingCondition?: Condition;
+    /** When true, prevents the dialog from interfering with parent modals (e.g., when used inside ConditionSelector within AddOfferModal) */
+    nestedInModal?: boolean;
 }
 
 const CONDITION_TYPES: ConditionType[] = ['FINANCING', 'INSPECTION', 'SALE_OF_PROPERTY', 'OTHER'];
 const CONDITION_STATUSES: ConditionStatus[] = ['PENDING', 'SATISFIED', 'FAILED'];
 
-export function AddConditionModal({ open, onOpenChange, transactionId, existingCondition }: AddConditionModalProps) {
+export function AddConditionModal({ open, onOpenChange, transactionId, existingCondition, nestedInModal = false }: AddConditionModalProps) {
     const { t } = useTranslation('transactions');
     const isEditMode = !!existingCondition;
 
@@ -140,7 +142,7 @@ export function AddConditionModal({ open, onOpenChange, transactionId, existingC
     const isValid = description.trim() && deadlineDate && (type !== 'OTHER' || customTitle.trim());
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={onOpenChange} modal={!nestedInModal}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>

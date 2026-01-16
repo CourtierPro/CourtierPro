@@ -22,5 +22,12 @@
     "notifications.conditionFailed.title": "Condition Failed",
     "notifications.conditionFailed.message": "The {{conditionType}} condition has been marked as failed.",
     "notifications.conditionStatusChanged.title": "Condition Status Updated",
-    "notifications.conditionStatusChanged.message": "The {{conditionType}} condition status has been changed to {{status}}."
+    "notifications.conditionStatusChanged.message": "The {{conditionType}} condition status has been changed to {{status}}.",
+    "notifications.propertyOfferMade.title": "New Property Offer Made",
+    "notifications.propertyOfferMade.message": "An offer of {{offerAmount}} has been made on the property at {{address}}.",
+    "notifications.offerStatusChanged.title": "Offer Status Updated",
+    "notifications.offerStatusChanged.message": "The offer status has been changed to {{status}}.",
+    "notifications.offerCountered.title": "Counter-Offer Received",
+    "notifications.offerCountered.message": "A counter-offer has been received for your offer on {{address}}.",
+    "transactionDeletedMessage": "This transaction has been cancelled or deleted."
 }

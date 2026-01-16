@@ -116,5 +116,8 @@
         "documentApproved": "Document approved successfully",
         "revisionRequested": "Revision requested successfully",
         "documentRequested": "Document requested successfully"
-    }
+    },
+    "noPropertySelected": "No property selected",
+    "reupload": "Re-upload",
+    "allStages": "All stages"
 }
