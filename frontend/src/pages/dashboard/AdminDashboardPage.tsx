@@ -62,7 +62,6 @@ export function AdminDashboardPage() {
           {t("admin.auditLogs", "Audit Logs")}
         </Button>
       </div>
-
       {/* Recent admin actions */}
       <Section title={t("admin.recentActions", "Recent Admin Actions")} description={t("admin.recentActionsDesc", "Latest actions performed by admins.")}>
         <div className="text-sm text-muted-foreground">{t("admin.recentActionsPlaceholder", "No recent actions to display.")}</div>
@@ -75,8 +74,18 @@ export function AdminDashboardPage() {
         </div>
       </Section>
       {/* System logs (read-only, monitoring) */}
-      <Section title={t("admin.systemLogs")} description={t("admin.systemLogsDesc")}> 
-        <div className="text-sm text-muted-foreground">{t("admin.logsPlaceholder")}</div>
+      <Section title={t("admin.systemLogs")} description={t("admin.systemLogsDesc")}
+        >
+        <div
+          className="text-sm text-muted-foreground cursor-pointer hover:underline"
+          role="button"
+          tabIndex={0}
+          aria-label="View system logs"
+          onClick={() => navigate("/admin/system-logs")}
+          onKeyPress={e => { if (e.key === "Enter" || e.key === " ") navigate("/admin/system-logs"); }}
+        >
+          {t("admin.logsPlaceholder")}
+        </div>
       </Section>
     </div>
   );
