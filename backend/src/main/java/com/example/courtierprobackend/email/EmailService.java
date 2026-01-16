@@ -501,8 +501,8 @@ public class EmailService {
 
     private boolean sendEmail(String to, String subject, String body)
             throws MessagingException, UnsupportedEncodingException {
-        // Add footer to body
-        String bodyWithFooter = body + "\n\n" + getEmailFooter();
+        // Close any open paragraphs and add footer
+        String bodyWithFooter = body.replaceAll("</p>$", "") + "</p>" + getEmailFooter();
 
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
@@ -586,6 +586,8 @@ public class EmailService {
     /**
      * Converts plain text to HTML by:
      * - Escaping HTML characters
+     * - Converting [HEADING]...[/HEADING] to large styled headings
+     * - Converting [BOX]...[/BOX] to highlighted boxes with blue border
      * - Converting \n\n (double newline) to paragraph breaks
      * - Converting \n (single newline) to line breaks
      */
@@ -601,6 +603,57 @@ public class EmailService {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
+
+        // Handle [HEADING]...[/HEADING] (dotall to allow newlines inside)
+        escaped = escaped.replaceAll(
+            "(?s)\\[HEADING\\](.*?)\\[/HEADING\\]",
+            "<h3 style=\"font-size: 1.5em; font-weight: bold; margin: 15px 0 10px 0;\">$1</h3>"
+        );
+
+        // Handle [BOX]...[/BOX] (dotall to allow multi-line content, max-width 600px)
+        escaped = escaped.replaceAll(
+            "(?s)\\[BOX\\](.*?)\\[/BOX\\]",
+            "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>"
+        );
+
+        // Handle colored boxes [BOX-RED], [BOX-BLUE], [BOX-GREEN], [BOX-YELLOW]
+        escaped = escaped.replaceAll(
+            "(?s)\\[BOX-RED\\](.*?)\\[/BOX-RED\\]",
+            "<div style=\"border-left: 4px solid #ef4444; background-color: #fee2e2; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;\"><p style=\"margin: 0; color: #7f1d1d; font-weight: 500;\">$1</p></div>"
+        );
+        escaped = escaped.replaceAll(
+            "(?s)\\[BOX-BLUE\\](.*?)\\[/BOX-BLUE\\]",
+            "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>"
+        );
+        escaped = escaped.replaceAll(
+            "(?s)\\[BOX-GREEN\\](.*?)\\[/BOX-GREEN\\]",
+            "<div style=\"border-left: 4px solid #22c55e; background-color: #f0fdf4; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;\"><p style=\"margin: 0; color: #166534; font-weight: 500;\">$1</p></div>"
+        );
+        escaped = escaped.replaceAll(
+            "(?s)\\[BOX-YELLOW\\](.*?)\\[/BOX-YELLOW\\]",
+            "<div style=\"border-left: 4px solid #eab308; background-color: #fefce8; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;\"><p style=\"margin: 0; color: #713f12; font-weight: 500;\">$1</p></div>"
+        );
+
+        // Handle [BOLD]...[/BOLD]
+        escaped = escaped.replaceAll(
+            "(?s)\\[BOLD\\](.*?)\\[/BOLD\\]",
+            "<strong>$1</strong>"
+        );
+
+        // Handle [ITALIC]...[/ITALIC]
+        escaped = escaped.replaceAll(
+            "(?s)\\[ITALIC\\](.*?)\\[/ITALIC\\]",
+            "<em>$1</em>"
+        );
+
+        // Handle [HIGHLIGHT]...[/HIGHLIGHT]
+        escaped = escaped.replaceAll(
+            "(?s)\\[HIGHLIGHT\\](.*?)\\[/HIGHLIGHT\\]",
+            "<span style=\"background-color: #fef08a; padding: 0 4px; border-radius: 3px;\">$1</span>"
+        );
+
+        // Handle [SEPARATOR]
+        escaped = escaped.replace("[SEPARATOR]", "<hr style=\"border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;\" />");
 
         // Convert double newlines to paragraph breaks
         String html = escaped.replace("\n\n", "</p><p>");
