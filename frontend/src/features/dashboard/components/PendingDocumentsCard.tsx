@@ -7,7 +7,9 @@ import { Skeleton } from "@/shared/components/ui/skeleton";
 import { FileText, ArrowRight, CheckCircle } from "lucide-react";
 import { usePendingDocuments, type PendingDocument } from "@/features/dashboard/api/queries";
 import { cn } from "@/shared/utils/utils";
-import { formatDistanceToNow } from "date-fns";
+import { formatDateTime } from "@/shared/utils/date";
+
+
 
 interface PendingDocumentsCardProps {
     className?: string;
@@ -16,6 +18,7 @@ interface PendingDocumentsCardProps {
 
 export function PendingDocumentsCard({ className, maxItems = 5 }: PendingDocumentsCardProps) {
     const { t } = useTranslation("dashboard");
+    const { t: tDoc } = useTranslation("documents");
     const navigate = useNavigate();
     const { data: documents, isLoading, error } = usePendingDocuments();
 
@@ -26,15 +29,6 @@ export function PendingDocumentsCard({ className, maxItems = 5 }: PendingDocumen
             .replace(/_/g, " ")
             .toLowerCase()
             .replace(/\b\w/g, (c) => c.toUpperCase());
-    };
-
-    const getTimeAgo = (dateString: string | null) => {
-        if (!dateString) return "";
-        try {
-            return formatDistanceToNow(new Date(dateString), { addSuffix: true });
-        } catch {
-            return "";
-        }
     };
 
     const handleDocumentClick = (doc: PendingDocument) => {
@@ -113,7 +107,7 @@ export function PendingDocumentsCard({ className, maxItems = 5 }: PendingDocumen
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="font-medium text-sm truncate">
-                                        {doc.customTitle || formatDocumentType(doc.documentType)}
+                                        {doc.customTitle || tDoc(`types.${doc.documentType}`, { defaultValue: formatDocumentType(doc.documentType) })}
                                     </div>
                                     <div className="text-xs text-muted-foreground truncate">
                                         {doc.clientName}
@@ -129,7 +123,7 @@ export function PendingDocumentsCard({ className, maxItems = 5 }: PendingDocumen
                                 </Badge>
                                 {doc.submittedAt && (
                                     <span className="text-xs text-muted-foreground">
-                                        {getTimeAgo(doc.submittedAt)}
+                                        {t("broker.priorityCards.pendingDocuments.submitted", { time: formatDateTime(doc.submittedAt) })}
                                     </span>
                                 )}
                             </div>

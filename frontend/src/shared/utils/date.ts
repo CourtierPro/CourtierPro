@@ -45,6 +45,13 @@ export function formatDateTime(value?: string | number | Date | null): string {
 
     if (normalized.includes(' ')) normalized = normalized.replace(' ', 'T');
 
+    // Check if it's a timestamp without timezone info (e.g. '2023-10-25T14:30:00')
+    // If so, assume UTC by appending 'Z'
+    const isIsoNoTz = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(normalized);
+    if (isIsoNoTz) {
+      normalized += 'Z';
+    }
+
     let d: Date;
     const dateOnlyMatch = /^\d{4}-\d{2}-\d{2}$/.test(normalized);
     if (dateOnlyMatch) {
@@ -54,6 +61,8 @@ export function formatDateTime(value?: string | number | Date | null): string {
       d = new Date(normalized);
     }
     if (Number.isNaN(d.getTime())) return '-';
+    // Use 'fr-CA' or undefined (browser default) based on need, but usually toLocaleString() respects browser
+    // However, to ensure consistency with the user's issue, let's stick to standard behavior.
     return d.toLocaleString();
   } catch {
     return '-';

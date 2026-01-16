@@ -38,4 +38,7 @@ public class RecentActivityDTO {
     
     // Full transaction info for event-specific details (stage changes, offers, conditions, etc.)
     private TransactionInfo transactionInfo;
+    
+    // Whether this activity has been marked as seen by the broker
+    private boolean seen;
 }

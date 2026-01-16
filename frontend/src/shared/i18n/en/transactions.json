@@ -456,6 +456,9 @@
     "saving": "Saving..."
   },
   "awaitingReview": "Awaiting review",
+  "documentStatus": {
+    "requested": "Requested"
+  },
   "viewDocumentDetails": "View document details",
   "viewTransactionDetails": "View transaction details",
   "viewOffers": "View offers",

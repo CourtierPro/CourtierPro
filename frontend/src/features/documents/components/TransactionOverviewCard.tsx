@@ -56,6 +56,7 @@ interface TransactionOverviewCardProps {
   approvedDocumentCount?: number;
   needsRevisionCount?: number;
   submittedDocumentCount?: number;
+  requestedDocumentCount?: number;
   onViewDetails?: (transactionId: string) => void;
 }
 
@@ -65,6 +66,7 @@ export function TransactionOverviewCard({
   approvedDocumentCount = 0,
   needsRevisionCount = 0,
   submittedDocumentCount = 0,
+  requestedDocumentCount = 0,
   onViewDetails,
 }: TransactionOverviewCardProps) {
   const { t, i18n } = useTranslation("dashboard");
@@ -218,7 +220,7 @@ export function TransactionOverviewCard({
             </div>
             <span className="text-xs font-medium text-muted-foreground whitespace-nowrap hidden"></span>
           </div>
-          
+
           <div className="flex-1">
             <CardTitle className="text-base font-semibold">
               {transaction.propertyAddress?.street || t("transaction.noAddress", "No address")}
@@ -260,81 +262,82 @@ export function TransactionOverviewCard({
                   {Array.from({ length: totalStagesResolved - 1 }).map((_, idx) => (
                     <div
                       key={`line-${idx}`}
-                      className={`h-0.5 flex-1 transition-colors duration-300 ${
-                        idx < currentStageIndex
-                          ? "bg-orange-500"
-                          : "bg-slate-300 dark:bg-slate-700"
-                      }`}
+                      className={`h-0.5 flex-1 transition-colors duration-300 ${idx < currentStageIndex
+                        ? "bg-orange-500"
+                        : "bg-slate-300 dark:bg-slate-700"
+                        }`}
                     />
                   ))}
                 </div>
                 {/* Dots */}
                 <div className="relative flex items-center justify-between">
-                {Array.from({ length: totalStagesResolved }).map((_, idx) => {
-                  const stageName = getStageLabel(stagesForSide[idx], tTx, transaction.side as "BUY_SIDE" | "SELL_SIDE" | undefined);
-                  const isCurrent = idx === currentStageIndex;
-                  const isCompleted = idx < currentStageIndex;
-                  
-                  return (
-                    <div 
-                      key={`dot-${idx}`} 
-                      className="relative flex flex-col items-center group cursor-pointer z-10"
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`Stage ${idx + 1} of ${totalStagesResolved}: ${stageName}${isCurrent ? ' (current)' : isCompleted ? ' (completed)' : ''}`}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          // Could potentially trigger stage details or navigation here
-                        }
-                      }}
-                    >
-                      <div className="relative">
-                        {/* Stage number badge on hover - better contrast */}
-                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-300 z-20">
-                          <span className="text-xs font-bold text-white bg-orange-600 dark:bg-orange-500 px-2 py-1 rounded-full shadow-md">
-                            {idx + 1}
-                          </span>
-                        </div>
-                        {/* Dot */}
-                        <div
-                          className={`rounded-full transition-all duration-300 ${
-                            isCurrent
+                  {Array.from({ length: totalStagesResolved }).map((_, idx) => {
+                    const stageName = getStageLabel(stagesForSide[idx], tTx, transaction.side as "BUY_SIDE" | "SELL_SIDE" | undefined);
+                    const isCurrent = idx === currentStageIndex;
+                    const isCompleted = idx < currentStageIndex;
+
+                    return (
+                      <div
+                        key={`dot-${idx}`}
+                        className="relative flex flex-col items-center group cursor-pointer z-10"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Stage ${idx + 1} of ${totalStagesResolved}: ${stageName}${isCurrent ? ' (current)' : isCompleted ? ' (completed)' : ''}`}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            // Could potentially trigger stage details or navigation here
+                          }
+                        }}
+                      >
+                        <div className="relative">
+                          {/* Stage number badge on hover - better contrast */}
+                          <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-300 z-20">
+                            <span className="text-xs font-bold text-white bg-orange-600 dark:bg-orange-500 px-2 py-1 rounded-full shadow-md">
+                              {idx + 1}
+                            </span>
+                          </div>
+                          {/* Dot */}
+                          <div
+                            className={`rounded-full transition-all duration-300 ${isCurrent
                               ? "w-3 h-3 bg-gradient-to-br from-orange-500 to-orange-600 dark:from-orange-400 dark:to-orange-500 group-hover:w-6 group-hover:h-6 group-focus:w-6 group-focus:h-6 group-hover:shadow-lg group-hover:shadow-orange-300 dark:group-hover:shadow-orange-900 group-hover:scale-125 group-focus:scale-125"
                               : isCompleted
-                              ? "w-2.5 h-2.5 bg-orange-500 group-hover:w-5 group-hover:h-5 group-focus:w-5 group-focus:h-5 group-hover:shadow-md group-hover:scale-125 group-focus:scale-125"
-                              : "w-2.5 h-2.5 bg-gray-400 dark:bg-gray-600 group-hover:w-5 group-hover:h-5 group-focus:w-5 group-focus:h-5 group-hover:shadow-md group-hover:scale-125 group-focus:scale-125"
-                          }`}
-                        />
+                                ? "w-2.5 h-2.5 bg-orange-500 group-hover:w-5 group-hover:h-5 group-focus:w-5 group-focus:h-5 group-hover:shadow-md group-hover:scale-125 group-focus:scale-125"
+                                : "w-2.5 h-2.5 bg-gray-400 dark:bg-gray-600 group-hover:w-5 group-hover:h-5 group-focus:w-5 group-focus:h-5 group-hover:shadow-md group-hover:scale-125 group-focus:scale-125"
+                              }`}
+                          />
+                        </div>
+                        {/* Stage name on hover/focus - high z-index to appear above labels */}
+                        <span className="opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-300 mt-3 text-xs leading-tight font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap absolute top-full pt-1 z-30 bg-white/90 dark:bg-slate-900/90 px-2 py-1 rounded shadow-sm">
+                          {stageName}
+                        </span>
                       </div>
-                      {/* Stage name on hover/focus - high z-index to appear above labels */}
-                      <span className="opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-300 mt-3 text-xs leading-tight font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap absolute top-full pt-1 z-30 bg-white/90 dark:bg-slate-900/90 px-2 py-1 rounded shadow-sm">
-                        {stageName}
-                      </span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
             </div>
           )}
 
           {/* Résumé des statuts documents */}
           <div className="flex flex-wrap gap-2 text-xs">
-            <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100">
+            <Badge variant="secondary" className="bg-orange-50 text-orange-700 border-orange-100 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700">
+              {tTx("documentStatus.requested", "Requested")}: {requestedDocumentCount}
+            </Badge>
+            <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700">
               {t("transaction.submitted", "Submitted")}: {submittedCount}
             </Badge>
-            <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-100">
+            <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700">
               {t("transaction.approved", "Approved")}: {approvedCount}
             </Badge>
-            <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-100">
+            <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700">
               {t("transaction.needsRevision", "Needs revision")}: {revisionCount}
             </Badge>
-            <Badge variant="secondary" className="bg-slate-50 text-slate-700 border-slate-100">
+            <Badge variant="secondary" className="bg-slate-50 text-slate-700 border-slate-100 dark:bg-slate-900/30 dark:text-slate-300 dark:border-slate-700">
               {tTx("awaitingReview", "Awaiting review")}: {pendingCount}
             </Badge>
           </div>
-        
+
           <Button
             variant="default"
             size="sm"
@@ -483,14 +486,10 @@ export function TransactionOverviewCard({
       </CardContent>
 
       {expanded && (
-        <div
-          className="hidden lg:block absolute inset-y-0 left-[calc(100%+20px)] right-5 min-w-[500px]"
-        >
-          <div className="relative h-full flex flex-col">
-            <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-5 h-5 rotate-45 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-900 shadow-sm" />
-            
+        <div className="hidden lg:block px-4 pb-4">
+          <div className="border border-orange-200 dark:border-orange-900 bg-white dark:bg-slate-900 rounded-xl shadow-lg overflow-hidden">
             {panelType === "documents" ? (
-              <div className="absolute inset-0 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-900 shadow-lg rounded-xl px-8 py-6 flex items-center justify-between gap-12">
+              <div className="px-8 py-6 flex items-center justify-between gap-12">
                 {/* Left: Needs revision */}
                 <div className="flex flex-col items-center gap-3 translate-y-2">
                   <div className="relative w-24 h-24">
@@ -544,7 +543,7 @@ export function TransactionOverviewCard({
               </div>
             ) : panelType === "offers" ? (
               /* Offers Panel - Desktop */
-              <div className="absolute inset-0 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-900 shadow-lg rounded-xl px-8 py-6 overflow-y-auto">
+              <div className="px-8 py-6 max-h-96 overflow-y-auto">
                 <div className="space-y-4">
                   <h4 className="font-semibold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
                     <DollarSign className="w-5 h-5 text-green-600" /> {tTx("offers", "Offers")} ({offers.length})
@@ -556,10 +555,10 @@ export function TransactionOverviewCard({
                       <p className="text-xs mt-1 text-muted-foreground/70">{tTx("noOffersDesc", "Offers from potential buyers will appear here")}</p>
                     </div>
                   ) : (
-                    <div className={`space-y-3 ${offers.length > 2 ? "max-h-96 overflow-y-auto pr-2" : ""}`}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {offers.map((offer) => (
-                        <div 
-                          key={offer.offerId} 
+                        <div
+                          key={offer.offerId}
                           className="bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-800 dark:to-slate-800/50 p-5 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-orange-300 dark:hover:border-orange-700 transition-all shadow-sm hover:shadow-md"
                         >
                           <div className="flex items-start justify-between mb-3">
@@ -600,7 +599,7 @@ export function TransactionOverviewCard({
               </div>
             ) : panelType === "properties" ? (
               /* Properties Panel - Desktop */
-              <div className="absolute inset-0 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-900 shadow-lg rounded-xl px-8 py-6 overflow-y-auto">
+              <div className="px-8 py-6 max-h-96 overflow-y-auto">
                 <div className="space-y-4">
                   <h4 className="font-semibold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
                     <Building2 className="w-5 h-5 text-blue-600" /> {tTx("properties", "Properties")} ({properties.length})
@@ -612,10 +611,10 @@ export function TransactionOverviewCard({
                       <p className="text-xs mt-1 text-muted-foreground/70">{tTx("noPropertiesDesc", "Properties you are considering will appear here")}</p>
                     </div>
                   ) : (
-                    <div className={`space-y-3 ${properties.length > 2 ? "max-h-96 overflow-y-auto pr-2" : ""}`}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {properties.map((property) => (
-                        <div 
-                          key={property.propertyId} 
+                        <div
+                          key={property.propertyId}
                           className="bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-800 dark:to-slate-800/50 p-5 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 transition-all shadow-sm hover:shadow-md"
                         >
                           <div className="flex items-start justify-between mb-3">
@@ -630,8 +629,8 @@ export function TransactionOverviewCard({
                                 </p>
                               </div>
                             </div>
-                            <Badge 
-                              variant={propertyStatusConfig[property.offerStatus].variant} 
+                            <Badge
+                              variant={propertyStatusConfig[property.offerStatus].variant}
                               className={`text-xs flex-shrink-0 ${propertyStatusConfig[property.offerStatus].className}`}
                             >
                               {tTx(`propertyStatus.${property.offerStatus}`, property.offerStatus)}
@@ -667,18 +666,18 @@ export function TransactionOverviewCard({
                 </div>
               </div>
             ) : (
-              <div className="absolute inset-0 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-900 shadow-lg rounded-xl p-6 space-y-6 flex flex-col overflow-y-auto">
+              <div className="p-6 space-y-6">
                 {/* Transaction Info Section */}
                 <div className="border-l-4 border-l-orange-500 pl-4 w-full min-w-0">
                   <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                     <HomeIcon className="w-4 h-4 text-orange-600" /> {t("transaction.type", "Type")}
                   </h4>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm">
                     <div>
                       <span className="text-muted-foreground text-xs">{t("transaction.type", "Type")}</span>
                       <p className="font-medium">{sideInfo.label}</p>
                     </div>
-                    <div className="text-right">
+                    <div>
                       <span className="text-muted-foreground text-xs block">{t("transaction.opened", "Opened")}</span>
                       <p className="font-medium">{relativeTime ?? "--"}</p>
                     </div>
@@ -694,7 +693,7 @@ export function TransactionOverviewCard({
                   <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                     <FileText className="w-4 h-4 text-orange-600" /> {t("transaction.details", "Details")}
                   </h4>
-                  <div className="space-y-4 text-sm flex-grow">
+                  <div className="space-y-4 text-sm">
                     <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded border border-slate-200 dark:border-slate-700">
                       <span className="text-muted-foreground text-xs block mb-1">Transaction ID</span>
                       <p className="font-mono text-sm font-bold text-orange-700 dark:text-orange-400 break-all">{transaction.transactionId}</p>
@@ -704,7 +703,7 @@ export function TransactionOverviewCard({
                         <span className="text-muted-foreground text-xs">{t("transaction.status", "Status")}</span>
                         <p className="font-medium">{transaction.status || "ACTIVE"}</p>
                       </div>
-                      <div className="text-right">
+                      <div>
                         <span className="text-muted-foreground text-xs block">{t("transaction.address", "Address")}</span>
                         <p className="font-medium text-sm leading-tight">{transaction.propertyAddress?.street || "--"}</p>
                       </div>
@@ -717,7 +716,7 @@ export function TransactionOverviewCard({
                   <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                     <FileText className="w-4 h-4 text-orange-600" /> {tTx("conditions.title", "Conditions")}
                   </h4>
-                  <div className="w-full min-w-0 max-h-80 overflow-y-auto pr-1 space-y-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg p-3">
+                  <div className="w-full min-w-0 max-h-60 overflow-y-auto pr-1 space-y-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg p-3">
                     {conditions.length === 0 ? (
                       <p className="text-xs text-muted-foreground">{tTx("conditions.noConditions", "No conditions added.")}</p>
                     ) : (
@@ -726,7 +725,7 @@ export function TransactionOverviewCard({
                           ? getDeadlineStatus(cond.deadlineDate)
                           : 'normal';
                         const showOverdateBadge = cond.status === 'PENDING' && deadlineStatus === 'overdue';
-                        
+
                         return (
                           <div key={cond.conditionId} className="text-sm space-y-1">
                             <div className="flex items-center justify-between gap-2">
@@ -760,7 +759,6 @@ export function TransactionOverviewCard({
                 </div>
               </div>
             )}
-
           </div>
         </div>
       )}

@@ -43,7 +43,8 @@
                 "title": "Documents en attente de révision",
                 "description": "Documents en attente de votre révision.",
                 "empty": "Aucun document en attente de révision.",
-                "review": "Réviser"
+                "review": "Réviser",
+                "submitted": "Soumis à {{time}}"
             },
             "upcomingAppointments": {
                 "title": "Rendez-vous à venir",
@@ -59,7 +60,12 @@
             "empty": "Aucune activité récente.",
             "previous": "Précédent",
             "next": "Suivant",
-            "pageOf": "Page {{current}} sur {{total}}"
+            "pageOf": "Page {{current}} sur {{total}}",
+            "new": "Nouveau",
+            "markAsSeen": "Marquer comme vu",
+            "markAllAsSeen": "Tout marquer comme vu",
+            "selectAll": "Tout sélectionner",
+            "deselectAll": "Tout désélectionner"
         },
         "pinnedTransactions": {
             "title": "Transactions épinglées",
@@ -125,7 +131,7 @@
         "id": "ID",
         "noAddress": "Aucune adresse",
         "documents": "documents",
-        "approved": "approuvé",
+        "approved": "Approuvé",
         "viewDetails": "Voir les détails",
         "hideDetails": "Masquer les détails",
         "buying": "Achat",

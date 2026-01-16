@@ -5,12 +5,16 @@ import { Section } from "@/shared/components/branded/Section";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { Badge } from "@/shared/components/ui/badge";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
     Activity,
     ChevronLeft,
     ChevronRight,
+    Eye,
+    CheckCheck,
 } from "lucide-react";
 import { useRecentActivity, type RecentActivity } from "@/features/dashboard/api/queries";
+import { useMarkActivitiesAsSeen } from "@/features/dashboard/api/mutations";
 import { formatDateTime } from "@/shared/utils/date";
 import { getEventIcon } from "@/features/transactions/components/getEventIcon";
 import { getEventTypeLabel } from "@/features/transactions/components/getEventTypeLabel";
@@ -26,13 +30,56 @@ export function RecentActivityFeed({ className }: RecentActivityFeedProps) {
     const navigate = useNavigate();
     const [page, setPage] = useState(0);
     const pageSize = 5;
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     const { data, isLoading, error } = useRecentActivity(page, pageSize);
+    const markAsSeenMutation = useMarkActivitiesAsSeen();
 
-    const handleActivityClick = (activity: RecentActivity) => {
+    const handleActivityClick = async (activity: RecentActivity) => {
+        // Mark as seen before navigating
+        if (!activity.seen) {
+            await markAsSeenMutation.mutateAsync([activity.activityId]);
+        }
         if (activity.transactionId) {
             navigate(`/transactions/${activity.transactionId}`);
         }
+    };
+
+    const handleCheckboxChange = (activityId: string, checked: boolean, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (checked) {
+                next.add(activityId);
+            } else {
+                next.delete(activityId);
+            }
+            return next;
+        });
+    };
+
+    const handleMarkSelectedAsSeen = async () => {
+        if (selectedIds.size === 0) return;
+        await markAsSeenMutation.mutateAsync(Array.from(selectedIds));
+        setSelectedIds(new Set());
+    };
+
+    const handleMarkAllAsSeen = async () => {
+        const activities = data?.content ?? [];
+        const unseenIds = activities.filter(a => !a.seen).map(a => a.activityId);
+        if (unseenIds.length === 0) return;
+        await markAsSeenMutation.mutateAsync(unseenIds);
+        setSelectedIds(new Set());
+    };
+
+    const handleSelectAll = () => {
+        const activities = data?.content ?? [];
+        const unseenIds = activities.filter(a => !a.seen).map(a => a.activityId);
+        setSelectedIds(new Set(unseenIds));
+    };
+
+    const handleDeselectAll = () => {
+        setSelectedIds(new Set());
     };
 
     const translateStage = (stage: string | undefined, side: string) => {
@@ -311,6 +358,8 @@ export function RecentActivityFeed({ className }: RecentActivityFeedProps) {
     const totalPages = data?.totalPages ?? 0;
     const isFirst = data?.first ?? true;
     const isLast = data?.last ?? true;
+    const unseenCount = activities.filter(a => !a.seen).length;
+    const hasSelection = selectedIds.size > 0;
 
     return (
         <Section
@@ -327,83 +376,150 @@ export function RecentActivityFeed({ className }: RecentActivityFeedProps) {
                 </div>
             ) : (
                 <>
+                    {/* Action toolbar */}
+                    {unseenCount > 0 && (
+                        <div className="flex items-center gap-2 mb-4 pb-4 border-b">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={hasSelection ? handleDeselectAll : handleSelectAll}
+                            >
+                                {hasSelection ? t("broker.activityFeed.deselectAll") : t("broker.activityFeed.selectAll")}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleMarkSelectedAsSeen}
+                                disabled={!hasSelection || markAsSeenMutation.isPending}
+                            >
+                                <Eye className="h-4 w-4 mr-1" />
+                                {t("broker.activityFeed.markAsSeen")}
+                                {hasSelection && ` (${selectedIds.size})`}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleMarkAllAsSeen}
+                                disabled={markAsSeenMutation.isPending}
+                            >
+                                <CheckCheck className="h-4 w-4 mr-1" />
+                                {t("broker.activityFeed.markAllAsSeen")}
+                            </Button>
+                        </div>
+                    )}
+
                     <div className="space-y-6">
                         {activities.map((activity, index) => {
                             const isDocumentEvent = activity.type.startsWith('DOCUMENT_');
+                            const isUnseen = !activity.seen;
+                            const isSelected = selectedIds.has(activity.activityId);
+
                             return (
-                                <button
+                                <div
                                     key={activity.activityId}
-                                    onClick={() => handleActivityClick(activity)}
-                                    className="w-full flex gap-4 text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-lg hover:bg-muted/30 transition-colors p-2 -m-2"
+                                    className={`flex gap-4 rounded-lg transition-colors ${isUnseen
+                                            ? 'bg-primary/5 border-l-4 border-l-primary'
+                                            : ''
+                                        }`}
                                 >
-                                    {/* Icon and line */}
-                                    <div className="flex flex-col items-center">
-                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-background border-2 border-border">
-                                            {getEventIcon(activity.type as Parameters<typeof getEventIcon>[0])}
+                                    {/* Checkbox for unseen items */}
+                                    {isUnseen && (
+                                        <div
+                                            className="flex items-start pt-3 pl-2"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <Checkbox
+                                                checked={isSelected}
+                                                onCheckedChange={(checked) =>
+                                                    handleCheckboxChange(activity.activityId, checked as boolean, { stopPropagation: () => { } } as React.MouseEvent)
+                                                }
+                                            />
                                         </div>
-                                        {index < activities.length - 1 && (
-                                            <div className="w-0.5 h-full min-h-[60px] bg-border mt-2" />
-                                        )}
-                                    </div>
+                                    )}
 
-                                    {/* Content */}
-                                    <div className="flex-1 pb-8">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex-1">
-                                                {/* Event type title with actor badge */}
-                                                <div className="flex items-center gap-2 mb-3 flex-wrap">
-                                                    <h3 className="font-semibold">
-                                                        {isDocumentEvent && activity.docType && String(activity.type) === 'DOCUMENT_REQUEST_UPDATED'
-                                                            ? `${tTx('documents:requestDocument')} : ${tDoc('edited')}`
-                                                            : isDocumentEvent && activity.docType
-                                                                ? `${getEventTypeLabel(activity.type as Parameters<typeof getEventTypeLabel>[0], tTx)} : ${tDoc(`types.${activity.docType}`)}`
-                                                                : getEventTypeLabel(activity.type as Parameters<typeof getEventTypeLabel>[0], tTx)}
-                                                    </h3>
-                                                    {renderActorBadge(activity)}
-                                                </div>
-
-                                                {/* Transaction context row */}
-                                                <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground mb-3">
-                                                    {activity.clientName && (
-                                                        <span className="font-medium">{activity.clientName}</span>
-                                                    )}
-                                                    {activity.clientName && activity.propertyAddress && (
-                                                        <span>•</span>
-                                                    )}
-                                                    {activity.propertyAddress && (
-                                                        <span>{activity.propertyAddress}</span>
-                                                    )}
-                                                    {(activity.clientName || activity.propertyAddress) && activity.side && (
-                                                        <span>•</span>
-                                                    )}
-                                                    {activity.side && (
-                                                        <Badge variant="outline" className="text-xs py-0 h-5">
-                                                            {translateSide(activity.side)}
-                                                        </Badge>
-                                                    )}
-                                                    {activity.currentStage && (
-                                                        <>
-                                                            <span>•</span>
-                                                            <Badge variant="secondary" className="text-xs py-0 h-5">
-                                                                {translateStage(activity.currentStage, activity.side)}
-                                                            </Badge>
-                                                        </>
-                                                    )}
-                                                </div>
-
-                                                {/* Event-specific details */}
-                                                {renderEventDetails(activity)}
+                                    <button
+                                        onClick={() => handleActivityClick(activity)}
+                                        className={`flex-1 flex gap-4 text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-lg hover:bg-muted/30 transition-colors p-2 ${isUnseen ? '-ml-2' : ''}`}
+                                    >
+                                        {/* Icon and line */}
+                                        <div className="flex flex-col items-center">
+                                            <div className={`flex items-center justify-center w-10 h-10 rounded-full bg-background border-2 ${isUnseen ? 'border-primary' : 'border-border'
+                                                }`}>
+                                                {getEventIcon(activity.type as Parameters<typeof getEventIcon>[0])}
                                             </div>
-                                            {activity.occurredAt && (
-                                                <div className="text-right">
-                                                    <p className="text-xs text-muted-foreground whitespace-nowrap">
-                                                        {formatDateTime(activity.occurredAt)}
-                                                    </p>
-                                                </div>
+                                            {index < activities.length - 1 && (
+                                                <div className="w-0.5 h-full min-h-[60px] bg-border mt-2" />
                                             )}
                                         </div>
-                                    </div>
-                                </button>
+
+                                        {/* Content */}
+                                        <div className="flex-1 pb-8">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="flex-1">
+                                                    {/* Event type title with actor badge */}
+                                                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                                                        <h3 className={`font-semibold ${isUnseen ? 'text-primary' : ''}`}>
+                                                            {isDocumentEvent && activity.docType && String(activity.type) === 'DOCUMENT_REQUEST_UPDATED'
+                                                                ? `${tTx('documents:requestDocument')} : ${tDoc('edited')}`
+                                                                : isDocumentEvent && activity.docType
+                                                                    ? `${getEventTypeLabel(activity.type as Parameters<typeof getEventTypeLabel>[0], tTx)} : ${tDoc(`types.${activity.docType}`)}`
+                                                                    : getEventTypeLabel(activity.type as Parameters<typeof getEventTypeLabel>[0], tTx)}
+                                                        </h3>
+                                                        {renderActorBadge(activity)}
+                                                        {isUnseen && (
+                                                            <Badge variant="default" className="text-xs py-0 h-5">
+                                                                {t("broker.activityFeed.new")}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Transaction context row */}
+                                                    <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground mb-3">
+                                                        {activity.clientName && (
+                                                            <span className="font-medium">{activity.clientName}</span>
+                                                        )}
+                                                        {activity.clientName && activity.propertyAddress && (
+                                                            <span>•</span>
+                                                        )}
+                                                        {activity.propertyAddress && (
+                                                            <span>
+                                                                {activity.propertyAddress === "No property selected"
+                                                                    ? tTx('noPropertySelected')
+                                                                    : activity.propertyAddress}
+                                                            </span>
+                                                        )}
+                                                        {(activity.clientName || activity.propertyAddress) && activity.side && (
+                                                            <span>•</span>
+                                                        )}
+                                                        {activity.side && (
+                                                            <Badge variant="outline" className="text-xs py-0 h-5">
+                                                                {translateSide(activity.side)}
+                                                            </Badge>
+                                                        )}
+                                                        {activity.currentStage && (
+                                                            <>
+                                                                <span>•</span>
+                                                                <Badge variant="secondary" className="text-xs py-0 h-5">
+                                                                    {translateStage(activity.currentStage, activity.side)}
+                                                                </Badge>
+                                                            </>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Event-specific details */}
+                                                    {renderEventDetails(activity)}
+                                                </div>
+                                                {activity.occurredAt && (
+                                                    <div className="text-right">
+                                                        <p className="text-xs text-muted-foreground whitespace-nowrap">
+                                                            {formatDateTime(activity.occurredAt)}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </button>
+                                </div>
                             );
                         })}
                     </div>

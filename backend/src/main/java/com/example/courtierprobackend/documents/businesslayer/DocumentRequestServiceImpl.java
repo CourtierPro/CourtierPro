@@ -405,8 +405,17 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
 
                 // In-app Notification for Broker
                 try {
-                        String title = "Document Submitted";
-                        String message = String.format("%s submitted document: %s", uploaderName, documentName);
+                        Locale locale = isFrench(brokerLanguage) ? Locale.FRENCH : Locale.ENGLISH;
+                        String localizedDocType = messageSource.getMessage(
+                                        "document.type." + savedRequest.getDocType(), null,
+                                        savedRequest.getDocType().name(), locale);
+                        String displayDocName = savedRequest.getCustomTitle() != null
+                                        ? savedRequest.getCustomTitle()
+                                        : localizedDocType;
+
+                        String title = messageSource.getMessage("notification.document.submitted.title", null, locale);
+                        String message = messageSource.getMessage("notification.document.submitted.message",
+                                        new Object[] { uploaderName, displayDocName }, locale);
                         notificationService.createNotification(
                                         broker.getId().toString(),
                                         title,

@@ -456,6 +456,9 @@
     "saving": "Sauvegarde..."
   },
   "awaitingReview": "En attente d'examen",
+  "documentStatus": {
+    "requested": "Demandé"
+  },
   "viewDocumentDetails": "Voir les détails des documents",
   "viewTransactionDetails": "Voir les détails de la transaction",
   "viewOffers": "Voir les offres",

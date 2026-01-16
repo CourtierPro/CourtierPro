@@ -43,7 +43,8 @@
                 "title": "Pending Document Reviews",
                 "description": "Documents awaiting your review.",
                 "empty": "No pending documents to review.",
-                "review": "Review"
+                "review": "Review",
+                "submitted": "Submitted at {{time}}"
             },
             "upcomingAppointments": {
                 "title": "Upcoming Appointments",
@@ -59,7 +60,12 @@
             "empty": "No recent activity.",
             "previous": "Previous",
             "next": "Next",
-            "pageOf": "Page {{current}} of {{total}}"
+            "pageOf": "Page {{current}} of {{total}}",
+            "new": "New",
+            "markAsSeen": "Mark as Seen",
+            "markAllAsSeen": "Mark All as Seen",
+            "selectAll": "Select All",
+            "deselectAll": "Deselect All"
         },
         "pinnedTransactions": {
             "title": "Pinned Transactions",
@@ -125,7 +131,7 @@
         "id": "ID",
         "noAddress": "No address",
         "documents": "documents",
-        "approved": "approved",
+        "approved": "Approved",
         "viewDetails": "View Details",
         "hideDetails": "Hide details",
         "buying": "Buying",

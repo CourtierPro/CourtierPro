@@ -8,7 +8,6 @@ import { LoadingState } from "@/shared/components/branded/LoadingState";
 import {
   FileText,
   Users,
-  Activity,
   Plus,
   List,
   FileCheck,
@@ -26,8 +25,6 @@ export function BrokerDashboardPage() {
   const navigate = useNavigate();
   const { data: stats, isLoading } = useBrokerDashboardStats();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-  const pendingActionsCount = (stats?.pendingDocumentReviews ?? 0) + (stats?.expiringOffersCount ?? 0);
 
   const quickLinks: QuickLink[] = [
     {
@@ -82,7 +79,7 @@ export function BrokerDashboardPage() {
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <KpiCard
           title={t("broker.activeTransactions")}
           value={stats?.activeTransactions?.toString() || "0"}
@@ -94,12 +91,6 @@ export function BrokerDashboardPage() {
           value={stats?.activeClients?.toString() || "0"}
           icon={<Users className="w-4 h-4" />}
           onClick={() => navigate("/clients")}
-        />
-        <KpiCard
-          title={t("broker.pendingActions")}
-          value={pendingActionsCount.toString()}
-          icon={<Activity className="w-4 h-4" />}
-          onClick={() => navigate("/documents?status=SUBMITTED")}
         />
       </div>
 

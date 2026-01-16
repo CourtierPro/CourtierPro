@@ -63,6 +63,8 @@ export interface RecentActivity {
     status: string | null;
     // Full transaction info for event-specific details
     transactionInfo: TransactionInfo | null;
+    // Whether this activity has been seen by the broker
+    seen: boolean;
 }
 
 export interface RecentActivityPage {

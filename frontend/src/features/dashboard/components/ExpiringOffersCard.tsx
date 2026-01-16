@@ -35,7 +35,7 @@ export function ExpiringOffersCard({ className, maxItems = 5 }: ExpiringOffersCa
     };
 
     const handleOfferClick = (offer: ExpiringOffer) => {
-        navigate(`/transactions/${offer.transactionId}`);
+        navigate(`/transactions/${offer.transactionId}?tab=offers`);
     };
 
     if (isLoading) {

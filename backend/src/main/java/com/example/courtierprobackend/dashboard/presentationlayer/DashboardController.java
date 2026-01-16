@@ -1,6 +1,8 @@
 package com.example.courtierprobackend.dashboard.presentationlayer;
 
 import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
+import com.example.courtierprobackend.dashboard.datalayer.TimelineEntrySeen;
+import com.example.courtierprobackend.dashboard.datalayer.TimelineEntrySeenRepository;
 import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
 import com.example.courtierprobackend.security.UserContextUtils;
@@ -18,10 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -42,6 +41,7 @@ public class DashboardController {
     private final PropertyRepository propertyRepository;
     private final TimelineService timelineService;
     private final TransactionService transactionService;
+    private final TimelineEntrySeenRepository timelineEntrySeenRepository;
 
     private static final int EXPIRY_DAYS_THRESHOLD = 7;
 
@@ -274,6 +274,14 @@ public class DashboardController {
         org.springframework.data.domain.Page<com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO> entriesPage = 
                 timelineService.getRecentEntriesForTransactionsPaged(activeTransactionIds, pageable);
 
+        // Fetch seen status for all entries in this page
+        Set<UUID> entryIds = entriesPage.getContent().stream()
+                .map(com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO::getId)
+                .collect(Collectors.toSet());
+        Set<UUID> seenEntryIds = timelineEntrySeenRepository.findByBrokerIdAndTimelineEntryIdIn(brokerId, entryIds).stream()
+                .map(TimelineEntrySeen::getTimelineEntryId)
+                .collect(Collectors.toSet());
+
         // Map timeline entries to RecentActivityDTO with enriched transaction context
         List<RecentActivityDTO> activities = entriesPage.getContent().stream()
                 .map(entry -> {
@@ -312,6 +320,9 @@ public class DashboardController {
                         }
                     }
                     
+                    // Check if this entry has been seen by the broker
+                    boolean isSeen = seenEntryIds.contains(entry.getId());
+                    
                     return RecentActivityDTO.builder()
                             .activityId(entry.getId())
                             .transactionId(entry.getTransactionId())
@@ -327,6 +338,7 @@ public class DashboardController {
                             .docType(entry.getDocType())
                             .status(null) // Document status would need additional lookup if needed
                             .transactionInfo(entry.getTransactionInfo())
+                            .seen(isSeen)
                             .build();
                 })
                 .toList();
@@ -342,6 +354,42 @@ public class DashboardController {
         response.put("last", entriesPage.isLast());
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/broker/recent-activity/mark-seen")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<Map<String, Object>> markEntriesAsSeen(
+            @RequestHeader(value = "x-broker-id", required = false) String headerId,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request,
+            @RequestBody MarkActivitiesSeenRequest markRequest
+    ) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, headerId);
+        
+        if (markRequest.getActivityIds() == null || markRequest.getActivityIds().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No activity IDs provided"));
+        }
+        
+        Instant now = Instant.now();
+        int markedCount = 0;
+        
+        for (UUID activityId : markRequest.getActivityIds()) {
+            // Check if already marked as seen
+            if (!timelineEntrySeenRepository.existsByBrokerIdAndTimelineEntryId(brokerId, activityId)) {
+                TimelineEntrySeen seenRecord = TimelineEntrySeen.builder()
+                        .brokerId(brokerId)
+                        .timelineEntryId(activityId)
+                        .seenAt(now)
+                        .build();
+                timelineEntrySeenRepository.save(seenRecord);
+                markedCount++;
+            }
+        }
+        
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "markedCount", markedCount
+        ));
     }
 
     @GetMapping("/broker/pinned-transactions")
