@@ -79,3 +79,26 @@ export function parseToTimestamp(value?: string | number | Date | null): number 
     return 0;
   }
 }
+
+/**
+ * Parse a date-only string (e.g., "2026-01-20") as a local date, not UTC.
+ * This prevents the off-by-one day issue when displaying dates in local timezones.
+ * For datetime strings, falls back to regular Date parsing.
+ */
+export function parseLocalDate(dateString?: string): Date | null {
+  if (!dateString) return null;
+
+  try {
+    // Check if it's a date-only string (YYYY-MM-DD)
+    const dateOnlyMatch = /^\d{4}-\d{2}-\d{2}$/.test(dateString);
+    if (dateOnlyMatch) {
+      const [year, month, day] = dateString.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+    // For datetime strings, use regular parsing
+    const date = new Date(dateString);
+    return Number.isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
+}

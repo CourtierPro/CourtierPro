@@ -1,6 +1,5 @@
 package com.example.courtierprobackend.transactions;
 
-import com.example.courtierprobackend.common.exceptions.ForbiddenException;
 import com.example.courtierprobackend.common.exceptions.GlobalExceptionHandler;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.security.UserContextFilter;
@@ -9,7 +8,6 @@ import com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDT
 import com.example.courtierprobackend.transactions.datalayer.enums.ReceivedOfferStatus;
 import com.example.courtierprobackend.transactions.presentationlayer.ClientTransactionController;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -52,9 +50,6 @@ class ClientOfferControllerIntegrationTest {
 
     @MockitoBean
     private UserAccountRepository userAccountRepository;
-
-    @Autowired
-    private ObjectMapper mapper;
 
     private static final SimpleGrantedAuthority ROLE_CLIENT = new SimpleGrantedAuthority("ROLE_CLIENT");
 

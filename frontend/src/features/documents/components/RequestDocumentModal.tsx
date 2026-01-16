@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { Send, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -36,13 +36,15 @@ import { DocumentTypeEnum } from '@/features/documents/types';
 import { useTransactionStages } from '@/features/transactions/hooks/useTransactionStages';
 import { getStageLabel } from '@/shared/utils/stages';
 import { requestDocumentSchema, type RequestDocumentFormValues } from '@/shared/schemas';
+import { ConditionSelector } from '@/features/transactions/components/ConditionSelector';
 
 interface RequestDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string) => void;
+  onSubmit: (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string, conditionIds: string[]) => void;
   transactionType: 'buy' | 'sell';
   currentStage: string;
+  transactionId: string;
 }
 
 export function RequestDocumentModal({
@@ -51,11 +53,13 @@ export function RequestDocumentModal({
   onSubmit,
   transactionType,
   currentStage,
+  transactionId,
 }: RequestDocumentModalProps) {
   const { t, i18n } = useTranslation('documents');
   const { t: tTx } = useTranslation('transactions');
 
   const customTitleInputRef = useRef<HTMLInputElement>(null);
+  const [selectedConditionIds, setSelectedConditionIds] = useState<string[]>([]);
 
   // Fetch dynamic stages from backend
   const side = transactionType === 'buy' ? 'BUY_SIDE' : 'SELL_SIDE';
@@ -121,6 +125,13 @@ export function RequestDocumentModal({
     }
   }, [isOpen, currentStage, reset]);
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setSelectedConditionIds([]);
+      onClose();
+    }
+  };
+
   // Focus custom title input when "Other" is selected
   useEffect(() => {
     if (selectedDocType === DocumentTypeEnum.OTHER) {
@@ -135,13 +146,15 @@ export function RequestDocumentModal({
       data.docType,
       data.docType === DocumentTypeEnum.OTHER ? (data.customTitle?.trim() || '') : '',
       data.instructions?.trim() || '',
-      data.stage
+      data.stage,
+      selectedConditionIds
     );
+    setSelectedConditionIds([]);
     onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <div className="flex items-center gap-3">
@@ -268,6 +281,14 @@ export function RequestDocumentModal({
                   <FormMessage>{t(form.formState.errors.stage?.message || '')}</FormMessage>
                 </FormItem>
               )}
+            />
+
+            {/* Condition Selection */}
+            <ConditionSelector
+              transactionId={transactionId}
+              selectedConditionIds={selectedConditionIds}
+              onChange={setSelectedConditionIds}
+              showCreateButton
             />
 
             <div className="p-4 rounded-lg border-2 border-border bg-muted/50">

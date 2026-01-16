@@ -42,7 +42,15 @@ export function ClientTransactionCards({ transactions, onNavigate }: ClientTrans
                         <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2 flex-1">
                                 <Home className="w-5 h-5 flex-shrink-0 text-muted-foreground/50" />
-                                <p className="font-medium">{transaction.propertyAddress?.street}</p>
+                                <p className="font-medium">
+                                    {transaction.propertyAddress?.street ? (
+                                        transaction.propertyAddress.street
+                                    ) : transaction.side === 'BUY_SIDE' ? (
+                                        <span className="text-muted-foreground italic font-normal">{t('noPropertySelected')}</span>
+                                    ) : (
+                                        <span className="text-muted-foreground">-</span>
+                                    )}
+                                </p>
                             </div>
                             <StatusBadge status={transaction.status} />
                         </div>

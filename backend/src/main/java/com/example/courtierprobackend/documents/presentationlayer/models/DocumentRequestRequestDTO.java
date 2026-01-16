@@ -8,6 +8,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+import java.util.UUID;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -19,4 +22,9 @@ public class DocumentRequestRequestDTO {
     private Boolean visibleToClient;
     private String brokerNotes;
     private StageEnum stage;
+    
+    /**
+     * List of condition IDs to link to this document request.
+     */
+    private List<UUID> conditionIds;
 }

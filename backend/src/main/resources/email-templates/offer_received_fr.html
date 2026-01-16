@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{subject}}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 16px 0;
+        }
+
+        .highlight {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .muted {
+            color: #777;
+            font-size: 12px;
+        }
+
+        .divider {
+            border-top: 1px solid #eee;
+            margin: 24px 0;
+        }
+
+        .amount {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2 style="color:#2c3e50;">Nouvelle offre reçue</h2>
+        <p>Bonjour {{clientName}},</p>
+        <p>Votre courtier <strong>{{brokerName}}</strong> a reçu une offre sur votre propriété :</p>
+        <div class="card">
+            <p style="margin:0;"><strong>Acheteur :</strong> {{buyerName}}</p>
+        </div>
+        <div class="highlight">
+            <p style="margin:0;"><strong>Montant de l'offre :</strong></p>
+            <p class="amount" style="margin:8px 0 0 0;">{{offerAmount}}</p>
+        </div>
+        <p>Connectez-vous à CourtierPro pour examiner cette offre et discuter des prochaines étapes avec votre courtier.
+        </p>
+        <div class="divider"></div>
+        <p class="muted">Merci,<br />L'équipe CourtierPro</p>
+    </div>
+</body>
+
+</html>

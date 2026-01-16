@@ -68,7 +68,6 @@ class PropertyControllerIntegrationTest {
     private ObjectMapper mapper;
 
     private static final SimpleGrantedAuthority ROLE_BROKER = new SimpleGrantedAuthority("ROLE_BROKER");
-    private static final SimpleGrantedAuthority ROLE_CLIENT = new SimpleGrantedAuthority("ROLE_CLIENT");
 
     // ==================== GET /transactions/{id}/properties Tests ====================
 

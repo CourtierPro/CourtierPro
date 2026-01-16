@@ -58,5 +58,6 @@
     "createTransaction": "Create Transaction",
     "inviteClient": "Invite Client",
     "comingSoon": "This feature is coming soon."
-  }
+  },
+  "cancel": "Cancel"
 }

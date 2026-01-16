@@ -2,7 +2,6 @@ package com.example.courtierprobackend.security;
 
 import com.example.courtierprobackend.audit.loginaudit.businesslayer.LoginAuditService;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;

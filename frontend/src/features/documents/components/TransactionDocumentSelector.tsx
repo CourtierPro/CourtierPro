@@ -66,10 +66,15 @@ export const TransactionDocumentSelector: React.FC<TransactionDocumentSelectorPr
                 </span>
               </div>
             </div>
-            {tx.propertyAddress && (
+            {tx.propertyAddress ? (
               <div className="flex items-start gap-2 text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <span>{tx.propertyAddress}</span>
+              </div>
+            ) : tx.side === 'BUY_SIDE' && (
+              <div className="flex items-start gap-2 text-sm text-muted-foreground italic">
+                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>{tDocuments('noPropertySelected', 'No property selected')}</span>
               </div>
             )}
             {tx.currentStage && (

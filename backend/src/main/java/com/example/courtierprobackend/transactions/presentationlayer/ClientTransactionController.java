@@ -2,15 +2,18 @@ package com.example.courtierprobackend.transactions.presentationlayer;
 
 import com.example.courtierprobackend.common.exceptions.ForbiddenException;
 import com.example.courtierprobackend.security.UserContextUtils;
-import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.ClientOfferDecisionDTO;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -101,6 +104,36 @@ public class ClientTransactionController {
         return ResponseEntity.ok(service.getPropertyById(propertyId, validatedClientId, false));
     }
 
+    /**
+     * Get all offers for a property (buy-side).
+     */
+    @GetMapping("/{clientId}/transactions/{transactionId}/properties/{propertyId}/offers")
+    public ResponseEntity<List<PropertyOfferResponseDTO>> getPropertyOffers(
+            @PathVariable UUID clientId,
+            @PathVariable UUID transactionId,
+            @PathVariable UUID propertyId,
+            HttpServletRequest request
+    ) {
+        UUID validatedClientId = resolveAndValidateClientId(request, clientId);
+        // isBroker = false
+        return ResponseEntity.ok(service.getPropertyOffers(propertyId, validatedClientId, false));
+    }
+
+    /**
+     * Get documents for a buy-side property offer.
+     */
+    @GetMapping("/{clientId}/transactions/{transactionId}/properties/{propertyId}/offers/{propertyOfferId}/documents")
+    public ResponseEntity<List<OfferDocumentResponseDTO>> getPropertyOfferDocuments(
+            @PathVariable UUID clientId,
+            @PathVariable UUID transactionId,
+            @PathVariable UUID propertyId,
+            @PathVariable UUID propertyOfferId,
+            HttpServletRequest request
+    ) {
+        UUID validatedClientId = resolveAndValidateClientId(request, clientId);
+        return ResponseEntity.ok(service.getPropertyOfferDocuments(propertyOfferId, validatedClientId, false));
+    }
+
     // ==================== OFFER ENDPOINTS (CLIENT - READ ONLY) ====================
 
     /**
@@ -131,6 +164,37 @@ public class ClientTransactionController {
         UUID validatedClientId = resolveAndValidateClientId(request, clientId);
         // isBroker = false means broker notes will be stripped
         return ResponseEntity.ok(service.getOfferById(offerId, validatedClientId, false));
+    }
+
+    /**
+     * Get documents for a sell-side offer.
+     */
+    @GetMapping("/{clientId}/transactions/{transactionId}/offers/{offerId}/documents")
+    public ResponseEntity<List<OfferDocumentResponseDTO>> getOfferDocuments(
+            @PathVariable UUID clientId,
+            @PathVariable UUID transactionId,
+            @PathVariable UUID offerId,
+            HttpServletRequest request
+    ) {
+        UUID validatedClientId = resolveAndValidateClientId(request, clientId);
+        return ResponseEntity.ok(service.getOfferDocuments(offerId, validatedClientId, false));
+    }
+
+    /**
+     * Submit client's decision on a received offer (sell-side).
+     * The client indicates whether they want to accept, decline, or counter the offer.
+     * The broker will then finalize the decision.
+     */
+    @PutMapping("/{clientId}/transactions/{transactionId}/offers/{offerId}/decision")
+    public ResponseEntity<OfferResponseDTO> submitOfferDecision(
+            @PathVariable UUID clientId,
+            @PathVariable UUID transactionId,
+            @PathVariable UUID offerId,
+            @Valid @RequestBody ClientOfferDecisionDTO dto,
+            HttpServletRequest request
+    ) {
+        UUID validatedClientId = resolveAndValidateClientId(request, clientId);
+        return ResponseEntity.ok(service.submitClientOfferDecision(offerId, dto, validatedClientId));
     }
 }
 

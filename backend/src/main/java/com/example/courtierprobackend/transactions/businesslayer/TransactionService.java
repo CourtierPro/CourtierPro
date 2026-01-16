@@ -65,6 +65,15 @@ public interface TransactionService {
     
     void setActiveProperty(UUID transactionId, UUID propertyId, UUID brokerId);
 
+    void clearActiveProperty(UUID transactionId, UUID brokerId);
+
+    // Property Offers (for buyer transactions - offers made on properties)
+    List<PropertyOfferResponseDTO> getPropertyOffers(UUID propertyId, UUID userId, boolean isBroker);
+
+    PropertyOfferResponseDTO addPropertyOffer(UUID propertyId, PropertyOfferRequestDTO dto, UUID brokerId);
+
+    PropertyOfferResponseDTO updatePropertyOffer(UUID propertyId, UUID propertyOfferId, PropertyOfferRequestDTO dto, UUID brokerId);
+
     // Offers (for seller transactions)
     List<OfferResponseDTO> getOffers(UUID transactionId, UUID userId, boolean isBroker);
 
@@ -75,6 +84,25 @@ public interface TransactionService {
     void removeOffer(UUID transactionId, UUID offerId, UUID brokerId);
 
     OfferResponseDTO getOfferById(UUID offerId, UUID userId, boolean isBroker);
+
+    // Client offer decision (for seller transactions - client review workflow)
+    OfferResponseDTO submitClientOfferDecision(UUID offerId, ClientOfferDecisionDTO dto, UUID clientId);
+
+    // Offer Revisions (for seller transaction offer history)
+    List<OfferRevisionResponseDTO> getOfferRevisions(UUID offerId, UUID userId, boolean isBroker);
+
+    // Offer Documents (for both sell-side and buy-side)
+    OfferDocumentResponseDTO uploadOfferDocument(UUID offerId, org.springframework.web.multipart.MultipartFile file, UUID brokerId);
+
+    OfferDocumentResponseDTO uploadPropertyOfferDocument(UUID propertyOfferId, org.springframework.web.multipart.MultipartFile file, UUID brokerId);
+
+    List<OfferDocumentResponseDTO> getOfferDocuments(UUID offerId, UUID userId, boolean isBroker);
+
+    List<OfferDocumentResponseDTO> getPropertyOfferDocuments(UUID propertyOfferId, UUID userId, boolean isBroker);
+
+    String getOfferDocumentDownloadUrl(UUID documentId, UUID userId);
+
+    void deleteOfferDocument(UUID documentId, UUID brokerId);
 
     // Conditions (for all transactions)
     List<ConditionResponseDTO> getConditions(UUID transactionId, UUID userId, boolean isBroker);
@@ -94,4 +122,7 @@ public interface TransactionService {
     void unarchiveTransaction(UUID transactionId, UUID brokerId);
 
     List<TransactionResponseDTO> getArchivedTransactions(UUID brokerId);
+    // Unified Documents (aggregates all document sources)
+    List<UnifiedDocumentDTO> getAllTransactionDocuments(UUID transactionId, UUID userId, boolean isBroker);
 }
+

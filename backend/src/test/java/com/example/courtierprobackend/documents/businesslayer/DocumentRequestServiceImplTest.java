@@ -201,12 +201,15 @@ class DocumentRequestServiceImplTest {
         @Mock
         TimelineService timelineService;
 
+        @Mock
+        private com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository documentConditionLinkRepository;
+
         private DocumentRequestServiceImpl service;
 
         @BeforeEach
         void setUp() {
                 service = new DocumentRequestServiceImpl(repository, storageService, emailService, notificationService,
-                                transactionRepository, userAccountRepository, timelineService, messageSource);
+                                transactionRepository, userAccountRepository, timelineService, messageSource, documentConditionLinkRepository);
         }
 
         // ========== getDocumentsForTransaction Tests ==========
@@ -850,6 +853,34 @@ class DocumentRequestServiceImplTest {
                                 .hasMessageContaining("You do not have access");
         }
 
+        // ========== updateDocumentRequest Tests ==========
+
+        @Test
+        void updateDocumentRequest_WithValidData_UpdatesRequest() {
+                // Arrange
+                UUID requestId = UUID.randomUUID();
+
+                DocumentRequest existingRequest = new DocumentRequest();
+                existingRequest.setRequestId(requestId);
+                existingRequest.setDocType(DocumentTypeEnum.ID_VERIFICATION);
+                existingRequest.setCustomTitle("Old Title");
+                existingRequest.setSubmittedDocuments(new ArrayList<>());
+
+                DocumentRequestRequestDTO updateDTO = new DocumentRequestRequestDTO();
+                updateDTO.setCustomTitle("New Title");
+                updateDTO.setBrokerNotes("Updated notes");
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(existingRequest));
+                when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+                // Act
+                DocumentRequestResponseDTO result = service.updateDocumentRequest(requestId, updateDTO);
+
+                // Assert
+                assertThat(result).isNotNull();
+                assertThat(result.getCustomTitle()).isEqualTo("New Title");
+                assertThat(result.getBrokerNotes()).isEqualTo("Updated notes");
+        }
 
         @Test
         void updateDocumentRequest_NotFound_ThrowsNotFoundException() {

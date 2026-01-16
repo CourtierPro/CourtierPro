@@ -1,7 +1,6 @@
 package com.example.courtierprobackend.user.presentationlayer.request;
 
 import jakarta.validation.constraints.NotNull;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
