@@ -61,9 +61,11 @@ export function TransactionTimeline({ transactionId }: TransactionTimelineProps)
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                 <h3 className="font-semibold">
-                                                    {isDocumentEvent && entry.docType
-                                                        ? `${getEventTypeLabel(entry.type, t)} : ${tDoc(`types.${entry.docType}`)}`
-                                                        : getEventTypeLabel(entry.type, t)}
+                                                    {isDocumentEvent && entry.docType && String(entry.type) === 'DOCUMENT_REQUEST_UPDATED'
+                                                        ? `${t('documents:requestDocument')} : ${t('documents:edited')}`
+                                                        : isDocumentEvent && entry.docType
+                                                            ? `${getEventTypeLabel(entry.type, t)} : ${tDoc(`types.${entry.docType}`)}`
+                                                            : getEventTypeLabel(entry.type, t)}
                                                 </h3>
                                                 {/* Badge always next to title for all types */}
                                                 {(() => {
@@ -115,13 +117,24 @@ export function TransactionTimeline({ transactionId }: TransactionTimelineProps)
                                                     return null;
                                                 })()}
                                             </div>
-                                            {/* Show document name and status for document events */}
-                                            {isDocumentEvent && entry.docType && (
+                                            {/* Show document name and status for document events, and handle document.details.updated */}
+                                            {isDocumentEvent && entry.docType && String(entry.type) === 'DOCUMENT_REQUEST_UPDATED' && entry.note && entry.note.startsWith('document.details.updated.note|') ? (
+                                                (() => {
+                                                    // Parse note: 'document.details.updated.note|{documentName}|{brokerName}'
+                                                    const parts = entry.note.split('|');
+                                                    const brokerName = parts[2] || '';
+                                                    return (
+                                                        <p className="text-sm text-muted-foreground mt-1">
+                                                            {t('timeline.documentDetailsUpdatedNote', { brokerName })}
+                                                        </p>
+                                                    );
+                                                })()
+                                            ) : isDocumentEvent && entry.docType ? (
                                                 <p className="text-sm text-muted-foreground mt-1">
                                                     {tDoc(`types.${entry.docType}`)}
                                                     {entry.status ? ` — ${tDoc(`status.${entry.status}`)}` : ''}
                                                 </p>
-                                            )}
+                                            ) : null}
                                             {/* Show note for NOTE or TRANSACTION_NOTE */}
                                             {(entry.type === 'NOTE' || entry.type === 'TRANSACTION_NOTE') && entry.note && (
                                                 <p className="text-sm text-muted-foreground mt-1">

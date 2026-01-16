@@ -189,7 +189,7 @@ export function EditDocumentRequestModal({
               name="stage"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('stage')}</FormLabel>
+                  <FormLabel>{t('stage').charAt(0).toUpperCase() + t('stage').slice(1)}</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}

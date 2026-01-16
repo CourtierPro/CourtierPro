@@ -1,4 +1,6 @@
 package com.example.courtierprobackend.documents.businesslayer;
+import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
+import com.example.courtierprobackend.documents.datalayer.enums.DocumentPartyEnum;
 
 import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
@@ -54,6 +56,12 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         private final UserAccountRepository userAccountRepository;
         private final TimelineService timelineService;
         private final MessageSource messageSource;
+        // ...existing code...
+        // Fix: requestId is undefined here. This block should be inside a method that receives requestId as a parameter. If this is a helper or misplaced, comment it out or move to the correct method. For now, comment out to avoid build error.
+        // DocumentRequest request = repository.findByRequestId(requestId)
+        //         .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+
+        // ...existing code...
 
         /**
          * Helper to find a UserAccount by internal UUID.
@@ -151,6 +159,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
 
                         // In-app Notification for Client
                         try {
+                                // Prepare old/new values for subtitle logic
                                 Locale locale = isFrench(clientLanguage) ? Locale.FRENCH : Locale.ENGLISH;
                                 String localizedDocType = messageSource.getMessage(
                                                 "document.type." + requestDTO.getDocType(), null,
@@ -158,11 +167,6 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                 String displayDocName = requestDTO.getCustomTitle() != null
                                                 ? requestDTO.getCustomTitle()
                                                 : localizedDocType;
-
-                                String title = messageSource.getMessage("notification.document.requested.title", null,
-                                                locale);
-                                String message = messageSource.getMessage("notification.document.requested.message",
-                                                new Object[] { brokerName, displayDocName }, locale);
 
                         } catch (Exception e) {
                                 logger.error("Failed to send in-app notification for document request", e);
@@ -175,78 +179,130 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         @Transactional
         @Override
         public DocumentRequestResponseDTO updateDocumentRequest(UUID requestId, DocumentRequestRequestDTO requestDTO) {
-                DocumentRequest request = repository.findByRequestId(requestId)
-                                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+        DocumentRequest request = repository.findByRequestId(requestId)
+                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+        // Helper: normalize string (null, empty, whitespace)
+        java.util.function.Function<String, String> normStr = s -> s == null ? "" : s.trim();
+        // Helper: normalize enum or string (case-insensitive string compare)
+        java.util.function.Function<Object, String> normEnum = o -> o == null ? "" : o.toString().trim().toLowerCase();
 
-                if (requestDTO.getDocType() != null)
+        // Build a candidate entity with merged values (normalized)
+        DocumentTypeEnum candidateDocType = requestDTO.getDocType() != null ? requestDTO.getDocType() : request.getDocType();
+        String candidateCustomTitle = normStr.apply(requestDTO.getCustomTitle()).isEmpty() ? null : requestDTO.getCustomTitle();
+        if (candidateCustomTitle == null && request.getCustomTitle() != null) candidateCustomTitle = request.getCustomTitle();
+        DocumentPartyEnum candidateExpectedFrom = requestDTO.getExpectedFrom() != null ? requestDTO.getExpectedFrom() : request.getExpectedFrom();
+        Boolean candidateVisibleToClient = requestDTO.getVisibleToClient() != null ? requestDTO.getVisibleToClient() : request.isVisibleToClient();
+        String candidateBrokerNotes = normStr.apply(requestDTO.getBrokerNotes()).isEmpty() ? null : requestDTO.getBrokerNotes();
+        if (candidateBrokerNotes == null && request.getBrokerNotes() != null) candidateBrokerNotes = request.getBrokerNotes();
+        StageEnum candidateStage = requestDTO.getStage() != null ? requestDTO.getStage() : request.getStage();
+
+        // Compare normalized candidate to normalized current entity
+        boolean isIdentical =
+            normEnum.apply(request.getDocType()).equals(normEnum.apply(candidateDocType)) &&
+            normStr.apply(request.getCustomTitle()).equals(normStr.apply(candidateCustomTitle)) &&
+            normEnum.apply(request.getExpectedFrom()).equals(normEnum.apply(candidateExpectedFrom)) &&
+            request.isVisibleToClient() == candidateVisibleToClient &&
+            normStr.apply(request.getBrokerNotes()).equals(normStr.apply(candidateBrokerNotes)) &&
+            normEnum.apply(request.getStage()).equals(normEnum.apply(candidateStage));
+        if (isIdentical) {
+            return mapToResponseDTO(request);
+        }
+        // ...existing code for updating fields and triggering side effects...
+
+
+
+
+                // Only update fields if the normalized value is different from the current normalized value
+                if (!normEnum.apply(request.getDocType()).equals(normEnum.apply(requestDTO.getDocType()))) {
                         request.setDocType(requestDTO.getDocType());
-                if (requestDTO.getCustomTitle() != null)
-                        request.setCustomTitle(requestDTO.getCustomTitle());
-                if (requestDTO.getExpectedFrom() != null)
+                }
+                if (!normStr.apply(request.getCustomTitle()).equals(normStr.apply(requestDTO.getCustomTitle()))) {
+                        // If both are null/empty, set to null for consistency
+                        String newVal = normStr.apply(requestDTO.getCustomTitle());
+                        request.setCustomTitle(newVal.isEmpty() ? null : requestDTO.getCustomTitle());
+                }
+                if (!normEnum.apply(request.getExpectedFrom()).equals(normEnum.apply(requestDTO.getExpectedFrom()))) {
                         request.setExpectedFrom(requestDTO.getExpectedFrom());
-                if (requestDTO.getVisibleToClient() != null)
+                }
+                if (requestDTO.getVisibleToClient() != null && request.isVisibleToClient() != requestDTO.getVisibleToClient()) {
                         request.setVisibleToClient(requestDTO.getVisibleToClient());
-                if (requestDTO.getBrokerNotes() != null)
-                        request.setBrokerNotes(requestDTO.getBrokerNotes());
-                // Add stage mapping for update
-                if (requestDTO.getStage() != null)
+                }
+                if (!normStr.apply(request.getBrokerNotes()).equals(normStr.apply(requestDTO.getBrokerNotes()))) {
+                        String newVal = normStr.apply(requestDTO.getBrokerNotes());
+                        request.setBrokerNotes(newVal.isEmpty() ? null : requestDTO.getBrokerNotes());
+                }
+                if (!normEnum.apply(request.getStage()).equals(normEnum.apply(requestDTO.getStage()))) {
                         request.setStage(requestDTO.getStage());
+                }
 
+                // Only update lastUpdatedAt, save, and send notifications/timeline if something changed
                 request.setLastUpdatedAt(LocalDateTime.now());
-
                 DocumentRequest savedRequest = repository.save(request);
 
-                // Add timeline entry for document request update (revision)
                 try {
                         Transaction txForTimeline = transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId())
                                 .orElseThrow(() -> new NotFoundException("Transaction not found for timeline entry: " + request.getTransactionRef().getTransactionId()));
+
+                        // Get client language for localization
+                        UserAccount clientForTimeline = resolveUserAccount(txForTimeline.getClientId()).orElse(null);
+                        UserAccount brokerForTimeline = resolveUserAccount(txForTimeline.getBrokerId()).orElse(null);
+                        String clientLanguage = clientForTimeline != null ? clientForTimeline.getPreferredLanguage() : null;
+
+                        // Prepare document name and actor for note
+                        // Ensure locale is defined before use
+                        clientLanguage = clientForTimeline != null ? clientForTimeline.getPreferredLanguage() : null;
+                        Locale locale = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr") ? Locale.FRENCH : Locale.ENGLISH;
+                        String localizedDocType = messageSource.getMessage(
+                                "document.type." + savedRequest.getDocType(), null,
+                                savedRequest.getDocType().name(), locale);
+                        String documentName = (savedRequest.getCustomTitle() != null && !savedRequest.getCustomTitle().isEmpty()) ? savedRequest.getCustomTitle() : localizedDocType;
+                        String brokerName = brokerForTimeline != null ? brokerForTimeline.getFirstName() + " " + brokerForTimeline.getLastName() : "";
+                        // Send a stable, language-agnostic note key and params for frontend i18n
+                        String note = String.format("document.details.updated.note|%s|%s", documentName, brokerName);
+
                         timelineService.addEntry(
-                                request.getTransactionRef().getTransactionId(),
+                                savedRequest.getTransactionRef().getTransactionId(),
                                 txForTimeline.getBrokerId(),
-                                                                        TimelineEntryType.DOCUMENT_REQUEST_UPDATED,
-                                "Document request updated: " + (request.getCustomTitle() != null ? request.getCustomTitle() : request.getDocType()),
-                                request.getDocType() != null ? request.getDocType().toString() : null
+                                TimelineEntryType.DOCUMENT_REQUEST_UPDATED,
+                                note, // note: key and params for frontend i18n
+                                "document.details.updated" // title: event key for frontend i18n
                         );
 
-                        // Send notification and email to client
-                        UserAccount client = resolveUserAccount(txForTimeline.getClientId()).orElse(null);
-                        UserAccount broker = resolveUserAccount(txForTimeline.getBrokerId()).orElse(null);
-                        if (client != null && broker != null) {
-                                String documentName = request.getCustomTitle() != null ? request.getCustomTitle() : request.getDocType().toString();
-                                String clientName = client.getFirstName() + " " + client.getLastName();
-                                String brokerName = broker.getFirstName() + " " + broker.getLastName();
-                                String docType = request.getDocType().toString();
-                                String clientLanguage = client.getPreferredLanguage();
+                    // Send notification and email to client
+                    UserAccount client = resolveUserAccount(txForTimeline.getClientId()).orElse(null);
+                    UserAccount broker = resolveUserAccount(txForTimeline.getBrokerId()).orElse(null);
+                    if (client != null && broker != null) {
+                        String clientName = client.getFirstName() + " " + client.getLastName();
+                        String docType = savedRequest.getDocType().toString();
 
-                                // Email (distinct message for edit)
-                                emailService.sendDocumentEditedNotification(
-                                        client.getEmail(),
-                                        clientName,
-                                        brokerName,
-                                        documentName,
-                                        docType,
-                                        clientLanguage
-                                );
+                        // Email (distinct message for edit)
+                        emailService.sendDocumentEditedNotification(
+                                client.getEmail(),
+                                clientName,
+                                brokerName,
+                                documentName,
+                                docType,
+                                clientLanguage
+                        );
 
-                                // In-app notification (distinct message for edit)
-                                Locale locale = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr") ? Locale.FRENCH : Locale.ENGLISH;
-                                String localizedDocType = messageSource.getMessage(
-                                        "document.type." + request.getDocType(), null,
-                                        request.getDocType().name(), locale);
-                                String displayDocName = request.getCustomTitle() != null ? request.getCustomTitle() : localizedDocType;
-                                String title = messageSource.getMessage("notification.document.edited.title", null, locale);
-                                String message = messageSource.getMessage("notification.document.edited.message",
-                                        new Object[] { brokerName, displayDocName }, locale);
-                                notificationService.createNotification(
-                                        client.getId().toString(),
-                                        title,
-                                        message,
-                                        request.getTransactionRef().getTransactionId().toString(),
-                                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REQUEST
-                                );
-                        }
+                        // In-app notification (distinct message for edit)
+                        localizedDocType = messageSource.getMessage(
+                                "document.type." + savedRequest.getDocType(), null,
+                                savedRequest.getDocType().name(), locale);
+                        String displayDocName = savedRequest.getCustomTitle() != null ? savedRequest.getCustomTitle() : localizedDocType;
+                        String title = messageSource.getMessage("notification.document.edited.title", null, locale);
+                        String message = messageSource.getMessage("notification.document.edited.message",
+                                new Object[] { brokerName, displayDocName }, locale);
+                        notificationService.createNotification(
+                                client.getId().toString(),
+                                title,
+                                message,
+                                savedRequest.getTransactionRef().getTransactionId().toString(),
+                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REQUEST
+                        );
+                    }
                 } catch (Exception e) {
-                        logger.warn("Could not add timeline entry or send notification/email for document request update", e);
+                    logger.warn("Could not add timeline entry or send notification/email for document request update", e);
                 }
 
                 return mapToResponseDTO(savedRequest);

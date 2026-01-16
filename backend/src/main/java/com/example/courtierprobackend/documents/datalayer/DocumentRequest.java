@@ -28,6 +28,9 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class DocumentRequest {
+    public boolean isVisibleToClient() {
+        return visibleToClient;
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -68,6 +71,10 @@ public class DocumentRequest {
     private LocalDateTime lastUpdatedAt;
 
     private boolean visibleToClient;
+
+    public boolean getVisibleToClient() {
+        return visibleToClient;
+    }
 
     // Soft delete fields
     private LocalDateTime deletedAt;

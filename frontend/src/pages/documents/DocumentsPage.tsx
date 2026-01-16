@@ -77,24 +77,37 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
   const handleEditSubmit = useCallback(
     (formValues: import('@/shared/schemas').RequestDocumentFormValues) => {
       if (!editingDocument) return;
-        const { instructions, ...restFormValues } = formValues;
-        updateDocumentRequestMutation.mutate(
-          {
-            transactionId: editingDocument.transactionRef.transactionId,
-            requestId: editingDocument.requestId,
-            data: {
-              ...restFormValues,
-              brokerNotes: instructions,
-            },
+      const { instructions, ...restFormValues } = formValues;
+      // Compare only fields present in RequestDocumentFormValues
+      const changed =
+        restFormValues.docType !== editingDocument.docType ||
+        restFormValues.customTitle !== editingDocument.customTitle ||
+        restFormValues.stage !== editingDocument.stage ||
+        instructions !== editingDocument.brokerNotes;
+
+      if (!changed) {
+        // Optionally show a message to user: No changes made
+        setIsEditModalOpen(false);
+        setEditingDocument(null);
+        return;
+      }
+      updateDocumentRequestMutation.mutate(
+        {
+          transactionId: editingDocument.transactionRef.transactionId,
+          requestId: editingDocument.requestId,
+          data: {
+            ...restFormValues,
+            brokerNotes: instructions,
           },
-          {
-            onSuccess: () => {
-              setIsEditModalOpen(false);
-              setEditingDocument(null);
-              refetch();
-            },
-          }
-        );
+        },
+        {
+          onSuccess: () => {
+            setIsEditModalOpen(false);
+            setEditingDocument(null);
+            refetch();
+          },
+        }
+      );
     },
     [editingDocument, updateDocumentRequestMutation, refetch]
   );

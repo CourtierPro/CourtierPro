@@ -29,225 +29,226 @@ class BrokerControllerTest {
     @Nested
     @DisplayName("GET /api/broker/clients/{clientId}/transactions - invalid clientId")
     class GetClientTransactionsInvalidIdTests {
-        @Test
-        void getClientTransactions_InvalidClientId_ThrowsIllegalArgumentException() {
-            String invalidClientId = "not-a-uuid";
-            when(request.getAttribute("internalUserId")).thenReturn(BROKER_ID);
-            Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(() ->
-                controller.getClientTransactions(invalidClientId, request)
-            );
-            assertThat(thrown).isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Invalid clientId format: must be UUID");
-        }
-    }
 
-    @Nested
-    @DisplayName("GET /api/broker/clients/{clientId}/all-transactions - invalid clientId")
-    class GetAllClientTransactionsInvalidIdTests {
-        @Test
-        void getAllClientTransactions_InvalidClientId_ThrowsIllegalArgumentException() {
-            String invalidClientId = "not-a-uuid";
-            Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(() ->
-                controller.getAllClientTransactions(invalidClientId)
-            );
-            assertThat(thrown).isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Invalid clientId format: must be UUID");
-        }
-    }
+        @Mock
+        private UserProvisioningService service;
 
-    @Mock
-    private UserProvisioningService service;
+        @Mock
+        private TransactionService transactionService;
 
-    @Mock
-    private TransactionService transactionService;
+        @Mock
+        private HttpServletRequest request;
 
-    @Mock
-    private HttpServletRequest request;
+        private BrokerController controller;
 
-    private BrokerController controller;
+        private static final UUID BROKER_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        private static final UUID CLIENT_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
-    private static final UUID BROKER_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
-    private static final UUID CLIENT_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
-
-    @BeforeEach
-    void setUp() {
-        controller = new BrokerController(service, transactionService);
-    }
-
-    @Nested
-    @DisplayName("GET /api/broker/clients")
-    class GetClientsTests {
-
-        @Test
-        void getClients_ReturnsListOfClients() {
-            // Arrange
-            List<UserResponse> clients = List.of(
-                    UserResponse.builder().id("c1-id").email("c1@test.com").role("CLIENT").active(true).build(),
-                    UserResponse.builder().id("c2-id").email("c2@test.com").role("CLIENT").active(true).build()
-            );
-            when(service.getClients()).thenReturn(clients);
-
-            // Act
-            List<UserResponse> result = controller.getClients();
-
-            // Assert
-            assertThat(result).hasSize(2);
-            verify(service).getClients();
+        @BeforeEach
+        void setUp() {
+            controller = new BrokerController(service, transactionService);
         }
 
-        @Test
-        void getClients_WithNoClients_ReturnsEmptyList() {
-            // Arrange
-            when(service.getClients()).thenReturn(List.of());
+        @Nested
+        @DisplayName("GET /api/broker/clients")
+        class GetClientsTests {
 
-            // Act
-            List<UserResponse> result = controller.getClients();
+            @Test
+            void getClients_ReturnsListOfClients() {
+                // Arrange
+                List<UserResponse> clients = List.of(
+                        UserResponse.builder().id("c1-id").email("c1@test.com").role("CLIENT").active(true).build(),
+                        UserResponse.builder().id("c2-id").email("c2@test.com").role("CLIENT").active(true).build()
+                );
+                when(service.getClients()).thenReturn(clients);
 
-            // Assert
-            assertThat(result).isEmpty();
+                // Act
+                List<UserResponse> result = controller.getClients();
+
+                // Assert
+                assertThat(result).hasSize(2);
+                verify(service).getClients();
+            }
+
+            @Test
+            void getClients_WithNoClients_ReturnsEmptyList() {
+                // Arrange
+                when(service.getClients()).thenReturn(List.of());
+
+                // Act
+                List<UserResponse> result = controller.getClients();
+
+                // Assert
+                assertThat(result).isEmpty();
+            }
+
+            @Test
+            void getClients_DelegatesCorrectlyToService() {
+                // Arrange
+                when(service.getClients()).thenReturn(List.of());
+
+                // Act
+                controller.getClients();
+
+                // Assert
+                verify(service, times(1)).getClients();
+                verifyNoMoreInteractions(service);
+            }
         }
 
-        @Test
-        void getClients_DelegatesCorrectlyToService() {
-            // Arrange
-            when(service.getClients()).thenReturn(List.of());
-
-            // Act
-            controller.getClients();
-
-            // Assert
-            verify(service, times(1)).getClients();
-            verifyNoMoreInteractions(service);
-        }
-    }
-
-    @Nested
-    @DisplayName("GET /api/broker/clients/{clientId}/transactions")
-    class GetClientTransactionsTests {
+        @Nested
+        @DisplayName("GET /api/broker/clients/{clientId}/transactions")
+        class GetClientTransactionsTests {
 
         @Test
-        void getClientTransactions_ReturnsListOfTransactions() {
-            // Arrange
-            when(request.getAttribute("internalUserId")).thenReturn(BROKER_ID);
-            List<TransactionResponseDTO> transactions = List.of(
-                    TransactionResponseDTO.builder()
-                            .transactionId(UUID.randomUUID())
-                            .clientId(CLIENT_ID)
-                            .clientName("Test Client")
-                            .side(TransactionSide.BUY_SIDE)
-                            .status(TransactionStatus.ACTIVE)
-                            .build(),
-                    TransactionResponseDTO.builder()
-                            .transactionId(UUID.randomUUID())
-                            .clientId(CLIENT_ID)
-                            .clientName("Test Client")
-                            .side(TransactionSide.SELL_SIDE)
-                            .status(TransactionStatus.CLOSED_SUCCESSFULLY)
-                            .build()
-            );
-            when(transactionService.getBrokerClientTransactions(BROKER_ID, CLIENT_ID)).thenReturn(transactions);
+        void getClientTransactions_WithInvalidClientId_ThrowsBadRequestException() {
+        // Arrange
+        String invalidClientId = "not-a-uuid";
+        when(request.getAttribute("internalUserId")).thenReturn(BROKER_ID);
 
-            // Act
-            List<TransactionResponseDTO> result = controller.getClientTransactions(CLIENT_ID.toString(), request);
-
-            // Assert
-            assertThat(result).hasSize(2);
-            verify(transactionService).getBrokerClientTransactions(BROKER_ID, CLIENT_ID);
+        // Act & Assert
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+            controller.getClientTransactions(invalidClientId, request)
+        ).isInstanceOf(com.example.courtierprobackend.common.exceptions.BadRequestException.class)
+         .hasMessageContaining("Invalid clientId format: must be UUID");
         }
 
-        @Test
-        void getClientTransactions_WithNoTransactions_ReturnsEmptyList() {
-            // Arrange
-            when(request.getAttribute("internalUserId")).thenReturn(BROKER_ID);
-            when(transactionService.getBrokerClientTransactions(BROKER_ID, CLIENT_ID)).thenReturn(List.of());
+            @Test
+            void getClientTransactions_ReturnsListOfTransactions() {
+                // Arrange
+                when(request.getAttribute("internalUserId")).thenReturn(BROKER_ID);
+                List<TransactionResponseDTO> transactions = List.of(
+                        TransactionResponseDTO.builder()
+                                .transactionId(UUID.randomUUID())
+                                .clientId(CLIENT_ID)
+                                .clientName("Test Client")
+                                .side(TransactionSide.BUY_SIDE)
+                                .status(TransactionStatus.ACTIVE)
+                                .build(),
+                        TransactionResponseDTO.builder()
+                                .transactionId(UUID.randomUUID())
+                                .clientId(CLIENT_ID)
+                                .clientName("Test Client")
+                                .side(TransactionSide.SELL_SIDE)
+                                .status(TransactionStatus.CLOSED_SUCCESSFULLY)
+                                .build()
+                );
+                when(transactionService.getBrokerClientTransactions(BROKER_ID, CLIENT_ID)).thenReturn(transactions);
 
-            // Act
-            List<TransactionResponseDTO> result = controller.getClientTransactions(CLIENT_ID.toString(), request);
+                // Act
+                List<TransactionResponseDTO> result = controller.getClientTransactions(CLIENT_ID.toString(), request);
 
-            // Assert
-            assertThat(result).isEmpty();
-            verify(transactionService).getBrokerClientTransactions(BROKER_ID, CLIENT_ID);
+                // Assert
+                assertThat(result).hasSize(2);
+                verify(transactionService).getBrokerClientTransactions(BROKER_ID, CLIENT_ID);
+            }
+
+            @Test
+            void getClientTransactions_WithNoTransactions_ReturnsEmptyList() {
+                // Arrange
+                when(request.getAttribute("internalUserId")).thenReturn(BROKER_ID);
+                when(transactionService.getBrokerClientTransactions(BROKER_ID, CLIENT_ID)).thenReturn(List.of());
+
+                // Act
+                List<TransactionResponseDTO> result = controller.getClientTransactions(CLIENT_ID.toString(), request);
+
+                // Assert
+                assertThat(result).isEmpty();
+                verify(transactionService).getBrokerClientTransactions(BROKER_ID, CLIENT_ID);
+            }
+
+            @Test
+            void getClientTransactions_DelegatesCorrectlyToService() {
+                // Arrange
+                when(request.getAttribute("internalUserId")).thenReturn(BROKER_ID);
+                when(transactionService.getBrokerClientTransactions(BROKER_ID, CLIENT_ID)).thenReturn(List.of());
+
+                // Act
+                controller.getClientTransactions(CLIENT_ID.toString(), request);
+
+                // Assert
+                verify(transactionService, times(1)).getBrokerClientTransactions(BROKER_ID, CLIENT_ID);
+                verifyNoMoreInteractions(transactionService);
+            }
         }
 
-        @Test
-        void getClientTransactions_DelegatesCorrectlyToService() {
-            // Arrange
-            when(request.getAttribute("internalUserId")).thenReturn(BROKER_ID);
-            when(transactionService.getBrokerClientTransactions(BROKER_ID, CLIENT_ID)).thenReturn(List.of());
-
-            // Act
-            controller.getClientTransactions(CLIENT_ID.toString(), request);
-
-            // Assert
-            verify(transactionService, times(1)).getBrokerClientTransactions(BROKER_ID, CLIENT_ID);
-            verifyNoMoreInteractions(transactionService);
-        }
-    }
-
-    @Nested
-    @DisplayName("GET /api/broker/clients/{clientId}/all-transactions")
-    class GetAllClientTransactionsTests {
+        @Nested
+        @DisplayName("GET /api/broker/clients/{clientId}/all-transactions")
+        class GetAllClientTransactionsTests {
 
         @Test
-        void getAllClientTransactions_ReturnsAllTransactionsWithBrokerNames() {
-            // Arrange
-            UUID otherBrokerId = UUID.randomUUID();
-            List<TransactionResponseDTO> transactions = List.of(
-                    TransactionResponseDTO.builder()
-                            .transactionId(UUID.randomUUID())
-                            .clientId(CLIENT_ID)
-                            .clientName("Test Client")
-                            .brokerId(BROKER_ID)
-                            .brokerName("Current Broker")
-                            .side(TransactionSide.BUY_SIDE)
-                            .status(TransactionStatus.ACTIVE)
-                            .build(),
-                    TransactionResponseDTO.builder()
-                            .transactionId(UUID.randomUUID())
-                            .clientId(CLIENT_ID)
-                            .clientName("Test Client")
-                            .brokerId(otherBrokerId)
-                            .brokerName("Other Broker")
-                            .side(TransactionSide.SELL_SIDE)
-                            .status(TransactionStatus.ACTIVE)
-                            .build()
-            );
-            when(transactionService.getAllClientTransactions(CLIENT_ID)).thenReturn(transactions);
+        void getAllClientTransactions_WithInvalidClientId_ThrowsBadRequestException() {
+        // Arrange
+        String invalidClientId = "not-a-uuid";
 
-            // Act
-            List<TransactionResponseDTO> result = controller.getAllClientTransactions(CLIENT_ID.toString());
-
-            // Assert
-            assertThat(result).hasSize(2);
-            assertThat(result.get(0).getBrokerName()).isEqualTo("Current Broker");
-            assertThat(result.get(1).getBrokerName()).isEqualTo("Other Broker");
-            verify(transactionService).getAllClientTransactions(CLIENT_ID);
+        // Act & Assert
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+            controller.getAllClientTransactions(invalidClientId)
+        ).isInstanceOf(com.example.courtierprobackend.common.exceptions.BadRequestException.class)
+         .hasMessageContaining("Invalid clientId format: must be UUID");
         }
 
-        @Test
-        void getAllClientTransactions_WithNoTransactions_ReturnsEmptyList() {
-            // Arrange
-            when(transactionService.getAllClientTransactions(CLIENT_ID)).thenReturn(List.of());
+            @Test
+            void getAllClientTransactions_ReturnsAllTransactionsWithBrokerNames() {
+                // Arrange
+                UUID otherBrokerId = UUID.randomUUID();
+                List<TransactionResponseDTO> transactions = List.of(
+                        TransactionResponseDTO.builder()
+                                .transactionId(UUID.randomUUID())
+                                .clientId(CLIENT_ID)
+                                .clientName("Test Client")
+                                .brokerId(BROKER_ID)
+                                .brokerName("Current Broker")
+                                .side(TransactionSide.BUY_SIDE)
+                                .status(TransactionStatus.ACTIVE)
+                                .build(),
+                        TransactionResponseDTO.builder()
+                                .transactionId(UUID.randomUUID())
+                                .clientId(CLIENT_ID)
+                                .clientName("Test Client")
+                                .brokerId(otherBrokerId)
+                                .brokerName("Other Broker")
+                                .side(TransactionSide.SELL_SIDE)
+                                .status(TransactionStatus.ACTIVE)
+                                .build()
+                );
+                when(transactionService.getAllClientTransactions(CLIENT_ID)).thenReturn(transactions);
 
-            // Act
-            List<TransactionResponseDTO> result = controller.getAllClientTransactions(CLIENT_ID.toString());
+                // Act
+                List<TransactionResponseDTO> result = controller.getAllClientTransactions(CLIENT_ID.toString());
 
-            // Assert
-            assertThat(result).isEmpty();
-            verify(transactionService).getAllClientTransactions(CLIENT_ID);
-        }
+                // Assert
+                assertThat(result).hasSize(2);
+                assertThat(result.get(0).getBrokerName()).isEqualTo("Current Broker");
+                assertThat(result.get(1).getBrokerName()).isEqualTo("Other Broker");
+                verify(transactionService).getAllClientTransactions(CLIENT_ID);
+            }
 
-        @Test
-        void getAllClientTransactions_DelegatesCorrectlyToService() {
-            // Arrange
-            when(transactionService.getAllClientTransactions(CLIENT_ID)).thenReturn(List.of());
+            @Test
+            void getAllClientTransactions_WithNoTransactions_ReturnsEmptyList() {
+                // Arrange
+                when(transactionService.getAllClientTransactions(CLIENT_ID)).thenReturn(List.of());
 
-            // Act
-            controller.getAllClientTransactions(CLIENT_ID.toString());
+                // Act
+                List<TransactionResponseDTO> result = controller.getAllClientTransactions(CLIENT_ID.toString());
 
-            // Assert
-            verify(transactionService, times(1)).getAllClientTransactions(CLIENT_ID);
-            verifyNoMoreInteractions(transactionService);
+                // Assert
+                assertThat(result).isEmpty();
+                verify(transactionService).getAllClientTransactions(CLIENT_ID);
+            }
+
+            @Test
+            void getAllClientTransactions_DelegatesCorrectlyToService() {
+                // Arrange
+                when(transactionService.getAllClientTransactions(CLIENT_ID)).thenReturn(List.of());
+
+                // Act
+                controller.getAllClientTransactions(CLIENT_ID.toString());
+
+                // Assert
+                verify(transactionService, times(1)).getAllClientTransactions(CLIENT_ID);
+                verifyNoMoreInteractions(transactionService);
+            }
         }
     }
 }
