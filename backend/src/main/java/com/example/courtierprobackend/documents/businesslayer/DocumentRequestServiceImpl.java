@@ -237,10 +237,10 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
 
                 // Only update lastUpdatedAt, save, and send notifications/timeline if something changed
                 request.setLastUpdatedAt(LocalDateTime.now());
-                DocumentRequest savedRequest;
+                DocumentRequest savedRequest = repository.save(request);
                 try {
-                        Transaction txForTimeline = transactionRepository.findByTransactionId(request.getTransactionRef().getTransactionId())
-                                .orElseThrow(() -> new NotFoundException("Transaction not found for timeline entry: " + request.getTransactionRef().getTransactionId()));
+                        Transaction txForTimeline = transactionRepository.findByTransactionId(savedRequest.getTransactionRef().getTransactionId())
+                                .orElseThrow(() -> new NotFoundException("Transaction not found for timeline entry: " + savedRequest.getTransactionRef().getTransactionId()));
 
                         // Get client language for localization
                         UserAccount clientForTimeline = resolveUserAccount(txForTimeline.getClientId()).orElse(null);
@@ -252,15 +252,15 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                         clientLanguage = clientForTimeline != null ? clientForTimeline.getPreferredLanguage() : null;
                         Locale locale = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr") ? Locale.FRENCH : Locale.ENGLISH;
                         String localizedDocType = messageSource.getMessage(
-                                "document.type." + request.getDocType(), null,
-                                request.getDocType().name(), locale);
-                        String documentName = (request.getCustomTitle() != null && !request.getCustomTitle().isEmpty()) ? request.getCustomTitle() : localizedDocType;
+                                "document.type." + savedRequest.getDocType(), null,
+                                savedRequest.getDocType().name(), locale);
+                        String documentName = (savedRequest.getCustomTitle() != null && !savedRequest.getCustomTitle().isEmpty()) ? savedRequest.getCustomTitle() : localizedDocType;
                         String brokerName = brokerForTimeline != null ? brokerForTimeline.getFirstName() + " " + brokerForTimeline.getLastName() : "";
                         // Send a stable, language-agnostic note key and params for frontend i18n
                         String note = String.format("document.details.updated.note|%s|%s", documentName, brokerName);
 
                         timelineService.addEntry(
-                                request.getTransactionRef().getTransactionId(),
+                                savedRequest.getTransactionRef().getTransactionId(),
                                 txForTimeline.getBrokerId(),
                                 TimelineEntryType.DOCUMENT_REQUEST_UPDATED,
                                 note, // note: key and params for frontend i18n
@@ -272,7 +272,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                     UserAccount broker = resolveUserAccount(txForTimeline.getBrokerId()).orElse(null);
                     if (client != null && broker != null) {
                         String clientName = client.getFirstName() + " " + client.getLastName();
-                        String docType = request.getDocType().toString();
+                        String docType = savedRequest.getDocType().toString();
 
                         // Email (distinct message for edit)
                         emailService.sendDocumentEditedNotification(
@@ -286,9 +286,9 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
 
                         // In-app notification (distinct message for edit)
                         localizedDocType = messageSource.getMessage(
-                                "document.type." + request.getDocType(), null,
-                                request.getDocType().name(), locale);
-                        String displayDocName = request.getCustomTitle() != null ? request.getCustomTitle() : localizedDocType;
+                                "document.type." + savedRequest.getDocType(), null,
+                                savedRequest.getDocType().name(), locale);
+                        String displayDocName = savedRequest.getCustomTitle() != null ? savedRequest.getCustomTitle() : localizedDocType;
                         String title = messageSource.getMessage("notification.document.edited.title", null, locale);
                         String message = messageSource.getMessage("notification.document.edited.message",
                                 new Object[] { brokerName, displayDocName }, locale);
@@ -296,14 +296,12 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                 client.getId().toString(),
                                 title,
                                 message,
-                                request.getTransactionRef().getTransactionId().toString(),
+                                savedRequest.getTransactionRef().getTransactionId().toString(),
                                 com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REQUEST
                         );
                     }
-                    savedRequest = repository.save(request);
                 } catch (Exception e) {
                     logger.warn("Could not add timeline entry or send notification/email for document request update", e);
-                    savedRequest = repository.save(request);
                 }
 
                 return mapToResponseDTO(savedRequest);
