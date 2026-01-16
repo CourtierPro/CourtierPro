@@ -109,7 +109,7 @@ public class ClientTransactionController {
      */
     @GetMapping("/{clientId}/transactions/{transactionId}/properties/{propertyId}/offers")
     public ResponseEntity<List<PropertyOfferResponseDTO>> getPropertyOffers(
-            @PathVariable UUID clientId,
+            @PathVariable String clientId,
             @PathVariable UUID transactionId,
             @PathVariable UUID propertyId,
             HttpServletRequest request
@@ -124,7 +124,7 @@ public class ClientTransactionController {
      */
     @GetMapping("/{clientId}/transactions/{transactionId}/properties/{propertyId}/offers/{propertyOfferId}/documents")
     public ResponseEntity<List<OfferDocumentResponseDTO>> getPropertyOfferDocuments(
-            @PathVariable UUID clientId,
+            @PathVariable String clientId,
             @PathVariable UUID transactionId,
             @PathVariable UUID propertyId,
             @PathVariable UUID propertyOfferId,
@@ -171,7 +171,7 @@ public class ClientTransactionController {
      */
     @GetMapping("/{clientId}/transactions/{transactionId}/offers/{offerId}/documents")
     public ResponseEntity<List<OfferDocumentResponseDTO>> getOfferDocuments(
-            @PathVariable UUID clientId,
+            @PathVariable String clientId,
             @PathVariable UUID transactionId,
             @PathVariable UUID offerId,
             HttpServletRequest request
@@ -187,7 +187,7 @@ public class ClientTransactionController {
      */
     @PutMapping("/{clientId}/transactions/{transactionId}/offers/{offerId}/decision")
     public ResponseEntity<OfferResponseDTO> submitOfferDecision(
-            @PathVariable UUID clientId,
+            @PathVariable String clientId,
             @PathVariable UUID transactionId,
             @PathVariable UUID offerId,
             @Valid @RequestBody ClientOfferDecisionDTO dto,

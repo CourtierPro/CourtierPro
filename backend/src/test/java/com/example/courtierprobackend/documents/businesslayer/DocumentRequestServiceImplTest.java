@@ -507,7 +507,7 @@ class DocumentRequestServiceImplTest {
 
                 // Simulate Notification Exception
                 doThrow(new RuntimeException("Notification failed")).when(notificationService)
-                                .createNotification(anyString(), anyString(), anyString(), anyString(), any());
+                                .createNotification(any(), any(), any(), any(), any());
 
                 // Act
                 DocumentRequestResponseDTO result = service.reviewDocument(transactionId, requestId, reviewDTO,
@@ -865,6 +865,7 @@ class DocumentRequestServiceImplTest {
                 existingRequest.setDocType(DocumentTypeEnum.ID_VERIFICATION);
                 existingRequest.setCustomTitle("Old Title");
                 existingRequest.setSubmittedDocuments(new ArrayList<>());
+                existingRequest.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
                 DocumentRequestRequestDTO updateDTO = new DocumentRequestRequestDTO();
                 updateDTO.setCustomTitle("New Title");
@@ -999,6 +1000,7 @@ class DocumentRequestServiceImplTest {
                 request.setRequestId(requestId);
                 request.setDocType(DocumentTypeEnum.ID_VERIFICATION);
                 request.setVisibleToClient(false);
+                request.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
                 DocumentRequestRequestDTO dto = new DocumentRequestRequestDTO();
                 dto.setDocType(DocumentTypeEnum.PAY_STUBS);
@@ -1059,7 +1061,7 @@ class DocumentRequestServiceImplTest {
                 // uploaderID)
                 // Wait, logic is: if (uploaderType == CLIENT) -> resolve uploaderName.
                 // else -> uploaderName = "Unknown Client" (default logic in service line 261).
-                // Wait, if BROKER uploads, line 262 is false. Name stays "Unknown Client".
+                // Wait, if Broker uploads, line 262 is false. Name stays "Unknown Client".
                 // Line 262: if (uploaderType == UploadedByRefEnum.CLIENT)
                 // So if Broker uploads, it says "Unknown Client"? That seems like a bug or
                 // incomplete feature in source.

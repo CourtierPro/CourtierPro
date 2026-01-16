@@ -1,11 +1,8 @@
 package com.example.courtierprobackend.documents.businesslayer;
-import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
-import com.example.courtierprobackend.documents.datalayer.enums.DocumentPartyEnum;
+import com.example.courtierprobackend.documents.datalayer.enums.*;
 
 import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
-import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
-import com.example.courtierprobackend.documents.datalayer.enums.UploadedByRefEnum;
 import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
 import com.example.courtierprobackend.documents.datalayer.SubmittedDocument;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject;
@@ -246,9 +243,10 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 // Only update lastUpdatedAt, save, and send notifications/timeline if something changed
                 request.setLastUpdatedAt(LocalDateTime.now());
                 DocumentRequest savedRequest = repository.save(request);
+                final UUID timelineTransactionId = savedRequest.getTransactionRef().getTransactionId();
                 try {
-                        Transaction txForTimeline = transactionRepository.findByTransactionId(savedRequest.getTransactionRef().getTransactionId())
-                                .orElseThrow(() -> new NotFoundException("Transaction not found for timeline entry: " + savedRequest.getTransactionRef().getTransactionId()));
+                        Transaction txForTimeline = transactionRepository.findByTransactionId(timelineTransactionId)
+                                .orElseThrow(() -> new NotFoundException("Transaction not found for timeline entry: " + timelineTransactionId));
 
                         // Get client language for localization
                         UserAccount clientForTimeline = resolveUserAccount(txForTimeline.getClientId()).orElse(null);
@@ -312,7 +310,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                     logger.warn("Could not add timeline entry or send notification/email for document request update", e);
                 }
 
-                DocumentRequest savedRequest = repository.save(request);
+                savedRequest = repository.save(request);
 
                 // Update condition links if provided
                 if (requestDTO.getConditionIds() != null) {
