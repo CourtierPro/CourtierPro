@@ -68,10 +68,13 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
   };
 
   // Edit click handler
-  const handleEditClick = useCallback((document: DocumentRequest) => {
-    setEditingDocument(document);
-    setIsEditModalOpen(true);
-  }, []);
+  const handleEditClick = useCallback(
+    (document: DocumentRequest) => {
+      setEditingDocument(document);
+      setIsEditModalOpen(true);
+    },
+    [setEditingDocument, setIsEditModalOpen]
+  );
 
   // Edit submit handler
   const handleEditSubmit = useCallback(
@@ -109,7 +112,7 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
         }
       );
     },
-    [editingDocument, updateDocumentRequestMutation, refetch]
+    [editingDocument, updateDocumentRequestMutation, refetch, setIsEditModalOpen, setEditingDocument]
   );
 
   const handleUploadSuccess = () => {
