@@ -1,0 +1,12 @@
+Hello {{clientName}},
+
+[HEADING]Offer Status Changed[/HEADING]
+
+The offer from {{buyerName}} has been updated.
+
+[BOX]
+[BOLD]Previous Status:[/BOLD] {{previousStatus}}
+[BOLD]New Status:[/BOLD] {{newStatus}}
+[/BOX]
+
+Your broker {{brokerName}} will coordinate the next steps.

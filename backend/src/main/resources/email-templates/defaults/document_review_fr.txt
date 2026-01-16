@@ -1,0 +1,34 @@
+[HEADING-LG]Examen du document[/HEADING-LG]
+
+Bonjour {{clientName}},
+
+[HEADING-SM]Récapitulatif[/HEADING-SM]
+
+[BOX-gray]
+[BOLD]Statut :[/BOLD] {{status}}
+[BOLD]Document :[/BOLD] {{documentName}}
+[BOLD]Transaction :[/BOLD] {{transactionId}}
+[/BOX-gray]
+
+[IF-isApproved]
+[HEADING-SM]Décision[/HEADING-SM]
+[BOX-green]
+Le document a été approuvé. Aucune autre action n’est requise.
+[/BOX-green]
+[/IF-isApproved]
+
+[IF-isNeedsRevision]
+[HEADING-SM]Décision[/HEADING-SM]
+[BOX-yellow]
+Le document nécessite des corrections. Veuillez le mettre à jour et le téléverser à nouveau.
+[/BOX-yellow]
+[/IF-isNeedsRevision]
+
+[IF-brokerNotes]
+[HEADING-SM]Notes du courtier[/HEADING-SM]
+[BOX-blue]
+{{brokerNotes}}
+[/BOX-blue]
+[/IF-brokerNotes]
+
+Pour toute question, contactez {{brokerName}}.

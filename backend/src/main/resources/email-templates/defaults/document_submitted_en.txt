@@ -1,0 +1,14 @@
+[HEADING-LG]Document to Review[/HEADING-LG]
+
+A new document has been submitted for your review.
+
+[HEADING-SM]Information[/HEADING-SM]
+
+[BOX-blue]
+[BOLD]Document:[/BOLD]{{documentName}}
+[BOLD]Type:[/BOLD]{{documentType}}
+[BOLD]Transaction:[/BOLD] {{transactionId}}
+[BOLD]Submitted by:[/BOLD] {{uploaderName}}
+[/BOX-blue]
+
+Log in to review this document.

@@ -73,4 +73,48 @@ public class UpdateOrganizationSettingsRequestModel {
     private String stageUpdateSubjectFr;
 
     private String stageUpdateBodyFr;
+
+    // Property Offer Made Template
+    @Size(max = 255)
+    private String propertyOfferMadeSubjectEn;
+
+    private String propertyOfferMadeBodyEn;
+
+    @Size(max = 255)
+    private String propertyOfferMadeSubjectFr;
+
+    private String propertyOfferMadeBodyFr;
+
+    // Property Offer Status Template
+    @Size(max = 255)
+    private String propertyOfferStatusSubjectEn;
+
+    private String propertyOfferStatusBodyEn;
+
+    @Size(max = 255)
+    private String propertyOfferStatusSubjectFr;
+
+    private String propertyOfferStatusBodyFr;
+
+    // Offer Received Template
+    @Size(max = 255)
+    private String offerReceivedSubjectEn;
+
+    private String offerReceivedBodyEn;
+
+    @Size(max = 255)
+    private String offerReceivedSubjectFr;
+
+    private String offerReceivedBodyFr;
+
+    // Offer Status Template
+    @Size(max = 255)
+    private String offerStatusSubjectEn;
+
+    private String offerStatusBodyEn;
+
+    @Size(max = 255)
+    private String offerStatusSubjectFr;
+
+    private String offerStatusBodyFr;
 }

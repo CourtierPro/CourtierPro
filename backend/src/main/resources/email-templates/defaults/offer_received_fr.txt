@@ -1,0 +1,11 @@
+Bonjour {{clientName}},
+
+[HEADING]Vous avez reçu une offre![/HEADING]
+
+Bonne nouvelle! {{buyerName}} a fait une offre sur votre propriété.
+
+[BOX-green]
+[BOLD]Montant de l'offre:[/BOLD] {{offerAmount}}
+[/BOX-green]
+
+Votre courtier {{brokerName}} examinera les détails avec vous et discutera de vos options.

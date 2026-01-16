@@ -1,0 +1,34 @@
+[HEADING-LG]Document Review[/HEADING-LG]
+
+Hello {{clientName}},
+
+[HEADING-SM]Summary[/HEADING-SM]
+
+[BOX-gray]
+[BOLD]Status:[/BOLD] {{status}}
+[BOLD]Document:[/BOLD] {{documentName}}
+[BOLD]Transaction:[/BOLD] {{transactionId}}
+[/BOX-gray]
+
+[IF-isApproved]
+[HEADING-SM]Decision[/HEADING-SM]
+[BOX-green]
+The document has been approved. No further action is required.
+[/BOX-green]
+[/IF-isApproved]
+
+[IF-isNeedsRevision]
+[HEADING-SM]Decision[/HEADING-SM]
+[BOX-yellow]
+The document needs revision. Please update it and re-upload the file.
+[/BOX-yellow]
+[/IF-isNeedsRevision]
+
+[IF-brokerNotes]
+[HEADING-SM]Notes from your broker[/HEADING-SM]
+[BOX-blue]
+{{brokerNotes}}
+[/BOX-blue]
+[/IF-brokerNotes]
+
+If you have any questions, please contact {{brokerName}}.

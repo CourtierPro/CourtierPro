@@ -1,0 +1,12 @@
+Hello {{clientName}},
+
+[HEADING]Transaction Update[/HEADING]
+
+Your transaction has been updated!
+
+[BOX-green]
+Property: {{transactionAddress}}
+New Stage: {{newStage}}
+[/BOX-green]
+
+Your broker {{brokerName}} has moved your transaction to the next stage. If you have any questions, please don't hesitate to reach out.

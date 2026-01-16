@@ -85,6 +85,58 @@ public class OrganizationSettings {
     @Column(name = "stage_update_body_fr", columnDefinition = "TEXT")
     private String stageUpdateBodyFr;
 
+    // Property Offer Made Template
+    @Column(name = "property_offer_made_subject_en", length = 255)
+    private String propertyOfferMadeSubjectEn;
+
+    @Column(name = "property_offer_made_body_en", columnDefinition = "TEXT")
+    private String propertyOfferMadeBodyEn;
+
+    @Column(name = "property_offer_made_subject_fr", length = 255)
+    private String propertyOfferMadeSubjectFr;
+
+    @Column(name = "property_offer_made_body_fr", columnDefinition = "TEXT")
+    private String propertyOfferMadeBodyFr;
+
+    // Property Offer Status Template
+    @Column(name = "property_offer_status_subject_en", length = 255)
+    private String propertyOfferStatusSubjectEn;
+
+    @Column(name = "property_offer_status_body_en", columnDefinition = "TEXT")
+    private String propertyOfferStatusBodyEn;
+
+    @Column(name = "property_offer_status_subject_fr", length = 255)
+    private String propertyOfferStatusSubjectFr;
+
+    @Column(name = "property_offer_status_body_fr", columnDefinition = "TEXT")
+    private String propertyOfferStatusBodyFr;
+
+    // Offer Received Template
+    @Column(name = "offer_received_subject_en", length = 255)
+    private String offerReceivedSubjectEn;
+
+    @Column(name = "offer_received_body_en", columnDefinition = "TEXT")
+    private String offerReceivedBodyEn;
+
+    @Column(name = "offer_received_subject_fr", length = 255)
+    private String offerReceivedSubjectFr;
+
+    @Column(name = "offer_received_body_fr", columnDefinition = "TEXT")
+    private String offerReceivedBodyFr;
+
+    // Offer Status Template
+    @Column(name = "offer_status_subject_en", length = 255)
+    private String offerStatusSubjectEn;
+
+    @Column(name = "offer_status_body_en", columnDefinition = "TEXT")
+    private String offerStatusBodyEn;
+
+    @Column(name = "offer_status_subject_fr", length = 255)
+    private String offerStatusSubjectFr;
+
+    @Column(name = "offer_status_body_fr", columnDefinition = "TEXT")
+    private String offerStatusBodyFr;
+
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 }

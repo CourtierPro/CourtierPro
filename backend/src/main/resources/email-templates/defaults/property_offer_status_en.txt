@@ -1,0 +1,19 @@
+Hello {{clientName}},
+
+[HEADING]Your Offer Has Been Updated[/HEADING]
+
+Your offer on {{propertyAddress}} has changed status.
+
+[BOX]
+[BOLD]Previous Status:[/BOLD] {{previousStatus}}
+[BOLD]New Status:[/BOLD] {{newStatus}}
+[/BOX]
+
+[IF-counterpartyResponse]
+[BOX-yellow]
+[BOLD]Counterparty Response:[/BOLD]
+{{counterpartyResponse}}
+[/BOX-yellow]
+[/IF-counterpartyResponse]
+
+Your broker {{brokerName}} will discuss next steps with you.

@@ -1,0 +1,23 @@
+[HEADING-LG]Demande de document[/HEADING-LG]
+
+Bonjour {{clientName}},
+
+[BOLD]{{brokerName}}[/BOLD] a besoin de ceci :
+
+[HEADING-SM]Document requis[/HEADING-SM]
+
+[BOX-gray]
+Document : {{documentName}}
+Type : {{documentType}}
+[/BOX-gray]
+
+[IF-brokerNotes]
+[HEADING-SM]Instructions[/HEADING-SM]
+
+[BOX-gray]
+{{brokerNotes}}
+[/BOX-gray]
+[/IF-brokerNotes]
+
+Merci de le téléverser pour faire avancer votre dossier.
+Questions ? Contactez [BOLD]{{brokerName}}[/BOLD].

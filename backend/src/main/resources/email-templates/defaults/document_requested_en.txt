@@ -1,0 +1,23 @@
+[HEADING-LG]Document Request[/HEADING-LG]
+
+Hi {{clientName}},
+
+[BOLD]{{brokerName}}[/BOLD] needs the following:
+
+[HEADING-SM]Required Document[/HEADING-SM]
+
+[BOX-gray]
+Document: {{documentName}}
+Type: {{documentType}}
+[/BOX-gray]
+
+[IF-brokerNotes]
+[HEADING-SM]Instructions[/HEADING-SM]
+
+[BOX-gray]
+{{brokerNotes}}
+[/BOX-gray]
+[/IF-brokerNotes]
+
+Please upload it to keep your file moving.
+Questions? Contact [BOLD]{{brokerName}}[/BOLD].

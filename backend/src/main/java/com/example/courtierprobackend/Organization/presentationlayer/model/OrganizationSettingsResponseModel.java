@@ -47,5 +47,29 @@ public class OrganizationSettingsResponseModel {
     private String stageUpdateSubjectFr;
     private String stageUpdateBodyFr;
 
+    // Property Offer Made Template
+    private String propertyOfferMadeSubjectEn;
+    private String propertyOfferMadeBodyEn;
+    private String propertyOfferMadeSubjectFr;
+    private String propertyOfferMadeBodyFr;
+
+    // Property Offer Status Template
+    private String propertyOfferStatusSubjectEn;
+    private String propertyOfferStatusBodyEn;
+    private String propertyOfferStatusSubjectFr;
+    private String propertyOfferStatusBodyFr;
+
+    // Offer Received Template
+    private String offerReceivedSubjectEn;
+    private String offerReceivedBodyEn;
+    private String offerReceivedSubjectFr;
+    private String offerReceivedBodyFr;
+
+    // Offer Status Template
+    private String offerStatusSubjectEn;
+    private String offerStatusBodyEn;
+    private String offerStatusSubjectFr;
+    private String offerStatusBodyFr;
+
     private Instant updatedAt;
 }

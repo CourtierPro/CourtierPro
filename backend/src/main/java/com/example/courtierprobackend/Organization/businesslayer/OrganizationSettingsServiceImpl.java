@@ -11,12 +11,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -58,38 +61,8 @@ public class OrganizationSettingsServiceImpl implements OrganizationSettingsServ
                         !Objects.equals(settings.getInviteBodyFr(), request.getInviteBodyFr());
 
         // Update all fields from request
-        settings.setDefaultLanguage(request.getDefaultLanguage());
-        
-        // Invite template
-        settings.setInviteSubjectEn(request.getInviteSubjectEn());
-        settings.setInviteBodyEn(request.getInviteBodyEn());
-        settings.setInviteSubjectFr(request.getInviteSubjectFr());
-        settings.setInviteBodyFr(request.getInviteBodyFr());
-        
-        // Document Submitted template
-        settings.setDocumentSubmittedSubjectEn(request.getDocumentSubmittedSubjectEn());
-        settings.setDocumentSubmittedBodyEn(request.getDocumentSubmittedBodyEn());
-        settings.setDocumentSubmittedSubjectFr(request.getDocumentSubmittedSubjectFr());
-        settings.setDocumentSubmittedBodyFr(request.getDocumentSubmittedBodyFr());
-        
-        // Document Requested template
-        settings.setDocumentRequestedSubjectEn(request.getDocumentRequestedSubjectEn());
-        settings.setDocumentRequestedBodyEn(request.getDocumentRequestedBodyEn());
-        settings.setDocumentRequestedSubjectFr(request.getDocumentRequestedSubjectFr());
-        settings.setDocumentRequestedBodyFr(request.getDocumentRequestedBodyFr());
-        
-        // Document Review template
-        settings.setDocumentReviewSubjectEn(request.getDocumentReviewSubjectEn());
-        settings.setDocumentReviewBodyEn(request.getDocumentReviewBodyEn());
-        settings.setDocumentReviewSubjectFr(request.getDocumentReviewSubjectFr());
-        settings.setDocumentReviewBodyFr(request.getDocumentReviewBodyFr());
-        
-        // Stage Update template
-        settings.setStageUpdateSubjectEn(request.getStageUpdateSubjectEn());
-        settings.setStageUpdateBodyEn(request.getStageUpdateBodyEn());
-        settings.setStageUpdateSubjectFr(request.getStageUpdateSubjectFr());
-        settings.setStageUpdateBodyFr(request.getStageUpdateBodyFr());
-        
+        mapper.updateEntityFromRequest(request, settings);
+
         settings.setUpdatedAt(Instant.now());
 
         OrganizationSettings saved = repository.save(settings);
@@ -130,33 +103,63 @@ public class OrganizationSettingsServiceImpl implements OrganizationSettingsServ
         return mapper.toResponseModel(saved);
     }
 
+    private String loadTemplate(String filename) {
+        try {
+            ClassPathResource resource = new ClassPathResource("email-templates/defaults/" + filename);
+            return new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.error("Failed to load email template: {}", filename, e);
+            return "";
+        }
+    }
+
     private OrganizationSettings createDefaultSettings() {
         OrganizationSettings settings = OrganizationSettings.builder()
                 .defaultLanguage("fr")
                 .inviteSubjectEn("Welcome to CourtierPro")
-                .inviteBodyEn("Hi {{name}}, your CourtierPro account has been created.")
+                .inviteBodyEn(loadTemplate("invite_en.txt"))
                 .inviteSubjectFr("Bienvenue sur CourtierPro")
-                .inviteBodyFr("Bonjour {{name}}, votre compte CourtierPro a été créé.")
+                .inviteBodyFr(loadTemplate("invite_fr.txt"))
                 // Document Submitted Template
                 .documentSubmittedSubjectEn("Document Submitted")
-                .documentSubmittedBodyEn("Hello {{uploaderName}},\n\nDocument Submitted\n\nYour document {{documentName}} has been submitted for the transaction {{transactionId}}.\n\nDocument Type: {{documentType}}\n\nThank you for submitting this document. Your broker will review it shortly.\n\nBest regards,\nCourtierPro Team")
+                .documentSubmittedBodyEn(loadTemplate("document_submitted_en.txt"))
                 .documentSubmittedSubjectFr("Document soumis")
-                .documentSubmittedBodyFr("Bonjour {{uploaderName}},\n\nDocument Soumis\n\nVotre document {{documentName}} a été soumis pour la transaction {{transactionId}}.\n\nType de document: {{documentType}}\n\nMerci d'avoir soumis ce document. Votre courtier l'examinera bientôt.\n\nCordialement,\nÉquipe CourtierPro")
+                .documentSubmittedBodyFr(loadTemplate("document_submitted_fr.txt"))
                 // Document Requested Template
                 .documentRequestedSubjectEn("Document Requested")
-                .documentRequestedBodyEn("Hello {{clientName}},\n\nDocument Request\n\n{{brokerName}} has requested the following document:\n\nDocument: {{documentName}}\nType: {{documentType}}\n\nAction Required\n\nPlease submit this document as soon as possible to keep your transaction moving forward.\n\nQuestions? Contact {{brokerName}} directly.\n\nBest regards,\nCourtierPro Team")
+                .documentRequestedBodyEn(loadTemplate("document_requested_en.txt"))
                 .documentRequestedSubjectFr("Document demandé")
-                .documentRequestedBodyFr("Bonjour {{clientName}},\n\nDemande de Document\n\n{{brokerName}} a demandé le document suivant:\n\nDocument: {{documentName}}\nType: {{documentType}}\n\nAction Requise\n\nVeuillez soumettre ce document dès que possible pour que votre transaction progresse.\n\nQuestions? Contactez directement {{brokerName}}.\n\nCordialement,\nÉquipe CourtierPro")
+                .documentRequestedBodyFr(loadTemplate("document_requested_fr.txt"))
                 // Document Review Template
                 .documentReviewSubjectEn("Document Reviewed")
-                .documentReviewBodyEn("Hello {{clientName}},\n\nDocument Review\n\n{{brokerName}} has reviewed your document {{documentName}} for transaction {{transactionId}}.\n\nStatus: {{status}}\n\nBroker Notes:\n{{brokerNotes}}\n\nIf you have any questions about the review, please contact {{brokerName}}.\n\nBest regards,\nCourtierPro Team")
+                .documentReviewBodyEn(loadTemplate("document_review_en.txt"))
                 .documentReviewSubjectFr("Document examiné")
-                .documentReviewBodyFr("Bonjour {{clientName}},\n\nExamen du Document\n\n{{brokerName}} a examiné votre document {{documentName}} pour la transaction {{transactionId}}.\n\nStatut: {{status}}\n\nNotes du courtier:\n{{brokerNotes}}\n\nSi vous avez des questions concernant l'examen, veuillez contacter {{brokerName}}.\n\nCordialement,\nÉquipe CourtierPro")
+                .documentReviewBodyFr(loadTemplate("document_review_fr.txt"))
                 // Stage Update Template
                 .stageUpdateSubjectEn("Transaction Update")
-                .stageUpdateBodyEn("Hello {{clientName}},\n\nTransaction Update\n\nYour transaction has been updated!\n\nProperty: {{transactionAddress}}\nNew Stage: {{newStage}}\n\nYour broker {{brokerName}} has moved your transaction to the next stage. If you have any questions, please don't hesitate to reach out.\n\nBest regards,\nCourtierPro Team")
+                .stageUpdateBodyEn(loadTemplate("stage_update_en.txt"))
                 .stageUpdateSubjectFr("Mise à jour de la transaction")
-                .stageUpdateBodyFr("Bonjour {{clientName}},\n\nMise à Jour de la Transaction\n\nVotre transaction a été mise à jour!\n\nPropriété: {{transactionAddress}}\nNouveaux stade: {{newStage}}\n\nVotre courtier {{brokerName}} a fait avancer votre transaction à la prochaine étape. Si vous avez des questions, n'hésitez pas à nous contacter.\n\nCordialement,\nÉquipe CourtierPro")
+                .stageUpdateBodyFr(loadTemplate("stage_update_fr.txt"))
+                // Property Offer Made Template
+                .propertyOfferMadeSubjectEn("Offer Submitted")
+                .propertyOfferMadeBodyEn(loadTemplate("property_offer_made_en.txt"))
+                .propertyOfferMadeSubjectFr("Offre soumise")
+                .propertyOfferMadeBodyFr(loadTemplate("property_offer_made_fr.txt"))
+                // Property Offer Status Template
+                .propertyOfferStatusSubjectEn("Offer Status Update")
+                .propertyOfferStatusBodyEn(loadTemplate("property_offer_status_en.txt"))
+                .propertyOfferStatusSubjectFr("Mise à jour de l'offre")
+                .propertyOfferStatusBodyFr(loadTemplate("property_offer_status_fr.txt"))
+                // Offer Received Template
+                .offerReceivedSubjectEn("New Offer Received")
+                .offerReceivedBodyEn(loadTemplate("offer_received_en.txt"))
+                .offerReceivedSubjectFr("Nouvelle offre reçue")
+                .offerReceivedBodyFr(loadTemplate("offer_received_fr.txt"))
+                // Offer Status Template
+                .offerStatusSubjectEn("Offer Status Update")
+                .offerStatusBodyEn(loadTemplate("offer_status_en.txt"))
+                .offerStatusSubjectFr("Mise à jour de l'offre")
+                .offerStatusBodyFr(loadTemplate("offer_status_fr.txt"))
                 .updatedAt(Instant.now())
                 .build();
 

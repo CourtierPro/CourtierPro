@@ -1,0 +1,15 @@
+Hello {{clientName}},
+
+[HEADING]Offer Submitted Successfully[/HEADING]
+
+Your broker {{brokerName}} has submitted an offer on your behalf!
+
+[BOX-blue]
+Property: {{propertyAddress}}
+Offer Amount: {{offerAmount}}
+Offer Round: {{offerRound}}
+[/BOX-blue]
+
+Your broker will keep you updated on the seller's response.
+
+Questions? Contact {{brokerName}} directly.

@@ -1,0 +1,15 @@
+Bonjour {{clientName}},
+
+[HEADING]Offre soumise avec succès[/HEADING]
+
+Votre courtier {{brokerName}} a soumis une offre en votre nom!
+
+[BOX-blue]
+Propriété: {{propertyAddress}}
+Montant de l'offre: {{offerAmount}}
+Tour d'offre: {{offerRound}}
+[/BOX-blue]
+
+Votre courtier vous tiendra informé de la réponse du vendeur.
+
+Questions? Contactez directement {{brokerName}}.

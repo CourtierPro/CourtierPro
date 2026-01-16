@@ -64,70 +64,26 @@ public class EmailService {
 
             boolean isFrench = effectiveLang.equalsIgnoreCase("fr");
 
-            String subject;
-            String bodyText;
-
-            if (isFrench) {
-                subject = settings.getInviteSubjectFr();
-                bodyText = settings.getInviteBodyFr();
-            } else {
-                subject = settings.getInviteSubjectEn();
-                bodyText = settings.getInviteBodyEn();
-            }
+            String subject = isFrench ? settings.getInviteSubjectFr() : settings.getInviteSubjectEn();
+            String bodyText = isFrench ? settings.getInviteBodyFr() : settings.getInviteBodyEn();
 
             if (subject == null || subject.isBlank()) {
                 subject = isFrench ? "Invitation CourtierPro" : "CourtierPro Invitation";
             }
             if (bodyText == null || bodyText.isBlank()) {
                 bodyText = isFrench
-                        ? "Bonjour {{name}}, votre compte CourtierPro a été créé."
-                        : "Hi {{name}}, your CourtierPro account has been created.";
+                        ? "Bonjour {{name}}, votre compte CourtierPro a été créé.\n\n[HEADING]Définir votre mot de passe[/HEADING]\n\nCliquez sur le lien ci-dessous pour finaliser la création de votre compte."
+                        : "Hi {{name}}, your CourtierPro account has been created.\n\n[HEADING]Set Your Password[/HEADING]\n\nClick the link below to complete your account setup.";
             }
 
-            String displayName = toEmail;
-            if (bodyText.contains("{{name}}")) {
-                bodyText = bodyText.replace("{{name}}", displayName);
-            }
-
-            String introText;
-            String buttonLabel;
-            String expiresText;
-            String footerText;
-
-            if (isFrench) {
-                introText = "Vous avez été invité à rejoindre la plateforme CourtierPro.";
-                buttonLabel = "Définir votre mot de passe";
-                expiresText = "Ce lien expirera dans 7 jours.";
-                footerText = "Merci,<br>L'équipe CourtierPro";
-            } else {
-                introText = "You have been invited to join the CourtierPro platform.";
-                buttonLabel = "Set Your Password";
-                expiresText = "This link will expire in 7 days.";
-                footerText = "Thanks,<br>CourtierPro Team";
-            }
-
-            String templatePath = isFrench
-                    ? "email-templates/invite_fr.html"
-                    : "email-templates/invite_en.html";
-
-            String htmlTemplate = loadTemplateFromClasspath(templatePath);
-
-            String emailBody = htmlTemplate;
-            emailBody = emailBody.replace("{{subject}}", escapeHtml(subject));
-            emailBody = emailBody.replace("{{introText}}", introText);
-            emailBody = emailBody.replace("{{bodyText}}", bodyText);
-            emailBody = emailBody.replace("{{buttonLabel}}", escapeHtml(buttonLabel));
-            emailBody = emailBody.replace("{{passwordLink}}", passwordSetupUrl);
-            emailBody = emailBody.replace("{{expiresText}}", expiresText);
-            emailBody = emailBody.replace("{{footerText}}", footerText);
+            String emailBody = convertPlainTextToHtml(bodyText)
+                    .replace("{{name}}", escapeHtml(toEmail))
+                    .replace("{{passwordLink}}", passwordSetupUrl);
 
             return sendEmail(toEmail, subject, emailBody);
         } catch (MessagingException | UnsupportedEncodingException e) {
             logger.error("Failed to send password setup email to {}", toEmail, e);
             logger.warn("Manual password setup URL for {}: {}", toEmail, passwordSetupUrl);
-            return false;
-        } catch (IOException ioException) {
-            logger.error("Failed to load email template from classpath", ioException);
             return false;
         }
     }
@@ -170,7 +126,7 @@ public class EmailService {
     }
 
     public void sendDocumentRequestedNotification(String clientEmail, String clientName, String brokerName,
-            String documentName, String docType, String clientLanguage) {
+            String documentName, String docType, String brokerNotes, String clientLanguage) {
         try {
             boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
 
@@ -194,11 +150,19 @@ public class EmailService {
                         : "Hello {{clientName}}, {{brokerName}} has requested the document {{documentName}}. Please submit it as soon as possible.";
             }
 
+            // Prepare variable values for conditional blocks
+            java.util.Map<String, String> variableValues = new java.util.HashMap<>();
+            variableValues.put("brokerNotes", brokerNotes);
+
+            // Process conditional blocks BEFORE converting to HTML
+            bodyText = handleConditionalBlocks(bodyText, variableValues);
+
             String emailBody = convertPlainTextToHtml(bodyText)
                     .replace("{{clientName}}", escapeHtml(clientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{documentName}}", escapeHtml(displayName))
-                    .replace("{{documentType}}", escapeHtml(translatedDocType));
+                    .replace("{{documentType}}", escapeHtml(translatedDocType))
+                    .replace("{{brokerNotes}}", brokerNotes != null ? escapeHtml(brokerNotes) : "");
 
             sendEmail(clientEmail, subject, emailBody);
         } catch (MessagingException | UnsupportedEncodingException e) {
@@ -271,12 +235,29 @@ public class EmailService {
                         : "Hello, {{brokerName}} has reviewed your document {{documentName}} for transaction {{transactionId}}.";
             }
 
+                // Prepare variable values for conditional blocks
+                java.util.Map<String, String> variableValues = new java.util.HashMap<>();
+                variableValues.put("brokerNotes", request.getBrokerNotes());
+
+                // Flags for decision-specific sections
+                boolean approved = request.getStatus() != null &&
+                    "APPROVED".equals(request.getStatus().toString());
+                boolean needsRevision = request.getStatus() != null &&
+                    "NEEDS_REVISION".equals(request.getStatus().toString());
+                variableValues.put("isApproved", approved ? "true" : "");
+                variableValues.put("isNeedsRevision", needsRevision ? "true" : "");
+
+            // Process conditional blocks BEFORE converting to HTML
+            bodyText = handleConditionalBlocks(bodyText, variableValues);
+
+            String translatedStatus = translateDocumentStatus(request.getStatus(), isFrench);
+
             String emailBody = convertPlainTextToHtml(bodyText)
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{documentName}}", escapeHtml(displayName))
                     .replace("{{documentType}}", escapeHtml(translatedDocType))
                     .replace("{{transactionId}}", escapeHtml(request.getTransactionRef().getTransactionId().toString()))
-                    .replace("{{status}}", escapeHtml(request.getStatus().toString()))
+                    .replace("{{status}}", escapeHtml(translatedStatus))
                     .replace("{{brokerNotes}}", request.getBrokerNotes() != null ? escapeHtml(request.getBrokerNotes()) : "");
 
             sendEmail(clientEmail, subject, emailBody);
@@ -301,18 +282,12 @@ public class EmailService {
         try {
             boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
 
-            String subject = isFrench
-                    ? ("Offre soumise : " + propertyAddress)
-                    : ("Offer Made: " + propertyAddress);
-
-            String templatePath = isFrench
-                    ? "email-templates/property_offer_made_fr.html"
-                    : "email-templates/property_offer_made_en.html";
-
-            String htmlTemplate = loadTemplateFromClasspath(templatePath);
-
-            String emailBody = htmlTemplate
-                    .replace("{{subject}}", escapeHtml(subject))
+            OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
+            
+            String subject = isFrench ? settings.getPropertyOfferMadeSubjectFr() : settings.getPropertyOfferMadeSubjectEn();
+            String bodyText = isFrench ? settings.getPropertyOfferMadeBodyFr() : settings.getPropertyOfferMadeBodyEn();
+            
+            String emailBody = convertPlainTextToHtml(bodyText)
                     .replace("{{clientName}}", escapeHtml(clientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{propertyAddress}}", escapeHtml(propertyAddress))
@@ -320,9 +295,7 @@ public class EmailService {
                     .replace("{{offerRound}}", String.valueOf(offerRound));
 
             sendEmail(clientEmail, subject, emailBody);
-        } catch (IOException e) {
-            logger.error("Failed to load property offer made email template", e);
-        } catch (MessagingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             logger.error("Failed to send property offer made notification to {}", clientEmail, e);
         }
     }
@@ -345,37 +318,28 @@ public class EmailService {
             String translatedPreviousStatus = translateOfferStatus(previousStatus, isFrench);
             String translatedNewStatus = translateOfferStatus(newStatus, isFrench);
 
-            String subject = isFrench
-                    ? ("Mise à jour de l'offre : " + propertyAddress)
-                    : ("Offer Update: " + propertyAddress);
+            OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
+            
+            String subject = isFrench ? settings.getPropertyOfferStatusSubjectFr() : settings.getPropertyOfferStatusSubjectEn();
+            String bodyText = isFrench ? settings.getPropertyOfferStatusBodyFr() : settings.getPropertyOfferStatusBodyEn();
 
-            String templatePath = isFrench
-                    ? "email-templates/property_offer_status_fr.html"
-                    : "email-templates/property_offer_status_en.html";
+            // Prepare variable values for conditional blocks
+            java.util.Map<String, String> variableValues = new java.util.HashMap<>();
+            variableValues.put("counterpartyResponse", counterpartyResponse);
 
-            String htmlTemplate = loadTemplateFromClasspath(templatePath);
-
-            // Build counterparty response block if present
-            String counterpartyResponseBlock = "";
-            if (counterpartyResponse != null && !counterpartyResponse.isBlank()) {
-                String responseLabel = isFrench ? "Réponse du vendeur :" : "Seller's Response:";
-                counterpartyResponseBlock = "<div class=\"card\"><p class=\"label\">" + responseLabel + "</p>" +
-                        "<blockquote class=\"blockquote\">" + escapeHtml(counterpartyResponse) + "</blockquote></div>";
-            }
-
-            String emailBody = htmlTemplate
-                    .replace("{{subject}}", escapeHtml(subject))
+            // Process conditional blocks BEFORE converting to HTML
+            bodyText = handleConditionalBlocks(bodyText, variableValues);
+            
+            String emailBody = convertPlainTextToHtml(bodyText)
                     .replace("{{clientName}}", escapeHtml(clientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{propertyAddress}}", escapeHtml(propertyAddress))
                     .replace("{{previousStatus}}", escapeHtml(translatedPreviousStatus))
                     .replace("{{newStatus}}", escapeHtml(translatedNewStatus))
-                    .replace("{{counterpartyResponseBlock}}", counterpartyResponseBlock);
+                    .replace("{{counterpartyResponse}}", escapeHtml(counterpartyResponse != null ? counterpartyResponse : ""));
 
             sendEmail(clientEmail, subject, emailBody);
-        } catch (IOException e) {
-            logger.error("Failed to load property offer status email template", e);
-        } catch (MessagingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             logger.error("Failed to send property offer status notification to {}", clientEmail, e);
         }
     }
@@ -395,27 +359,19 @@ public class EmailService {
         try {
             boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
 
-            String subject = isFrench
-                    ? ("Nouvelle offre reçue de " + buyerName)
-                    : ("New Offer Received from " + buyerName);
-
-            String templatePath = isFrench
-                    ? "email-templates/offer_received_fr.html"
-                    : "email-templates/offer_received_en.html";
-
-            String htmlTemplate = loadTemplateFromClasspath(templatePath);
-
-            String emailBody = htmlTemplate
-                    .replace("{{subject}}", escapeHtml(subject))
+            OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
+            
+            String subject = isFrench ? settings.getOfferReceivedSubjectFr() : settings.getOfferReceivedSubjectEn();
+            String bodyText = isFrench ? settings.getOfferReceivedBodyFr() : settings.getOfferReceivedBodyEn();
+            
+            String emailBody = convertPlainTextToHtml(bodyText)
                     .replace("{{clientName}}", escapeHtml(clientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{buyerName}}", escapeHtml(buyerName))
                     .replace("{{offerAmount}}", escapeHtml(offerAmount));
 
             sendEmail(clientEmail, subject, emailBody);
-        } catch (IOException e) {
-            logger.error("Failed to load offer received email template", e);
-        } catch (MessagingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             logger.error("Failed to send offer received notification to {}", clientEmail, e);
         }
     }
@@ -437,18 +393,12 @@ public class EmailService {
             String translatedPreviousStatus = translateOfferStatus(previousStatus, isFrench);
             String translatedNewStatus = translateOfferStatus(newStatus, isFrench);
 
-            String subject = isFrench
-                    ? ("Mise à jour de l'offre de " + buyerName)
-                    : ("Offer Update from " + buyerName);
-
-            String templatePath = isFrench
-                    ? "email-templates/offer_status_fr.html"
-                    : "email-templates/offer_status_en.html";
-
-            String htmlTemplate = loadTemplateFromClasspath(templatePath);
-
-            String emailBody = htmlTemplate
-                    .replace("{{subject}}", escapeHtml(subject))
+            OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
+            
+            String subject = isFrench ? settings.getOfferStatusSubjectFr() : settings.getOfferStatusSubjectEn();
+            String bodyText = isFrench ? settings.getOfferStatusBodyFr() : settings.getOfferStatusBodyEn();
+            
+            String emailBody = convertPlainTextToHtml(bodyText)
                     .replace("{{clientName}}", escapeHtml(clientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{buyerName}}", escapeHtml(buyerName))
@@ -456,9 +406,7 @@ public class EmailService {
                     .replace("{{newStatus}}", escapeHtml(translatedNewStatus));
 
             sendEmail(clientEmail, subject, emailBody);
-        } catch (IOException e) {
-            logger.error("Failed to load offer status email template", e);
-        } catch (MessagingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             logger.error("Failed to send offer status notification to {}", clientEmail, e);
         }
     }
@@ -604,19 +552,35 @@ public class EmailService {
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
 
-        // Handle [HEADING]...[/HEADING] (dotall to allow newlines inside)
+        // Handle heading sizes
+        escaped = escaped.replaceAll(
+            "(?s)\\[HEADING-SM\\](.*?)\\[/HEADING-SM\\]",
+            "<h4 style=\"font-size: 1.25em; font-weight: 700; margin: 14px 0 8px 0;\">$1</h4>"
+        );
+        escaped = escaped.replaceAll(
+            "(?s)\\[HEADING-MD\\](.*?)\\[/HEADING-MD\\]",
+            "<h3 style=\"font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0;\">$1</h3>"
+        );
+        escaped = escaped.replaceAll(
+            "(?s)\\[HEADING-LG\\](.*?)\\[/HEADING-LG\\]",
+            "<h2 style=\"font-size: 1.75em; font-weight: 700; margin: 18px 0 12px 0;\">$1</h2>"
+        );
+        // Default heading
         escaped = escaped.replaceAll(
             "(?s)\\[HEADING\\](.*?)\\[/HEADING\\]",
-            "<h3 style=\"font-size: 1.5em; font-weight: bold; margin: 15px 0 10px 0;\">$1</h3>"
+            "<h3 style=\"font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0;\">$1</h3>"
         );
 
-        // Handle [BOX]...[/BOX] (dotall to allow multi-line content, max-width 600px)
+        // Handle [BOX]...[/BOX] (default blue, dotall to allow multi-line content, max-width 600px)
         escaped = escaped.replaceAll(
             "(?s)\\[BOX\\](.*?)\\[/BOX\\]",
             "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>"
         );
 
-        // Handle colored boxes [BOX-RED], [BOX-BLUE], [BOX-GREEN], [BOX-YELLOW]
+        // Handle colored boxes with hex or named colors: [BOX-blue], [BOX-#FF5733], etc.
+        escaped = handleDynamicBoxes(escaped);
+
+        // Handle colored boxes [BOX-RED], [BOX-BLUE], [BOX-GREEN], [BOX-YELLOW] (legacy support)
         escaped = escaped.replaceAll(
             "(?s)\\[BOX-RED\\](.*?)\\[/BOX-RED\\]",
             "<div style=\"border-left: 4px solid #ef4444; background-color: #fee2e2; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;\"><p style=\"margin: 0; color: #7f1d1d; font-weight: 500;\">$1</p></div>"
@@ -652,6 +616,9 @@ public class EmailService {
             "<span style=\"background-color: #fef08a; padding: 0 4px; border-radius: 3px;\">$1</span>"
         );
 
+        // Handle highlight colors: [HIGHLIGHT-yellow], [HIGHLIGHT-pink], etc.
+        escaped = handleHighlightColors(escaped);
+
         // Handle [SEPARATOR]
         escaped = escaped.replace("[SEPARATOR]", "<hr style=\"border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;\" />");
 
@@ -665,6 +632,146 @@ public class EmailService {
         html = "<p>" + html + "</p>";
 
         return html;
+    }
+
+    private String handleDynamicBoxes(String text) {
+        // Map des couleurs nommées - BOX colors
+        java.util.Map<String, String> colorMap = new java.util.HashMap<>();
+        colorMap.put("gray", "#6b7280");
+        colorMap.put("red", "#ef4444");
+        colorMap.put("green", "#22c55e");
+        colorMap.put("blue", "#3b82f6");
+        colorMap.put("yellow", "#eab308");
+        colorMap.put("orange", "#f97316");
+        colorMap.put("white", "#ffffff");
+        
+        // Map des couleurs de background et texte associées
+        java.util.Map<String, String[]> colorStyles = new java.util.HashMap<>();
+        colorStyles.put("#6b7280", new String[]{"#f3f4f6", "#1f2937"}); // gray
+        colorStyles.put("#ef4444", new String[]{"#fee2e2", "#7f1d1d"}); // red
+        colorStyles.put("#22c55e", new String[]{"#f0fdf4", "#166534"}); // green
+        colorStyles.put("#3b82f6", new String[]{"#eff6ff", "#1e3a8a"}); // blue
+        colorStyles.put("#eab308", new String[]{"#fefce8", "#713f12"}); // yellow
+        colorStyles.put("#f97316", new String[]{"#ffedd5", "#92400e"}); // orange
+        colorStyles.put("#ffffff", new String[]{"#f9fafb", "#111827"}); // white
+
+        // Pattern pour [BOX-color]
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+            "(?s)\\[BOX-([a-zA-Z]+)\\](.*?)\\[/BOX-[a-zA-Z]+\\]"
+        );
+        java.util.regex.Matcher matcher = pattern.matcher(text);
+        StringBuffer sb = new StringBuffer();
+
+        while (matcher.find()) {
+            String colorKey = matcher.group(1).toLowerCase();
+            String content = matcher.group(2);
+
+            // Déterminer la couleur border
+            String borderColor = colorMap.getOrDefault(colorKey, colorMap.get("blue"));
+            String[] bgAndText = colorStyles.get(borderColor);
+            String bgColor = "#eff6ff";
+            String textColor = "#1e3a8a";
+            
+            if (bgAndText != null) {
+                bgColor = bgAndText[0];
+                textColor = bgAndText[1];
+            }
+
+            String replacement = "<div style=\"border-left: 4px solid " + borderColor + "; background-color: " + bgColor + "; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;\"><p style=\"margin: 0; color: " + textColor + "; font-weight: 500;\">" + content + "</p></div>";
+            matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(sb);
+
+        return sb.toString();
+    }
+
+    private String handleHighlightColors(String text) {
+        // Map des couleurs highlight
+        java.util.Map<String, String> highlightColorMap = new java.util.HashMap<>();
+        highlightColorMap.put("yellow", "#fef08a");
+        highlightColorMap.put("pink", "#fbcfe8");
+        highlightColorMap.put("blue", "#bfdbfe");
+        highlightColorMap.put("green", "#bbf7d0");
+        highlightColorMap.put("orange", "#fed7aa");
+
+        // Pattern pour [HIGHLIGHT-color]
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+            "(?s)\\[HIGHLIGHT-([a-zA-Z]+)\\](.*?)\\[/HIGHLIGHT-[a-zA-Z]+\\]"
+        );
+        java.util.regex.Matcher matcher = pattern.matcher(text);
+        StringBuffer sb = new StringBuffer();
+
+        while (matcher.find()) {
+            String colorKey = matcher.group(1).toLowerCase();
+            String content = matcher.group(2);
+
+            // Déterminer la couleur highlight
+            String bgColor = highlightColorMap.getOrDefault(colorKey, highlightColorMap.get("yellow"));
+
+            String replacement = "<span style=\"background-color: " + bgColor + "; padding: 0 4px; border-radius: 3px;\">" + content + "</span>";
+            matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(sb);
+
+        return sb.toString();
+    }
+
+    /**
+     * Process conditional blocks [IF-variable]...[/IF-variable]
+     * The content is shown only if the variable will be replaced with a non-empty value.
+     * This method should be called BEFORE variable replacement.
+     */
+    private String handleConditionalBlocks(String text, java.util.Map<String, String> variableValues) {
+        // Pattern pour [IF-variableName]...[/IF-variableName]
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+            "(?s)\\[IF-([a-zA-Z0-9_]+)\\](.*?)\\[/IF-\\1\\]"
+        );
+        java.util.regex.Matcher matcher = pattern.matcher(text);
+        StringBuffer sb = new StringBuffer();
+
+        while (matcher.find()) {
+            String variableName = matcher.group(1);
+            String content = matcher.group(2);
+
+            // Check if the variable has a non-empty value
+            String variableValue = variableValues.get(variableName);
+            boolean hasValue = variableValue != null && !variableValue.trim().isEmpty();
+
+            // If variable has value, keep the content (without IF tags), otherwise remove everything
+            String replacement = hasValue ? content : "";
+            matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(sb);
+
+        return sb.toString();
+    }
+
+    /**
+     * Translate document status enum to human-readable text
+     */
+    private String translateDocumentStatus(Object status, boolean isFrench) {
+        if (status == null) return "";
+        String statusStr = status.toString();
+        
+        if (isFrench) {
+            return switch (statusStr) {
+                case "REQUESTED" -> "Demandé";
+                case "SUBMITTED" -> "Soumis";
+                case "APPROVED" -> "Approuvé";
+                case "NEEDS_REVISION" -> "À réviser";
+                case "REJECTED" -> "Rejeté";
+                default -> statusStr;
+            };
+        } else {
+            return switch (statusStr) {
+                case "REQUESTED" -> "Requested";
+                case "SUBMITTED" -> "Submitted";
+                case "APPROVED" -> "Approved";
+                case "NEEDS_REVISION" -> "Needs Revision";
+                case "REJECTED" -> "Rejected";
+                default -> statusStr;
+            };
+        }
     }
 
     /**

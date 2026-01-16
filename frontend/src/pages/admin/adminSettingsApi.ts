@@ -29,6 +29,26 @@ export interface UpdateOrganizationSettingsRequest {
   stageUpdateBodyEn?: string;
   stageUpdateSubjectFr?: string;
   stageUpdateBodyFr?: string;
+  // Property Offer Made Template
+  propertyOfferMadeSubjectEn?: string;
+  propertyOfferMadeBodyEn?: string;
+  propertyOfferMadeSubjectFr?: string;
+  propertyOfferMadeBodyFr?: string;
+  // Property Offer Status Template
+  propertyOfferStatusSubjectEn?: string;
+  propertyOfferStatusBodyEn?: string;
+  propertyOfferStatusSubjectFr?: string;
+  propertyOfferStatusBodyFr?: string;
+  // Offer Received Template
+  offerReceivedSubjectEn?: string;
+  offerReceivedBodyEn?: string;
+  offerReceivedSubjectFr?: string;
+  offerReceivedBodyFr?: string;
+  // Offer Status Template
+  offerStatusSubjectEn?: string;
+  offerStatusBodyEn?: string;
+  offerStatusSubjectFr?: string;
+  offerStatusBodyFr?: string;
 }
 
 // GET /api/admin/settings

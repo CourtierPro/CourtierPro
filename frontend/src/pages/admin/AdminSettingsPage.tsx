@@ -29,7 +29,11 @@ type EmailTemplateType =
   | "documentSubmitted" 
   | "documentRequested" 
   | "documentReview" 
-  | "stageUpdate";
+  | "stageUpdate"
+  | "propertyOfferMade"
+  | "propertyOfferStatus"
+  | "offerReceived"
+  | "offerStatus";
 
 const EMAIL_TEMPLATE_VARIABLES: Record<EmailTemplateType, string> = {
   invite: "{{name}}",
@@ -37,11 +41,19 @@ const EMAIL_TEMPLATE_VARIABLES: Record<EmailTemplateType, string> = {
   documentRequested: "{{clientName}}, {{brokerName}}, {{documentName}}, {{documentType}}",
   documentReview: "{{brokerName}}, {{documentName}}, {{documentType}}, {{transactionId}}, {{status}}, {{brokerNotes}}",
   stageUpdate: "{{clientName}}, {{brokerName}}, {{transactionAddress}}, {{newStage}}",
+  propertyOfferMade: "{{clientName}}, {{brokerName}}, {{propertyAddress}}, {{offerAmount}}, {{offerRound}}",
+  propertyOfferStatus: "{{clientName}}, {{brokerName}}, {{propertyAddress}}, {{previousStatus}}, {{newStatus}}, {{counterpartyResponse}}",
+  offerReceived: "{{clientName}}, {{brokerName}}, {{buyerName}}, {{offerAmount}}",
+  offerStatus: "{{clientName}}, {{brokerName}}, {{buyerName}}, {{previousStatus}}, {{newStatus}}",
 };
 
 export function AdminSettingsPage() {
   const { t } = useTranslation("admin");
   const hasLoadedRef = useRef(false);
+  const hideTimeoutEnRef = useRef<NodeJS.Timeout>();
+  const hideTimeoutFrRef = useRef<NodeJS.Timeout>();
+  const hideHighlightTimeoutEnRef = useRef<NodeJS.Timeout>();
+  const hideHighlightTimeoutFrRef = useRef<NodeJS.Timeout>();
 
   // Memoized email templates with translated labels
   const emailTemplates = useMemo(() => {
@@ -70,6 +82,22 @@ export function AdminSettingsPage() {
         label: getLabel("stageUpdate"),
         variables: EMAIL_TEMPLATE_VARIABLES.stageUpdate,
       },
+      propertyOfferMade: {
+        label: getLabel("propertyOfferMade"),
+        variables: EMAIL_TEMPLATE_VARIABLES.propertyOfferMade,
+      },
+      propertyOfferStatus: {
+        label: getLabel("propertyOfferStatus"),
+        variables: EMAIL_TEMPLATE_VARIABLES.propertyOfferStatus,
+      },
+      offerReceived: {
+        label: getLabel("offerReceived"),
+        variables: EMAIL_TEMPLATE_VARIABLES.offerReceived,
+      },
+      offerStatus: {
+        label: getLabel("offerStatus"),
+        variables: EMAIL_TEMPLATE_VARIABLES.offerStatus,
+      },
     };
   }, [t]);
 
@@ -80,6 +108,12 @@ export function AdminSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplateType>("invite");
   const [showPreview, setShowPreview] = useState(false);
+  const [showBoxColorPickerEn, setShowBoxColorPickerEn] = useState(false);
+  const [showBoxColorPickerFr, setShowBoxColorPickerFr] = useState(false);
+  const [showHighlightColorPickerEn, setShowHighlightColorPickerEn] = useState(false);
+  const [showHighlightColorPickerFr, setShowHighlightColorPickerFr] = useState(false);
+  const [showFormattingGuide, setShowFormattingGuide] = useState(true);
+  const [boxCustomColor, setBoxCustomColor] = useState("#3b82f6");
 
   // Load settings (only once on mount)
   useEffect(() => {
@@ -113,6 +147,22 @@ export function AdminSettingsPage() {
           stageUpdateBodyEn: data.stageUpdateBodyEn,
           stageUpdateSubjectFr: data.stageUpdateSubjectFr,
           stageUpdateBodyFr: data.stageUpdateBodyFr,
+          propertyOfferMadeSubjectEn: data.propertyOfferMadeSubjectEn,
+          propertyOfferMadeBodyEn: data.propertyOfferMadeBodyEn,
+          propertyOfferMadeSubjectFr: data.propertyOfferMadeSubjectFr,
+          propertyOfferMadeBodyFr: data.propertyOfferMadeBodyFr,
+          propertyOfferStatusSubjectEn: data.propertyOfferStatusSubjectEn,
+          propertyOfferStatusBodyEn: data.propertyOfferStatusBodyEn,
+          propertyOfferStatusSubjectFr: data.propertyOfferStatusSubjectFr,
+          propertyOfferStatusBodyFr: data.propertyOfferStatusBodyFr,
+          offerReceivedSubjectEn: data.offerReceivedSubjectEn,
+          offerReceivedBodyEn: data.offerReceivedBodyEn,
+          offerReceivedSubjectFr: data.offerReceivedSubjectFr,
+          offerReceivedBodyFr: data.offerReceivedBodyFr,
+          offerStatusSubjectEn: data.offerStatusSubjectEn,
+          offerStatusBodyEn: data.offerStatusBodyEn,
+          offerStatusSubjectFr: data.offerStatusSubjectFr,
+          offerStatusBodyFr: data.offerStatusBodyFr,
         });
       } catch {
         toast.error(t("settings.errors.loadFailed"));
@@ -167,6 +217,22 @@ export function AdminSettingsPage() {
         stageUpdateBodyEn: updated.stageUpdateBodyEn,
         stageUpdateSubjectFr: updated.stageUpdateSubjectFr,
         stageUpdateBodyFr: updated.stageUpdateBodyFr,
+        propertyOfferMadeSubjectEn: updated.propertyOfferMadeSubjectEn,
+        propertyOfferMadeBodyEn: updated.propertyOfferMadeBodyEn,
+        propertyOfferMadeSubjectFr: updated.propertyOfferMadeSubjectFr,
+        propertyOfferMadeBodyFr: updated.propertyOfferMadeBodyFr,
+        propertyOfferStatusSubjectEn: updated.propertyOfferStatusSubjectEn,
+        propertyOfferStatusBodyEn: updated.propertyOfferStatusBodyEn,
+        propertyOfferStatusSubjectFr: updated.propertyOfferStatusSubjectFr,
+        propertyOfferStatusBodyFr: updated.propertyOfferStatusBodyFr,
+        offerReceivedSubjectEn: updated.offerReceivedSubjectEn,
+        offerReceivedBodyEn: updated.offerReceivedBodyEn,
+        offerReceivedSubjectFr: updated.offerReceivedSubjectFr,
+        offerReceivedBodyFr: updated.offerReceivedBodyFr,
+        offerStatusSubjectEn: updated.offerStatusSubjectEn,
+        offerStatusBodyEn: updated.offerStatusBodyEn,
+        offerStatusSubjectFr: updated.offerStatusSubjectFr,
+        offerStatusBodyFr: updated.offerStatusBodyFr,
       });
 
       toast.success(t("settings.messages.saved"));
@@ -187,6 +253,10 @@ export function AdminSettingsPage() {
       documentRequested: { En: "documentRequestedSubjectEn", Fr: "documentRequestedSubjectFr" },
       documentReview: { En: "documentReviewSubjectEn", Fr: "documentReviewSubjectFr" },
       stageUpdate: { En: "stageUpdateSubjectEn", Fr: "stageUpdateSubjectFr" },
+      propertyOfferMade: { En: "propertyOfferMadeSubjectEn", Fr: "propertyOfferMadeSubjectFr" },
+      propertyOfferStatus: { En: "propertyOfferStatusSubjectEn", Fr: "propertyOfferStatusSubjectFr" },
+      offerReceived: { En: "offerReceivedSubjectEn", Fr: "offerReceivedSubjectFr" },
+      offerStatus: { En: "offerStatusSubjectEn", Fr: "offerStatusSubjectFr" },
     };
     return fieldMap[type][lang];
   };
@@ -198,6 +268,10 @@ export function AdminSettingsPage() {
       documentRequested: { En: "documentRequestedBodyEn", Fr: "documentRequestedBodyFr" },
       documentReview: { En: "documentReviewBodyEn", Fr: "documentReviewBodyFr" },
       stageUpdate: { En: "stageUpdateBodyEn", Fr: "stageUpdateBodyFr" },
+      propertyOfferMade: { En: "propertyOfferMadeBodyEn", Fr: "propertyOfferMadeBodyFr" },
+      propertyOfferStatus: { En: "propertyOfferStatusBodyEn", Fr: "propertyOfferStatusBodyFr" },
+      offerReceived: { En: "offerReceivedBodyEn", Fr: "offerReceivedBodyFr" },
+      offerStatus: { En: "offerStatusBodyEn", Fr: "offerStatusBodyFr" },
     };
     return fieldMap[type][lang];
   };
@@ -223,25 +297,97 @@ export function AdminSettingsPage() {
   const convertTextToHtml = (text: string) => {
     if (!text) return "";
     
+    // Mock variables for preview
+    const mockVars: Record<string, string> = {
+      clientName: "John Doe",
+      brokerName: "Jane Smith",
+      documentName: "Mortgage Approval",
+      documentType: "Mortgage Approval",
+      transactionId: "3e66f581-83af-4aeb-bbf1-0ec88cfa44f9",
+      status: "Approved",
+      brokerNotes: "Everything looks good. Please proceed."
+    };
+    
+    // Color maps matching backend - BOX colors
+    const colorMap: Record<string, string> = {
+      gray: '#6b7280',
+      red: '#ef4444',
+      green: '#22c55e',
+      blue: '#3b82f6',
+      yellow: '#eab308',
+      orange: '#f97316',
+      white: '#ffffff'
+    };
+
+    const colorStyles: Record<string, [string, string]> = {
+      '#6b7280': ['#f3f4f6', '#1f2937'],      // gray
+      '#ef4444': ['#fee2e2', '#7f1d1d'],      // red
+      '#22c55e': ['#f0fdf4', '#166534'],      // green
+      '#3b82f6': ['#eff6ff', '#1e3a8a'],      // blue
+      '#eab308': ['#fefce8', '#713f12'],      // yellow
+      '#f97316': ['#ffedd5', '#92400e'],      // orange
+      '#ffffff': ['#f9fafb', '#111827']       // white
+    };
+
+    // HIGHLIGHT colors
+    const highlightColorMap: Record<string, string> = {
+      yellow: '#fef08a',
+      pink: '#fbcfe8',
+      blue: '#bfdbfe',
+      green: '#bbf7d0',
+      orange: '#fed7aa'
+    };
+
+    // Replace mock variables FIRST (before HTML escaping)
+    let processed = text;
+    Object.entries(mockVars).forEach(([key, value]) => {
+      processed = processed.replace(new RegExp(`{{${key}}}`, 'g'), value);
+    });
+
     // Escape HTML
-    let escaped = text
+    let escaped = processed
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
     
-    // Handle [HEADING]...[/HEADING]
+    // Handle heading sizes
+    escaped = escaped.replace(
+      /\[HEADING-SM\](.*?)\[\/HEADING-SM\]/gs,
+      '<h4 style="font-size: 1.25em; font-weight: 700; margin: 14px 0 8px 0;">$1</h4>'
+    );
+    escaped = escaped.replace(
+      /\[HEADING-MD\](.*?)\[\/HEADING-MD\]/gs,
+      '<h3 style="font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0;">$1</h3>'
+    );
+    escaped = escaped.replace(
+      /\[HEADING-LG\](.*?)\[\/HEADING-LG\]/gs,
+      '<h2 style="font-size: 1.75em; font-weight: 700; margin: 18px 0 12px 0;">$1</h2>'
+    );
+    // Default heading
     escaped = escaped.replace(
       /\[HEADING\](.*?)\[\/HEADING\]/gs,
-      '<h3 style="font-size: 1.5em; font-weight: bold; margin: 15px 0 10px 0;">$1</h3>'
+      '<h3 style="font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0;">$1</h3>'
     );
     
-    // Handle [BOX]...[/BOX]
+    // Handle [BOX]...[/BOX] (default blue)
     escaped = escaped.replace(
       /\[BOX\](.*?)\[\/BOX\]/gs,
       '<div style="border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;"><p style="margin: 0; color: #1e3a8a; font-weight: 500;">$1</p></div>'
     );
 
-    // Handle colored boxes
+    // Handle dynamic colored boxes [BOX-colorName]
+    escaped = escaped.replace(
+      /\[BOX-([a-zA-Z]+)\](.*?)\[\/BOX-[a-zA-Z]+\]/gs,
+      (match, colorValue, content) => {
+        const colorName = colorValue.toLowerCase();
+        const hexColor = colorMap[colorName] || colorMap['blue'];
+        const [bgColor, textColor] = colorStyles[hexColor] || colorStyles['#3b82f6'];
+        
+        return `<div style="border-left: 4px solid ${hexColor}; background-color: ${bgColor}; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;"><p style="margin: 0; color: ${textColor}; font-weight: 500;">${content}</p></div>`;
+      }
+    );
+
+    // Keep backward compatibility with old uppercase format [BOX-RED], [BOX-BLUE], etc.
     escaped = escaped.replace(
       /\[BOX-RED\](.*?)\[\/BOX-RED\]/gs,
       '<div style="border-left: 4px solid #ef4444; background-color: #fee2e2; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;"><p style="margin: 0; color: #7f1d1d; font-weight: 500;">$1</p></div>'
@@ -265,10 +411,27 @@ export function AdminSettingsPage() {
     // Handle [ITALIC]...[/ITALIC]
     escaped = escaped.replace(/\[ITALIC\](.*?)\[\/ITALIC\]/gs, '<em>$1</em>');
 
-    // Handle [HIGHLIGHT]...[/HIGHLIGHT]
+    // Handle [HIGHLIGHT-colorName]...[/HIGHLIGHT-colorName]
+    escaped = escaped.replace(
+      /\[HIGHLIGHT-([a-zA-Z]+)\](.*?)\[\/HIGHLIGHT-[a-zA-Z]+\]/gs,
+      (match, colorValue, content) => {
+        const colorName = colorValue.toLowerCase();
+        const bgColor = highlightColorMap[colorName] || highlightColorMap['yellow'];
+        
+        return `<span style="background-color: ${bgColor}; padding: 0 4px; border-radius: 3px;">${content}</span>`;
+      }
+    );
+
+    // Handle [HIGHLIGHT]...[/HIGHLIGHT] (default yellow for backward compatibility)
     escaped = escaped.replace(
       /\[HIGHLIGHT\](.*?)\[\/HIGHLIGHT\]/gs,
       '<span style="background-color: #fef08a; padding: 0 4px; border-radius: 3px;">$1</span>'
+    );
+
+    // Handle [IF-variableName]...[/IF-variableName] - for preview, show all conditional blocks
+    escaped = escaped.replace(
+      /\[IF-([a-zA-Z0-9_]+)\](.*?)\[\/IF-\1\]/gs,
+      '$2' // Keep only the content, strip the IF tags
     );
 
     // Handle [SEPARATOR]
@@ -304,13 +467,64 @@ export function AdminSettingsPage() {
           }}
         />
 
+        {/* Password Link Section - Only for Invite Template */}
+        {selectedTemplate === "invite" && (
+        <div className="mt-4 pt-4 border-t border-gray-300">
+          {/* Button */}
+          <table role="presentation" style={{ margin: "30px 0" }}>
+            <tbody>
+              <tr>
+                <td>
+                  <a
+                    href="#"
+                    style={{
+                      backgroundColor: "#4CAF50",
+                      color: "white",
+                      padding: "14px 28px",
+                      textDecoration: "none",
+                      borderRadius: "4px",
+                      display: "inline-block",
+                      fontWeight: "bold"
+                    }}
+                  >
+                    {fieldNames.bodyEnField === "inviteBodyEn" 
+                      ? "Set Your Password" 
+                      : "Définir votre mot de passe"}
+                  </a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          
+          {/* Link instructions */}
+          <p style={{ marginTop: "30px", color: "#666", fontSize: "14px" }}>
+            {fieldNames.bodyEnField === "inviteBodyEn" 
+              ? "Or copy and paste this URL into your browser:" 
+              : "Ou copiez-collez ce lien dans votre navigateur :"}
+          </p>
+          <p style={{ color: "#666", fontSize: "12px", wordBreak: "break-all", marginTop: "10px" }}>
+            https://example.com/reset-password?token=abc123def456
+          </p>
+        </div>
+        )}
+
         {/* Footer Preview */}
         <div className="border-t border-gray-300 pt-4 mt-4">
           <hr style={{ border: "none", borderTop: "1px solid #e0e0e0", margin: "0" }} />
           <p style={{ color: "#666", fontSize: "12px", lineHeight: "1.6", marginTop: "15px" }}>
-            Merci,<br />
-            Cordialement,<br />
-            <strong>Équipe CourtierPro</strong>
+            {selectedTemplate === "invite" && fieldNames.bodyEnField === "inviteBodyEn" ? (
+              <>
+                Thanks,<br />
+                Best regards,<br />
+                <strong>CourtierPro Team</strong>
+              </>
+            ) : (
+              <>
+                Merci,<br />
+                Cordialement,<br />
+                <strong>Équipe CourtierPro</strong>
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -327,22 +541,38 @@ export function AdminSettingsPage() {
       bodyFrField: keyof UpdateOrganizationSettingsRequest
     ) => (
       <div className="space-y-6">
-        {/* Formatting Guide */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 dark:bg-green-950/30 dark:border-green-900">
-          <p className="text-sm text-green-900 dark:text-green-200 font-semibold mb-3 flex items-center gap-2">
-            <Lightbulb className="h-4 w-4" />
-            {t("settings.templatesCard.formattingGuide")}
-          </p>
-          <ul className="text-xs text-green-800 dark:text-green-300 space-y-2">
-            <li><span className="font-mono font-semibold">[HEADING]Your Text[/HEADING]</span> - {t("settings.templatesCard.formattingGuideHeading")}</li>
-            <li><span className="font-mono font-semibold">[BOX]Your Text[/BOX]</span> - {t("settings.templatesCard.formattingGuideBox")}</li>
-            <li><span className="font-mono font-semibold">[BOLD]Text[/BOLD]</span> - {t("settings.templatesCard.formattingGuideBold")}</li>
-            <li><span className="font-mono font-semibold">[ITALIC]Text[/ITALIC]</span> - {t("settings.templatesCard.formattingGuideItalic")}</li>
-            <li><span className="font-mono font-semibold">[HIGHLIGHT]Text[/HIGHLIGHT]</span> - {t("settings.templatesCard.formattingGuideHighlight")}</li>
-            <li><span className="font-mono font-semibold">[SEPARATOR]</span> - {t("settings.templatesCard.formattingGuideSeparator")}</li>
-            <li><span className="font-mono font-semibold">[BOX-RED], [BOX-BLUE], [BOX-GREEN], [BOX-YELLOW]</span> - {t("settings.templatesCard.formattingGuideBoxRed")} / {t("settings.templatesCard.formattingGuideBoxBlue")} / {t("settings.templatesCard.formattingGuideBoxGreen")} / {t("settings.templatesCard.formattingGuideBoxYellow")}</li>
-            <li>{t("settings.templatesCard.formattingGuideParagraphs")}</li>
-          </ul>
+        {/* Formatting Guide - Collapsible */}
+        <div className="bg-green-50 border border-green-200 rounded-lg dark:bg-green-950/30 dark:border-green-900">
+          <button
+            type="button"
+            onClick={() => setShowFormattingGuide(!showFormattingGuide)}
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors rounded-t-lg"
+          >
+            <p className="text-sm text-green-900 dark:text-green-200 font-semibold flex items-center gap-2">
+              <Lightbulb className="h-4 w-4" />
+              {t("settings.templatesCard.formattingGuide")}
+            </p>
+            <span className={`text-green-900 dark:text-green-200 transition-transform ${showFormattingGuide ? 'rotate-180' : ''}`}>
+              ▼
+            </span>
+          </button>
+
+          {showFormattingGuide && (
+          <div className="px-4 pb-4 border-t border-green-200 dark:border-green-900">
+            <ul className="text-xs text-green-800 dark:text-green-300 space-y-2 mt-3">
+              <li><span className="font-mono font-semibold">[HEADING] / [HEADING-SM] / [HEADING-MD] / [HEADING-LG]</span> - {t("settings.templatesCard.formattingGuideHeadingSizes")}</li>
+              <li><span className="font-mono font-semibold">[BOX]Your Text[/BOX]</span> - {t("settings.templatesCard.formattingGuideBox")}</li>
+              <li><span className="font-mono font-semibold">[BOX-gray], [BOX-red], [BOX-green], [BOX-blue], [BOX-yellow], [BOX-orange], [BOX-white]</span> - Colored boxes</li>
+              <li><span className="font-mono font-semibold">[BOLD]Text[/BOLD]</span> - {t("settings.templatesCard.formattingGuideBold")}</li>
+              <li><span className="font-mono font-semibold">[ITALIC]Text[/ITALIC]</span> - {t("settings.templatesCard.formattingGuideItalic")}</li>
+              <li><span className="font-mono font-semibold">[HIGHLIGHT]Text[/HIGHLIGHT]</span> - {t("settings.templatesCard.formattingGuideHighlight")}</li>
+              <li><span className="font-mono font-semibold">[HIGHLIGHT-yellow], [HIGHLIGHT-pink], [HIGHLIGHT-blue], [HIGHLIGHT-green], [HIGHLIGHT-orange]</span> - Colored highlights</li>
+              <li><span className="font-mono font-semibold">[SEPARATOR]</span> - {t("settings.templatesCard.formattingGuideSeparator")}</li>
+              <li><span className="font-mono font-semibold">[IF-variableName]Content[/IF-variableName]</span> - {t("settings.templatesCard.formattingGuideConditional")}</li>
+              <li>{t("settings.templatesCard.formattingGuideParagraphs")}</li>
+            </ul>
+          </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -381,15 +611,102 @@ export function AdminSettingsPage() {
                   <Heading2 className="h-4 w-4" />
                   {t("settings.templatesCard.headingButton")}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => insertTemplate(bodyEnField, "[BOX]Your important content here[/BOX]")}
-                  disabled={isDisabled}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded text-sm font-medium transition-colors disabled:opacity-50"
+
+                {/* BOX button with color picker dropdown */}
+                <div
+                  className="relative"
+                  onMouseEnter={() => {
+                    clearTimeout(hideTimeoutEnRef.current);
+                    setShowBoxColorPickerEn(true);
+                  }}
+                  onMouseLeave={() => {
+                    hideTimeoutEnRef.current = setTimeout(() => {
+                      setShowBoxColorPickerEn(false);
+                    }, 150);
+                  }}
                 >
-                  <Square className="h-4 w-4" />
-                  {t("settings.templatesCard.boxButton")}
-                </button>
+                  <button
+                    type="button"
+                    disabled={isDisabled}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded text-sm font-medium transition-colors disabled:opacity-50"
+                  >
+                    <Square className="h-4 w-4" />
+                    {t("settings.templatesCard.boxButton")}
+                  </button>
+                  
+                  {/* Dropdown menu */}
+                  {showBoxColorPickerEn && (
+                  <div className="absolute left-0 top-full mt-1 bg-white dark:bg-slate-800 border border-border rounded shadow-lg z-50 p-2 space-y-1 w-48">
+                    {/* Named colors */}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyEnField, "[BOX-gray]Your message[/BOX-gray]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                        Gray
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyEnField, "[BOX-red]Your message[/BOX-red]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-red-100 dark:hover:bg-red-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        Red
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyEnField, "[BOX-green]Your message[/BOX-green]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-green-100 dark:hover:bg-green-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        Green
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyEnField, "[BOX-blue]Your message[/BOX-blue]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        Blue
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyEnField, "[BOX-yellow]Your message[/BOX-yellow]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                        Yellow
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyEnField, "[BOX-orange]Your message[/BOX-orange]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-orange-100 dark:hover:bg-orange-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                        Orange
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyEnField, "[BOX-white]Your message[/BOX-white]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-white rounded-full border border-gray-300"></div>
+                        White
+                      </button>
+                    </div>
+                  </div>
+                  )}
+                </div>
+
                 <button
                   type="button"
                   onClick={() => insertTemplate(bodyEnField, "[BOLD]Bold text[/BOLD]")}
@@ -408,15 +725,81 @@ export function AdminSettingsPage() {
                   <ItalicIcon className="h-4 w-4" />
                   {t("settings.templatesCard.italicButton")}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => insertTemplate(bodyEnField, "[HIGHLIGHT]Highlighted text[/HIGHLIGHT]")}
-                  disabled={isDisabled}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded text-sm font-medium transition-colors disabled:opacity-50"
+                <div
+                  className="relative"
+                  onMouseEnter={() => {
+                    clearTimeout(hideHighlightTimeoutEnRef.current);
+                    setShowHighlightColorPickerEn(true);
+                  }}
+                  onMouseLeave={() => {
+                    hideHighlightTimeoutEnRef.current = setTimeout(() => {
+                      setShowHighlightColorPickerEn(false);
+                    }, 150);
+                  }}
                 >
-                  <Highlighter className="h-4 w-4" />
-                  {t("settings.templatesCard.highlightButton")}
-                </button>
+                  <button
+                    type="button"
+                    disabled={isDisabled}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded text-sm font-medium transition-colors disabled:opacity-50"
+                  >
+                    <Highlighter className="h-4 w-4" />
+                    {t("settings.templatesCard.highlightButton")}
+                  </button>
+
+                  {/* Dropdown menu */}
+                  {showHighlightColorPickerEn && (
+                  <div className="absolute left-0 top-full mt-1 bg-white dark:bg-slate-800 border border-border rounded shadow-lg z-50 p-2 space-y-1 w-48">
+                    {/* Highlight colors */}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyEnField, "[HIGHLIGHT-yellow]Highlighted text[/HIGHLIGHT-yellow]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-yellow-300 rounded-full"></div>
+                        Yellow
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyEnField, "[HIGHLIGHT-pink]Highlighted text[/HIGHLIGHT-pink]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-pink-100 dark:hover:bg-pink-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-pink-300 rounded-full"></div>
+                        Pink
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyEnField, "[HIGHLIGHT-blue]Highlighted text[/HIGHLIGHT-blue]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-blue-300 rounded-full"></div>
+                        Blue
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyEnField, "[HIGHLIGHT-green]Highlighted text[/HIGHLIGHT-green]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-green-100 dark:hover:bg-green-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-green-300 rounded-full"></div>
+                        Green
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyEnField, "[HIGHLIGHT-orange]Highlighted text[/HIGHLIGHT-orange]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-orange-100 dark:hover:bg-orange-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-orange-300 rounded-full"></div>
+                        Orange
+                      </button>
+                    </div>
+                  </div>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={() => insertTemplate(bodyEnField, "[SEPARATOR]")}
@@ -425,46 +808,6 @@ export function AdminSettingsPage() {
                 >
                   <Minus className="h-4 w-4" />
                   {t("settings.templatesCard.separatorButton")}
-                </button>
-              </div>
-
-              {/* Colored Box Toolbar */}
-              <div className="flex gap-2 mb-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => insertTemplate(bodyEnField, "[BOX-RED]Your error message[/BOX-RED]")}
-                  disabled={isDisabled}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-red-200 hover:bg-red-300 dark:bg-red-900/40 dark:hover:bg-red-900/60 rounded text-xs font-medium transition-colors disabled:opacity-50 border border-red-400"
-                >
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  {t("settings.templatesCard.boxRedButton")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertTemplate(bodyEnField, "[BOX-BLUE]Your info message[/BOX-BLUE]")}
-                  disabled={isDisabled}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-blue-200 hover:bg-blue-300 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 rounded text-xs font-medium transition-colors disabled:opacity-50 border border-blue-400"
-                >
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  {t("settings.templatesCard.boxBlueButton")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertTemplate(bodyEnField, "[BOX-GREEN]Your success message[/BOX-GREEN]")}
-                  disabled={isDisabled}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-green-200 hover:bg-green-300 dark:bg-green-900/40 dark:hover:bg-green-900/60 rounded text-xs font-medium transition-colors disabled:opacity-50 border border-green-400"
-                >
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  {t("settings.templatesCard.boxGreenButton")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertTemplate(bodyEnField, "[BOX-YELLOW]Your warning message[/BOX-YELLOW]")}
-                  disabled={isDisabled}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-yellow-200 hover:bg-yellow-300 dark:bg-yellow-900/40 dark:hover:bg-yellow-900/60 rounded text-xs font-medium transition-colors disabled:opacity-50 border border-yellow-400"
-                >
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  {t("settings.templatesCard.boxYellowButton")}
                 </button>
               </div>
 
@@ -514,15 +857,178 @@ export function AdminSettingsPage() {
                   <Heading2 className="h-4 w-4" />
                   {t("settings.templatesCard.headingButton")}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => insertTemplate(bodyFrField, "[BOX]Votre contenu important ici[/BOX]")}
-                  disabled={isDisabled}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded text-sm font-medium transition-colors disabled:opacity-50"
+
+                {/* BOX button with color picker dropdown - FR */}
+                <div
+                  className="relative"
+                  onMouseEnter={() => {
+                    clearTimeout(hideTimeoutFrRef.current);
+                    setShowBoxColorPickerFr(true);
+                  }}
+                  onMouseLeave={() => {
+                    hideTimeoutFrRef.current = setTimeout(() => {
+                      setShowBoxColorPickerFr(false);
+                    }, 150);
+                  }}
                 >
-                  <Square className="h-4 w-4" />
-                  {t("settings.templatesCard.boxButton")}
-                </button>
+                  <button
+                    type="button"
+                    disabled={isDisabled}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded text-sm font-medium transition-colors disabled:opacity-50"
+                  >
+                    <Square className="h-4 w-4" />
+                    {t("settings.templatesCard.boxButton")}
+                  </button>
+                  
+                  {/* Dropdown menu */}
+                  {showBoxColorPickerFr && (
+                  <div className="absolute left-0 top-full mt-1 bg-white dark:bg-slate-800 border border-border rounded shadow-lg z-50 p-2 space-y-1 w-48">
+                    {/* Named colors */}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyFrField, "[BOX-gray]Votre message[/BOX-gray]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                        Gris
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyFrField, "[BOX-red]Votre message[/BOX-red]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-red-100 dark:hover:bg-red-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        Rouge
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyFrField, "[BOX-green]Votre message[/BOX-green]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-green-100 dark:hover:bg-green-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        Vert
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyFrField, "[BOX-blue]Votre message[/BOX-blue]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        Bleu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyFrField, "[BOX-yellow]Votre message[/BOX-yellow]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                        Jaune
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyFrField, "[BOX-orange]Votre message[/BOX-orange]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-orange-100 dark:hover:bg-orange-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                        Orange
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyFrField, "[BOX-white]Votre message[/BOX-white]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-white rounded-full border border-gray-300"></div>
+                        Blanc
+                      </button>
+                    </div>
+                  </div>
+                  )}
+                </div>
+
+                <div
+                  className="relative"
+                  onMouseEnter={() => {
+                    clearTimeout(hideHighlightTimeoutFrRef.current);
+                    setShowHighlightColorPickerFr(true);
+                  }}
+                  onMouseLeave={() => {
+                    hideHighlightTimeoutFrRef.current = setTimeout(() => {
+                      setShowHighlightColorPickerFr(false);
+                    }, 150);
+                  }}
+                >
+                  <button
+                    type="button"
+                    disabled={isDisabled}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded text-sm font-medium transition-colors disabled:opacity-50"
+                  >
+                    <Highlighter className="h-4 w-4" />
+                    {t("settings.templatesCard.highlightButton")}
+                  </button>
+
+                  {/* Dropdown menu */}
+                  {showHighlightColorPickerFr && (
+                  <div className="absolute left-0 top-full mt-1 bg-white dark:bg-slate-800 border border-border rounded shadow-lg z-50 p-2 space-y-1 w-48">
+                    {/* Highlight colors */}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyFrField, "[HIGHLIGHT-yellow]Texte surligné[/HIGHLIGHT-yellow]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-yellow-300 rounded-full"></div>
+                        Jaune
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyFrField, "[HIGHLIGHT-pink]Texte surligné[/HIGHLIGHT-pink]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-pink-100 dark:hover:bg-pink-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-pink-300 rounded-full"></div>
+                        Rose
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyFrField, "[HIGHLIGHT-blue]Texte surligné[/HIGHLIGHT-blue]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-blue-300 rounded-full"></div>
+                        Bleu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyFrField, "[HIGHLIGHT-green]Texte surligné[/HIGHLIGHT-green]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-green-100 dark:hover:bg-green-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-green-300 rounded-full"></div>
+                        Vert
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertTemplate(bodyFrField, "[HIGHLIGHT-orange]Texte surligné[/HIGHLIGHT-orange]")}
+                        disabled={isDisabled}
+                        className="w-full text-left px-2 py-1 hover:bg-orange-100 dark:hover:bg-orange-900/40 rounded text-xs transition-colors flex items-center gap-2"
+                      >
+                        <div className="w-3 h-3 bg-orange-300 rounded-full"></div>
+                        Orange
+                      </button>
+                    </div>
+                  </div>
+                  )}
+                </div>
+
                 <button
                   type="button"
                   onClick={() => insertTemplate(bodyFrField, "[BOLD]Texte en gras[/BOLD]")}
@@ -543,61 +1049,12 @@ export function AdminSettingsPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => insertTemplate(bodyFrField, "[HIGHLIGHT]Texte surligné[/HIGHLIGHT]")}
-                  disabled={isDisabled}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded text-sm font-medium transition-colors disabled:opacity-50"
-                >
-                  <Highlighter className="h-4 w-4" />
-                  {t("settings.templatesCard.highlightButton")}
-                </button>
-                <button
-                  type="button"
                   onClick={() => insertTemplate(bodyFrField, "[SEPARATOR]")}
                   disabled={isDisabled}
                   className="flex items-center gap-2 px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 rounded text-sm font-medium transition-colors disabled:opacity-50"
                 >
                   <Minus className="h-4 w-4" />
                   {t("settings.templatesCard.separatorButton")}
-                </button>
-              </div>
-
-              {/* Colored Box Toolbar */}
-              <div className="flex gap-2 mb-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => insertTemplate(bodyFrField, "[BOX-RED]Votre message d'erreur[/BOX-RED]")}
-                  disabled={isDisabled}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-red-200 hover:bg-red-300 dark:bg-red-900/40 dark:hover:bg-red-900/60 rounded text-xs font-medium transition-colors disabled:opacity-50 border border-red-400"
-                >
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  {t("settings.templatesCard.boxRedButton")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertTemplate(bodyFrField, "[BOX-BLUE]Votre message d'information[/BOX-BLUE]")}
-                  disabled={isDisabled}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-blue-200 hover:bg-blue-300 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 rounded text-xs font-medium transition-colors disabled:opacity-50 border border-blue-400"
-                >
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  {t("settings.templatesCard.boxBlueButton")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertTemplate(bodyFrField, "[BOX-GREEN]Votre message de succès[/BOX-GREEN]")}
-                  disabled={isDisabled}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-green-200 hover:bg-green-300 dark:bg-green-900/40 dark:hover:bg-green-900/60 rounded text-xs font-medium transition-colors disabled:opacity-50 border border-green-400"
-                >
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  {t("settings.templatesCard.boxGreenButton")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertTemplate(bodyFrField, "[BOX-YELLOW]Votre message d'avertissement[/BOX-YELLOW]")}
-                  disabled={isDisabled}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-yellow-200 hover:bg-yellow-300 dark:bg-yellow-900/40 dark:hover:bg-yellow-900/60 rounded text-xs font-medium transition-colors disabled:opacity-50 border border-yellow-400"
-                >
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  {t("settings.templatesCard.boxYellowButton")}
                 </button>
               </div>
 

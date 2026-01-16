@@ -1,0 +1,5 @@
+Bonjour {{name}}, votre compte CourtierPro a été créé.
+
+[HEADING]Définir votre mot de passe[/HEADING]
+
+Cliquez sur le lien ci-dessous pour compléter la configuration de votre compte.

@@ -273,6 +273,22 @@ CREATE TABLE IF NOT EXISTS organization_settings (
     stage_update_body_en TEXT,
     stage_update_subject_fr VARCHAR(255),
     stage_update_body_fr TEXT,
+    property_offer_made_subject_en VARCHAR(255),
+    property_offer_made_body_en TEXT,
+    property_offer_made_subject_fr VARCHAR(255),
+    property_offer_made_body_fr TEXT,
+    property_offer_status_subject_en VARCHAR(255),
+    property_offer_status_body_en TEXT,
+    property_offer_status_subject_fr VARCHAR(255),
+    property_offer_status_body_fr TEXT,
+    offer_received_subject_en VARCHAR(255),
+    offer_received_body_en TEXT,
+    offer_received_subject_fr VARCHAR(255),
+    offer_received_body_fr TEXT,
+    offer_status_subject_en VARCHAR(255),
+    offer_status_body_en TEXT,
+    offer_status_subject_fr VARCHAR(255),
+    offer_status_body_fr TEXT,
     updated_at TIMESTAMP NOT NULL
 );
 

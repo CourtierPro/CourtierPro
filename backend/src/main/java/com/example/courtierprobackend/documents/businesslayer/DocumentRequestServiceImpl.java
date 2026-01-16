@@ -160,6 +160,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                         brokerName,
                                         documentName,
                                         docType,
+                                        requestDTO.getBrokerNotes(),
                                         clientLanguage);
 
                         // In-app Notification for Client

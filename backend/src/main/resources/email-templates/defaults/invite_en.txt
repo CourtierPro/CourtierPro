@@ -1,0 +1,5 @@
+Hi {{name}}, your CourtierPro account has been created.
+
+[HEADING]Set Your Password[/HEADING]
+
+Click the link below to complete your account setup.

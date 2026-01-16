@@ -1,0 +1,14 @@
+[HEADING-LG]Document à réviser[/HEADING-LG]
+
+Un nouveau document a été soumis pour votre révision.
+
+[HEADING-SM]Informations[/HEADING-SM]
+
+[BOX-blue]
+[BOLD]Document :[/BOLD] {{documentName}}
+[BOLD]Type :[/BOLD] {{documentType}}
+[BOLD]Transaction :[/BOLD] {{transactionId}}
+[BOLD]Soumis par :[/BOLD] {{uploaderName}}
+[/BOX-blue]
+
+Connectez-vous pour examiner ce document.

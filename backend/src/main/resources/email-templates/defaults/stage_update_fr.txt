@@ -1,0 +1,12 @@
+Bonjour {{clientName}},
+
+[HEADING]Mise à Jour de la Transaction[/HEADING]
+
+Votre transaction a été mise à jour!
+
+[BOX-green]
+Propriété: {{transactionAddress}}
+Nouveaux stade: {{newStage}}
+[/BOX-green]
+
+Votre courtier {{brokerName}} a fait avancer votre transaction à la prochaine étape. Si vous avez des questions, n'hésitez pas à nous contacter.

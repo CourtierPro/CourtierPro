@@ -1,0 +1,19 @@
+Bonjour {{clientName}},
+
+[HEADING]Votre offre a été mise à jour[/HEADING]
+
+Votre offre sur {{propertyAddress}} a changé de statut.
+
+[BOX]
+[BOLD]Statut précédent:[/BOLD] {{previousStatus}}
+[BOLD]Nouveau statut:[/BOLD] {{newStatus}}
+[/BOX]
+
+[IF-counterpartyResponse]
+[BOX-yellow]
+[BOLD]Réponse de la contrepartie:[/BOLD]
+{{counterpartyResponse}}
+[/BOX-yellow]
+[/IF-counterpartyResponse]
+
+Votre courtier {{brokerName}} discutera des prochaines étapes avec vous.
