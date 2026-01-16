@@ -516,4 +516,212 @@ class ClientTransactionControllerTest {
         request.setAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR, internalId);
         return request;
     }
+
+    // ========== Property Offer Tests ==========
+
+    @Test
+    void getPropertyOffers_WithValidRequest_ReturnsOffers() {
+        UUID clientId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(clientId);
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferResponseDTO offer = 
+            com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferResponseDTO.builder()
+                .propertyOfferId(UUID.randomUUID())
+                .propertyId(propertyId)
+                .offerAmount(BigDecimal.valueOf(450000))
+                .build();
+        when(transactionService.getPropertyOffers(eq(propertyId), eq(clientId), eq(false))).thenReturn(List.of(offer));
+
+        ResponseEntity<List<com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferResponseDTO>> response = 
+            controller.getPropertyOffers(clientId.toString(), transactionId, propertyId, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().get(0).getPropertyOfferId()).isEqualTo(offer.getPropertyOfferId());
+        verify(transactionService).getPropertyOffers(propertyId, clientId, false);
+    }
+
+    @Test
+    void getPropertyOffers_WithMismatchedClientId_ThrowsForbidden() {
+        UUID internalId = UUID.randomUUID();
+        UUID differentClientId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(internalId);
+
+        assertThatThrownBy(() -> controller.getPropertyOffers(differentClientId.toString(), transactionId, propertyId, request))
+            .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
+            .hasMessageContaining("only access your own transactions");
+
+        verifyNoInteractions(transactionService);
+    }
+
+    // ========== Property Offer Document Tests ==========
+
+    @Test
+    void getPropertyOfferDocuments_WithValidRequest_ReturnsDocuments() {
+        UUID clientId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(clientId);
+
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO doc = 
+            com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO.builder()
+                .documentId(UUID.randomUUID())
+                .fileName("offer-doc.pdf")
+                .build();
+        when(transactionService.getPropertyOfferDocuments(eq(propertyOfferId), eq(clientId), eq(false))).thenReturn(List.of(doc));
+
+        ResponseEntity<List<com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO>> response = 
+            controller.getPropertyOfferDocuments(clientId.toString(), transactionId, propertyId, propertyOfferId, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().get(0).getFileName()).isEqualTo("offer-doc.pdf");
+        verify(transactionService).getPropertyOfferDocuments(propertyOfferId, clientId, false);
+    }
+
+    @Test
+    void getPropertyOfferDocuments_WithMismatchedClientId_ThrowsForbidden() {
+        UUID internalId = UUID.randomUUID();
+        UUID differentClientId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(internalId);
+
+        assertThatThrownBy(() -> controller.getPropertyOfferDocuments(differentClientId.toString(), transactionId, propertyId, propertyOfferId, request))
+            .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
+            .hasMessageContaining("only access your own transactions");
+
+        verifyNoInteractions(transactionService);
+    }
+
+    // ========== Offer Document Tests ==========
+
+    @Test
+    void getOfferDocuments_WithValidRequest_ReturnsDocuments() {
+        UUID clientId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(clientId);
+
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO doc = 
+            com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO.builder()
+                .documentId(UUID.randomUUID())
+                .fileName("contract.pdf")
+                .build();
+        when(transactionService.getOfferDocuments(eq(offerId), eq(clientId), eq(false))).thenReturn(List.of(doc));
+
+        ResponseEntity<List<com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO>> response = 
+            controller.getOfferDocuments(clientId.toString(), transactionId, offerId, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().get(0).getFileName()).isEqualTo("contract.pdf");
+        verify(transactionService).getOfferDocuments(offerId, clientId, false);
+    }
+
+    @Test
+    void getOfferDocuments_WithMismatchedClientId_ThrowsForbidden() {
+        UUID internalId = UUID.randomUUID();
+        UUID differentClientId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(internalId);
+
+        assertThatThrownBy(() -> controller.getOfferDocuments(differentClientId.toString(), transactionId, offerId, request))
+            .isInstanceOf(com.example.courtierprobackend.common.exceptions.ForbiddenException.class)
+            .hasMessageContaining("only access your own transactions");
+
+        verifyNoInteractions(transactionService);
+    }
+
+    // ========== Auth0 ID Resolution Tests ==========
+
+    @Test
+    void getPropertyOffers_NotUuid_AccountMatchesInternalId_Succeeds() {
+        String notUuid = "auth0|12345";
+        UUID internalId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(internalId);
+
+        com.example.courtierprobackend.user.dataaccesslayer.UserAccount account = 
+            mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(account.getId()).thenReturn(internalId);
+        when(userAccountRepository.findByAuth0UserId(notUuid)).thenReturn(java.util.Optional.of(account));
+
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferResponseDTO offer = 
+            com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferResponseDTO.builder()
+                .propertyOfferId(UUID.randomUUID())
+                .propertyId(propertyId)
+                .build();
+        when(transactionService.getPropertyOffers(eq(propertyId), eq(internalId), eq(false))).thenReturn(List.of(offer));
+
+        ResponseEntity<List<com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferResponseDTO>> response = 
+            controller.getPropertyOffers(notUuid, transactionId, propertyId, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+    }
+
+    @Test
+    void getPropertyOfferDocuments_NotUuid_AccountMatchesInternalId_Succeeds() {
+        String notUuid = "auth0|67890";
+        UUID internalId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(internalId);
+
+        com.example.courtierprobackend.user.dataaccesslayer.UserAccount account = 
+            mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(account.getId()).thenReturn(internalId);
+        when(userAccountRepository.findByAuth0UserId(notUuid)).thenReturn(java.util.Optional.of(account));
+
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO doc = 
+            com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO.builder()
+                .documentId(UUID.randomUUID())
+                .fileName("doc.pdf")
+                .build();
+        when(transactionService.getPropertyOfferDocuments(eq(propertyOfferId), eq(internalId), eq(false))).thenReturn(List.of(doc));
+
+        ResponseEntity<List<com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO>> response = 
+            controller.getPropertyOfferDocuments(notUuid, transactionId, propertyId, propertyOfferId, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+    }
+
+    @Test
+    void getOfferDocuments_NotUuid_AccountMatchesInternalId_Succeeds() {
+        String notUuid = "auth0|abcde";
+        UUID internalId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(internalId);
+
+        com.example.courtierprobackend.user.dataaccesslayer.UserAccount account = 
+            mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(account.getId()).thenReturn(internalId);
+        when(userAccountRepository.findByAuth0UserId(notUuid)).thenReturn(java.util.Optional.of(account));
+
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO doc = 
+            com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO.builder()
+                .documentId(UUID.randomUUID())
+                .fileName("offer.pdf")
+                .build();
+        when(transactionService.getOfferDocuments(eq(offerId), eq(internalId), eq(false))).thenReturn(List.of(doc));
+
+        ResponseEntity<List<com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO>> response = 
+            controller.getOfferDocuments(notUuid, transactionId, offerId, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+    }
 }
+

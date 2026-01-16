@@ -32,6 +32,7 @@ interface StageUpdateModalProps {
   onClose: () => void;
   transactionSide: 'buy' | 'sell';
   transactionId: string;
+  currentStage?: string;
   isLoading?: boolean;
   onSubmit?: (stage: string, note: string) => Promise<void> | void;
 }
@@ -49,6 +50,7 @@ export function StageUpdateModal(props: StageUpdateModalProps) {
 function StageUpdateForm({
   onClose,
   transactionSide,
+  currentStage,
   isLoading = false,
   onSubmit,
 }: StageUpdateModalProps) {
@@ -60,10 +62,25 @@ function StageUpdateForm({
       ? (t('buyStageDescriptions', { returnObjects: true }) as string[])
       : (t('sellStageDescriptions', { returnObjects: true }) as string[]);
 
+  // Compute the default next stage (current stage + 1)
+  const computeNextStage = (): string => {
+    if (!currentStage) return '';
+    const currentIndex = stageEnums.indexOf(currentStage);
+    if (currentIndex < 0) return '';
+    // If not at the last stage, return the next one
+    if (currentIndex < stageEnums.length - 1) {
+      return stageEnums[currentIndex + 1];
+    }
+    // If at the last stage, return current (shouldn't happen often)
+    return currentStage;
+  };
+
+  const defaultNextStage = computeNextStage();
+
   const form = useForm<StageUpdateFormValues>({
     resolver: zodResolver(stageUpdateSchema),
     defaultValues: {
-      stage: '',
+      stage: defaultNextStage,
       note: '',
       visibleToClient: true,
     },
@@ -74,11 +91,11 @@ function StageUpdateForm({
 
   useEffect(() => {
     reset({
-      stage: '',
+      stage: defaultNextStage,
       note: '',
       visibleToClient: true,
     });
-  }, [reset]);
+  }, [reset, defaultNextStage]);
 
   const handleSubmit = async (data: StageUpdateFormValues) => {
     try {

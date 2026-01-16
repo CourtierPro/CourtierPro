@@ -8,9 +8,13 @@ import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.value
 import com.example.courtierprobackend.audit.timeline_audit.datamapperlayer.TimelineEntryMapper;
 import com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -69,4 +73,29 @@ public class TimelineServiceImpl implements TimelineService {
         }
         return entries.stream().map(timelineEntryMapper::toDTO).toList();
     }
+
+    @Override
+    public List<TimelineEntryDTO> getRecentEntriesForTransactions(Set<UUID> transactionIds, int limit) {
+        if (transactionIds == null || transactionIds.isEmpty()) {
+            return List.of();
+        }
+        
+        return transactionIds.stream()
+                .flatMap(txId -> repository.findByTransactionIdOrderByTimestampAsc(txId).stream())
+                .sorted(Comparator.comparing(TimelineEntry::getTimestamp).reversed())
+                .limit(limit)
+                .map(timelineEntryMapper::toDTO)
+                .toList();
+    }
+    
+    @Override
+    public Page<TimelineEntryDTO> getRecentEntriesForTransactionsPaged(Set<UUID> transactionIds, Pageable pageable) {
+        if (transactionIds == null || transactionIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        
+        Page<TimelineEntry> entriesPage = repository.findByTransactionIdInOrderByTimestampDesc(transactionIds, pageable);
+        return entriesPage.map(timelineEntryMapper::toDTO);
+    }
 }
+

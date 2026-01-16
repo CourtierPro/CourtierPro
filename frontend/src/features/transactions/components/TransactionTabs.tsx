@@ -234,6 +234,7 @@ export function TransactionTabs({
           focusDocumentId={focusDocumentId}
           isReadOnly={isReadOnly}
           transactionSide={transaction.side}
+          currentStage={typeof transaction.currentStage === 'string' ? transaction.currentStage : undefined}
         />
       </TabsContent>
 

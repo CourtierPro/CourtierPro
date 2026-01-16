@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/shared/api/axiosInstance';
 import { transactionKeys } from '@/features/transactions/api/queries';
+import { dashboardKeys } from '@/features/dashboard/api/queries';
 import type { TransactionRequestDTO, StageUpdateRequestDTO } from '@/shared/api/types';
 
 export function useUpdateTransactionStage() {
@@ -17,7 +18,9 @@ export function useUpdateTransactionStage() {
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
             queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
-            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] }); // Ajouté
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+            // Invalidate dashboard recent activity
+            queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
         },
     });
 }
@@ -53,6 +56,8 @@ export function useCreateTransaction() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
+            // Invalidate dashboard recent activity so it updates immediately
+            queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
         },
     });
 }

@@ -35,9 +35,10 @@ interface DocumentsPageProps {
   transactionSide?: 'BUY_SIDE' | 'SELL_SIDE';
   hideRequestButton?: boolean;
   clientId?: string;
+  currentStage?: string;
 }
 
-export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = false, transactionSide = 'BUY_SIDE', hideRequestButton = false, clientId }: DocumentsPageProps) {
+export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = false, transactionSide = 'BUY_SIDE', hideRequestButton = false, clientId, currentStage }: DocumentsPageProps) {
   const { t: tDocuments } = useTranslation('documents');
   const { t: tTransactions } = useTranslation('transactions');
   const { user } = useAuth0();
@@ -303,30 +304,30 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
           )}
         </>
       )}
-         {editingDocument && (
-            <EditDocumentRequestModal
-              isOpen={isEditModalOpen}
-              onClose={() => {
-                setIsEditModalOpen(false);
-                setEditingDocument(null);
-              }}
-              onSubmit={handleEditSubmit}
-              transactionType={transactionSide === 'BUY_SIDE' ? 'buy' : 'sell'}
-              initialValues={{
-                docType: editingDocument.docType,
-                customTitle: editingDocument.customTitle || '',
-                instructions: editingDocument.brokerNotes || '',
-                stage: editingDocument.stage,
-              }}
-            />
-          )}
+      {editingDocument && (
+        <EditDocumentRequestModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingDocument(null);
+          }}
+          onSubmit={handleEditSubmit}
+          transactionType={transactionSide === 'BUY_SIDE' ? 'buy' : 'sell'}
+          initialValues={{
+            docType: editingDocument.docType,
+            customTitle: editingDocument.customTitle || '',
+            instructions: editingDocument.brokerNotes || '',
+            stage: editingDocument.stage,
+          }}
+        />
+      )}
 
       <RequestDocumentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleRequestDocument}
         transactionType={transactionSide === 'BUY_SIDE' ? 'buy' : 'sell'}
-        currentStage={selectedStage}
+        currentStage={currentStage || ''}
         transactionId={transactionId}
       />
 
