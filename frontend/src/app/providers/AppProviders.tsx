@@ -14,7 +14,7 @@ import { SearchProvider } from "@/features/search/context/SearchProvider";
 // Auth0 configuration from environment variables
 const domain = import.meta.env.VITE_AUTH0_DOMAIN || "dev-y7mhv7ttykx4kz4f.us.auth0.com";
 const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID || "JJIaYMFFtbZqGwP1XKyOx1XcFTPO9Qlr";
-const audience = import.meta.env.VITE_AUTH0_AUDIENCE || "https://api.courtierpro.dev";
+const audience = import.meta.env.VITE_AUTH0_AUDIENCE || "https://api.courtierpro.dev/";
 
 function Auth0ProviderWithNavigate({ children }: { children: ReactNode }) {
     const navigate = useNavigate();
@@ -24,18 +24,18 @@ function Auth0ProviderWithNavigate({ children }: { children: ReactNode }) {
     };
 
     return (
-            <Auth0Provider
-                domain={domain}
-                clientId={clientId}
-                authorizationParams={{
-                    audience,
-                    redirect_uri: window.location.origin,
-                }}
-                onRedirectCallback={onRedirectCallback}
-                cacheLocation="localstorage"
-            >
-                {children}
-            </Auth0Provider>
+        <Auth0Provider
+            domain={domain}
+            clientId={clientId}
+            authorizationParams={{
+                audience,
+                redirect_uri: window.location.origin,
+            }}
+            onRedirectCallback={onRedirectCallback}
+            cacheLocation="localstorage"
+        >
+            {children}
+        </Auth0Provider>
     );
 }
 
