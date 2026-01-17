@@ -463,6 +463,7 @@ class DocumentRequestServiceImplTest {
                 assertThat(result.getBrokerNotes()).isNull();
                 verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class),
                                 eq("client@test.com"),
+                                eq("John Client"),
                                 eq("Jane Broker"), eq("Bank Statement"), anyString(), anyString());
                 verify(notificationService).createNotification(
                                 eq(clientId.toString()),
@@ -577,6 +578,7 @@ class DocumentRequestServiceImplTest {
                 assertThat(result.getBrokerNotes()).isEqualTo("Please update dates");
                 verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class),
                                 eq("client@test.com"),
+                                eq("John Client"),
                                 eq("Jane Broker"), eq("PAY_STUBS"), anyString(), anyString());
                 verify(notificationService).createNotification(
                                 eq(clientId.toString()),
@@ -639,6 +641,7 @@ class DocumentRequestServiceImplTest {
                 assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.REJECTED);
                 verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class),
                                 eq("client@test.com"),
+                                eq("John Client"),
                                 eq("Jane Broker"), anyString(), anyString(), anyString());
                 verify(notificationService).createNotification(
                                 eq(clientId.toString()),
@@ -992,7 +995,7 @@ class DocumentRequestServiceImplTest {
 
                 // Assert
                 verify(emailService, never()).sendDocumentRequestedNotification(anyString(), anyString(), anyString(),
-                                anyString(), anyString(), anyString());
+                                anyString(), anyString(), anyString(), anyString());
                 verify(notificationService, never()).createNotification(anyString(), anyString(), anyString(),
                                 anyString(),
                                 any());
@@ -1117,7 +1120,7 @@ class DocumentRequestServiceImplTest {
                 service.reviewDocument(transactionId, requestId, reviewDTO, tx.getBrokerId());
 
                 verify(emailService, never()).sendDocumentStatusUpdatedNotification(any(), anyString(), anyString(),
-                                anyString(), anyString(), anyString());
+                                anyString(), anyString(), anyString(), anyString());
                 verify(notificationService, never()).createNotification(anyString(), anyString(), anyString(),
                                 anyString(),
                                 any());
@@ -1205,6 +1208,7 @@ class DocumentRequestServiceImplTest {
                         captor.capture(),
                         captor.capture(),
                         captor.capture(),
+                        captor.capture(),
                         captor.capture()
                 );
                 java.util.List<String> args = captor.getAllValues();
@@ -1213,7 +1217,8 @@ class DocumentRequestServiceImplTest {
                 org.junit.jupiter.api.Assertions.assertEquals("Jane Smith", args.get(2));
                 org.junit.jupiter.api.Assertions.assertEquals("Bank Statement", args.get(3));
                 org.junit.jupiter.api.Assertions.assertEquals("BANK_STATEMENT", args.get(4));
-                org.junit.jupiter.api.Assertions.assertEquals("en", args.get(5));
+                org.junit.jupiter.api.Assertions.assertNull(args.get(5)); // brokerNotes should be null
+                org.junit.jupiter.api.Assertions.assertEquals("en", args.get(6));
                 verify(messageSource).getMessage(
                         contains("document.type."),
                         any(),

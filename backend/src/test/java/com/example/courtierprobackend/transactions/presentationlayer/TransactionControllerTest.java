@@ -1,3 +1,4 @@
+
 package com.example.courtierprobackend.transactions.presentationlayer;
 
 import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
@@ -11,6 +12,9 @@ import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSi
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -35,14 +39,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(TransactionController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class TransactionControllerTest {
-        @MockBean
-        private TimelineService timelineService;
-
         @Autowired
         private MockMvc mockMvc;
 
-        @Autowired
-        private ObjectMapper objectMapper;
+        @MockBean
+        private TimelineService timelineService;
 
         @MockBean
         private TransactionService transactionService;
@@ -52,6 +53,9 @@ class TransactionControllerTest {
 
         @MockBean
         private UserAccountRepository userAccountRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
         // ========== createTransaction Tests ==========
 
