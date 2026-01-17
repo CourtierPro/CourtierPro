@@ -65,13 +65,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Copy Compose & Caddyfile to EC2
         uses: appleboy/scp-action@master
         with:
@@ -88,6 +81,7 @@ jobs:
           timeout: 120s
 
       - name: Deploy on EC2
+        id: deploy
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -99,7 +93,10 @@ jobs:
 
             # Configuration
             MAX_RETRIES=15
-            ROLLBACK_MAX_RETRIES=5  # Shorter retry limit for rollback (previous version was healthy)
+            # Rollback uses fewer retries (5 vs 15) as a tradeoff:
+            # Pro: Faster feedback if rollback also fails, reducing total wait time
+            # Con: May miss slow-starting apps; increase if your app needs >2min startup
+            ROLLBACK_MAX_RETRIES=5
             HEALTH_CHECK_URL="http://localhost:80/api/actuator/health"
 
             # 1. Ensure .env file exists and extract rollback tag
@@ -213,8 +210,9 @@ jobs:
                 if [ $ROLLBACK_SUCCESS -eq 1 ]; then
                   echo "✅ Rollback successful! System restored to $ROLLBACK_TAG"
                   echo "⚠️ Note: Deployment failed but system is now healthy with previous version."
+                  echo "ROLLBACK_SUCCESS=true" >> $GITHUB_OUTPUT
                   rm -f .env.bak
-                  exit 2  # Exit with 2 to indicate "failed deployment, successful rollback"
+                  exit 0  # Exit 0 so workflow can send proper notification
                 else
                   echo "❌ CRITICAL: Rollback failed! System may be in an unhealthy state."
                   echo "Manual intervention required. Backup .env available at .env.bak"
@@ -222,13 +220,25 @@ jobs:
                 fi
               else
                 echo "⚠️ No previous version available for rollback (ROLLBACK_TAG is empty or same as current)"
+                rm -f .env.bak  # Clean up backup before exit
                 exit 1
               fi
             fi
 
-      # Discord notification on success
+      # Check deployment result
+      - name: Check deployment result
+        id: deploy_result
+        if: always()
+        run: |
+          if [ "${{ steps.deploy.outcome }}" == "success" ]; then
+            echo "result=success" >> $GITHUB_OUTPUT
+          else
+            echo "result=failure" >> $GITHUB_OUTPUT
+          fi
+
+      # Discord notification on success (normal deployment)
       - name: Discord notification (Success)
-        if: success()
+        if: success() && !contains(steps.deploy.outputs.ROLLBACK_SUCCESS, 'true')
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -239,6 +249,23 @@ jobs:
             **Branch:** `${{ github.ref_name }}`
             **Author:** ${{ github.actor }}
           color: 0x00FF00
+          url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      # Discord notification on rollback success
+      - name: Discord notification (Rollback Success)
+        if: success() && contains(steps.deploy.outputs.ROLLBACK_SUCCESS, 'true')
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          status: failure
+          title: "⚠️ Deployment Failed - Rollback Successful"
+          description: |
+            **Commit:** `${{ github.sha }}`
+            **Branch:** `${{ github.ref_name }}`
+            **Author:** ${{ github.actor }}
+            
+            Deployment failed but system was restored to previous version.
+          color: 0xFFA500
           url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       # Discord notification on failure
@@ -254,6 +281,6 @@ jobs:
             **Branch:** `${{ github.ref_name }}`
             **Author:** ${{ github.actor }}
             
-            Check the workflow run for details and rollback status.
+            Check the workflow run for details. Rollback may have failed.
           color: 0xFF0000
           url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

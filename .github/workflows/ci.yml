@@ -30,7 +30,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-          cache-dependency-path: backend/*.gradle*
+          cache-dependency-path: |
+            backend/build.gradle
+            backend/settings.gradle
+            backend/gradle/wrapper/gradle-wrapper.properties
       - name: Build with Gradle
         working-directory: ./backend
         run: ./gradlew clean build --no-daemon

@@ -32,7 +32,10 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: 'gradle'
-          cache-dependency-path: backend/*.gradle*
+          cache-dependency-path: |
+            backend/build.gradle
+            backend/settings.gradle
+            backend/gradle/wrapper/gradle-wrapper.properties
 
       # Run tests + JaCoCo report for the backend module
       - name: Run tests with JaCoCo (backend)

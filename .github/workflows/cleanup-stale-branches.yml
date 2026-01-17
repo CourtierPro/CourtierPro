@@ -47,11 +47,12 @@ jobs:
             // Hardcoded protected branches (fallback list)
             const protectedBranchNames = ['main', 'master', 'develop', 'staging', 'production'];
             
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - daysThreshold);
+            // Branches with last commit before this date are considered stale
+            const staleBeforeDate = new Date();
+            staleBeforeDate.setDate(staleBeforeDate.getDate() - daysThreshold);
             
             console.log(`🔍 Looking for branches inactive for ${daysThreshold}+ days`);
-            console.log(`📅 Cutoff date: ${cutoffDate.toISOString()}`);
+            console.log(`📅 Stale before: ${staleBeforeDate.toISOString()}`);
             console.log(`🧪 Dry run: ${dryRun}`);
             console.log('');
 
@@ -75,13 +76,17 @@ jobs:
               console.log('   Falling back to hardcoded protected branch list.');
             }
             
+            // Helper function to escape special regex characters
+            const escapeRegex = (str) => str.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+            
             // Helper function to check if branch matches any protection pattern
             const isProtectedByPattern = (branchName) => {
               for (const pattern of protectedPatterns) {
-                // Convert glob pattern to regex (simple implementation)
-                const regexPattern = pattern
-                  .replace(/\*/g, '.*')
-                  .replace(/\?/g, '.');
+                // Convert glob pattern to regex with proper escaping
+                // First escape special regex chars, then convert glob wildcards
+                const regexPattern = escapeRegex(pattern)
+                  .replace(/\\\*/g, '.*')   // * -> match any chars
+                  .replace(/\\\?/g, '.');   // ? -> match single char
                 if (new RegExp(`^${regexPattern}$`).test(branchName)) {
                   return true;
                 }
@@ -157,8 +162,10 @@ jobs:
                   continue;
                 }
               } catch (error) {
-                // If we can't check PRs, log but continue with caution
-                console.log(`⚠️ Could not check PRs for ${branchName}: ${error.message}`);
+                // If we can't check PRs, skip branch for safety (might have an open PR)
+                console.log(`⚠️ Could not check PRs for ${branchName}: ${error.message}. Skipping for safety.`);
+                errorCount++;
+                continue;
               }
 
               // Get the latest commit date for this branch (with rate limit handling)
@@ -194,7 +201,7 @@ jobs:
                 }
               }
               
-              if (commitDate < cutoffDate) {
+              if (commitDate < staleBeforeDate) {
                 console.log(`🗑️ ${dryRun ? '[DRY RUN] Would delete' : 'Deleting'}: ${branchName} (last commit: ${commitDate.toISOString()})`);
                 
                 if (!dryRun) {
