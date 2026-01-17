@@ -113,17 +113,11 @@ export function AdminSettingsPage() {
 
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [form, setForm] = useState<UpdateOrganizationSettingsRequest | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplateType>("invite");
   const [showPreview, setShowPreview] = useState(false);
   const [showFormattingGuide, setShowFormattingGuide] = useState(true);
-  // Simplified color picker state management
-  // (supprimé car non utilisé)
-
-  // Disable form controls if loading or saving
-  // Les boutons sont toujours activés
+  
   const isDisabled = false;
 
   // Get subject field name for a template and language
@@ -152,7 +146,7 @@ export function AdminSettingsPage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!form) return;
-    setIsSaving(true);
+    // setIsSaving(true); // supprimé car plus utilisé
     setError(null);
     try {
       await updateOrganizationSettings(form);
@@ -161,7 +155,7 @@ export function AdminSettingsPage() {
       toast.error(t("settings.errors.saveFailed"));
       setError(t("settings.errors.saveFailed"));
     } finally {
-      setIsSaving(false);
+      // setIsSaving(false); // supprimé car plus utilisé
     }
   }
 
@@ -170,7 +164,7 @@ export function AdminSettingsPage() {
     hasLoadedRef.current = true;
     async function load() {
       try {
-        setIsLoading(true);
+        // setIsLoading(true); // supprimé car plus utilisé
         const data = await getOrganizationSettings();
         setForm({
           defaultLanguage: data.defaultLanguage,
@@ -271,7 +265,7 @@ export function AdminSettingsPage() {
   };
 
   function replaceTemplateVars(text: string) {
-    return text.replace(/{{(\w+)}}/g, (_, v) => mockVars[v] || v);
+    return text.replace(/{{(\w+)}}/g, (_, v: keyof typeof mockVars) => mockVars[v] || v);
   }
 
   // Affiche tous les blocs conditionnels [IF-xxx]...[/IF-xxx] dans le preview
