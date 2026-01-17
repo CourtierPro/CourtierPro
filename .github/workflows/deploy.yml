@@ -88,19 +88,22 @@ jobs:
           script: |
             cd /home/${{ secrets.EC2_USER }}/app
 
-            # 1. Update the .env file with the current commit SHA
-            # We use sed to replace the line.
+            # 1. Save current IMAGE_TAG for potential rollback
+            ROLLBACK_TAG=$(grep "^IMAGE_TAG=" .env | cut -d'=' -f2)
+            echo "📦 Current version: $ROLLBACK_TAG"
+            echo "🚀 Deploying new version: ${{ github.sha }}"
+
+            # 2. Update the .env file with the new commit SHA
             sed -i "s/IMAGE_TAG=.*/IMAGE_TAG=${{ github.sha }}/" .env
 
-            # 2. Login to Registry
+            # 3. Login to Registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # 3. Pull and Deploy using the --env-file flag
-            # THIS IS THE FIX: the --env-file .env flag forces Docker to read GITHUB_REPOSITORY_OWNER
+            # 4. Pull and Deploy using the --env-file flag
             docker compose --env-file .env -f docker-compose.prod.yml pull
             docker compose --env-file .env -f docker-compose.prod.yml up -d --remove-orphans
 
-            # 4. Health Check
+            # 5. Health Check
             echo "🏥 Performing Health Check..."
             sleep 60 # Give the Spring Boot app more time to start
 
@@ -122,7 +125,25 @@ jobs:
             if [ $SUCCESS -eq 1 ]; then
               echo "✅ Deployment Successful!"
             else
-              echo "❌ Deployment Failed! Logs:"
+              echo "❌ Deployment Failed! Attempting rollback..."
               docker compose --env-file .env -f docker-compose.prod.yml logs --tail=20 backend
+
+              # 6. Rollback to previous version
+              if [ -n "$ROLLBACK_TAG" ] && [ "$ROLLBACK_TAG" != "${{ github.sha }}" ]; then
+                echo "🔄 Rolling back to previous version: $ROLLBACK_TAG"
+                sed -i "s/IMAGE_TAG=.*/IMAGE_TAG=$ROLLBACK_TAG/" .env
+                docker compose --env-file .env -f docker-compose.prod.yml pull
+                docker compose --env-file .env -f docker-compose.prod.yml up -d --remove-orphans
+                
+                # Wait and verify rollback
+                sleep 30
+                if curl -s -f "$HEALTH_CHECK_URL" > /dev/null; then
+                  echo "✅ Rollback successful! System restored to $ROLLBACK_TAG"
+                else
+                  echo "⚠️ Rollback attempted but health check still failing"
+                fi
+              else
+                echo "⚠️ No previous version available for rollback"
+              fi
               exit 1
             fi

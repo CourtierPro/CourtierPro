@@ -1,0 +1,99 @@
+name: Cleanup Stale Branches
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # 3:00 AM UTC daily
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Days of inactivity before deletion'
+        default: '14'
+        type: string
+      dry-run:
+        description: 'Preview deletions without executing'
+        type: boolean
+        default: true
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Delete stale branches
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const daysThreshold = parseInt('${{ github.event.inputs.days }}' || '14');
+            const dryRun = '${{ github.event.inputs.dry-run }}' === 'true' || '${{ github.event_name }}' === 'schedule' ? false : true;
+            const protectedBranches = ['main', 'master', 'develop', 'staging', 'production'];
+            
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - daysThreshold);
+            
+            console.log(`🔍 Looking for branches inactive for ${daysThreshold}+ days`);
+            console.log(`📅 Cutoff date: ${cutoffDate.toISOString()}`);
+            console.log(`🧪 Dry run: ${dryRun}`);
+            console.log('');
+
+            const { data: branches } = await github.rest.repos.listBranches({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+
+            let deletedCount = 0;
+            let skippedCount = 0;
+
+            for (const branch of branches) {
+              const branchName = branch.name;
+              
+              // Skip protected branches
+              if (protectedBranches.includes(branchName)) {
+                console.log(`⏭️ Skipping protected branch: ${branchName}`);
+                skippedCount++;
+                continue;
+              }
+
+              // Get the latest commit date for this branch
+              const { data: commit } = await github.rest.repos.getCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: branch.commit.sha
+              });
+
+              const commitDate = new Date(commit.commit.committer.date);
+              
+              if (commitDate < cutoffDate) {
+                console.log(`🗑️ ${dryRun ? '[DRY RUN] Would delete' : 'Deleting'}: ${branchName} (last commit: ${commitDate.toISOString()})`);
+                
+                if (!dryRun) {
+                  try {
+                    await github.rest.git.deleteRef({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      ref: `heads/${branchName}`
+                    });
+                    deletedCount++;
+                  } catch (error) {
+                    console.log(`❌ Failed to delete ${branchName}: ${error.message}`);
+                  }
+                } else {
+                  deletedCount++;
+                }
+              } else {
+                skippedCount++;
+              }
+            }
+
+            console.log('');
+            console.log('📊 Summary:');
+            console.log(`   ${dryRun ? 'Would delete' : 'Deleted'}: ${deletedCount} branches`);
+            console.log(`   Skipped: ${skippedCount} branches`);
