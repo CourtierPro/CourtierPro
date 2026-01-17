@@ -16,7 +16,7 @@ public class AwsConfig {
     @Value("${aws.region:ca-central-1}")
     private String region;
 
-    @Value("${aws.s3.endpoint:}")
+    @Value("${aws.s3.endpoint:https://s3.ca-central-1.amazonaws.com}")
     private String endpoint;
 
     @Bean

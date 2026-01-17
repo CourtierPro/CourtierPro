@@ -592,6 +592,15 @@ CREATE INDEX IF NOT EXISTS idx_document_conditions_property_offer_id ON document
 CREATE INDEX IF NOT EXISTS idx_document_conditions_document_request_id ON document_conditions(document_request_id);
 
 -- =============================================================================
+-- SYSTEM ALERTS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS system_alert (
+    id BIGSERIAL PRIMARY KEY,
+    message VARCHAR(255) NOT NULL,
+    severity VARCHAR(50) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 -- TIMELINE ENTRIES SEEN (for tracking broker's seen/unseen events)
 -- =============================================================================
 CREATE TABLE timeline_entries_seen (

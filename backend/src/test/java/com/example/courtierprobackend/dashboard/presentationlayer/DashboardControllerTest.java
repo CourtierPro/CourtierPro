@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.example.courtierprobackend.audit.loginaudit.dataaccesslayer.LoginAuditEventRepository;
+import com.example.courtierprobackend.audit.resourcedeletion.datalayer.AdminDeletionAuditRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 
@@ -37,39 +39,45 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class DashboardControllerTest {
 
-    @Mock
-    private TransactionRepository transactionRepository;
-    @Mock
-    private UserAccountRepository userRepository;
-    @Mock
-    private DocumentRequestRepository documentRequestRepository;
-    @Mock
-    private PropertyOfferRepository propertyOfferRepository;
-    @Mock
-    private OfferRepository offerRepository;
-    @Mock
-    private PropertyRepository propertyRepository;
-    @Mock
-    private com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService;
-    @Mock
-    private com.example.courtierprobackend.transactions.businesslayer.TransactionService transactionService;
-    @Mock
-    private com.example.courtierprobackend.dashboard.datalayer.TimelineEntrySeenRepository timelineEntrySeenRepository;
+        @Mock
+        private TransactionRepository transactionRepository;
+        @Mock
+        private UserAccountRepository userRepository;
+        @Mock
+        private LoginAuditEventRepository loginAuditEventRepository;
+        @Mock
+        private AdminDeletionAuditRepository adminDeletionAuditRepository;
+        @Mock
+        private DocumentRequestRepository documentRequestRepository;
+        @Mock
+        private PropertyOfferRepository propertyOfferRepository;
+        @Mock
+        private OfferRepository offerRepository;
+        @Mock
+        private PropertyRepository propertyRepository;
+        @Mock
+        private com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService;
+        @Mock
+        private com.example.courtierprobackend.transactions.businesslayer.TransactionService transactionService;
+        @Mock
+        private com.example.courtierprobackend.dashboard.datalayer.TimelineEntrySeenRepository timelineEntrySeenRepository;
 
-    private DashboardController controller;
+        private DashboardController controller;
 
-    @BeforeEach
-    void setUp() {
-        controller = new DashboardController(
-                transactionRepository,
-                userRepository,
-                documentRequestRepository,
-                propertyOfferRepository,
-                offerRepository,
-                propertyRepository,
-                timelineService,
-                transactionService,
-                timelineEntrySeenRepository
+        @BeforeEach
+        void setUp() {
+                controller = new DashboardController(
+                                transactionRepository,
+                                userRepository,
+                                documentRequestRepository,
+                                propertyOfferRepository,
+                                offerRepository,
+                                propertyRepository,
+                                timelineService,
+                                transactionService,
+                                timelineEntrySeenRepository,
+                                loginAuditEventRepository,
+                                adminDeletionAuditRepository
         );
     }
 
@@ -548,7 +556,7 @@ class DashboardControllerTest {
 
         assertThat(response.getBody().getTotalUsers()).isEqualTo(3);
         assertThat(response.getBody().getActiveBrokers()).isEqualTo(1);
-        assertThat(response.getBody().getSystemHealth()).isEqualTo("99.9%");
+        assertThat(response.getBody().getSystemHealth()).isEqualTo("Healthy");
     }
 
     @Test
