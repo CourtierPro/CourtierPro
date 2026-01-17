@@ -1,15 +1,22 @@
+[HEADING-LG]Offre soumise sur une propriété[/HEADING-LG]
+
 Bonjour {{clientName}},
 
-[HEADING]Offre soumise avec succès[/HEADING]
+Votre courtier [BOLD]{{brokerName}}[/BOLD] a soumis une offre en votre nom :
 
-Votre courtier {{brokerName}} a soumis une offre en votre nom!
+[BOX-gray]
+[BOLD]Propriété :[/BOLD] {{propertyAddress}}
+[BOLD]Ronde d'offre :[/BOLD] #{{offerRound}}
+[/BOX-gray]
 
-[BOX-blue]
-Propriété: {{propertyAddress}}
-Montant de l'offre: {{offerAmount}}
-Tour d'offre: {{offerRound}}
-[/BOX-blue]
+[BOX-green]
+[BOLD]Montant de l'offre :[/BOLD]
+{{offerAmount}}
+[/BOX-green]
 
-Votre courtier vous tiendra informé de la réponse du vendeur.
+Vous serez informé lorsqu'il y aura une réponse du vendeur.
 
-Questions? Contactez directement {{brokerName}}.
+Connectez-vous à CourtierPro pour voir les détails.
+
+Merci,
+L'équipe CourtierPro

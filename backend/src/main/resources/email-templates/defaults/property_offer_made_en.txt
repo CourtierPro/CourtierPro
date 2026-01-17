@@ -1,15 +1,22 @@
+[HEADING-LG]Offer Made on Property[/HEADING-LG]
+
 Hello {{clientName}},
 
-[HEADING]Offer Submitted Successfully[/HEADING]
+Your broker [BOLD]{{brokerName}}[/BOLD] has submitted an offer on your behalf:
 
-Your broker {{brokerName}} has submitted an offer on your behalf!
+[BOX-gray]
+[BOLD]Property:[/BOLD] {{propertyAddress}}
+[BOLD]Offer Round:[/BOLD] #{{offerRound}}
+[/BOX-gray]
 
-[BOX-blue]
-Property: {{propertyAddress}}
-Offer Amount: {{offerAmount}}
-Offer Round: {{offerRound}}
-[/BOX-blue]
+[BOX-green]
+[BOLD]Offer Amount:[/BOLD]
+{{offerAmount}}
+[/BOX-green]
 
-Your broker will keep you updated on the seller's response.
+You will be notified when there is a response from the seller.
 
-Questions? Contact {{brokerName}} directly.
+Log in to CourtierPro to view details.
+
+Thank you,
+CourtierPro Team

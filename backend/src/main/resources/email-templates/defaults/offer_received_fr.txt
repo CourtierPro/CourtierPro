@@ -1,11 +1,19 @@
+[HEADING-LG]Nouvelle offre reçue[/HEADING-LG]
+
 Bonjour {{clientName}},
 
-[HEADING]Vous avez reçu une offre![/HEADING]
+Votre courtier [BOLD]{{brokerName}}[/BOLD] a reçu une offre sur votre propriété :
 
-Bonne nouvelle! {{buyerName}} a fait une offre sur votre propriété.
+[BOX-gray]
+[BOLD]Acheteur :[/BOLD] {{buyerName}}
+[/BOX-gray]
 
-[BOX-green]
-[BOLD]Montant de l'offre:[/BOLD] {{offerAmount}}
-[/BOX-green]
+[BOX-blue]
+[BOLD]Montant de l'offre :[/BOLD]
+{{offerAmount}}
+[/BOX-blue]
 
-Votre courtier {{brokerName}} examinera les détails avec vous et discutera de vos options.
+Connectez-vous à CourtierPro pour examiner cette offre et discuter des prochaines étapes avec votre courtier.
+
+Merci,
+L'équipe CourtierPro

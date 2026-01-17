@@ -1,5 +1,14 @@
-Hi {{name}}, your CourtierPro account has been created.
+[HEADING-LG]Account Created[/HEADING-LG]
 
-[HEADING]Set Your Password[/HEADING]
+Hi {{name}},
 
-Click the link below to complete your account setup.
+Your CourtierPro account has been successfully created.
+
+[HEADING-SM]Next Step[/HEADING-SM]
+
+[BOX-gray]
+Click the button below to set your password and complete your account setup.
+[/BOX-gray]
+
+Thank you,
+CourtierPro Team

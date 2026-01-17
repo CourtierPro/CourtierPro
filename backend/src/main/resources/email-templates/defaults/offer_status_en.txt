@@ -1,12 +1,19 @@
+[HEADING-LG]Offer Status Update[/HEADING-LG]
+
 Hello {{clientName}},
 
-[HEADING]Offer Status Changed[/HEADING]
+Your broker [BOLD]{{brokerName}}[/BOLD] has updated the status of an offer:
 
-The offer from {{buyerName}} has been updated.
+[BOX-gray]
+[BOLD]Buyer:[/BOLD] {{buyerName}}
+[/BOX-gray]
 
-[BOX]
-[BOLD]Previous Status:[/BOLD] {{previousStatus}}
-[BOLD]New Status:[/BOLD] {{newStatus}}
-[/BOX]
+[BOX-orange]
+Status changed from [BOLD]{{previousStatus}}[/BOLD] to:
+[BOLD]{{newStatus}}[/BOLD]
+[/BOX-orange]
 
-Your broker {{brokerName}} will coordinate the next steps.
+Log in to CourtierPro to view details and next steps.
+
+Thank you,
+CourtierPro Team

@@ -552,23 +552,23 @@ public class EmailService {
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
 
-        // Handle heading sizes
+        // Handle heading sizes (centered)
         escaped = escaped.replaceAll(
             "(?s)\\[HEADING-SM\\](.*?)\\[/HEADING-SM\\]",
-            "<h4 style=\"font-size: 1.25em; font-weight: 700; margin: 14px 0 8px 0;\">$1</h4>"
+            "<h4 style=\"font-size: 1.25em; font-weight: 700; margin: 14px 0 8px 0; text-align: center;\">$1</h4>"
         );
         escaped = escaped.replaceAll(
             "(?s)\\[HEADING-MD\\](.*?)\\[/HEADING-MD\\]",
-            "<h3 style=\"font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0;\">$1</h3>"
+            "<h3 style=\"font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0; text-align: center;\">$1</h3>"
         );
         escaped = escaped.replaceAll(
             "(?s)\\[HEADING-LG\\](.*?)\\[/HEADING-LG\\]",
-            "<h2 style=\"font-size: 1.75em; font-weight: 700; margin: 18px 0 12px 0;\">$1</h2>"
+            "<h2 style=\"font-size: 1.75em; font-weight: 700; margin: 18px 0 12px 0; text-align: center;\">$1</h2>"
         );
-        // Default heading
+        // Default heading (centered)
         escaped = escaped.replaceAll(
             "(?s)\\[HEADING\\](.*?)\\[/HEADING\\]",
-            "<h3 style=\"font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0;\">$1</h3>"
+            "<h3 style=\"font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0; text-align: center;\">$1</h3>"
         );
 
         // Handle [BOX]...[/BOX] (default blue, dotall to allow multi-line content, max-width 600px, centered)
@@ -628,8 +628,8 @@ public class EmailService {
         // Convert single newlines to line breaks
         html = html.replace("\n", "<br>");
 
-        // Wrap in paragraph tags
-        html = "<p>" + html + "</p>";
+        // Wrap in paragraph tags and center within container for consistent layout
+        html = "<div style=\"max-width: 600px; margin: 0 auto;\"><p>" + html + "</p></div>";
 
         return html;
     }
@@ -677,7 +677,7 @@ public class EmailService {
                 textColor = bgAndText[1];
             }
 
-            String replacement = "<div style=\"border-left: 4px solid " + borderColor + "; background-color: " + bgColor + "; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;\"><p style=\"margin: 0; color: " + textColor + "; font-weight: 500;\">" + content + "</p></div>";
+            String replacement = "<div style=\"border-left: 4px solid " + borderColor + "; background-color: " + bgColor + "; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: " + textColor + "; font-weight: 500;\">" + content + "</p></div>";
             matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(replacement));
         }
         matcher.appendTail(sb);

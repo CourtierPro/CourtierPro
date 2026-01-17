@@ -353,20 +353,20 @@ export function AdminSettingsPage() {
     // Handle heading sizes
     escaped = escaped.replace(
       /\[HEADING-SM\](.*?)\[\/HEADING-SM\]/gs,
-      '<h4 style="font-size: 1.25em; font-weight: 700; margin: 14px 0 8px 0;">$1</h4>'
+      '<h4 style="font-size: 1.25em; font-weight: 700; margin: 14px 0 8px 0; text-align: center;">$1</h4>'
     );
     escaped = escaped.replace(
       /\[HEADING-MD\](.*?)\[\/HEADING-MD\]/gs,
-      '<h3 style="font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0;">$1</h3>'
+      '<h3 style="font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0; text-align: center;">$1</h3>'
     );
     escaped = escaped.replace(
       /\[HEADING-LG\](.*?)\[\/HEADING-LG\]/gs,
-      '<h2 style="font-size: 1.75em; font-weight: 700; margin: 18px 0 12px 0;">$1</h2>'
+      '<h2 style="font-size: 1.75em; font-weight: 700; margin: 18px 0 12px 0; text-align: center;">$1</h2>'
     );
     // Default heading
     escaped = escaped.replace(
       /\[HEADING\](.*?)\[\/HEADING\]/gs,
-      '<h3 style="font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0;">$1</h3>'
+      '<h3 style="font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0; text-align: center;">$1</h3>'
     );
     
     // Handle [BOX]...[/BOX] (default blue)
@@ -443,8 +443,8 @@ export function AdminSettingsPage() {
     // Convert single newlines to line breaks
     html = html.replace(/\n/g, "<br>");
     
-    // Wrap in paragraph tags
-    return "<p>" + html + "</p>";
+    // Wrap in paragraph tags and center within container for consistency with backend
+    return "<div style=\"max-width: 600px; margin: 0 auto;\"><p>" + html + "</p></div>";
   };
 
   const renderPreview = (subjectField: keyof UpdateOrganizationSettingsRequest, bodyField: keyof UpdateOrganizationSettingsRequest) => {

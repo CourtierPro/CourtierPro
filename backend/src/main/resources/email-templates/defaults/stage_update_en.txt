@@ -1,12 +1,15 @@
-Hello {{clientName}},
+[HEADING-LG]Transaction Stage Update[/HEADING-LG]
 
-[HEADING]Transaction Update[/HEADING]
+Hi {{clientName}},
 
-Your transaction has been updated!
+There is an update on your transaction for [BOLD]{{transactionAddress}}[/BOLD].
 
-[BOX-green]
-Property: {{transactionAddress}}
-New Stage: {{newStage}}
-[/BOX-green]
+[BOX-gray]
+[BOLD]New Stage:[/BOLD]
+{{newStage}}
+[/BOX-gray]
 
-Your broker {{brokerName}} has moved your transaction to the next stage. If you have any questions, please don't hesitate to reach out.
+Your broker [BOLD]{{brokerName}}[/BOLD] has moved your transaction forward. Please log in to your portal for more details.
+
+Thank you,
+CourtierPro Team

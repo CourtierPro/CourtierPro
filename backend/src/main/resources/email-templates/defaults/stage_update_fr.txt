@@ -1,12 +1,15 @@
+[HEADING-LG]Mise à jour de l'étape de transaction[/HEADING-LG]
+
 Bonjour {{clientName}},
 
-[HEADING]Mise à Jour de la Transaction[/HEADING]
+Il y a une mise à jour concernant votre transaction pour [BOLD]{{transactionAddress}}[/BOLD].
 
-Votre transaction a été mise à jour!
+[BOX-gray]
+[BOLD]Nouvelle étape :[/BOLD]
+{{newStage}}
+[/BOX-gray]
 
-[BOX-green]
-Propriété: {{transactionAddress}}
-Nouveaux stade: {{newStage}}
-[/BOX-green]
+Votre courtier [BOLD]{{brokerName}}[/BOLD] a fait avancer votre transaction. Veuillez vous connecter à votre portail pour plus de détails.
 
-Votre courtier {{brokerName}} a fait avancer votre transaction à la prochaine étape. Si vous avez des questions, n'hésitez pas à nous contacter.
+Merci,
+Équipe CourtierPro
