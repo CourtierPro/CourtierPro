@@ -1,6 +1,8 @@
+// ...existing imports...
+
 // src/pages/admin/AdminSettingsPage.tsx
 import { useEffect, useState, useRef, useMemo } from "react";
-import type { FormEvent } from "react";
+
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Globe, Mail, Pencil, Eye, Heading2, Square, Lightbulb, Bold as BoldIcon, Italic as ItalicIcon, Highlighter, Minus } from "lucide-react";
@@ -48,12 +50,20 @@ const EMAIL_TEMPLATE_VARIABLES: Record<EmailTemplateType, string> = {
 };
 
 export function AdminSettingsPage() {
+
   const { t } = useTranslation("admin");
   const hasLoadedRef = useRef(false);
-  const hideTimeoutEnRef = useRef<NodeJS.Timeout>();
-  const hideTimeoutFrRef = useRef<NodeJS.Timeout>();
-  const hideHighlightTimeoutEnRef = useRef<NodeJS.Timeout>();
-  const hideHighlightTimeoutFrRef = useRef<NodeJS.Timeout>();
+  // Use number | null for browser setTimeout compatibility
+  const hideTimeoutEnRef = useRef<number | null>(null);
+  const hideTimeoutFrRef = useRef<number | null>(null);
+  const hideHighlightTimeoutEnRef = useRef<number | null>(null);
+  const hideHighlightTimeoutFrRef = useRef<number | null>(null);
+
+  // Color picker state hooks (must be at the top)
+  const [showBoxColorPickerEn, setShowBoxColorPickerEn] = useState(false);
+  const [showHighlightColorPickerEn, setShowHighlightColorPickerEn] = useState(false);
+  const [showBoxColorPickerFr, setShowBoxColorPickerFr] = useState(false);
+  const [showHighlightColorPickerFr, setShowHighlightColorPickerFr] = useState(false);
 
   // Memoized email templates with translated labels
   const emailTemplates = useMemo(() => {
@@ -108,23 +118,59 @@ export function AdminSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplateType>("invite");
   const [showPreview, setShowPreview] = useState(false);
-  const [showBoxColorPickerEn, setShowBoxColorPickerEn] = useState(false);
-  const [showBoxColorPickerFr, setShowBoxColorPickerFr] = useState(false);
-  const [showHighlightColorPickerEn, setShowHighlightColorPickerEn] = useState(false);
-  const [showHighlightColorPickerFr, setShowHighlightColorPickerFr] = useState(false);
   const [showFormattingGuide, setShowFormattingGuide] = useState(true);
-  const [boxCustomColor, setBoxCustomColor] = useState("#3b82f6");
+  // Simplified color picker state management
+  // (supprimé car non utilisé)
 
-  // Load settings (only once on mount)
+  // Disable form controls if loading or saving
+  const isDisabled = isLoading || isSaving;
+
+  // Get subject field name for a template and language
+  function getSubjectFieldName(type: EmailTemplateType, lang: "En" | "Fr"): keyof UpdateOrganizationSettingsRequest {
+    const fieldMap: Record<EmailTemplateType, Record<"En" | "Fr", keyof UpdateOrganizationSettingsRequest>> = {
+      invite: { En: "inviteSubjectEn", Fr: "inviteSubjectFr" },
+      documentSubmitted: { En: "documentSubmittedSubjectEn", Fr: "documentSubmittedSubjectFr" },
+      documentRequested: { En: "documentRequestedSubjectEn", Fr: "documentRequestedSubjectFr" },
+      documentReview: { En: "documentReviewSubjectEn", Fr: "documentReviewSubjectFr" },
+      stageUpdate: { En: "stageUpdateSubjectEn", Fr: "stageUpdateSubjectFr" },
+      propertyOfferMade: { En: "propertyOfferMadeSubjectEn", Fr: "propertyOfferMadeSubjectFr" },
+      propertyOfferStatus: { En: "propertyOfferStatusSubjectEn", Fr: "propertyOfferStatusSubjectFr" },
+      offerReceived: { En: "offerReceivedSubjectEn", Fr: "offerReceivedSubjectFr" },
+      offerStatus: { En: "offerStatusSubjectEn", Fr: "offerStatusSubjectFr" },
+    };
+    return fieldMap[type][lang];
+  }
+
+  // Handle input changes for all fields
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+    const { name, value } = e.target;
+    setForm((prev) => prev ? { ...prev, [name]: value } : prev);
+  }
+
+  // Handle form submit
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!form) return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      await updateOrganizationSettings(form);
+      toast.success(t("settings.success.save"));
+    } catch {
+      toast.error(t("settings.errors.saveFailed"));
+      setError(t("settings.errors.saveFailed"));
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   useEffect(() => {
     if (hasLoadedRef.current) return;
     hasLoadedRef.current = true;
-
     async function load() {
       try {
         setIsLoading(true);
         const data = await getOrganizationSettings();
-
         setForm({
           defaultLanguage: data.defaultLanguage,
           inviteSubjectEn: data.inviteSubjectEn,
@@ -167,99 +213,10 @@ export function AdminSettingsPage() {
       } catch {
         toast.error(t("settings.errors.loadFailed"));
         setError(t("settings.errors.loadFailed"));
-      } finally {
-        setIsLoading(false);
       }
     }
     load();
-  }, []);
-
-  // Handle form changes
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
-    const field = e.target.name;
-    const value = e.target.value;
-
-    setForm((prev) => {
-      if (!prev) return prev;
-      return { ...prev, [field]: value };
-    });
-  }
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!form) return;
-
-    try {
-      setIsSaving(true);
-      setError(null);
-
-      const updated = await updateOrganizationSettings(form);
-
-      setForm({
-        defaultLanguage: updated.defaultLanguage,
-        inviteSubjectEn: updated.inviteSubjectEn,
-        inviteBodyEn: updated.inviteBodyEn,
-        inviteSubjectFr: updated.inviteSubjectFr,
-        inviteBodyFr: updated.inviteBodyFr,
-        documentSubmittedSubjectEn: updated.documentSubmittedSubjectEn,
-        documentSubmittedBodyEn: updated.documentSubmittedBodyEn,
-        documentSubmittedSubjectFr: updated.documentSubmittedSubjectFr,
-        documentSubmittedBodyFr: updated.documentSubmittedBodyFr,
-        documentRequestedSubjectEn: updated.documentRequestedSubjectEn,
-        documentRequestedBodyEn: updated.documentRequestedBodyEn,
-        documentRequestedSubjectFr: updated.documentRequestedSubjectFr,
-        documentRequestedBodyFr: updated.documentRequestedBodyFr,
-        documentReviewSubjectEn: updated.documentReviewSubjectEn,
-        documentReviewBodyEn: updated.documentReviewBodyEn,
-        documentReviewSubjectFr: updated.documentReviewSubjectFr,
-        documentReviewBodyFr: updated.documentReviewBodyFr,
-        stageUpdateSubjectEn: updated.stageUpdateSubjectEn,
-        stageUpdateBodyEn: updated.stageUpdateBodyEn,
-        stageUpdateSubjectFr: updated.stageUpdateSubjectFr,
-        stageUpdateBodyFr: updated.stageUpdateBodyFr,
-        propertyOfferMadeSubjectEn: updated.propertyOfferMadeSubjectEn,
-        propertyOfferMadeBodyEn: updated.propertyOfferMadeBodyEn,
-        propertyOfferMadeSubjectFr: updated.propertyOfferMadeSubjectFr,
-        propertyOfferMadeBodyFr: updated.propertyOfferMadeBodyFr,
-        propertyOfferStatusSubjectEn: updated.propertyOfferStatusSubjectEn,
-        propertyOfferStatusBodyEn: updated.propertyOfferStatusBodyEn,
-        propertyOfferStatusSubjectFr: updated.propertyOfferStatusSubjectFr,
-        propertyOfferStatusBodyFr: updated.propertyOfferStatusBodyFr,
-        offerReceivedSubjectEn: updated.offerReceivedSubjectEn,
-        offerReceivedBodyEn: updated.offerReceivedBodyEn,
-        offerReceivedSubjectFr: updated.offerReceivedSubjectFr,
-        offerReceivedBodyFr: updated.offerReceivedBodyFr,
-        offerStatusSubjectEn: updated.offerStatusSubjectEn,
-        offerStatusBodyEn: updated.offerStatusBodyEn,
-        offerStatusSubjectFr: updated.offerStatusSubjectFr,
-        offerStatusBodyFr: updated.offerStatusBodyFr,
-      });
-
-      toast.success(t("settings.messages.saved"));
-    } catch {
-      toast.error(t("settings.errors.saveFailed"));
-      setError(t("settings.errors.saveFailed"));
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  const isDisabled = isSaving || isLoading || !form;
-
-  const getSubjectFieldName = (type: EmailTemplateType, lang: "En" | "Fr"): keyof UpdateOrganizationSettingsRequest => {
-    const fieldMap: Record<EmailTemplateType, Record<"En" | "Fr", keyof UpdateOrganizationSettingsRequest>> = {
-      invite: { En: "inviteSubjectEn", Fr: "inviteSubjectFr" },
-      documentSubmitted: { En: "documentSubmittedSubjectEn", Fr: "documentSubmittedSubjectFr" },
-      documentRequested: { En: "documentRequestedSubjectEn", Fr: "documentRequestedSubjectFr" },
-      documentReview: { En: "documentReviewSubjectEn", Fr: "documentReviewSubjectFr" },
-      stageUpdate: { En: "stageUpdateSubjectEn", Fr: "stageUpdateSubjectFr" },
-      propertyOfferMade: { En: "propertyOfferMadeSubjectEn", Fr: "propertyOfferMadeSubjectFr" },
-      propertyOfferStatus: { En: "propertyOfferStatusSubjectEn", Fr: "propertyOfferStatusSubjectFr" },
-      offerReceived: { En: "offerReceivedSubjectEn", Fr: "offerReceivedSubjectFr" },
-      offerStatus: { En: "offerStatusSubjectEn", Fr: "offerStatusSubjectFr" },
-    };
-    return fieldMap[type][lang];
-  };
+  }, [t]);
 
   const getBodyFieldName = (type: EmailTemplateType, lang: "En" | "Fr"): keyof UpdateOrganizationSettingsRequest => {
     const fieldMap: Record<EmailTemplateType, Record<"En" | "Fr", keyof UpdateOrganizationSettingsRequest>> = {
@@ -296,153 +253,13 @@ export function AdminSettingsPage() {
 
   const convertTextToHtml = (text: string) => {
     if (!text) return "";
-    
-    // Mock variables for preview
-    const mockVars: Record<string, string> = {
-      clientName: "John Doe",
-      brokerName: "Jane Smith",
-      documentName: "Mortgage Approval",
-      documentType: "Mortgage Approval",
-      transactionId: "3e66f581-83af-4aeb-bbf1-0ec88cfa44f9",
-      status: "Approved",
-      brokerNotes: "Everything looks good. Please proceed."
-    };
-    
-    // Color maps matching backend - BOX colors
-    const colorMap: Record<string, string> = {
-      gray: '#6b7280',
-      red: '#ef4444',
-      green: '#22c55e',
-      blue: '#3b82f6',
-      yellow: '#eab308',
-      orange: '#f97316',
-      white: '#ffffff'
-    };
-
-    const colorStyles: Record<string, [string, string]> = {
-      '#6b7280': ['#f3f4f6', '#1f2937'],      // gray
-      '#ef4444': ['#fee2e2', '#7f1d1d'],      // red
-      '#22c55e': ['#f0fdf4', '#166534'],      // green
-      '#3b82f6': ['#eff6ff', '#1e3a8a'],      // blue
-      '#eab308': ['#fefce8', '#713f12'],      // yellow
-      '#f97316': ['#ffedd5', '#92400e'],      // orange
-      '#ffffff': ['#f9fafb', '#111827']       // white
-    };
-
-    // HIGHLIGHT colors
-    const highlightColorMap: Record<string, string> = {
-      yellow: '#fef08a',
-      pink: '#fbcfe8',
-      blue: '#bfdbfe',
-      green: '#bbf7d0',
-      orange: '#fed7aa'
-    };
-
-    // Replace mock variables FIRST (before HTML escaping)
-    let processed = text;
-    Object.entries(mockVars).forEach(([key, value]) => {
-      processed = processed.replace(new RegExp(`{{${key}}}`, 'g'), value);
-    });
-
-    // Escape HTML
-    let escaped = processed
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-    
-    // Handle heading sizes
-    escaped = escaped.replace(
-      /\[HEADING-SM\](.*?)\[\/HEADING-SM\]/gs,
-      '<h4 style="font-size: 1.25em; font-weight: 700; margin: 14px 0 8px 0; text-align: center;">$1</h4>'
-    );
-    escaped = escaped.replace(
-      /\[HEADING-MD\](.*?)\[\/HEADING-MD\]/gs,
-      '<h3 style="font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0; text-align: center;">$1</h3>'
-    );
-    escaped = escaped.replace(
-      /\[HEADING-LG\](.*?)\[\/HEADING-LG\]/gs,
-      '<h2 style="font-size: 1.75em; font-weight: 700; margin: 18px 0 12px 0; text-align: center;">$1</h2>'
-    );
-    // Default heading
-    escaped = escaped.replace(
-      /\[HEADING\](.*?)\[\/HEADING\]/gs,
-      '<h3 style="font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0; text-align: center;">$1</h3>'
-    );
-    
-    // Handle [BOX]...[/BOX] (default blue)
-    escaped = escaped.replace(
-      /\[BOX\](.*?)\[\/BOX\]/gs,
-      '<div style="border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;"><p style="margin: 0; color: #1e3a8a; font-weight: 500;">$1</p></div>'
-    );
-
-    // Handle dynamic colored boxes [BOX-colorName]
-    escaped = escaped.replace(
-      /\[BOX-([a-zA-Z]+)\](.*?)\[\/BOX-[a-zA-Z]+\]/gs,
-      (match, colorValue, content) => {
-        const colorName = colorValue.toLowerCase();
-        const hexColor = colorMap[colorName] || colorMap['blue'];
-        const [bgColor, textColor] = colorStyles[hexColor] || colorStyles['#3b82f6'];
-        
-        return `<div style="border-left: 4px solid ${hexColor}; background-color: ${bgColor}; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;"><p style="margin: 0; color: ${textColor}; font-weight: 500;">${content}</p></div>`;
-      }
-    );
-
-    // Keep backward compatibility with old uppercase format [BOX-RED], [BOX-BLUE], etc.
-    escaped = escaped.replace(
-      /\[BOX-RED\](.*?)\[\/BOX-RED\]/gs,
-      '<div style="border-left: 4px solid #ef4444; background-color: #fee2e2; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;"><p style="margin: 0; color: #7f1d1d; font-weight: 500;">$1</p></div>'
-    );
-    escaped = escaped.replace(
-      /\[BOX-BLUE\](.*?)\[\/BOX-BLUE\]/gs,
-      '<div style="border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;"><p style="margin: 0; color: #1e3a8a; font-weight: 500;">$1</p></div>'
-    );
-    escaped = escaped.replace(
-      /\[BOX-GREEN\](.*?)\[\/BOX-GREEN\]/gs,
-      '<div style="border-left: 4px solid #22c55e; background-color: #f0fdf4; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;"><p style="margin: 0; color: #166534; font-weight: 500;">$1</p></div>'
-    );
-    escaped = escaped.replace(
-      /\[BOX-YELLOW\](.*?)\[\/BOX-YELLOW\]/gs,
-      '<div style="border-left: 4px solid #eab308; background-color: #fefce8; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;"><p style="margin: 0; color: #713f12; font-weight: 500;">$1</p></div>'
-    );
-    
-    // Handle [BOLD]...[/BOLD]
-    escaped = escaped.replace(/\[BOLD\](.*?)\[\/BOLD\]/gs, '<strong>$1</strong>');
-
-    // Handle [ITALIC]...[/ITALIC]
-    escaped = escaped.replace(/\[ITALIC\](.*?)\[\/ITALIC\]/gs, '<em>$1</em>');
-
-    // Handle [HIGHLIGHT-colorName]...[/HIGHLIGHT-colorName]
-    escaped = escaped.replace(
-      /\[HIGHLIGHT-([a-zA-Z]+)\](.*?)\[\/HIGHLIGHT-[a-zA-Z]+\]/gs,
-      (match, colorValue, content) => {
-        const colorName = colorValue.toLowerCase();
-        const bgColor = highlightColorMap[colorName] || highlightColorMap['yellow'];
-        
-        return `<span style="background-color: ${bgColor}; padding: 0 4px; border-radius: 3px;">${content}</span>`;
-      }
-    );
-
-    // Handle [HIGHLIGHT]...[/HIGHLIGHT] (default yellow for backward compatibility)
-    escaped = escaped.replace(
-      /\[HIGHLIGHT\](.*?)\[\/HIGHLIGHT\]/gs,
-      '<span style="background-color: #fef08a; padding: 0 4px; border-radius: 3px;">$1</span>'
-    );
-
-    // Handle [IF-variableName]...[/IF-variableName] - for preview, show all conditional blocks
-    escaped = escaped.replace(
-      /\[IF-([a-zA-Z0-9_]+)\](.*?)\[\/IF-\1\]/gs,
-      '$2' // Keep only the content, strip the IF tags
-    );
-
+    let escaped = text;
     // Handle [SEPARATOR]
     escaped = escaped.replace(/\[SEPARATOR\]/g, '<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />');
-    
     // Convert double newlines to paragraph breaks
     let html = escaped.replace(/\n\n/g, "</p><p>");
-    
     // Convert single newlines to line breaks
     html = html.replace(/\n/g, "<br>");
-    
     // Wrap in paragraph tags and center within container for consistency with backend
     return "<div style=\"max-width: 600px; margin: 0 auto;\"><p>" + html + "</p></div>";
   };
@@ -616,7 +433,7 @@ export function AdminSettingsPage() {
                 <div
                   className="relative"
                   onMouseEnter={() => {
-                    clearTimeout(hideTimeoutEnRef.current);
+                    clearTimeout(hideTimeoutEnRef.current === null ? undefined : hideTimeoutEnRef.current);
                     setShowBoxColorPickerEn(true);
                   }}
                   onMouseLeave={() => {
@@ -728,7 +545,7 @@ export function AdminSettingsPage() {
                 <div
                   className="relative"
                   onMouseEnter={() => {
-                    clearTimeout(hideHighlightTimeoutEnRef.current);
+                    clearTimeout(hideHighlightTimeoutEnRef.current === null ? undefined : hideHighlightTimeoutEnRef.current);
                     setShowHighlightColorPickerEn(true);
                   }}
                   onMouseLeave={() => {
@@ -862,7 +679,7 @@ export function AdminSettingsPage() {
                 <div
                   className="relative"
                   onMouseEnter={() => {
-                    clearTimeout(hideTimeoutFrRef.current);
+                    clearTimeout(hideTimeoutFrRef.current === null ? undefined : hideTimeoutFrRef.current);
                     setShowBoxColorPickerFr(true);
                   }}
                   onMouseLeave={() => {
@@ -956,7 +773,7 @@ export function AdminSettingsPage() {
                 <div
                   className="relative"
                   onMouseEnter={() => {
-                    clearTimeout(hideHighlightTimeoutFrRef.current);
+                    clearTimeout(hideHighlightTimeoutFrRef.current === null ? undefined : hideHighlightTimeoutFrRef.current);
                     setShowHighlightColorPickerFr(true);
                   }}
                   onMouseLeave={() => {
@@ -1259,6 +1076,8 @@ export function AdminSettingsPage() {
         open={isInviteOpen}
         onClose={() => setIsInviteOpen(false)}
       />
+
     </>
   );
 }
+
