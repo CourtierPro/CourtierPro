@@ -11,10 +11,18 @@ import { Toaster } from "sonner";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { SearchProvider } from "@/features/search/context/SearchProvider";
 
+// Helper to get env vars with runtime fallback
+const getEnv = (key: string, fallback: string) => {
+    if (window.env && window.env[key]) {
+        return window.env[key];
+    }
+    return import.meta.env[key] || fallback;
+};
+
 // Auth0 configuration from environment variables
-const domain = import.meta.env.VITE_AUTH0_DOMAIN || "dev-y7mhv7ttykx4kz4f.us.auth0.com";
-const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID || "JJIaYMFFtbZqGwP1XKyOx1XcFTPO9Qlr";
-const audience = import.meta.env.VITE_AUTH0_AUDIENCE || "https://api.courtierpro.dev/";
+const domain = getEnv("VITE_AUTH0_DOMAIN", "dev-y7mhv7ttykx4kz4f.us.auth0.com");
+const clientId = getEnv("VITE_AUTH0_CLIENT_ID", "JJIaYMFFtbZqGwP1XKyOx1XcFTPO9Qlr");
+const audience = getEnv("VITE_AUTH0_AUDIENCE", "https://api.courtierpro.dev/");
 
 function Auth0ProviderWithNavigate({ children }: { children: ReactNode }) {
     const navigate = useNavigate();

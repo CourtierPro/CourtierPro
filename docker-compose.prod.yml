@@ -68,6 +68,11 @@ services:
     build: ./frontend
     container_name: courtierpro_frontend
     restart: unless-stopped
+    environment:
+      VITE_API_URL: ${VITE_API_URL}
+      VITE_AUTH0_DOMAIN: ${AUTH0_DOMAIN}
+      VITE_AUTH0_CLIENT_ID: ${VITE_AUTH0_CLIENT_ID}
+      VITE_AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
 
   # --- Database ---
   db:
@@ -81,7 +86,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${DB_USER}", "-d", "courtierpro"]
+      test: [ "CMD", "pg_isready", "-U", "${DB_USER}", "-d", "courtierpro" ]
       interval: 10s
       timeout: 5s
       retries: 5
