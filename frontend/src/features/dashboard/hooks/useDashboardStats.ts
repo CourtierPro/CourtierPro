@@ -20,7 +20,16 @@ export interface BrokerDashboardStats {
 export interface AdminDashboardStats {
     totalUsers: number;
     activeBrokers: number;
+    clientCount: number;
+    activeTransactions: number;
+    newUsers: number;
+    failedLogins: number;
     systemHealth: string;
+}
+
+export interface RecentActionsResponse {
+    recentLogins: any[];
+    recentDeletions: any[];
 }
 
 import { useState, useMemo } from 'react';
@@ -94,6 +103,16 @@ export function useAdminDashboardStats() {
         queryKey: ['dashboard', 'admin'],
         queryFn: async () => {
             const res = await axiosInstance.get<AdminDashboardStats>('/api/v1/dashboard/admin');
+            return res.data;
+        },
+    });
+}
+
+export function useAdminRecentActions() {
+    return useQuery({
+        queryKey: ['dashboard', 'admin', 'recent-actions'],
+        queryFn: async () => {
+            const res = await axiosInstance.get<RecentActionsResponse>('/api/v1/dashboard/admin/recent-actions');
             return res.data;
         },
     });

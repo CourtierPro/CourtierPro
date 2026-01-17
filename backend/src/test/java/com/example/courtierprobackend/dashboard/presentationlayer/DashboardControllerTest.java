@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.example.courtierprobackend.audit.loginaudit.dataaccesslayer.LoginAuditEventRepository;
+import com.example.courtierprobackend.audit.resourcedeletion.datalayer.AdminDeletionAuditRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 
@@ -28,16 +30,26 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class DashboardControllerTest {
 
+
     @Mock
     private TransactionRepository transactionRepository;
     @Mock
     private UserAccountRepository userRepository;
+    @Mock
+    private LoginAuditEventRepository loginAuditEventRepository;
+    @Mock
+    private AdminDeletionAuditRepository adminDeletionAuditRepository;
 
     private DashboardController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new DashboardController(transactionRepository, userRepository);
+        controller = new DashboardController(
+            transactionRepository,
+            userRepository,
+            loginAuditEventRepository,
+            adminDeletionAuditRepository
+        );
     }
 
     // ========== Client Dashboard Tests ==========
@@ -166,7 +178,7 @@ class DashboardControllerTest {
         // Assert
         assertThat(response.getBody().getTotalUsers()).isEqualTo(3);
         assertThat(response.getBody().getActiveBrokers()).isEqualTo(1);
-        assertThat(response.getBody().getSystemHealth()).isEqualTo("99.9%");
+        assertThat(response.getBody().getSystemHealth()).isEqualTo("Healthy");
     }
 
     @Test

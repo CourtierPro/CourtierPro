@@ -42,4 +42,8 @@ public class OrganizationSettingsAuditService {
     public List<OrganizationSettingsAuditEvent> getAllAuditEvents() {
         return repository.findAllByOrderByTimestampDesc();
     }
+
+    public List<OrganizationSettingsAuditEvent> getRecentAuditEvents(int limit) {
+        return repository.findTopNByOrderByTimestampDesc(limit);
+    }
 }

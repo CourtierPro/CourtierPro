@@ -590,3 +590,14 @@ CREATE INDEX IF NOT EXISTS idx_document_conditions_condition_id ON document_cond
 CREATE INDEX IF NOT EXISTS idx_document_conditions_offer_id ON document_conditions(offer_id);
 CREATE INDEX IF NOT EXISTS idx_document_conditions_property_offer_id ON document_conditions(property_offer_id);
 CREATE INDEX IF NOT EXISTS idx_document_conditions_document_request_id ON document_conditions(document_request_id);
+
+-- =============================================================================
+-- SYSTEM ALERTS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS system_alert (
+    id BIGSERIAL PRIMARY KEY,
+    message VARCHAR(255) NOT NULL,
+    severity VARCHAR(50) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
