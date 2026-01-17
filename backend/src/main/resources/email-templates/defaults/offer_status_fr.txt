@@ -1,0 +1,16 @@
+[HEADING-LG]Mise à jour du statut de l'offre[/HEADING-LG]
+
+Bonjour {{clientName}},
+
+Votre courtier [BOLD]{{brokerName}}[/BOLD] a mis à jour le statut d'une offre :
+
+[BOX-gray]
+[BOLD]Acheteur :[/BOLD] {{buyerName}}
+[/BOX-gray]
+
+[BOX-orange]
+Statut changé de [BOLD]{{previousStatus}}[/BOLD] à :
+[BOLD]{{newStatus}}[/BOLD]
+[/BOX-orange]
+
+Connectez-vous à CourtierPro pour voir les détails et les prochaines étapes.

@@ -1,0 +1,13 @@
+[HEADING-LG]Document Submitted[/HEADING-LG]
+
+Hello,
+
+A document has been submitted by [BOLD]{{uploaderName}}[/BOLD]:
+
+[BOX-gray]
+[HEADING-MD]{{documentName}}[/HEADING-MD]
+[/BOX-gray]
+
+Transaction ID: {{transactionId}}
+
+Please log in to CourtierPro to review this document.

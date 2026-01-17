@@ -8,6 +8,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,17 +27,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class AdminPasswordResetAuditControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @MockBean
-    private PasswordResetAuditService passwordResetAuditService;
+        @MockBean
+        private PasswordResetAuditService passwordResetAuditService;
 
-    @MockBean
-    private UserContextFilter userContextFilter;
+        @MockBean
+        private UserContextFilter userContextFilter;
 
-    @MockBean
-    private UserAccountRepository userAccountRepository;
+        @MockBean
+        private UserAccountRepository userAccountRepository;
 
     @Test
     @WithMockUser(roles = "ADMIN")

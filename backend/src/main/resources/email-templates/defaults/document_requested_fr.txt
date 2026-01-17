@@ -1,0 +1,19 @@
+[HEADING-LG]Demande de document[/HEADING-LG]
+
+Bonjour {{clientName}},
+
+Votre courtier [BOLD]{{brokerName}}[/BOLD] a demandé le document suivant :
+
+[BOX-gray]
+[BOLD]{{documentName}}[/BOLD]
+Type : {{documentType}}
+[/BOX-gray]
+
+[IF-brokerNotes]
+[BOX-gray]
+[BOLD]Détails importants :[/BOLD]
+{{brokerNotes}}
+[/BOX-gray]
+[/IF-brokerNotes]
+
+Veuillez vous connecter à CourtierPro pour téléverser ce document.

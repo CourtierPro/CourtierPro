@@ -61,9 +61,12 @@ class OrganizationSettingsControllerTest {
     @Test
     void updateSettings_UpdatesAndReturnsNewSettings() {
         // Arrange
-        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
-                "fr", "Subject EN", "Body EN", "Subject FR", "Body FR"
-        );
+        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel();
+        request.setDefaultLanguage("fr");
+        request.setInviteSubjectEn("Subject EN");
+        request.setInviteBodyEn("Body EN");
+        request.setInviteSubjectFr("Subject FR");
+        request.setInviteBodyFr("Body FR");
         OrganizationSettingsResponseModel updated = OrganizationSettingsResponseModel.builder()
                 .defaultLanguage("fr")
                 .build();
@@ -79,9 +82,12 @@ class OrganizationSettingsControllerTest {
     @Test
     void updateSettings_DelegatesCorrectlyToService() {
         // Arrange
-        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
-                "en", "S", "B", "S", "B"
-        );
+        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel();
+        request.setDefaultLanguage("en");
+        request.setInviteSubjectEn("S");
+        request.setInviteBodyEn("B");
+        request.setInviteSubjectFr("S");
+        request.setInviteBodyFr("B");
         when(organizationSettingsService.updateSettings(request)).thenReturn(OrganizationSettingsResponseModel.builder().build());
 
         // Act

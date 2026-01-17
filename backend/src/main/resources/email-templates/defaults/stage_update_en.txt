@@ -1,0 +1,12 @@
+[HEADING-LG]Transaction Stage Update[/HEADING-LG]
+
+Hi {{clientName}},
+
+There is an update on your transaction for [BOLD]{{transactionAddress}}[/BOLD].
+
+[BOX-gray]
+[BOLD]New Stage:[/BOLD]
+{{newStage}}
+[/BOX-gray]
+
+Your broker [BOLD]{{brokerName}}[/BOLD] has moved your transaction forward. Please log in to your portal for more details.

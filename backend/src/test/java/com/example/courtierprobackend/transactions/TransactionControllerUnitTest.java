@@ -1,3 +1,4 @@
+// ...existing code...
 package com.example.courtierprobackend.transactions;
 
 import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
@@ -21,7 +22,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.http.MediaType;
 
@@ -36,20 +37,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(GlobalExceptionHandler.class)
 class TransactionControllerUnitTest {
 
-        @org.springframework.boot.test.mock.mockito.MockBean
-        private TimelineService timelineService;
+        @org.mockito.Mock
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockitoBean
+        @MockBean
     private TransactionService service;
 
-    @MockitoBean
+        @MockBean
     private UserContextFilter userContextFilter;
 
-    @MockitoBean
+        @MockBean
     private UserAccountRepository userAccountRepository;
+
+        @MockBean
+        private com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService;
 
     @Autowired
     private ObjectMapper mapper;
@@ -76,6 +79,7 @@ class TransactionControllerUnitTest {
                 post("/transactions")
                         .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", brokerId.toString())))
                         .header("x-broker-id", brokerId.toString())
+                        .requestAttr("internalUserId", brokerId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req))
         )
@@ -117,6 +121,7 @@ class TransactionControllerUnitTest {
                 post("/transactions")
                         .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", brokerId.toString())))
                         .header("x-broker-id", brokerId.toString())
+                        .requestAttr("internalUserId", brokerId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req))
         ).andExpect(status().isBadRequest());
@@ -133,10 +138,12 @@ class TransactionControllerUnitTest {
         when(service.createTransaction(any()))
                 .thenThrow(new BadRequestException("Invalid transaction"));
 
+        UUID brokerId = UUID.randomUUID();
         mockMvc.perform(
                 post("/transactions")
-                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", UUID.randomUUID().toString())))
-                        .header("x-broker-id", UUID.randomUUID().toString())
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", brokerId.toString())))
+                        .header("x-broker-id", brokerId.toString())
+                        .requestAttr("internalUserId", brokerId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req))
         ).andExpect(status().isBadRequest());
@@ -153,10 +160,12 @@ class TransactionControllerUnitTest {
         when(service.createTransaction(any()))
                 .thenThrow(new NotFoundException("Transaction not found"));
 
+        UUID brokerId = UUID.randomUUID();
         mockMvc.perform(
                 post("/transactions")
-                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", UUID.randomUUID().toString())))
-                        .header("x-broker-id", UUID.randomUUID().toString())
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", brokerId.toString())))
+                        .header("x-broker-id", brokerId.toString())
+                        .requestAttr("internalUserId", brokerId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req))
         ).andExpect(status().isNotFound());
@@ -173,10 +182,12 @@ class TransactionControllerUnitTest {
         when(service.createTransaction(any()))
                 .thenThrow(new BadRequestException("Duplicate transaction"));
 
+        UUID brokerId = UUID.randomUUID();
         mockMvc.perform(
                 post("/transactions")
-                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", UUID.randomUUID().toString())))
-                        .header("x-broker-id", UUID.randomUUID().toString())
+                        .with(jwt().authorities(ROLE_BROKER).jwt(jwt -> jwt.claim("sub", brokerId.toString())))
+                        .header("x-broker-id", brokerId.toString())
+                        .requestAttr("internalUserId", brokerId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req))
         ).andExpect(status().isBadRequest());

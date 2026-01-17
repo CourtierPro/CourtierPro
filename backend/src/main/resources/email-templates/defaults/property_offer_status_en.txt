@@ -1,0 +1,23 @@
+[HEADING-LG]Property Offer Status Update[/HEADING-LG]
+
+Hello {{clientName}},
+
+Your broker [BOLD]{{brokerName}}[/BOLD] has updated the status of your offer:
+
+[BOX-gray]
+[BOLD]Property:[/BOLD] {{propertyAddress}}
+[/BOX-gray]
+
+[BOX-orange]
+Status changed from [BOLD]{{previousStatus}}[/BOLD] to:
+[BOLD]{{newStatus}}[/BOLD]
+[/BOX-orange]
+
+[IF-counterpartyResponse]
+[BOX-blue]
+[BOLD]Counterparty Response:[/BOLD]
+{{counterpartyResponse}}
+[/BOX-blue]
+[/IF-counterpartyResponse]
+
+Log in to CourtierPro to view details and next steps.

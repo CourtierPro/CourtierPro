@@ -112,9 +112,12 @@ class OrganizationSettingsServiceImplTest {
                 .defaultLanguage("fr")
                 .build();
 
-        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
-                "fr", "New Subject", "body en", "Subject Fr", "body fr"
-        );
+        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel();
+        request.setDefaultLanguage("fr");
+        request.setInviteSubjectEn("New Subject");
+        request.setInviteBodyEn("body en");
+        request.setInviteSubjectFr("Subject Fr");
+        request.setInviteBodyFr("body fr");
 
         when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
         when(repository.save(any())).thenReturn(saved);
@@ -156,9 +159,12 @@ class OrganizationSettingsServiceImplTest {
                 .build();
         OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder().build();
 
-        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
-                "fr", "Subject", "Body", "Sujet", "Corps"
-        );
+        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel();
+        request.setDefaultLanguage("fr");
+        request.setInviteSubjectEn("Subject");
+        request.setInviteBodyEn("Body");
+        request.setInviteSubjectFr("Sujet");
+        request.setInviteBodyFr("Corps");
 
         when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
         when(repository.save(any())).thenReturn(saved);
@@ -196,9 +202,12 @@ class OrganizationSettingsServiceImplTest {
         OrganizationSettings saved = OrganizationSettings.builder().defaultLanguage("fr").updatedAt(Instant.now()).build();
         OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder().build();
 
-        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
-                "fr", "Subject", "Body", "Sujet", "Corps"
-        );
+        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel();
+        request.setDefaultLanguage("fr");
+        request.setInviteSubjectEn("Subject");
+        request.setInviteBodyEn("Body");
+        request.setInviteSubjectFr("Sujet");
+        request.setInviteBodyFr("Corps");
 
         when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
         when(repository.save(any())).thenReturn(saved);
@@ -229,9 +238,12 @@ class OrganizationSettingsServiceImplTest {
         OrganizationSettings saved = OrganizationSettings.builder().defaultLanguage("fr").updatedAt(Instant.now()).build();
         OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder().build();
 
-        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
-                "fr", "Subject", "Body", "Sujet", "Corps"
-        );
+        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel();
+        request.setDefaultLanguage("fr");
+        request.setInviteSubjectEn("Subject");
+        request.setInviteBodyEn("Body");
+        request.setInviteSubjectFr("Sujet");
+        request.setInviteBodyFr("Corps");
 
         when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
         when(repository.save(any())).thenReturn(saved);
@@ -263,9 +275,12 @@ class OrganizationSettingsServiceImplTest {
                 .build();
         OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder().build();
 
-        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
-                "fr", "Same Subject", "Same Body", "Même Sujet", "Même Corps"
-        );
+        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel();
+        request.setDefaultLanguage("fr");
+        request.setInviteSubjectEn("Same Subject");
+        request.setInviteBodyEn("Same Body");
+        request.setInviteSubjectFr("Même Sujet");
+        request.setInviteBodyFr("Même Corps");
 
         when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
         when(repository.save(any())).thenReturn(saved);
@@ -291,9 +306,12 @@ class OrganizationSettingsServiceImplTest {
         OrganizationSettings saved = OrganizationSettings.builder().defaultLanguage("fr").updatedAt(Instant.now()).build();
         OrganizationSettingsResponseModel response = OrganizationSettingsResponseModel.builder().build();
 
-        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel(
-                "fr", "Subject", "Body", "Sujet", "Corps"
-        );
+        UpdateOrganizationSettingsRequestModel request = new UpdateOrganizationSettingsRequestModel();
+        request.setDefaultLanguage("fr");
+        request.setInviteSubjectEn("Subject");
+        request.setInviteBodyEn("Body");
+        request.setInviteSubjectFr("Sujet");
+        request.setInviteBodyFr("Corps");
 
         when(repository.findTopByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
         when(repository.save(any())).thenReturn(saved);
