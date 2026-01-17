@@ -123,7 +123,8 @@ export function AdminSettingsPage() {
   // (supprimé car non utilisé)
 
   // Disable form controls if loading or saving
-  const isDisabled = isLoading || isSaving;
+  // Les boutons sont toujours activés
+  const isDisabled = false;
 
   // Get subject field name for a template and language
   function getSubjectFieldName(type: EmailTemplateType, lang: "En" | "Fr"): keyof UpdateOrganizationSettingsRequest {
@@ -251,17 +252,58 @@ export function AdminSettingsPage() {
     return { subjectEnField, bodyEnField, subjectFrField, bodyFrField };
   }, [selectedTemplate]);
 
+  // Remplace les variables par des exemples pour le preview
+  const mockVars = {
+    name: "John Doe",
+    uploaderName: "Jane Smith",
+    documentName: "ID Card",
+    documentType: "Proof of Identity",
+    transactionId: "TX123456",
+    clientName: "Alice Client",
+    brokerName: "Bob Broker",
+    propertyAddress: "123 Main St",
+    offerAmount: "$500,000",
+    offerRound: "1",
+    previousStatus: "Pending",
+    newStatus: "Accepted",
+    counterpartyResponse: "Approved",
+    buyerName: "Buyer Name"
+  };
+
+  function replaceTemplateVars(text: string) {
+    return text.replace(/{{(\w+)}}/g, (_, v) => mockVars[v] || v);
+  }
+
+  // Affiche tous les blocs conditionnels [IF-xxx]...[/IF-xxx] dans le preview
+  function showAllIfBlocks(text: string) {
+    // Remplace [IF-xxx]...[/IF-xxx] par le contenu (supprime juste les balises)
+    return text.replace(/\[IF-[^\]]+\]([\s\S]*?)\[\/IF-[^\]]+\]/g, '$1');
+  }
+
+  // Parse les balises custom en HTML pour le preview
   const convertTextToHtml = (text: string) => {
     if (!text) return "";
-    let escaped = text;
-    // Handle [SEPARATOR]
-    escaped = escaped.replace(/\[SEPARATOR\]/g, '<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />');
-    // Convert double newlines to paragraph breaks
-    let html = escaped.replace(/\n\n/g, "</p><p>");
-    // Convert single newlines to line breaks
-    html = html.replace(/\n/g, "<br>");
-    // Wrap in paragraph tags and center within container for consistency with backend
-    return "<div style=\"max-width: 600px; margin: 0 auto;\"><p>" + html + "</p></div>";
+    let html = replaceTemplateVars(text);
+    html = showAllIfBlocks(html);
+    // Headings
+    html = html.replace(/\[HEADING-LG\](.*?)\[\/HEADING-LG\]/gs, '<h1>$1</h1>');
+    html = html.replace(/\[HEADING-MD\](.*?)\[\/HEADING-MD\]/gs, '<h2>$1</h2>');
+    html = html.replace(/\[HEADING-SM\](.*?)\[\/HEADING-SM\]/gs, '<h3>$1</h3>');
+    // Boxes
+    html = html.replace(/\[BOX-gray\](.*?)\[\/BOX-gray\]/gs, '<div style="background:#f3f4f6;padding:12px;border-radius:6px;margin:8px 0;">$1</div>');
+    html = html.replace(/\[BOX-green\](.*?)\[\/BOX-green\]/gs, '<div style="background:#d1fae5;padding:12px;border-radius:6px;margin:8px 0;">$1</div>');
+    html = html.replace(/\[BOX-orange\](.*?)\[\/BOX-orange\]/gs, '<div style="background:#ffedd5;padding:12px;border-radius:6px;margin:8px 0;">$1</div>');
+    html = html.replace(/\[BOX-blue\](.*?)\[\/BOX-blue\]/gs, '<div style="background:#dbeafe;padding:12px;border-radius:6px;margin:8px 0;">$1</div>');
+    // Bold, Italic
+    html = html.replace(/\[BOLD\](.*?)\[\/BOLD\]/gs, '<strong>$1</strong>');
+    html = html.replace(/\[ITALIC\](.*?)\[\/ITALIC\]/gs, '<em>$1</em>');
+    // Separator
+    html = html.replace(/\[SEPARATOR\]/g, '<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />');
+    // Double newlines => paragraph
+    html = html.replace(/\n\n/g, '</p><p>');
+    // Single newline => line break
+    html = html.replace(/\n/g, '<br>');
+    return '<div style="max-width:600px;margin:0 auto;"><p>' + html + '</p></div>';
   };
 
   const renderPreview = (subjectField: keyof UpdateOrganizationSettingsRequest, bodyField: keyof UpdateOrganizationSettingsRequest) => {
