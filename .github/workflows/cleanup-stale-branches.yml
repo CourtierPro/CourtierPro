@@ -1,0 +1,257 @@
+name: Cleanup Stale Branches
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # 3:00 AM UTC daily
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Days of inactivity before deletion'
+        default: 14
+        type: number
+      dry-run:
+        description: 'Preview deletions without executing'
+        type: boolean
+        default: true
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Delete stale branches
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Parse inputs with proper type handling
+            // GitHub Actions passes booleans as actual booleans for workflow_dispatch
+            const inputDays = '${{ github.event.inputs.days }}';
+            const daysThreshold = inputDays ? parseInt(inputDays) : 14;
+            
+            // Scheduled runs are always dry-run (safe preview mode)
+            // Manual triggers respect the user's dry-run input parameter
+            const isScheduled = '${{ github.event_name }}' === 'schedule';
+            const inputDryRun = '${{ github.event.inputs.dry-run }}';
+            // Handle both boolean 'true'/'false' strings from workflow_dispatch
+            const dryRun = isScheduled ? true : (inputDryRun !== 'false');
+            
+            // Hardcoded protected branches (fallback list)
+            const protectedBranchNames = ['main', 'master', 'develop', 'staging', 'production'];
+            
+            // Branches with last commit before this date are considered stale
+            const staleBeforeDate = new Date();
+            staleBeforeDate.setDate(staleBeforeDate.getDate() - daysThreshold);
+            
+            console.log(`🔍 Looking for branches inactive for ${daysThreshold}+ days`);
+            console.log(`📅 Stale before: ${staleBeforeDate.toISOString()}`);
+            console.log(`🧪 Dry run: ${dryRun}`);
+            console.log('');
+
+            // Fetch branch protection rules to ensure we don't delete protected branches
+            let protectedPatterns = [];
+            try {
+              const { data: protectionRules } = await github.rest.repos.listBranchProtectionRules
+                ? await github.rest.repos.listBranchProtectionRules({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                  })
+                : { data: [] };
+              
+              if (protectionRules && protectionRules.length > 0) {
+                protectedPatterns = protectionRules.map(rule => rule.pattern);
+                console.log(`🛡️ Found ${protectedPatterns.length} branch protection patterns: ${protectedPatterns.join(', ')}`);
+              }
+            } catch (error) {
+              // Branch protection API may not be available or accessible
+              console.log(`ℹ️ Could not fetch branch protection rules: ${error.message}`);
+              console.log('   Falling back to hardcoded protected branch list.');
+            }
+            
+            // Helper function to escape special regex characters
+            const escapeRegex = (str) => str.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+            
+            // Helper function to check if branch matches any protection pattern
+            const isProtectedByPattern = (branchName) => {
+              for (const pattern of protectedPatterns) {
+                // Convert glob pattern to regex with proper escaping
+                // First escape special regex chars, then convert glob wildcards
+                const regexPattern = escapeRegex(pattern)
+                  .replace(/\\\*/g, '.*')   // * -> match any chars
+                  .replace(/\\\?/g, '.');   // ? -> match single char
+                if (new RegExp(`^${regexPattern}$`).test(branchName)) {
+                  return true;
+                }
+              }
+              return false;
+            };
+
+            // Collect all branches with pagination
+            let allBranches = [];
+            let page = 1;
+            const perPage = 100;
+            
+            console.log('📋 Fetching all branches...');
+            while (true) {
+              const { data: branches } = await github.rest.repos.listBranches({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: perPage,
+                page: page
+              });
+              
+              allBranches = allBranches.concat(branches);
+              
+              if (branches.length < perPage) {
+                break;  // No more pages
+              }
+              page++;
+              
+              // Rate limit protection: pause briefly between pages
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            console.log(`   Found ${allBranches.length} total branches`);
+            console.log('');
+
+            // Tracking statistics
+            let deletedCount = 0;
+            let protectedCount = 0;
+            let hasOpenPRCount = 0;
+            let activeCount = 0;
+            let errorCount = 0;
+
+            for (const branch of allBranches) {
+              const branchName = branch.name;
+              
+              // Skip hardcoded protected branches
+              if (protectedBranchNames.includes(branchName)) {
+                console.log(`🛡️ Skipping protected branch: ${branchName}`);
+                protectedCount++;
+                continue;
+              }
+              
+              // Skip branches matching protection patterns
+              if (isProtectedByPattern(branchName)) {
+                console.log(`🛡️ Skipping branch (matches protection pattern): ${branchName}`);
+                protectedCount++;
+                continue;
+              }
+
+              // Check for open pull requests using this branch
+              try {
+                const { data: prs } = await github.rest.pulls.list({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  head: `${context.repo.owner}:${branchName}`,
+                  state: 'open',
+                  per_page: 1
+                });
+                
+                if (prs.length > 0) {
+                  console.log(`📝 Skipping branch with open PR: ${branchName} (PR #${prs[0].number})`);
+                  hasOpenPRCount++;
+                  continue;
+                }
+              } catch (error) {
+                // If we can't check PRs, skip branch for safety (might have an open PR)
+                console.log(`⚠️ Could not check PRs for ${branchName}: ${error.message}. Skipping for safety.`);
+                errorCount++;
+                continue;
+              }
+
+              // Get the latest commit date for this branch (with rate limit handling)
+              let commitDate;
+              try {
+                const { data: commit } = await github.rest.repos.getCommit({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: branch.commit.sha
+                });
+                commitDate = new Date(commit.commit.committer.date);
+              } catch (error) {
+                if (error.status === 403 && error.message.includes('rate limit')) {
+                  console.log('⏳ Rate limit hit, waiting 60 seconds...');
+                  await new Promise(resolve => setTimeout(resolve, 60000));
+                  // Retry once
+                  try {
+                    const { data: commit } = await github.rest.repos.getCommit({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      ref: branch.commit.sha
+                    });
+                    commitDate = new Date(commit.commit.committer.date);
+                  } catch (retryError) {
+                    console.log(`❌ Failed to get commit info for ${branchName}: ${retryError.message}`);
+                    errorCount++;
+                    continue;
+                  }
+                } else {
+                  console.log(`❌ Failed to get commit info for ${branchName}: ${error.message}`);
+                  errorCount++;
+                  continue;
+                }
+              }
+              
+              if (commitDate < staleBeforeDate) {
+                console.log(`🗑️ ${dryRun ? '[DRY RUN] Would delete' : 'Deleting'}: ${branchName} (last commit: ${commitDate.toISOString()})`);
+                
+                if (!dryRun) {
+                  try {
+                    await github.rest.git.deleteRef({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      ref: `heads/${branchName}`
+                    });
+                    deletedCount++;
+                  } catch (error) {
+                    console.log(`❌ Failed to delete ${branchName}: ${error.message}`);
+                    errorCount++;
+                  }
+                } else {
+                  deletedCount++;
+                }
+              } else {
+                activeCount++;
+              }
+              
+              // Small delay to avoid hitting rate limits
+              await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
+            console.log('');
+            console.log('📊 Summary:');
+            console.log(`   ${dryRun ? 'Would delete' : 'Deleted'}: ${deletedCount} stale branches`);
+            console.log(`   Protected branches: ${protectedCount}`);
+            console.log(`   Branches with open PRs: ${hasOpenPRCount}`);
+            console.log(`   Active branches (recent commits): ${activeCount}`);
+            if (errorCount > 0) {
+              console.log(`   Errors: ${errorCount}`);
+            }
+            
+            // Generate job summary for GitHub Actions UI
+            const summaryTable = [
+              '## 🧹 Stale Branch Cleanup Results',
+              '',
+              `| Metric | Count |`,
+              `|--------|-------|`,
+              `| ${dryRun ? 'Would delete' : 'Deleted'} | ${deletedCount} |`,
+              `| Protected branches | ${protectedCount} |`,
+              `| Branches with open PRs | ${hasOpenPRCount} |`,
+              `| Active branches | ${activeCount} |`,
+              errorCount > 0 ? `| Errors | ${errorCount} |` : '',
+              '',
+              `**Mode:** ${dryRun ? '🧪 Dry Run (preview only)' : '🗑️ Live Run (branches deleted)'}`,
+              '',
+              `**Threshold:** ${daysThreshold} days of inactivity`
+            ].filter(Boolean).join('\n');
+            
+            await core.summary.addRaw(summaryTable).write();
