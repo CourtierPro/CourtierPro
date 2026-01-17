@@ -30,8 +30,8 @@ export interface AdminDashboardStats {
 }
 
 export interface RecentActionsResponse {
-    recentLogins: any[];
-    recentDeletions: any[];
+    recentLogins: unknown[];
+    recentDeletions: unknown[];
 }
 
 import { useState, useMemo } from 'react';

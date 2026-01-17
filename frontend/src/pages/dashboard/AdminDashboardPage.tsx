@@ -139,11 +139,20 @@ export function AdminDashboardPage() {
               <h4 className="font-semibold">Login Audits</h4>
               {recentActions?.recentLogins?.length ? (
                 <ul className="text-xs text-muted-foreground">
-                  {recentActions.recentLogins.map((log, idx) => (
-                    <li key={log.id || idx}>
-                      {log.email} ({log.role}) at {new Date(log.timestamp).toLocaleString()}
-                    </li>
-                  ))}
+                  {recentActions.recentLogins.map((log, idx) => {
+                    if (
+                      typeof log === 'object' && log !== null &&
+                      'email' in log && 'role' in log && 'timestamp' in log
+                    ) {
+                      const l = log as { id?: string | number; email: string; role: string; timestamp: string | number };
+                      return (
+                        <li key={l.id || idx}>
+                          {l.email} ({l.role}) at {new Date(l.timestamp).toLocaleString()}
+                        </li>
+                      );
+                    }
+                    return null;
+                  })}
                 </ul>
               ) : (
                 <div className="text-xs text-muted-foreground">No recent login audits.</div>
@@ -153,11 +162,20 @@ export function AdminDashboardPage() {
               <h4 className="font-semibold">Deletion Audits</h4>
               {recentActions?.recentDeletions?.length ? (
                 <ul className="text-xs text-muted-foreground">
-                  {recentActions.recentDeletions.map((del, idx) => (
-                    <li key={del.id || idx}>
-                      {del.adminEmail} deleted {del.resourceType} ({del.resourceId}) at {new Date(del.timestamp).toLocaleString()}
-                    </li>
-                  ))}
+                  {recentActions.recentDeletions.map((del, idx) => {
+                    if (
+                      typeof del === 'object' && del !== null &&
+                      'adminEmail' in del && 'resourceType' in del && 'resourceId' in del && 'timestamp' in del
+                    ) {
+                      const d = del as { id?: string | number; adminEmail: string; resourceType: string; resourceId: string | number; timestamp: string | number };
+                      return (
+                        <li key={d.id || idx}>
+                          {d.adminEmail} deleted {d.resourceType} ({d.resourceId}) at {new Date(d.timestamp).toLocaleString()}
+                        </li>
+                      );
+                    }
+                    return null;
+                  })}
                 </ul>
               ) : (
                 <div className="text-xs text-muted-foreground">No recent deletion audits.</div>
