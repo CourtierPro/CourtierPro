@@ -58,10 +58,19 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build-and-push
+    environment:
+      name: production
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Copy Compose & Caddyfile to EC2
         uses: appleboy/scp-action@master
@@ -88,25 +97,48 @@ jobs:
           script: |
             cd /home/${{ secrets.EC2_USER }}/app
 
-            # 1. Save current IMAGE_TAG for potential rollback
+            # Configuration
+            MAX_RETRIES=15
+            ROLLBACK_MAX_RETRIES=5  # Shorter retry limit for rollback (previous version was healthy)
+            HEALTH_CHECK_URL="http://localhost:80/api/actuator/health"
+
+            # 1. Ensure .env file exists and extract rollback tag
+            # Note: First-ever deployment will have no rollback capability (ROLLBACK_TAG empty)
             if [ ! -f .env ]; then
-              echo "⚠️ Warning: .env file not found. No rollback version available."
+              echo "⚠️ Warning: .env file not found. Creating with new IMAGE_TAG."
+              echo "IMAGE_TAG=${{ github.sha }}" > .env
               ROLLBACK_TAG=""
+              echo "📝 Note: This appears to be the first deployment - no rollback version available."
             else
               ROLLBACK_TAG=$(grep "^IMAGE_TAG=" .env | cut -d'=' -f2 || echo "")
               if [ -z "$ROLLBACK_TAG" ]; then
-                echo "⚠️ Warning: IMAGE_TAG not found in .env. No rollback version available."
+                echo "⚠️ Warning: IMAGE_TAG not found in .env. Adding it now."
+                echo "IMAGE_TAG=${{ github.sha }}" >> .env
+                echo "📝 Note: No previous IMAGE_TAG found - no rollback version available."
               else
                 echo "📦 Current version (rollback target): $ROLLBACK_TAG"
               fi
             fi
             echo "🚀 Deploying new version: ${{ github.sha }}"
 
-            # 2. Update the .env file with the new commit SHA
-            sed -i "s/IMAGE_TAG=.*/IMAGE_TAG=${{ github.sha }}/" .env
+            # 2. Update the .env file with the new commit SHA (with backup)
+            cp .env .env.bak
+            if grep -q "^IMAGE_TAG=" .env; then
+              sed -i "s/IMAGE_TAG=.*/IMAGE_TAG=${{ github.sha }}/" .env
+            else
+              echo "IMAGE_TAG=${{ github.sha }}" >> .env
+            fi
+            
+            # Verify the update was successful
+            UPDATED_TAG=$(grep "^IMAGE_TAG=" .env | cut -d'=' -f2)
+            if [ "$UPDATED_TAG" != "${{ github.sha }}" ]; then
+              echo "❌ Failed to update IMAGE_TAG in .env file"
+              cp .env.bak .env
+              exit 1
+            fi
 
-            # 3. Login to Registry
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            # 3. Login to Registry (using ~/.docker/config.json for security)
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin 2>/dev/null
 
             # 4. Pull and Deploy using the --env-file flag
             docker compose --env-file .env -f docker-compose.prod.yml pull
@@ -116,8 +148,6 @@ jobs:
             echo "🏥 Performing Health Check..."
             sleep 60 # Give the Spring Boot app more time to start
 
-            HEALTH_CHECK_URL="http://localhost:80/api/actuator/health"
-            MAX_RETRIES=15
             COUNT=0
             SUCCESS=0
 
@@ -133,6 +163,8 @@ jobs:
 
             if [ $SUCCESS -eq 1 ]; then
               echo "✅ Deployment Successful!"
+              rm -f .env.bak  # Clean up backup on success
+              exit 0
             else
               echo "❌ Deployment Failed! Attempting rollback..."
               docker compose --env-file .env -f docker-compose.prod.yml logs --tail=20 backend
@@ -140,33 +172,88 @@ jobs:
               # 6. Rollback to previous version
               if [ -n "$ROLLBACK_TAG" ] && [ "$ROLLBACK_TAG" != "${{ github.sha }}" ]; then
                 echo "🔄 Rolling back to previous version: $ROLLBACK_TAG"
-                sed -i "s/IMAGE_TAG=.*/IMAGE_TAG=$ROLLBACK_TAG/" .env
+                
+                # Restore from backup or update manually (with validation)
+                if [ -f .env.bak ]; then
+                  cp .env.bak .env
+                else
+                  # Fallback: manually update if backup doesn't exist
+                  if grep -q "^IMAGE_TAG=" .env; then
+                    sed -i "s/IMAGE_TAG=.*/IMAGE_TAG=$ROLLBACK_TAG/" .env
+                  else
+                    echo "IMAGE_TAG=$ROLLBACK_TAG" >> .env
+                  fi
+                fi
+                
+                # Verify rollback tag was set correctly
+                CURRENT_TAG=$(grep "^IMAGE_TAG=" .env | cut -d'=' -f2)
+                if [ "$CURRENT_TAG" != "$ROLLBACK_TAG" ]; then
+                  echo "⚠️ Warning: Failed to restore IMAGE_TAG properly"
+                fi
+                
                 docker compose --env-file .env -f docker-compose.prod.yml pull
                 docker compose --env-file .env -f docker-compose.prod.yml up -d --remove-orphans
                 
-                # Wait and verify rollback (same timing as initial deployment)
+                # Wait and verify rollback (shorter retry limit - previous version was healthy)
                 echo "🏥 Verifying rollback health..."
                 sleep 60
                 
                 ROLLBACK_SUCCESS=0
                 ROLLBACK_COUNT=0
-                while [ $ROLLBACK_COUNT -lt $MAX_RETRIES ]; do
+                while [ $ROLLBACK_COUNT -lt $ROLLBACK_MAX_RETRIES ]; do
                   if curl -s -f "$HEALTH_CHECK_URL" > /dev/null; then
                     ROLLBACK_SUCCESS=1
                     break
                   fi
-                  echo "Waiting for rollback to be healthy... ($((ROLLBACK_COUNT+1))/$MAX_RETRIES)"
+                  echo "Waiting for rollback to be healthy... ($((ROLLBACK_COUNT+1))/$ROLLBACK_MAX_RETRIES)"
                   sleep 15
                   ROLLBACK_COUNT=$((ROLLBACK_COUNT+1))
                 done
                 
                 if [ $ROLLBACK_SUCCESS -eq 1 ]; then
                   echo "✅ Rollback successful! System restored to $ROLLBACK_TAG"
+                  echo "⚠️ Note: Deployment failed but system is now healthy with previous version."
+                  rm -f .env.bak
+                  exit 2  # Exit with 2 to indicate "failed deployment, successful rollback"
                 else
-                  echo "⚠️ Rollback attempted but health check still failing after $MAX_RETRIES attempts"
+                  echo "❌ CRITICAL: Rollback failed! System may be in an unhealthy state."
+                  echo "Manual intervention required. Backup .env available at .env.bak"
+                  exit 1  # Exit with 1 to indicate complete failure
                 fi
               else
                 echo "⚠️ No previous version available for rollback (ROLLBACK_TAG is empty or same as current)"
+                exit 1
               fi
-              exit 1
             fi
+
+      # Discord notification on success
+      - name: Discord notification (Success)
+        if: success()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          status: success
+          title: "🚀 Deployment Successful"
+          description: |
+            **Commit:** `${{ github.sha }}`
+            **Branch:** `${{ github.ref_name }}`
+            **Author:** ${{ github.actor }}
+          color: 0x00FF00
+          url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      # Discord notification on failure
+      - name: Discord notification (Failure)
+        if: failure()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          status: failure
+          title: "❌ Deployment Failed"
+          description: |
+            **Commit:** `${{ github.sha }}`
+            **Branch:** `${{ github.ref_name }}`
+            **Author:** ${{ github.actor }}
+            
+            Check the workflow run for details and rollback status.
+          color: 0xFF0000
+          url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+concurrency:
+  group: pr-coverage-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   test-and-coverage:
     runs-on: ubuntu-latest
@@ -27,6 +31,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: 'gradle'
+          cache-dependency-path: backend/*.gradle*
 
       # Run tests + JaCoCo report for the backend module
       - name: Run tests with JaCoCo (backend)
