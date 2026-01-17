@@ -89,8 +89,17 @@ jobs:
             cd /home/${{ secrets.EC2_USER }}/app
 
             # 1. Save current IMAGE_TAG for potential rollback
-            ROLLBACK_TAG=$(grep "^IMAGE_TAG=" .env | cut -d'=' -f2)
-            echo "📦 Current version: $ROLLBACK_TAG"
+            if [ ! -f .env ]; then
+              echo "⚠️ Warning: .env file not found. No rollback version available."
+              ROLLBACK_TAG=""
+            else
+              ROLLBACK_TAG=$(grep "^IMAGE_TAG=" .env | cut -d'=' -f2 || echo "")
+              if [ -z "$ROLLBACK_TAG" ]; then
+                echo "⚠️ Warning: IMAGE_TAG not found in .env. No rollback version available."
+              else
+                echo "📦 Current version (rollback target): $ROLLBACK_TAG"
+              fi
+            fi
             echo "🚀 Deploying new version: ${{ github.sha }}"
 
             # 2. Update the .env file with the new commit SHA
@@ -135,15 +144,29 @@ jobs:
                 docker compose --env-file .env -f docker-compose.prod.yml pull
                 docker compose --env-file .env -f docker-compose.prod.yml up -d --remove-orphans
                 
-                # Wait and verify rollback
-                sleep 30
-                if curl -s -f "$HEALTH_CHECK_URL" > /dev/null; then
+                # Wait and verify rollback (same timing as initial deployment)
+                echo "🏥 Verifying rollback health..."
+                sleep 60
+                
+                ROLLBACK_SUCCESS=0
+                ROLLBACK_COUNT=0
+                while [ $ROLLBACK_COUNT -lt $MAX_RETRIES ]; do
+                  if curl -s -f "$HEALTH_CHECK_URL" > /dev/null; then
+                    ROLLBACK_SUCCESS=1
+                    break
+                  fi
+                  echo "Waiting for rollback to be healthy... ($((ROLLBACK_COUNT+1))/$MAX_RETRIES)"
+                  sleep 15
+                  ROLLBACK_COUNT=$((ROLLBACK_COUNT+1))
+                done
+                
+                if [ $ROLLBACK_SUCCESS -eq 1 ]; then
                   echo "✅ Rollback successful! System restored to $ROLLBACK_TAG"
                 else
-                  echo "⚠️ Rollback attempted but health check still failing"
+                  echo "⚠️ Rollback attempted but health check still failing after $MAX_RETRIES attempts"
                 fi
               else
-                echo "⚠️ No previous version available for rollback"
+                echo "⚠️ No previous version available for rollback (ROLLBACK_TAG is empty or same as current)"
               fi
               exit 1
             fi

@@ -32,7 +32,10 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const daysThreshold = parseInt('${{ github.event.inputs.days }}' || '14');
-            const dryRun = '${{ github.event.inputs.dry-run }}' === 'true' || '${{ github.event_name }}' === 'schedule' ? false : true;
+            // Scheduled runs are always dry-run (safe preview mode)
+            // Manual triggers respect the user's dry-run input parameter
+            const isScheduled = '${{ github.event_name }}' === 'schedule';
+            const dryRun = isScheduled ? true : ('${{ github.event.inputs.dry-run }}' !== 'false');
             const protectedBranches = ['main', 'master', 'develop', 'staging', 'production'];
             
             const cutoffDate = new Date();
