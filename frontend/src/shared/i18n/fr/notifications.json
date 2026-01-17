@@ -29,5 +29,6 @@
     "notifications.offerStatusChanged.message": "Le statut de l'offre a été changé à {{status}}.",
     "notifications.offerCountered.title": "Contre-offre reçue",
     "notifications.offerCountered.message": "Une contre-offre a été reçue pour votre offre sur {{address}}.",
-    "transactionDeletedMessage": "Cette transaction a été annulée ou supprimée."
+    "transactionDeletedMessage": "Cette transaction a été annulée ou supprimée.",
+    "inAppNotificationsDisabled": "Les notifications dans l'application sont désactivées dans les paramètres de votre profil."
 }

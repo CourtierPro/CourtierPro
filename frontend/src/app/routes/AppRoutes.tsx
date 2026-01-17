@@ -1,3 +1,4 @@
+import { ConfirmEmailPage } from '@/pages/ConfirmEmailPage';
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
@@ -66,6 +67,11 @@ export function AppRoutes() {
             }
         >
             <Routes>
+                {/* Email confirmation route (public) */}
+                <Route
+                    path="/confirm-email"
+                    element={<ConfirmEmailPage />}
+                />
                 <Route
                     path="/"
                     element={

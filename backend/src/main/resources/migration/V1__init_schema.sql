@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS user_accounts (
     role VARCHAR(50) NOT NULL,
     active BOOLEAN NOT NULL DEFAULT true,
     preferred_language VARCHAR(10) NOT NULL DEFAULT 'en',
+    email_notifications_enabled BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -615,3 +616,17 @@ CREATE INDEX idx_timeline_seen_broker ON timeline_entries_seen(broker_id);
 CREATE INDEX idx_timeline_seen_entry ON timeline_entries_seen(timeline_entry_id);
 
 COMMENT ON TABLE timeline_entries_seen IS 'Tracks which timeline entries have been marked as seen by each broker';
+
+-- =============================================================================
+-- EMAIL CHANGE TOKENS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS email_change_tokens (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    new_email VARCHAR(255) NOT NULL,
+    token VARCHAR(255) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT false
+);
+CREATE INDEX IF NOT EXISTS idx_email_change_tokens_user_id ON email_change_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_email_change_tokens_token ON email_change_tokens(token);

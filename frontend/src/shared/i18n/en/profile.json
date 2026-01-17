@@ -23,5 +23,11 @@
     "roleAdmin": "Administrator",
     "roleClient": "Client",
     "languageEnglish": "English",
-    "languageFrench": "French"
+    "languageFrench": "French",
+    "emailNotifications": "Email Notifications",
+    "inAppNotifications": "In-App Notifications",
+    "on": "On",
+    "off": "Off",
+    "update": "Update",
+    "emailChangeSent": "Confirmation sent to new email. Please check your inbox."
 }

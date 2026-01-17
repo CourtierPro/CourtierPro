@@ -21,20 +21,25 @@ import java.util.Properties;
 
 @Service
 public class EmailService {
+    @Value("${app.frontendBaseUrl:https://localhost:3000}")
+    private String frontendBaseUrl;
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
     private final String gmailUsername;
     private final String gmailPassword;
     private final OrganizationSettingsService organizationSettingsService;
+    private final com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
 
     public EmailService(
             @Value("${gmail.username}") String gmailUsername,
             @Value("${gmail.password}") String gmailPassword,
-            OrganizationSettingsService organizationSettingsService) {
+            OrganizationSettingsService organizationSettingsService,
+            com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository) {
         this.gmailUsername = gmailUsername;
         this.gmailPassword = gmailPassword;
         this.organizationSettingsService = organizationSettingsService;
+        this.userAccountRepository = userAccountRepository;
     }
 
     public boolean sendPasswordSetupEmail(String toEmail, String passwordSetupUrl) {
@@ -134,28 +139,28 @@ public class EmailService {
 
     public void sendDocumentSubmittedNotification(DocumentRequest request, String brokerEmail, String uploaderName,
             String documentName, String docType, String brokerLanguage) {
+        // Check broker's email notification preference
+        var brokerOpt = userAccountRepository.findByEmail(brokerEmail);
+        if (!brokerOpt.isPresent() || !brokerOpt.get().isEmailNotificationsEnabled()) {
+            // Do not send email if broker has disabled email notifications
+            return;
+        }
         try {
             boolean isFrench = brokerLanguage != null && brokerLanguage.equalsIgnoreCase("fr");
-
             // Translate document type based on broker's language
             String translatedDocType = translateDocumentType(docType, isFrench);
             String displayName = documentName.equals(docType) ? translatedDocType : documentName;
-
             String subject = isFrench ? ("Document soumis : " + displayName) : ("Document Submitted: " + displayName);
-
             String templatePath = isFrench
                     ? "email-templates/document_submitted_fr.html"
                     : "email-templates/document_submitted_en.html";
-
             String htmlTemplate = loadTemplateFromClasspath(templatePath);
-
             String emailBody = htmlTemplate
                     .replace("{{subject}}", escapeHtml(subject))
                     .replace("{{uploaderName}}", escapeHtml(uploaderName))
                     .replace("{{documentName}}", escapeHtml(displayName))
                     .replace("{{transactionId}}",
                             escapeHtml(request.getTransactionRef().getTransactionId().toString()));
-
             sendEmail(brokerEmail, subject, emailBody);
         } catch (IOException e) {
             logger.error("Failed to load document submitted email template", e);
@@ -164,31 +169,31 @@ public class EmailService {
         }
     }
 
-    public void sendDocumentRequestedNotification(String clientEmail, String clientName, String brokerName,
+        public void sendDocumentRequestedNotification(String clientEmail, String clientName, String brokerName,
             String documentName, String docType, String clientLanguage) {
+        // Check client's email notification preference
+        var clientOpt = userAccountRepository.findByEmail(clientEmail);
+        if (!clientOpt.isPresent() || !clientOpt.get().isEmailNotificationsEnabled()) {
+            // Do not send email if client has disabled email notifications
+            return;
+        }
         try {
             boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
-
             // Translate document type based on client's language
             String translatedDocType = translateDocumentType(docType, isFrench);
             String displayName = documentName.equals(docType) ? translatedDocType : documentName;
-
             String subject = isFrench
-                    ? ("Document demandé : " + displayName)
-                    : ("Document Requested: " + displayName);
-
+                ? ("Document demandé : " + displayName)
+                : ("Document Requested: " + displayName);
             String templatePath = isFrench
-                    ? "email-templates/document_requested_fr.html"
-                    : "email-templates/document_requested_en.html";
-
+                ? "email-templates/document_requested_fr.html"
+                : "email-templates/document_requested_en.html";
             String htmlTemplate = loadTemplateFromClasspath(templatePath);
-
             String emailBody = htmlTemplate
-                    .replace("{{subject}}", escapeHtml(subject))
-                    .replace("{{clientName}}", escapeHtml(clientName))
-                    .replace("{{brokerName}}", escapeHtml(brokerName))
-                    .replace("{{documentName}}", escapeHtml(displayName));
-
+                .replace("{{subject}}", escapeHtml(subject))
+                .replace("{{clientName}}", escapeHtml(clientName))
+                .replace("{{brokerName}}", escapeHtml(brokerName))
+                .replace("{{documentName}}", escapeHtml(displayName));
             sendEmail(clientEmail, subject, emailBody);
         } catch (IOException e) {
             logger.error("Failed to load document requested email template", e);
@@ -579,5 +584,46 @@ public class EmailService {
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;");
+    }
+
+    /**
+     * Send email change confirmation email with a token link.
+     */
+    public void sendEmailChangeConfirmation(com.example.courtierprobackend.user.dataaccesslayer.UserAccount user, String newEmail, String token) {
+        // This is a simple implementation. You may want to use templates and localization.
+        String subject = "Confirm your new email address";
+        String confirmationUrl = frontendBaseUrl + "/confirm-email?token=" + token;
+        String body = String.format("Hello %s,\n\nPlease confirm your new email address by clicking the link below:\n%s\n\nIf you did not request this change, please ignore this email.",
+            user.getFirstName() != null ? user.getFirstName() : "User", confirmationUrl);
+        sendSimpleEmail(newEmail, subject, body);
+    }
+
+    private void sendSimpleEmail(String to, String subject, String body) {
+        // Minimal implementation using JavaMail. You may want to use your existing logic or templates.
+        try {
+            Properties props = new Properties();
+            props.put("mail.smtp.auth", "true");
+            props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.smtp.host", "smtp.gmail.com");
+            props.put("mail.smtp.port", "587");
+
+
+            Session session = Session.getInstance(props, new jakarta.mail.Authenticator() {
+                @Override
+                protected jakarta.mail.PasswordAuthentication getPasswordAuthentication() {
+                    return new jakarta.mail.PasswordAuthentication(gmailUsername, gmailPassword);
+                }
+            });
+
+            Message message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(gmailUsername, "CourtierPro"));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
+            message.setSubject(subject);
+            message.setText(body);
+
+            Transport.send(message);
+        } catch (Exception e) {
+            logger.error("Failed to send email to {}: {}", to, e.getMessage());
+        }
     }
 }
