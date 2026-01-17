@@ -19,6 +19,7 @@
   "status": "Statut",
   "stage": "Étape",
   "all": "Tous",
+  "sideLabel": "Type",
   "buy": "Achat",
   "sell": "Vente",
   "active": "Actif",
@@ -37,7 +38,6 @@
   "clientNameDesc": "Nom du client (Z-A)",
   "clientName": "Nom du client",
   "propertyAddress": "Adresse de la propriété",
-  "side": "Type",
   "currentStage": "Étape actuelle",
   "statusLabel": "Statut",
   "openedDate": "Date d'ouverture",
@@ -216,7 +216,7 @@
       "buyer_first_notary_appointment": "Premier rendez-vous notaire",
       "buyer_second_notary_appointment": "Deuxième rendez-vous notaire",
       "buyer_occupancy": "Occupation",
-      "buyer_terminated": "Terminé"
+      "buyer_terminated": "Achat résilié"
     },
     "sell": {
       "seller_initial_consultation": "Consultation initiale",
@@ -227,7 +227,7 @@
       "seller_notary_coordination": "Coordination notaire",
       "seller_notary_appointment": "Rendez-vous notaire",
       "seller_handover_keys": "Remise des clés",
-      "seller_terminated": "Terminé"
+      "seller_terminated": "Vente résiliée"
     }
   },
   "timeline.submittedBy": "Soumis par {{name}}",
@@ -456,7 +456,13 @@
     "saving": "Sauvegarde..."
   },
   "awaitingReview": "En attente d'examen",
+  "documentStatus": {
+    "requested": "Demandé"
+  },
   "viewDocumentDetails": "Voir les détails des documents",
+  "hideDocumentDetails": "Masquer les détails des documents",
+  "awaitingReviewLegend": "En attente de révision",
+  "requestedLegend": "Total demandé",
   "viewTransactionDetails": "Voir les détails de la transaction",
   "viewOffers": "Voir les offres",
   "hideOffers": "Masquer les offres",

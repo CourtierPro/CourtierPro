@@ -14,7 +14,65 @@
         "upcomingAppointmentsDesc": "Votre emploi du temps pour les 7 prochains jours.",
         "calendarPlaceholder": "Calendrier...",
         "vsLastMonth": "vs le mois dernier",
-        "newToday": "nouveau aujourd'hui"
+        "newToday": "nouveau aujourd'hui",
+        "quickLinks": {
+            "title": "Actions rapides",
+            "description": "Actions courantes et raccourcis de navigation.",
+            "newTransaction": "Nouvelle transaction",
+            "allTransactions": "Toutes les transactions",
+            "pinned": "Épinglées",
+            "archived": "Archivées",
+            "clients": "Clients",
+            "pendingDocuments": "Docs en attente",
+            "appointments": "Rendez-vous",
+            "notifications": "Notifications"
+        },
+        "priorityCards": {
+            "viewAll": "Voir tout",
+            "error": "Échec du chargement des données",
+            "noAddress": "Aucune adresse",
+            "expiringOffers": {
+                "title": "Offres expirant bientôt",
+                "description": "Offres expirant dans les 7 prochains jours.",
+                "empty": "Aucune offre expirant bientôt. Tout est à jour!",
+                "today": "Aujourd'hui",
+                "tomorrow": "Demain",
+                "daysLeft": "{{days}}j restants"
+            },
+            "pendingDocuments": {
+                "title": "Documents en attente de révision",
+                "description": "Documents en attente de votre révision.",
+                "empty": "Aucun document en attente de révision.",
+                "review": "Réviser",
+                "submitted": "Soumis à {{time}}"
+            },
+            "upcomingAppointments": {
+                "title": "Rendez-vous à venir",
+                "description": "Rendez-vous dans les prochaines 48 heures.",
+                "empty": "Aucun rendez-vous à venir.",
+                "today": "Aujourd'hui",
+                "tomorrow": "Demain"
+            }
+        },
+        "activityFeed": {
+            "title": "Activité récente",
+            "description": "Dernières mises à jour de toutes vos transactions.",
+            "empty": "Aucune activité récente.",
+            "previous": "Précédent",
+            "next": "Suivant",
+            "pageOf": "Page {{current}} sur {{total}}",
+            "new": "Nouveau",
+            "markAsSeen": "Marquer comme vu",
+            "markAllAsSeen": "Tout marquer comme vu",
+            "selectAll": "Tout sélectionner",
+            "deselectAll": "Tout désélectionner"
+        },
+        "pinnedTransactions": {
+            "title": "Transactions épinglées",
+            "description": "Accès rapide à vos transactions importantes.",
+            "buying": "Achat",
+            "selling": "Vente"
+        }
     },
     "client": {
         "title": "Tableau de bord Client",
@@ -47,6 +105,11 @@
             "list": "Liste"
         }
     },
+    "carousel": {
+        "previous": "Transaction précédente",
+        "next": "Transaction suivante",
+        "position": "Transaction {{current}} sur {{total}}"
+    },
     "appointments": {
         "title": "Rendez-vous à venir",
         "description": "Votre calendrier pour les 7 prochains jours.",
@@ -73,7 +136,7 @@
         "id": "ID",
         "noAddress": "Aucune adresse",
         "documents": "documents",
-        "approved": "approuvé",
+        "approved": "Approuvé",
         "viewDetails": "Voir les détails",
         "hideDetails": "Masquer les détails",
         "buying": "Achat",

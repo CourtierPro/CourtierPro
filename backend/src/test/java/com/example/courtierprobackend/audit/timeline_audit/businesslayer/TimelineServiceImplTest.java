@@ -155,4 +155,157 @@ class TimelineServiceImplTest {
 
         assertThat(result).isEmpty();
     }
+
+    // ========== getRecentEntriesForTransactions Tests ==========
+
+    @Test
+    void getRecentEntriesForTransactions_WithNullSet_ReturnsEmptyList() {
+        List<TimelineEntryDTO> result = service.getRecentEntriesForTransactions(null, 10);
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getRecentEntriesForTransactions_WithEmptySet_ReturnsEmptyList() {
+        List<TimelineEntryDTO> result = service.getRecentEntriesForTransactions(java.util.Set.of(), 10);
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getRecentEntriesForTransactions_WithSingleTransaction_ReturnsMappedEntries() {
+        UUID txId = UUID.randomUUID();
+        TimelineEntry entry = TimelineEntry.builder()
+                .id(UUID.randomUUID())
+                .transactionId(txId)
+                .timestamp(java.time.Instant.now())
+                .build();
+        TimelineEntryDTO dto = TimelineEntryDTO.builder().id(entry.getId()).build();
+
+        when(repository.findByTransactionIdOrderByTimestampAsc(txId)).thenReturn(List.of(entry));
+        when(mapper.toDTO(entry)).thenReturn(dto);
+
+        List<TimelineEntryDTO> result = service.getRecentEntriesForTransactions(java.util.Set.of(txId), 10);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0)).isEqualTo(dto);
+    }
+
+    @Test
+    void getRecentEntriesForTransactions_WithMultipleTransactions_ReturnsSortedByTimestampDesc() {
+        UUID txId1 = UUID.randomUUID();
+        UUID txId2 = UUID.randomUUID();
+        java.time.Instant olderTime = java.time.Instant.now().minusSeconds(3600);
+        java.time.Instant newerTime = java.time.Instant.now();
+
+        TimelineEntry olderEntry = TimelineEntry.builder()
+                .id(UUID.randomUUID())
+                .transactionId(txId1)
+                .timestamp(olderTime)
+                .build();
+        TimelineEntry newerEntry = TimelineEntry.builder()
+                .id(UUID.randomUUID())
+                .transactionId(txId2)
+                .timestamp(newerTime)
+                .build();
+
+        TimelineEntryDTO olderDto = TimelineEntryDTO.builder().id(olderEntry.getId()).occurredAt(olderTime).build();
+        TimelineEntryDTO newerDto = TimelineEntryDTO.builder().id(newerEntry.getId()).occurredAt(newerTime).build();
+
+        when(repository.findByTransactionIdOrderByTimestampAsc(txId1)).thenReturn(List.of(olderEntry));
+        when(repository.findByTransactionIdOrderByTimestampAsc(txId2)).thenReturn(List.of(newerEntry));
+        when(mapper.toDTO(olderEntry)).thenReturn(olderDto);
+        when(mapper.toDTO(newerEntry)).thenReturn(newerDto);
+
+        List<TimelineEntryDTO> result = service.getRecentEntriesForTransactions(java.util.Set.of(txId1, txId2), 10);
+
+        assertThat(result).hasSize(2);
+        // Should be sorted by timestamp descending (newest first)
+        assertThat(result.get(0).getOccurredAt()).isEqualTo(newerTime);
+        assertThat(result.get(1).getOccurredAt()).isEqualTo(olderTime);
+    }
+
+    @Test
+    void getRecentEntriesForTransactions_WithLimitLowerThanEntries_ReturnsLimitedEntries() {
+        UUID txId = UUID.randomUUID();
+        java.util.List<TimelineEntry> entries = new java.util.ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            TimelineEntry entry = TimelineEntry.builder()
+                    .id(UUID.randomUUID())
+                    .transactionId(txId)
+                    .timestamp(java.time.Instant.now().minusSeconds(i * 100))
+                    .build();
+            entries.add(entry);
+        }
+
+        when(repository.findByTransactionIdOrderByTimestampAsc(txId)).thenReturn(entries);
+        // Use lenient stubbing since only 3 of 5 will be used due to limit
+        for (TimelineEntry entry : entries) {
+            org.mockito.Mockito.lenient().when(mapper.toDTO(entry)).thenReturn(TimelineEntryDTO.builder().id(entry.getId()).build());
+        }
+
+        List<TimelineEntryDTO> result = service.getRecentEntriesForTransactions(java.util.Set.of(txId), 3);
+
+        assertThat(result).hasSize(3);
+    }
+
+    // ========== Condition-Related Visibility Tests ==========
+
+    @ParameterizedTest
+    @EnumSource(value = TimelineEntryType.class, names = {
+            "PROPERTY_OFFER_MADE", "PROPERTY_OFFER_UPDATED", "OFFER_DOCUMENT_UPLOADED",
+            "CONDITION_ADDED", "CONDITION_UPDATED", "CONDITION_REMOVED", 
+            "CONDITION_SATISFIED", "CONDITION_FAILED"
+    })
+    void addEntry_ConditionAndOfferTypes_SetsVisibilityTrue(TimelineEntryType type) {
+        service.addEntry(UUID.randomUUID(), UUID.randomUUID(), type, "note", null);
+
+        ArgumentCaptor<TimelineEntry> captor = ArgumentCaptor.forClass(TimelineEntry.class);
+        verify(repository).save(captor.capture());
+        assertThat(captor.getValue().isVisibleToClient()).isTrue();
+    }
+
+    // ========== getRecentEntriesForTransactionsPaged Tests ==========
+
+    @Test
+    void getRecentEntriesForTransactionsPaged_WithNullSet_ReturnsEmptyPage() {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        org.springframework.data.domain.Page<TimelineEntryDTO> result = service.getRecentEntriesForTransactionsPaged(null, pageable);
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isZero();
+    }
+
+    @Test
+    void getRecentEntriesForTransactionsPaged_WithEmptySet_ReturnsEmptyPage() {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        org.springframework.data.domain.Page<TimelineEntryDTO> result = service.getRecentEntriesForTransactionsPaged(java.util.Set.of(), pageable);
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isZero();
+    }
+
+    @Test
+    void getRecentEntriesForTransactionsPaged_WithValidSet_ReturnsPagedResults() {
+        UUID txId = UUID.randomUUID();
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        
+        TimelineEntry entry = TimelineEntry.builder()
+                .id(UUID.randomUUID())
+                .transactionId(txId)
+                .timestamp(java.time.Instant.now())
+                .build();
+        TimelineEntryDTO dto = TimelineEntryDTO.builder().id(entry.getId()).build();
+        
+        org.springframework.data.domain.Page<TimelineEntry> entryPage = new org.springframework.data.domain.PageImpl<>(
+                List.of(entry), pageable, 1);
+        
+        when(repository.findByTransactionIdInOrderByTimestampDesc(java.util.Set.of(txId), pageable))
+                .thenReturn(entryPage);
+        when(mapper.toDTO(entry)).thenReturn(dto);
+        
+        org.springframework.data.domain.Page<TimelineEntryDTO> result = 
+                service.getRecentEntriesForTransactionsPaged(java.util.Set.of(txId), pageable);
+        
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0)).isEqualTo(dto);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
 }
+

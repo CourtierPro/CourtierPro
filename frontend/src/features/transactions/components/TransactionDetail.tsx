@@ -145,6 +145,7 @@ function TransactionDetailContent({
         onSubmit={handleStageUpdate}
         transactionSide={transaction.side === 'BUY_SIDE' ? 'buy' : 'sell'}
         transactionId={transaction.transactionId}
+        currentStage={typeof transaction.currentStage === 'string' ? transaction.currentStage : undefined}
       />
 
       {!isReadOnly && clientFromTransaction && (

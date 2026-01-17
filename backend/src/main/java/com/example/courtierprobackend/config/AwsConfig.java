@@ -20,6 +20,7 @@ public class AwsConfig {
         return S3Client.builder()
                 .region(Region.of(region))
                 .credentialsProvider(DefaultCredentialsProvider.create())
+                .endpointOverride(java.net.URI.create(endpoint))
                 .build();
     }
 
