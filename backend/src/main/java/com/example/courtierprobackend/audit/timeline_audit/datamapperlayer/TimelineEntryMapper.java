@@ -27,6 +27,7 @@ public class TimelineEntryMapper {
         }
         return TimelineEntryDTO.builder()
                 .id(entry.getId())
+                .transactionId(entry.getTransactionId())
                 .type(entry.getType())
                 .note(entry.getNote())
                 .title(null)

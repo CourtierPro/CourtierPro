@@ -12,7 +12,7 @@ import {
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
 import { useClientDashboardStats } from "@/features/dashboard/hooks/useDashboardStats";
-import { TransactionOverviewCard } from "@/features/documents/components/TransactionOverviewCard";
+import { TransactionCarousel } from "@/features/documents/components/TransactionCarousel";
 import { UpcomingAppointmentsWidget } from "@/features/dashboard/components/UpcomingAppointmentsWidget";
 import { useNotifications, useMarkNotificationAsRead } from "@/features/notifications/api/notificationsApi";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
@@ -98,6 +98,12 @@ export function ClientDashboardPage() {
     ).length;
   }, [clientDocuments]);
 
+  const getRequestedDocumentCountByTransaction = useCallback((transactionId: string) => {
+    return clientDocuments.filter(
+      d => d.transactionRef?.transactionId === transactionId && d.status === 'REQUESTED'
+    ).length;
+  }, [clientDocuments]);
+
   // Fallback offers count: fetch offers for the first SELL_SIDE transaction when backend KPI is missing
   const firstSellSideTx = useMemo(() => transactions.find(tx => tx.side === "SELL_SIDE"), [transactions]);
   const { data: offersForKpi = [] } = useTransactionOffers(
@@ -137,7 +143,7 @@ export function ClientDashboardPage() {
             title={t("client.offers", "Offers")}
             value={offersCount.toString()}
             icon={<DollarSign className="w-4 h-4 text-green-600" />}
-            className="border border-green-200 border-l-4 border-l-green-500 bg-white shadow-sm"
+            className="border border-green-200 dark:border-green-800 border-l-4 border-l-green-500 bg-white dark:bg-slate-900 shadow-sm"
             onClick={() => {
               // Find first sell-side transaction and navigate to offers tab
               const sellSideTransaction = transactions?.find(tx => tx.side === "SELL_SIDE");
@@ -148,7 +154,7 @@ export function ClientDashboardPage() {
             infoButton={
               <Popover>
                 <PopoverTrigger asChild>
-                  <button 
+                  <button
                     className="p-1.5 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-full transition-colors"
                     aria-label="More information about offers"
                     onClick={(e) => {
@@ -175,7 +181,7 @@ export function ClientDashboardPage() {
             title={t("client.properties", "Properties")}
             value={propertiesCount.toString()}
             icon={<Building2 className="w-4 h-4 text-blue-600" />}
-            className="border border-blue-200 border-l-4 border-l-blue-500 bg-white shadow-sm"
+            className="border border-blue-200 dark:border-blue-800 border-l-4 border-l-blue-500 bg-white dark:bg-slate-900 shadow-sm"
             onClick={() => {
               // Find first buy-side transaction and navigate to properties tab
               const buySideTransaction = transactions?.find(tx => tx.side === "BUY_SIDE");
@@ -186,7 +192,7 @@ export function ClientDashboardPage() {
             infoButton={
               <Popover>
                 <PopoverTrigger asChild>
-                  <button 
+                  <button
                     className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition-colors"
                     aria-label="More information about properties"
                     onClick={(e) => {
@@ -218,7 +224,7 @@ export function ClientDashboardPage() {
           infoButton={
             <Popover open={openActiveTransactions} onOpenChange={setOpenActiveTransactions}>
               <PopoverTrigger asChild>
-                <button 
+                <button
                   className="p-1.5 hover:bg-orange-100 dark:hover:bg-orange-900/30 rounded-full transition-colors"
                   aria-label="More information about active transactions"
                   onClick={(e) => {
@@ -250,7 +256,7 @@ export function ClientDashboardPage() {
           infoButton={
             <Popover open={openDocsNeeded} onOpenChange={setOpenDocsNeeded}>
               <PopoverTrigger asChild>
-                <button 
+                <button
                   className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/30 rounded-full transition-colors"
                   aria-label="More information about documents needed"
                   onClick={(e) => {
@@ -282,7 +288,7 @@ export function ClientDashboardPage() {
           infoButton={
             <Popover open={openDocsSubmitted} onOpenChange={setOpenDocsSubmitted}>
               <PopoverTrigger asChild>
-                <button 
+                <button
                   className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition-colors"
                   aria-label="More information about documents submitted"
                   onClick={(e) => {
@@ -306,8 +312,8 @@ export function ClientDashboardPage() {
         />
       </div>
 
-      <Section 
-        title={t("client.myTransactions")} 
+      <Section
+        title={t("client.myTransactions")}
         description={t("client.myTransactionsDesc")}
       >
         {transactions.length === 0 ? (
@@ -321,18 +327,17 @@ export function ClientDashboardPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {transactions.map((transaction) => (
-              <TransactionOverviewCard
-                key={transaction.transactionId}
-                transaction={transaction}
-                documentCount={getDocumentCountByTransaction(transaction.transactionId)}
-                approvedDocumentCount={getApprovedDocumentCountByTransaction(transaction.transactionId)}
-                needsRevisionCount={getNeedsRevisionCountByTransaction(transaction.transactionId)}
-                submittedDocumentCount={getSubmittedDocumentCountByTransaction(transaction.transactionId)}
-              />
-            ))}
-          </div>
+          <TransactionCarousel
+            transactions={transactions}
+            getDocumentCounts={(transactionId) => ({
+              documentCount: getDocumentCountByTransaction(transactionId),
+              approvedDocumentCount: getApprovedDocumentCountByTransaction(transactionId),
+              needsRevisionCount: getNeedsRevisionCountByTransaction(transactionId),
+              submittedDocumentCount: getSubmittedDocumentCountByTransaction(transactionId),
+              requestedDocumentCount: getRequestedDocumentCountByTransaction(transactionId),
+            })}
+            onViewDetails={(transactionId) => navigate(`/transactions/${transactionId}`)}
+          />
         )}
       </Section>
 
@@ -340,7 +345,7 @@ export function ClientDashboardPage() {
         <div className="lg:col-span-2">
           <UpcomingAppointmentsWidget />
         </div>
-        
+
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">{t("client.recentUpdates", "Recent Updates")}</CardTitle>
@@ -353,13 +358,12 @@ export function ClientDashboardPage() {
               </div>
             ) : recentNotifications.length > 0 ? (
               <div
-                className={`space-y-4 ${
-                  recentNotifications.length > 3 ? "max-h-64 overflow-y-auto pr-2" : ""
-                }`}
+                className={`space-y-4 ${recentNotifications.length > 3 ? "max-h-64 overflow-y-auto pr-2" : ""
+                  }`}
               >
                 {recentNotifications.map((notif) => (
-                  <div 
-                    key={notif.publicId} 
+                  <div
+                    key={notif.publicId}
                     className="flex gap-3 text-sm cursor-pointer hover:opacity-80 transition-opacity"
                     role="button"
                     tabIndex={0}
@@ -383,10 +387,9 @@ export function ClientDashboardPage() {
                       }
                     }}
                   >
-                    <div 
-                      className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                        notif.read ? 'bg-gray-300' : 'bg-orange-500'
-                      }`} 
+                    <div
+                      className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${notif.read ? 'bg-gray-300' : 'bg-orange-500'
+                        }`}
                     />
                     <div className="flex-1">
                       <p className="font-medium">{getNotificationMessage(notif)}</p>
@@ -397,9 +400,9 @@ export function ClientDashboardPage() {
                   </div>
                 ))}
                 {notifications && notifications.length > 5 && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="w-full mt-2"
                     onClick={() => navigate("/notifications")}
                   >

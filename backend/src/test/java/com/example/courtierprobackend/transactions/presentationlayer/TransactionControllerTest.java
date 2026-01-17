@@ -496,4 +496,219 @@ class TransactionControllerTest {
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.length()").value(0));
         }
+
+        // ========== Archive/Unarchive Tests ==========
+
+        @Test
+        @WithMockUser(roles = "BROKER")
+        void archiveTransaction_returnsNoContent() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                String brokerId = brokerUuid.toString();
+
+                mockMvc.perform(post("/transactions/" + txId + "/archive")
+                                .with(jwt())
+                                .header("x-broker-id", brokerId))
+                                .andExpect(status().isNoContent());
+
+                verify(transactionService).archiveTransaction(txId, brokerUuid);
+        }
+
+        @Test
+        @WithMockUser(roles = "BROKER")
+        void unarchiveTransaction_returnsNoContent() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                String brokerId = brokerUuid.toString();
+
+                mockMvc.perform(delete("/transactions/" + txId + "/archive")
+                                .with(jwt())
+                                .header("x-broker-id", brokerId))
+                                .andExpect(status().isNoContent());
+
+                verify(transactionService).unarchiveTransaction(txId, brokerUuid);
+        }
+
+        @Test
+        @WithMockUser(roles = "BROKER")
+        void getArchivedTransactions_returnsTransactionsList() throws Exception {
+                UUID brokerUuid = UUID.randomUUID();
+                String brokerId = brokerUuid.toString();
+                UUID txId = UUID.randomUUID();
+
+                TransactionResponseDTO tx = TransactionResponseDTO.builder()
+                                .transactionId(txId)
+                                .brokerId(brokerUuid)
+                                .archived(true)
+                                .build();
+
+                when(transactionService.getArchivedTransactions(brokerUuid)).thenReturn(List.of(tx));
+
+                mockMvc.perform(get("/transactions/archived")
+                                .with(jwt())
+                                .header("x-broker-id", brokerId))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.length()").value(1))
+                                .andExpect(jsonPath("$[0].transactionId").value(txId.toString()));
+
+                verify(transactionService).getArchivedTransactions(brokerUuid);
+        }
+
+        // ========== Active Property Tests ==========
+
+        @Test
+        @WithMockUser(roles = "BROKER")
+        void clearActiveProperty_returnsNoContent() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                String brokerId = brokerUuid.toString();
+
+                mockMvc.perform(delete("/transactions/" + txId + "/active-property")
+                                .with(jwt())
+                                .header("x-broker-id", brokerId))
+                                .andExpect(status().isNoContent());
+
+                verify(transactionService).clearActiveProperty(txId, brokerUuid);
+        }
+
+        // ========== Offer Document Tests ==========
+
+        @Test
+        @WithMockUser(roles = "BROKER")
+        void uploadOfferDocument_returnsCreated() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID offerId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                String brokerId = brokerUuid.toString();
+
+                org.springframework.mock.web.MockMultipartFile file = 
+                        new org.springframework.mock.web.MockMultipartFile(
+                                "file", "test.pdf", "application/pdf", "test content".getBytes());
+
+                com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO response = 
+                        com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO.builder()
+                                .documentId(UUID.randomUUID())
+                                .fileName("test.pdf")
+                                .build();
+
+                when(transactionService.uploadOfferDocument(eq(offerId), any(), eq(brokerUuid))).thenReturn(response);
+
+                mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/transactions/" + txId + "/offers/" + offerId + "/documents")
+                                .file(file)
+                                .with(jwt())
+                                .header("x-broker-id", brokerId))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.fileName").value("test.pdf"));
+
+                verify(transactionService).uploadOfferDocument(eq(offerId), any(), eq(brokerUuid));
+        }
+
+        @Test
+        @WithMockUser(roles = "BROKER")
+        void uploadPropertyOfferDocument_returnsCreated() throws Exception {
+                UUID propertyId = UUID.randomUUID();
+                UUID propertyOfferId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                String brokerId = brokerUuid.toString();
+
+                org.springframework.mock.web.MockMultipartFile file = 
+                        new org.springframework.mock.web.MockMultipartFile(
+                                "file", "offer.pdf", "application/pdf", "offer content".getBytes());
+
+                com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO response = 
+                        com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO.builder()
+                                .documentId(UUID.randomUUID())
+                                .fileName("offer.pdf")
+                                .build();
+
+                when(transactionService.uploadPropertyOfferDocument(eq(propertyOfferId), any(), eq(brokerUuid))).thenReturn(response);
+
+                mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/transactions/properties/" + propertyId + "/offers/" + propertyOfferId + "/documents")
+                                .file(file)
+                                .with(jwt())
+                                .header("x-broker-id", brokerId))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.fileName").value("offer.pdf"));
+
+                verify(transactionService).uploadPropertyOfferDocument(eq(propertyOfferId), any(), eq(brokerUuid));
+        }
+
+        @Test
+        @WithMockUser(roles = "BROKER")
+        void getOfferDocuments_returnsList() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID offerId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                String brokerId = brokerUuid.toString();
+
+                com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO doc = 
+                        com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO.builder()
+                                .documentId(UUID.randomUUID())
+                                .fileName("contract.pdf")
+                                .build();
+
+                when(transactionService.getOfferDocuments(eq(offerId), eq(brokerUuid), eq(true))).thenReturn(List.of(doc));
+
+                mockMvc.perform(get("/transactions/" + txId + "/offers/" + offerId + "/documents")
+                                .with(jwt())
+                                .header("x-broker-id", brokerId))
+                                .andExpect(status().isOk());
+        }
+
+        @Test
+        @WithMockUser(roles = "BROKER")
+        void getPropertyOfferDocuments_returnsList() throws Exception {
+                UUID propertyId = UUID.randomUUID();
+                UUID propertyOfferId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                String brokerId = brokerUuid.toString();
+
+                com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO doc = 
+                        com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO.builder()
+                                .documentId(UUID.randomUUID())
+                                .fileName("property-doc.pdf")
+                                .build();
+
+                when(transactionService.getPropertyOfferDocuments(eq(propertyOfferId), eq(brokerUuid), eq(true))).thenReturn(List.of(doc));
+
+                mockMvc.perform(get("/transactions/properties/" + propertyId + "/offers/" + propertyOfferId + "/documents")
+                                .with(jwt())
+                                .header("x-broker-id", brokerId))
+                                .andExpect(status().isOk());
+        }
+
+        @Test
+        @WithMockUser(roles = "BROKER")
+        void getOfferDocumentDownloadUrl_returnsUrl() throws Exception {
+                UUID documentId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                String brokerId = brokerUuid.toString();
+                String expectedUrl = "https://s3.example.com/document.pdf";
+
+                when(transactionService.getOfferDocumentDownloadUrl(documentId, brokerUuid)).thenReturn(expectedUrl);
+
+                mockMvc.perform(get("/transactions/documents/" + documentId + "/download")
+                                .with(jwt())
+                                .header("x-broker-id", brokerId))
+                                .andExpect(status().isOk())
+                                .andExpect(content().string(expectedUrl));
+
+                verify(transactionService).getOfferDocumentDownloadUrl(documentId, brokerUuid);
+        }
+
+        @Test
+        @WithMockUser(roles = "BROKER")
+        void deleteOfferDocument_returnsNoContent() throws Exception {
+                UUID documentId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                String brokerId = brokerUuid.toString();
+
+                mockMvc.perform(delete("/transactions/documents/" + documentId)
+                                .with(jwt())
+                                .header("x-broker-id", brokerId))
+                                .andExpect(status().isNoContent());
+
+                verify(transactionService).deleteOfferDocument(documentId, brokerUuid);
+        }
 }
+

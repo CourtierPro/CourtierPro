@@ -19,6 +19,7 @@ import java.util.UUID;
 @Builder
 public class TimelineEntryDTO {
     private UUID id;
+    private UUID transactionId;
     private TimelineEntryType type;
     private String note;
     private String title;

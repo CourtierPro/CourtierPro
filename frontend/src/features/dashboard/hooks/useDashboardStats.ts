@@ -15,6 +15,8 @@ export interface BrokerDashboardStats {
     activeTransactions: number;
     activeClients: number;
     totalCommission: number;
+    pendingDocumentReviews: number;
+    expiringOffersCount: number;
 }
 
 export interface AdminDashboardStats {

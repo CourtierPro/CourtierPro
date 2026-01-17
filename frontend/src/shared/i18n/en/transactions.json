@@ -19,8 +19,9 @@
   "status": "Status",
   "stage": "Stage",
   "all": "All",
-  "buy": "Buy",
-  "sell": "Sell",
+  "sideLabel": "Side",
+  "buy": "Buying",
+  "sell": "Selling",
   "active": "Active",
   "closed": "Closed",
   "terminated": "Terminated",
@@ -37,7 +38,6 @@
   "clientNameDesc": "Client Name (Z-A)",
   "clientName": "Client Name",
   "propertyAddress": "Property Address",
-  "side": "Side",
   "currentStage": "Current Stage",
   "statusLabel": "Status",
   "openedDate": "Opened Date",
@@ -217,7 +217,7 @@
       "buyer_first_notary_appointment": "First Notary Appointment",
       "buyer_second_notary_appointment": "Second Notary Appointment",
       "buyer_occupancy": "Occupancy",
-      "buyer_terminated": "Terminated"
+      "buyer_terminated": "Buyer Terminated"
     },
     "sell": {
       "seller_initial_consultation": "Initial Consultation",
@@ -228,7 +228,7 @@
       "seller_notary_coordination": "Notary Coordination",
       "seller_notary_appointment": "Notary Appointment",
       "seller_handover_keys": "Handover Keys",
-      "seller_terminated": "Terminated"
+      "seller_terminated": "Seller Terminated"
     }
   },
   "timeline.submittedBy": "Submitted by {{name}}",
@@ -456,7 +456,13 @@
     "saving": "Saving..."
   },
   "awaitingReview": "Awaiting review",
+  "documentStatus": {
+    "requested": "Requested"
+  },
   "viewDocumentDetails": "View document details",
+  "hideDocumentDetails": "Hide document details",
+  "awaitingReviewLegend": "Pending review",
+  "requestedLegend": "Total requested",
   "viewTransactionDetails": "View transaction details",
   "viewOffers": "View offers",
   "hideOffers": "Hide offers",

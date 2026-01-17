@@ -308,6 +308,12 @@ class DocumentRequestServiceImplTest {
                 when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
                 when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
                 when(repository.save(any(DocumentRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+                when(messageSource.getMessage(eq("notification.document.submitted.title"), any(), any(java.util.Locale.class)))
+                        .thenReturn("Document Submitted");
+                when(messageSource.getMessage(eq("notification.document.submitted.message"), any(), any(java.util.Locale.class)))
+                        .thenReturn("Document submitted message");
+                when(messageSource.getMessage(anyString(), any(), anyString(), any(java.util.Locale.class)))
+                        .thenReturn("Localized Doc Type");
 
                 // Act
                 DocumentRequestResponseDTO result = service.submitDocument(transactionId, requestId, file, uploaderId,
