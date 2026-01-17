@@ -58,7 +58,7 @@ logging:
     org.springframework: INFO
 
 aws:
-  region: ${AWS_REGION:auto}
+  region: ${AWS_REGION:us-east-1}
   s3:
     bucket-name: ${AWS_S3_BUCKET:courtierpro-dev-files}
     endpoint: ${AWS_S3_ENDPOINT:https://s3.us-east-1.amazonaws.com}
