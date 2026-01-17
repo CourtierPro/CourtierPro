@@ -571,10 +571,10 @@ public class EmailService {
             "<h3 style=\"font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0;\">$1</h3>"
         );
 
-        // Handle [BOX]...[/BOX] (default blue, dotall to allow multi-line content, max-width 600px)
+        // Handle [BOX]...[/BOX] (default blue, dotall to allow multi-line content, max-width 600px, centered)
         escaped = escaped.replaceAll(
             "(?s)\\[BOX\\](.*?)\\[/BOX\\]",
-            "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>"
+            "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>"
         );
 
         // Handle colored boxes with hex or named colors: [BOX-blue], [BOX-#FF5733], etc.
@@ -583,19 +583,19 @@ public class EmailService {
         // Handle colored boxes [BOX-RED], [BOX-BLUE], [BOX-GREEN], [BOX-YELLOW] (legacy support)
         escaped = escaped.replaceAll(
             "(?s)\\[BOX-RED\\](.*?)\\[/BOX-RED\\]",
-            "<div style=\"border-left: 4px solid #ef4444; background-color: #fee2e2; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;\"><p style=\"margin: 0; color: #7f1d1d; font-weight: 500;\">$1</p></div>"
+            "<div style=\"border-left: 4px solid #ef4444; background-color: #fee2e2; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #7f1d1d; font-weight: 500;\">$1</p></div>"
         );
         escaped = escaped.replaceAll(
             "(?s)\\[BOX-BLUE\\](.*?)\\[/BOX-BLUE\\]",
-            "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>"
+            "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>"
         );
         escaped = escaped.replaceAll(
             "(?s)\\[BOX-GREEN\\](.*?)\\[/BOX-GREEN\\]",
-            "<div style=\"border-left: 4px solid #22c55e; background-color: #f0fdf4; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;\"><p style=\"margin: 0; color: #166534; font-weight: 500;\">$1</p></div>"
+            "<div style=\"border-left: 4px solid #22c55e; background-color: #f0fdf4; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #166534; font-weight: 500;\">$1</p></div>"
         );
         escaped = escaped.replaceAll(
             "(?s)\\[BOX-YELLOW\\](.*?)\\[/BOX-YELLOW\\]",
-            "<div style=\"border-left: 4px solid #eab308; background-color: #fefce8; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;\"><p style=\"margin: 0; color: #713f12; font-weight: 500;\">$1</p></div>"
+            "<div style=\"border-left: 4px solid #eab308; background-color: #fefce8; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #713f12; font-weight: 500;\">$1</p></div>"
         );
 
         // Handle [BOLD]...[/BOLD]

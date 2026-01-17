@@ -372,7 +372,7 @@ export function AdminSettingsPage() {
     // Handle [BOX]...[/BOX] (default blue)
     escaped = escaped.replace(
       /\[BOX\](.*?)\[\/BOX\]/gs,
-      '<div style="border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;"><p style="margin: 0; color: #1e3a8a; font-weight: 500;">$1</p></div>'
+      '<div style="border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;"><p style="margin: 0; color: #1e3a8a; font-weight: 500;">$1</p></div>'
     );
 
     // Handle dynamic colored boxes [BOX-colorName]
@@ -383,26 +383,26 @@ export function AdminSettingsPage() {
         const hexColor = colorMap[colorName] || colorMap['blue'];
         const [bgColor, textColor] = colorStyles[hexColor] || colorStyles['#3b82f6'];
         
-        return `<div style="border-left: 4px solid ${hexColor}; background-color: ${bgColor}; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;"><p style="margin: 0; color: ${textColor}; font-weight: 500;">${content}</p></div>`;
+        return `<div style="border-left: 4px solid ${hexColor}; background-color: ${bgColor}; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;"><p style="margin: 0; color: ${textColor}; font-weight: 500;">${content}</p></div>`;
       }
     );
 
     // Keep backward compatibility with old uppercase format [BOX-RED], [BOX-BLUE], etc.
     escaped = escaped.replace(
       /\[BOX-RED\](.*?)\[\/BOX-RED\]/gs,
-      '<div style="border-left: 4px solid #ef4444; background-color: #fee2e2; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;"><p style="margin: 0; color: #7f1d1d; font-weight: 500;">$1</p></div>'
+      '<div style="border-left: 4px solid #ef4444; background-color: #fee2e2; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;"><p style="margin: 0; color: #7f1d1d; font-weight: 500;">$1</p></div>'
     );
     escaped = escaped.replace(
       /\[BOX-BLUE\](.*?)\[\/BOX-BLUE\]/gs,
-      '<div style="border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;"><p style="margin: 0; color: #1e3a8a; font-weight: 500;">$1</p></div>'
+      '<div style="border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;"><p style="margin: 0; color: #1e3a8a; font-weight: 500;">$1</p></div>'
     );
     escaped = escaped.replace(
       /\[BOX-GREEN\](.*?)\[\/BOX-GREEN\]/gs,
-      '<div style="border-left: 4px solid #22c55e; background-color: #f0fdf4; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;"><p style="margin: 0; color: #166534; font-weight: 500;">$1</p></div>'
+      '<div style="border-left: 4px solid #22c55e; background-color: #f0fdf4; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;"><p style="margin: 0; color: #166534; font-weight: 500;">$1</p></div>'
     );
     escaped = escaped.replace(
       /\[BOX-YELLOW\](.*?)\[\/BOX-YELLOW\]/gs,
-      '<div style="border-left: 4px solid #eab308; background-color: #fefce8; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px;"><p style="margin: 0; color: #713f12; font-weight: 500;">$1</p></div>'
+      '<div style="border-left: 4px solid #eab308; background-color: #fefce8; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;"><p style="margin: 0; color: #713f12; font-weight: 500;">$1</p></div>'
     );
     
     // Handle [BOLD]...[/BOLD]

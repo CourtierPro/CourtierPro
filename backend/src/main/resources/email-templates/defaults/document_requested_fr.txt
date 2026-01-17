@@ -2,22 +2,22 @@
 
 Bonjour {{clientName}},
 
-[BOLD]{{brokerName}}[/BOLD] a besoin de ceci :
-
-[HEADING-SM]Document requis[/HEADING-SM]
+Votre courtier [BOLD]{{brokerName}}[/BOLD] a demandé le document suivant :
 
 [BOX-gray]
-Document : {{documentName}}
+[BOLD]{{documentName}}[/BOLD]
 Type : {{documentType}}
 [/BOX-gray]
 
 [IF-brokerNotes]
-[HEADING-SM]Instructions[/HEADING-SM]
+[HEADING-SM]Détails importants[/HEADING-SM]
 
 [BOX-gray]
 {{brokerNotes}}
 [/BOX-gray]
 [/IF-brokerNotes]
 
-Merci de le téléverser pour faire avancer votre dossier.
-Questions ? Contactez [BOLD]{{brokerName}}[/BOLD].
+Veuillez vous connecter à CourtierPro pour téléverser ce document.
+
+Merci,
+Équipe CourtierPro

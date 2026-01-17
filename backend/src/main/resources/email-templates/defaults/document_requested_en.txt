@@ -2,22 +2,22 @@
 
 Hi {{clientName}},
 
-[BOLD]{{brokerName}}[/BOLD] needs the following:
-
-[HEADING-SM]Required Document[/HEADING-SM]
+Your broker [BOLD]{{brokerName}}[/BOLD] has requested the following document:
 
 [BOX-gray]
-Document: {{documentName}}
+[BOLD]{{documentName}}[/BOLD]
 Type: {{documentType}}
 [/BOX-gray]
 
 [IF-brokerNotes]
-[HEADING-SM]Instructions[/HEADING-SM]
+[HEADING-SM]Important Details[/HEADING-SM]
 
 [BOX-gray]
 {{brokerNotes}}
 [/BOX-gray]
 [/IF-brokerNotes]
 
-Please upload it to keep your file moving.
-Questions? Contact [BOLD]{{brokerName}}[/BOLD].
+Please log in to CourtierPro to upload this document.
+
+Thank you,
+CourtierPro Team
