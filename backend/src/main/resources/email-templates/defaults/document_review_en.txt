@@ -20,7 +20,7 @@ Your broker [BOLD]{{brokerName}}[/BOLD] has requested changes to the following d
 
 [IF-brokerNotes]
 [BOX-gray]
-[BOLD]Notes :[/BOLD]
+[BOLD]Notes:[/BOLD]
 {{brokerNotes}}
 [/BOX-gray]
 [/IF-brokerNotes]

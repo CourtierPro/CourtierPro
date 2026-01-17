@@ -70,15 +70,16 @@ public class EmailService {
             if (subject == null || subject.isBlank()) {
                 subject = isFrench ? "Invitation CourtierPro" : "CourtierPro Invitation";
             }
-            if (bodyText == null || bodyText.isBlank()) {
+                if (bodyText == null || bodyText.isBlank()) {
                 bodyText = isFrench
-                        ? "Bonjour {{name}}, votre compte CourtierPro a été créé.\n\n[HEADING]Définir votre mot de passe[/HEADING]\n\nCliquez sur le lien ci-dessous pour finaliser la création de votre compte."
-                        : "Hi {{name}}, your CourtierPro account has been created.\n\n[HEADING]Set Your Password[/HEADING]\n\nClick the link below to complete your account setup.";
-            }
+                    ? "Bonjour {{name}}, votre compte CourtierPro a été créé.\n\nDéfinir votre mot de passe\n\nCliquez sur le lien ci-dessous pour finaliser la création de votre compte."
+                    : "Hi {{name}}, your CourtierPro account has been created.\n\nSet Your Password\n\nClick the link below to complete your account setup.";
+                }
 
-            String emailBody = convertPlainTextToHtml(bodyText)
-                    .replace("{{name}}", escapeHtml(toEmail))
+                String bodyTextWithVars = bodyText
+                    .replace("{{name}}", toEmail)
                     .replace("{{passwordLink}}", passwordSetupUrl);
+                String emailBody = convertPlainTextToHtml(bodyTextWithVars);
 
             return sendEmail(toEmail, subject, emailBody);
         } catch (MessagingException | UnsupportedEncodingException e) {
@@ -294,12 +295,18 @@ public class EmailService {
             
             String subject = isFrench ? settings.getPropertyOfferMadeSubjectFr() : settings.getPropertyOfferMadeSubjectEn();
             String bodyText = isFrench ? settings.getPropertyOfferMadeBodyFr() : settings.getPropertyOfferMadeBodyEn();
-                String resolvedClientName = (clientName != null && !clientName.trim().isEmpty())
+            if (subject == null) {
+                subject = "";
+            }
+            if (bodyText == null) {
+                bodyText = "";
+            }
+            String resolvedClientName = (clientName != null && !clientName.trim().isEmpty())
                     ? clientName
                     : (clientEmail != null && !clientEmail.isBlank()
                     ? clientEmail
                     : (isFrench ? "client" : "there"));
-            
+
             String emailBody = convertPlainTextToHtml(bodyText)
                     .replace("{{clientName}}", escapeHtml(resolvedClientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
@@ -752,7 +759,8 @@ public class EmailService {
     private String handleConditionalBlocks(String text, java.util.Map<String, String> variableValues) {
         // Pattern pour [IF-variableName]...[/IF-variableName]
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
-            "(?s)\\[IF-([a-zA-Z0-9_]+)\\](.*?)\\[/IF-\\1\\]"
+            "\\[IF-([a-zA-Z0-9_]+)\\](.*?)\\[/IF-\\1\\]",
+            java.util.regex.Pattern.DOTALL
         );
         java.util.regex.Matcher matcher = pattern.matcher(text);
         StringBuffer sb = new StringBuffer();
@@ -806,11 +814,17 @@ public class EmailService {
      * Generates a standard email footer
      */
     private String getEmailFooter() {
-        return "<hr style=\"border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;\">" +
-               "<p style=\"color: #666; font-size: 12px; line-height: 1.6;\">" +
-               "Merci,<br>" +
-               "Cordialement,<br>" +
-               "<strong>Équipe CourtierPro</strong>" +
-               "</p>";
+         return "<hr style=\"border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;\">" +
+             "<p style=\"color: #666; font-size: 12px; line-height: 1.6;\">" +
+             // French
+             "Merci,<br>" +
+             "Cordialement,<br>" +
+             "<strong>Équipe CourtierPro</strong>" +
+             "<br><br>" +
+             // English
+             "Thank you,<br>" +
+             "Best regards,<br>" +
+             "<strong>CourtierPro Team</strong>" +
+             "</p>";
     }
 }
