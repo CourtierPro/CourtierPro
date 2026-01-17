@@ -398,6 +398,7 @@ class EmailServiceTest {
             emailService.sendDocumentStatusUpdatedNotification(
                     request,
                     "client@example.com",
+                    "Client Name",
                     "Broker Name",
                         "Proof of Income",
                         "PAY_STUBS",
@@ -428,6 +429,7 @@ class EmailServiceTest {
             emailService.sendDocumentStatusUpdatedNotification(
                     request,
                     "client@example.com",
+                    "Client Name",
                     "Jane Broker",
                         "Bank Statement",
                         "BANK_STATEMENT",
@@ -539,7 +541,7 @@ class EmailServiceTest {
             transportMock.when(() -> Transport.send(any())).thenThrow(new jakarta.mail.MessagingException("Fail"));
             
             // Should not throw
-            emailService.sendDocumentStatusUpdatedNotification(request, "client@mail.com", "Broker", "Doc", "TYPE", "en");
+            emailService.sendDocumentStatusUpdatedNotification(request, "client@mail.com", "Client", "Broker", "Doc", "TYPE", "en");
             
             transportMock.verify(() -> Transport.send(any()), times(1));
         }
@@ -896,6 +898,7 @@ class EmailServiceTest {
             emailService.sendDocumentStatusUpdatedNotification(
                     request,
                     "client@test.com",
+                    "Client Test",
                     "Broker Name",
                     "ID_VERIFICATION",
                     "ID_VERIFICATION",
@@ -917,6 +920,7 @@ class EmailServiceTest {
             emailService.sendDocumentStatusUpdatedNotification(
                     request,
                     "client@test.com",
+                    "Client Test",
                     "Broker Name",
                     "BANK_STATEMENT",
                     "BANK_STATEMENT",

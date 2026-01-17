@@ -10,14 +10,10 @@ Type : {{documentType}}
 [/BOX-gray]
 
 [IF-brokerNotes]
-[HEADING-SM]Détails importants[/HEADING-SM]
-
 [BOX-gray]
+[BOLD]Détails importants :[/BOLD]
 {{brokerNotes}}
 [/BOX-gray]
 [/IF-brokerNotes]
 
 Veuillez vous connecter à CourtierPro pour téléverser ce document.
-
-Merci,
-Équipe CourtierPro

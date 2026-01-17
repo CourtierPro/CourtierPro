@@ -2,33 +2,27 @@
 
 Hello {{clientName}},
 
-[HEADING-SM]Summary[/HEADING-SM]
-
-[BOX-gray]
-[BOLD]Status:[/BOLD] {{status}}
-[BOLD]Document:[/BOLD] {{documentName}}
-[BOLD]Transaction:[/BOLD] {{transactionId}}
-[/BOX-gray]
-
 [IF-isApproved]
-[HEADING-SM]Decision[/HEADING-SM]
+Your broker [BOLD]{{brokerName}}[/BOLD] has approved the following document:
+
 [BOX-green]
-The document has been approved. No further action is required.
+[HEADING-MD]{{documentName}}[/HEADING-MD]
 [/BOX-green]
 [/IF-isApproved]
 
 [IF-isNeedsRevision]
-[HEADING-SM]Decision[/HEADING-SM]
-[BOX-yellow]
-The document needs revision. Please update it and re-upload the file.
-[/BOX-yellow]
+Your broker [BOLD]{{brokerName}}[/BOLD] has requested changes to the following document:
+
+[BOX-orange]
+[HEADING-MD]{{documentName}}[/HEADING-MD]
+[/BOX-orange]
 [/IF-isNeedsRevision]
 
 [IF-brokerNotes]
-[HEADING-SM]Notes from your broker[/HEADING-SM]
-[BOX-blue]
+[BOX-gray]
+[BOLD]Notes :[/BOLD]
 {{brokerNotes}}
-[/BOX-blue]
+[/BOX-gray]
 [/IF-brokerNotes]
 
-If you have any questions, please contact {{brokerName}}.
+Please log in to CourtierPro to review this document.

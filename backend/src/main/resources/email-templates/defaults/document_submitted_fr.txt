@@ -1,14 +1,13 @@
-[HEADING-LG]Document à réviser[/HEADING-LG]
+[HEADING-LG]Document soumis[/HEADING-LG]
 
-Un nouveau document a été soumis pour votre révision.
+Bonjour,
 
-[HEADING-SM]Informations[/HEADING-SM]
+Un document a été soumis par [BOLD]{{uploaderName}}[/BOLD] :
 
-[BOX-blue]
-[BOLD]Document :[/BOLD] {{documentName}}
-[BOLD]Type :[/BOLD] {{documentType}}
-[BOLD]Transaction :[/BOLD] {{transactionId}}
-[BOLD]Soumis par :[/BOLD] {{uploaderName}}
-[/BOX-blue]
+[BOX-gray]
+[HEADING-MD]{{documentName}}[/HEADING-MD]
+[/BOX-gray]
 
-Connectez-vous pour examiner ce document.
+ID de transaction : {{transactionId}}
+
+Veuillez vous connecter à CourtierPro pour examiner ce document.

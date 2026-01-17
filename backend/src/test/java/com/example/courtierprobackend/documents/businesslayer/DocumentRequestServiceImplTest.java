@@ -463,6 +463,7 @@ class DocumentRequestServiceImplTest {
                 assertThat(result.getBrokerNotes()).isNull();
                 verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class),
                                 eq("client@test.com"),
+                                eq("John Client"),
                                 eq("Jane Broker"), eq("Bank Statement"), anyString(), anyString());
                 verify(notificationService).createNotification(
                                 eq(clientId.toString()),
@@ -577,6 +578,7 @@ class DocumentRequestServiceImplTest {
                 assertThat(result.getBrokerNotes()).isEqualTo("Please update dates");
                 verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class),
                                 eq("client@test.com"),
+                                eq("John Client"),
                                 eq("Jane Broker"), eq("PAY_STUBS"), anyString(), anyString());
                 verify(notificationService).createNotification(
                                 eq(clientId.toString()),
@@ -639,6 +641,7 @@ class DocumentRequestServiceImplTest {
                 assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.REJECTED);
                 verify(emailService).sendDocumentStatusUpdatedNotification(any(DocumentRequest.class),
                                 eq("client@test.com"),
+                                eq("John Client"),
                                 eq("Jane Broker"), anyString(), anyString(), anyString());
                 verify(notificationService).createNotification(
                                 eq(clientId.toString()),
@@ -1117,7 +1120,7 @@ class DocumentRequestServiceImplTest {
                 service.reviewDocument(transactionId, requestId, reviewDTO, tx.getBrokerId());
 
                 verify(emailService, never()).sendDocumentStatusUpdatedNotification(any(), anyString(), anyString(),
-                                anyString(), anyString(), anyString());
+                                anyString(), anyString(), anyString(), anyString());
                 verify(notificationService, never()).createNotification(anyString(), anyString(), anyString(),
                                 anyString(),
                                 any());

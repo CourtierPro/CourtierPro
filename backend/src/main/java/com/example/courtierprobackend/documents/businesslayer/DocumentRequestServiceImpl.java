@@ -534,6 +534,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                         emailService.sendDocumentStatusUpdatedNotification(
                                         updated,
                                         client.getEmail(),
+                                        client.getFirstName() + " " + client.getLastName(),
                                         brokerName,
                                         documentName,
                                         docType,

@@ -14,6 +14,3 @@ Status changed from [BOLD]{{previousStatus}}[/BOLD] to:
 [/BOX-orange]
 
 Log in to CourtierPro to view details and next steps.
-
-Thank you,
-CourtierPro Team

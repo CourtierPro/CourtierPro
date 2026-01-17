@@ -9,6 +9,3 @@ Votre compte CourtierPro a été créé avec succès.
 [BOX-gray]
 Cliquez sur le bouton ci-dessous pour définir votre mot de passe et compléter la configuration de votre compte.
 [/BOX-gray]
-
-Merci,
-Équipe CourtierPro

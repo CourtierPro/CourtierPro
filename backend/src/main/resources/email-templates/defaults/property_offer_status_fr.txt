@@ -21,6 +21,3 @@ Statut changé de [BOLD]{{previousStatus}}[/BOLD] à :
 [/IF-counterpartyResponse]
 
 Connectez-vous à CourtierPro pour voir les détails et les prochaines étapes.
-
-Merci,
-L'équipe CourtierPro

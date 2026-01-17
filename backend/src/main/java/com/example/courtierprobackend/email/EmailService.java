@@ -170,42 +170,43 @@ public class EmailService {
         }
     }
 
-        public void sendDocumentEditedNotification(String clientEmail, String clientName, String brokerName,
-                String documentName, String docType, String clientLanguage) {
-            try {
-                boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
+    public void sendDocumentEditedNotification(String clientEmail, String clientName, String brokerName,
+            String documentName, String docType, String clientLanguage) {
+        try {
+            boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
 
-                // Translate document type based on client's language
-                String translatedDocType = translateDocumentType(docType, isFrench);
-                String displayName = documentName.equals(docType) ? translatedDocType : documentName;
+            // Translate document type based on client's language
+            String translatedDocType = translateDocumentType(docType, isFrench);
+            String displayName = documentName.equals(docType) ? translatedDocType : documentName;
 
-                String subject = isFrench
-                        ? ("Document modifié : " + displayName)
-                        : ("Document Edited: " + displayName);
+            String subject = isFrench
+                    ? ("Document modifié : " + displayName)
+                    : ("Document Edited: " + displayName);
 
-                String templatePath = isFrench
-                        ? "email-templates/document_edited_fr.html"
-                        : "email-templates/document_edited_en.html";
+            String templatePath = isFrench
+                    ? "email-templates/document_edited_fr.html"
+                    : "email-templates/document_edited_en.html";
 
-                String htmlTemplate = loadTemplateFromClasspath(templatePath);
+            String htmlTemplate = loadTemplateFromClasspath(templatePath);
 
-                String emailBody = htmlTemplate
-                        .replace("{{subject}}", escapeHtml(subject))
-                        .replace("{{clientName}}", escapeHtml(clientName))
-                        .replace("{{brokerName}}", escapeHtml(brokerName))
-                        .replace("{{documentName}}", escapeHtml(displayName));
+            String emailBody = htmlTemplate
+                    .replace("{{subject}}", escapeHtml(subject))
+                    .replace("{{clientName}}", escapeHtml(clientName))
+                    .replace("{{brokerName}}", escapeHtml(brokerName))
+                    .replace("{{documentName}}", escapeHtml(displayName));
 
-                sendEmail(clientEmail, subject, emailBody);
-            } catch (IOException e) {
-                logger.error("Failed to load document edited email template", e);
-            } catch (MessagingException e) {
-                logger.error("Failed to send document edited notification to {}", clientEmail, e);
-            }
+            sendEmail(clientEmail, subject, emailBody);
+        } catch (IOException e) {
+            logger.error("Failed to load document edited email template", e);
+        } catch (MessagingException e) {
+            logger.error("Failed to send document edited notification to {}", clientEmail, e);
         }
+    }
 
     public void sendDocumentStatusUpdatedNotification(
             DocumentRequest request,
             String clientEmail,
+            String clientName,
             String brokerName,
             String documentName,
             String docType,
@@ -247,12 +248,19 @@ public class EmailService {
                 variableValues.put("isApproved", approved ? "true" : "");
                 variableValues.put("isNeedsRevision", needsRevision ? "true" : "");
 
-            // Process conditional blocks BEFORE converting to HTML
-            bodyText = handleConditionalBlocks(bodyText, variableValues);
+                // Process conditional blocks BEFORE converting to HTML
+                bodyText = handleConditionalBlocks(bodyText, variableValues);
 
-            String translatedStatus = translateDocumentStatus(request.getStatus(), isFrench);
+                String translatedStatus = translateDocumentStatus(request.getStatus(), isFrench);
 
-            String emailBody = convertPlainTextToHtml(bodyText)
+                String resolvedClientName = (clientName != null && !clientName.trim().isEmpty())
+                    ? clientName
+                    : (clientEmail != null && !clientEmail.isBlank()
+                    ? clientEmail
+                    : (isFrench ? "client" : "there"));
+
+                String emailBody = convertPlainTextToHtml(bodyText)
+                    .replace("{{clientName}}", escapeHtml(resolvedClientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{documentName}}", escapeHtml(displayName))
                     .replace("{{documentType}}", escapeHtml(translatedDocType))
@@ -286,9 +294,14 @@ public class EmailService {
             
             String subject = isFrench ? settings.getPropertyOfferMadeSubjectFr() : settings.getPropertyOfferMadeSubjectEn();
             String bodyText = isFrench ? settings.getPropertyOfferMadeBodyFr() : settings.getPropertyOfferMadeBodyEn();
+                String resolvedClientName = (clientName != null && !clientName.trim().isEmpty())
+                    ? clientName
+                    : (clientEmail != null && !clientEmail.isBlank()
+                    ? clientEmail
+                    : (isFrench ? "client" : "there"));
             
             String emailBody = convertPlainTextToHtml(bodyText)
-                    .replace("{{clientName}}", escapeHtml(clientName))
+                    .replace("{{clientName}}", escapeHtml(resolvedClientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{propertyAddress}}", escapeHtml(propertyAddress))
                     .replace("{{offerAmount}}", escapeHtml(offerAmount))
@@ -322,6 +335,11 @@ public class EmailService {
             
             String subject = isFrench ? settings.getPropertyOfferStatusSubjectFr() : settings.getPropertyOfferStatusSubjectEn();
             String bodyText = isFrench ? settings.getPropertyOfferStatusBodyFr() : settings.getPropertyOfferStatusBodyEn();
+            String resolvedClientName = (clientName != null && !clientName.trim().isEmpty())
+                    ? clientName
+                    : (clientEmail != null && !clientEmail.isBlank()
+                        ? clientEmail
+                        : (isFrench ? "client" : "there"));
 
             // Prepare variable values for conditional blocks
             java.util.Map<String, String> variableValues = new java.util.HashMap<>();
@@ -330,8 +348,8 @@ public class EmailService {
             // Process conditional blocks BEFORE converting to HTML
             bodyText = handleConditionalBlocks(bodyText, variableValues);
             
-            String emailBody = convertPlainTextToHtml(bodyText)
-                    .replace("{{clientName}}", escapeHtml(clientName))
+                String emailBody = convertPlainTextToHtml(bodyText)
+                    .replace("{{clientName}}", escapeHtml(resolvedClientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{propertyAddress}}", escapeHtml(propertyAddress))
                     .replace("{{previousStatus}}", escapeHtml(translatedPreviousStatus))
@@ -363,9 +381,14 @@ public class EmailService {
             
             String subject = isFrench ? settings.getOfferReceivedSubjectFr() : settings.getOfferReceivedSubjectEn();
             String bodyText = isFrench ? settings.getOfferReceivedBodyFr() : settings.getOfferReceivedBodyEn();
+                String resolvedClientName = (clientName != null && !clientName.trim().isEmpty())
+                    ? clientName
+                    : (clientEmail != null && !clientEmail.isBlank()
+                    ? clientEmail
+                    : (isFrench ? "client" : "there"));
             
             String emailBody = convertPlainTextToHtml(bodyText)
-                    .replace("{{clientName}}", escapeHtml(clientName))
+                    .replace("{{clientName}}", escapeHtml(resolvedClientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{buyerName}}", escapeHtml(buyerName))
                     .replace("{{offerAmount}}", escapeHtml(offerAmount));
@@ -397,9 +420,14 @@ public class EmailService {
             
             String subject = isFrench ? settings.getOfferStatusSubjectFr() : settings.getOfferStatusSubjectEn();
             String bodyText = isFrench ? settings.getOfferStatusBodyFr() : settings.getOfferStatusBodyEn();
+                String resolvedClientName = (clientName != null && !clientName.trim().isEmpty())
+                    ? clientName
+                    : (clientEmail != null && !clientEmail.isBlank()
+                    ? clientEmail
+                    : (isFrench ? "client" : "there"));
             
             String emailBody = convertPlainTextToHtml(bodyText)
-                    .replace("{{clientName}}", escapeHtml(clientName))
+                    .replace("{{clientName}}", escapeHtml(resolvedClientName))
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{buyerName}}", escapeHtml(buyerName))
                     .replace("{{previousStatus}}", escapeHtml(translatedPreviousStatus))
@@ -574,7 +602,7 @@ public class EmailService {
         // Handle [BOX]...[/BOX] (default blue, dotall to allow multi-line content, max-width 600px, centered)
         escaped = escaped.replaceAll(
             "(?s)\\[BOX\\](.*?)\\[/BOX\\]",
-            "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>"
+            "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>"
         );
 
         // Handle colored boxes with hex or named colors: [BOX-blue], [BOX-#FF5733], etc.
@@ -583,19 +611,19 @@ public class EmailService {
         // Handle colored boxes [BOX-RED], [BOX-BLUE], [BOX-GREEN], [BOX-YELLOW] (legacy support)
         escaped = escaped.replaceAll(
             "(?s)\\[BOX-RED\\](.*?)\\[/BOX-RED\\]",
-            "<div style=\"border-left: 4px solid #ef4444; background-color: #fee2e2; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #7f1d1d; font-weight: 500;\">$1</p></div>"
+            "<div style=\"border-left: 4px solid #ef4444; background-color: #fee2e2; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #7f1d1d; font-weight: 500;\">$1</p></div>"
         );
         escaped = escaped.replaceAll(
             "(?s)\\[BOX-BLUE\\](.*?)\\[/BOX-BLUE\\]",
-            "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>"
+            "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>"
         );
         escaped = escaped.replaceAll(
             "(?s)\\[BOX-GREEN\\](.*?)\\[/BOX-GREEN\\]",
-            "<div style=\"border-left: 4px solid #22c55e; background-color: #f0fdf4; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #166534; font-weight: 500;\">$1</p></div>"
+            "<div style=\"border-left: 4px solid #22c55e; background-color: #f0fdf4; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #166534; font-weight: 500;\">$1</p></div>"
         );
         escaped = escaped.replaceAll(
             "(?s)\\[BOX-YELLOW\\](.*?)\\[/BOX-YELLOW\\]",
-            "<div style=\"border-left: 4px solid #eab308; background-color: #fefce8; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #713f12; font-weight: 500;\">$1</p></div>"
+            "<div style=\"border-left: 4px solid #eab308; background-color: #fefce8; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #713f12; font-weight: 500;\">$1</p></div>"
         );
 
         // Handle [BOLD]...[/BOLD]
@@ -677,7 +705,7 @@ public class EmailService {
                 textColor = bgAndText[1];
             }
 
-            String replacement = "<div style=\"border-left: 4px solid " + borderColor + "; background-color: " + bgColor + "; padding: 15px; margin: 15px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: " + textColor + "; font-weight: 500;\">" + content + "</p></div>";
+            String replacement = "<div style=\"border-left: 4px solid " + borderColor + "; background-color: " + bgColor + "; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: " + textColor + "; font-weight: 500;\">" + content + "</p></div>";
             matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(replacement));
         }
         matcher.appendTail(sb);

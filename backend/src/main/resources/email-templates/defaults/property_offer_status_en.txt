@@ -21,6 +21,3 @@ Status changed from [BOLD]{{previousStatus}}[/BOLD] to:
 [/IF-counterpartyResponse]
 
 Log in to CourtierPro to view details and next steps.
-
-Thank you,
-CourtierPro Team

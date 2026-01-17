@@ -11,12 +11,9 @@ Your broker [BOLD]{{brokerName}}[/BOLD] has submitted an offer on your behalf:
 
 [BOX-green]
 [BOLD]Offer Amount:[/BOLD]
-{{offerAmount}}
+[HEADING-MD]{{offerAmount}}[/HEADING-MD]
 [/BOX-green]
 
 You will be notified when there is a response from the seller.
 
 Log in to CourtierPro to view details.
-
-Thank you,
-CourtierPro Team

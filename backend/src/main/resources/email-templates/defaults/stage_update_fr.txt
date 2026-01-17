@@ -10,6 +10,3 @@ Il y a une mise à jour concernant votre transaction pour [BOLD]{{transactionAdd
 [/BOX-gray]
 
 Votre courtier [BOLD]{{brokerName}}[/BOLD] a fait avancer votre transaction. Veuillez vous connecter à votre portail pour plus de détails.
-
-Merci,
-Équipe CourtierPro

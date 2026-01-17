@@ -10,10 +10,7 @@ Votre courtier [BOLD]{{brokerName}}[/BOLD] a reçu une offre sur votre propriét
 
 [BOX-blue]
 [BOLD]Montant de l'offre :[/BOLD]
-{{offerAmount}}
+[HEADING-MD]{{offerAmount}}[/HEADING-MD]
 [/BOX-blue]
 
 Connectez-vous à CourtierPro pour examiner cette offre et discuter des prochaines étapes avec votre courtier.
-
-Merci,
-L'équipe CourtierPro

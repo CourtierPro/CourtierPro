@@ -11,12 +11,9 @@ Votre courtier [BOLD]{{brokerName}}[/BOLD] a soumis une offre en votre nom :
 
 [BOX-green]
 [BOLD]Montant de l'offre :[/BOLD]
-{{offerAmount}}
+[HEADING-MD]{{offerAmount}}[/HEADING-MD]
 [/BOX-green]
 
 Vous serez informé lorsqu'il y aura une réponse du vendeur.
 
 Connectez-vous à CourtierPro pour voir les détails.
-
-Merci,
-L'équipe CourtierPro
