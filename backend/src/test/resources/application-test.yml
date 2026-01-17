@@ -71,3 +71,9 @@ logging:
   level:
     org.springframework.security: DEBUG
     org.hibernate.SQL: WARN
+
+# AWS configuration for tests
+aws:
+  region: ca-central-1
+  s3:
+    endpoint: https://test.r2.cloudflarestorage.com

@@ -20,6 +20,8 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_REGION: ${AWS_REGION}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-courtierpro-dev-files}
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT:-https://s3.us-east-1.amazonaws.com}
       GITHUB_APP_ID: ${GITHUB_APP_ID:-}
       GITHUB_APP_INSTALLATION_ID: ${GITHUB_APP_INSTALLATION_ID:-}
       GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY:-}
@@ -41,7 +43,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "courtier", "-d", "courtierpro"]
+      test: [ "CMD", "pg_isready", "-U", "courtier", "-d", "courtierpro" ]
       interval: 10s
       timeout: 5s
       retries: 5

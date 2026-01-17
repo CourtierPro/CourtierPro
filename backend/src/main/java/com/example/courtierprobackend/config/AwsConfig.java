@@ -8,6 +8,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.ses.SesClient;
+import java.net.URI;
 
 @Configuration
 public class AwsConfig {
@@ -15,17 +16,20 @@ public class AwsConfig {
     @Value("${aws.region:ca-central-1}")
     private String region;
 
-
     @Value("${aws.s3.endpoint:https://s3.ca-central-1.amazonaws.com}")
     private String endpoint;
 
     @Bean
     public S3Client s3Client() {
-        return S3Client.builder()
+        var builder = S3Client.builder()
                 .region(Region.of(region))
-                .credentialsProvider(DefaultCredentialsProvider.create())
-                .endpointOverride(java.net.URI.create(endpoint))
-                .build();
+                .credentialsProvider(DefaultCredentialsProvider.create());
+        
+        if (endpoint != null && !endpoint.isEmpty()) {
+            builder.endpointOverride(URI.create(endpoint));
+        }
+        
+        return builder.build();
     }
 
     @Bean
@@ -38,9 +42,14 @@ public class AwsConfig {
 
     @Bean
     public S3Presigner s3Presigner() {
-        return S3Presigner.builder()
+        var builder = S3Presigner.builder()
                 .region(Region.of(region))
-                .credentialsProvider(DefaultCredentialsProvider.create())
-                .build();
+                .credentialsProvider(DefaultCredentialsProvider.create());
+        
+        if (endpoint != null && !endpoint.isEmpty()) {
+            builder.endpointOverride(URI.create(endpoint));
+        }
+        
+        return builder.build();
     }
 }

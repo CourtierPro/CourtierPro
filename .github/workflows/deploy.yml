@@ -70,6 +70,7 @@ jobs:
           fingerprint: ""
           source: "docker-compose.prod.yml,Caddyfile"
           target: "/home/${{ secrets.EC2_USER }}/app"
+          timeout: 120s
 
       - name: Deploy on EC2
         uses: appleboy/ssh-action@master

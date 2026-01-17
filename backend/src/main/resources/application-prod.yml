@@ -35,9 +35,10 @@ management:
       show-details: always
 
 aws:
+  region: ${AWS_REGION:us-east-1}
   s3:
-    bucket: ${AWS_S3_BUCKET}
-    endpoint: ${AWS_ENDPOINT}
+    bucket-name: ${AWS_S3_BUCKET}
+    endpoint: ${AWS_S3_ENDPOINT}
   ses:
     region: ${AWS_REGION}
 
