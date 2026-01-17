@@ -1,4 +1,4 @@
-import { ShoppingCart, Home as HomeIcon, ChevronRight, FileText, DollarSign, AlertTriangle, Building2 } from "lucide-react";
+import { ShoppingCart, Home as HomeIcon, ChevronRight, FileText, DollarSign, Building2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -11,26 +11,6 @@ import { format } from "date-fns";
 import { enUS, fr } from "date-fns/locale";
 import { getStageLabel, getStagesForSide, resolveStageIndex } from "@/shared/utils/stages";
 import type { PropertyOfferStatus, ReceivedOfferStatus } from "@/shared/api/types";
-
-/**
- * Calculate deadline status based on days remaining.
- * Returns: 'overdue' | 'urgent' (<=3 days) | 'warning' (<=7 days) | 'normal'
- */
-function getDeadlineStatus(deadlineDate: string): 'overdue' | 'urgent' | 'warning' | 'normal' {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const deadline = new Date(deadlineDate);
-  deadline.setHours(0, 0, 0, 0);
-
-  const diffTime = deadline.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 0) return 'overdue';
-  if (diffDays <= 3) return 'urgent';
-  if (diffDays <= 7) return 'warning';
-  return 'normal';
-}
 
 // Badge variant mapping for offer statuses (SELL_SIDE)
 const offerStatusVariantMap: Record<ReceivedOfferStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -50,6 +30,8 @@ const propertyStatusConfig: Record<PropertyOfferStatus, { variant: 'default' | '
   DECLINED: { variant: 'destructive', className: 'bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30' },
 };
 
+type PanelType = "documents" | "transaction" | "offers" | "properties";
+
 interface TransactionOverviewCardProps {
   transaction: Transaction;
   documentCount?: number;
@@ -58,6 +40,9 @@ interface TransactionOverviewCardProps {
   submittedDocumentCount?: number;
   requestedDocumentCount?: number;
   onViewDetails?: (transactionId: string) => void;
+  // Carousel integration props (controlled panel state)
+  expandedPanel?: PanelType | null;
+  onPanelChange?: (panel: PanelType | null) => void;
 }
 
 export function TransactionOverviewCard({
@@ -68,12 +53,40 @@ export function TransactionOverviewCard({
   submittedDocumentCount = 0,
   requestedDocumentCount = 0,
   onViewDetails,
+  expandedPanel: controlledExpandedPanel,
+  onPanelChange,
 }: TransactionOverviewCardProps) {
   const { t, i18n } = useTranslation("dashboard");
   const { t: tTx } = useTranslation("transactions");
   const locale = i18n.language === "fr" ? fr : enUS;
-  const [expanded, setExpanded] = useState(false);
-  const [panelType, setPanelType] = useState<"documents" | "transaction" | "offers" | "properties">("documents");
+
+  // Support both controlled and uncontrolled panel state
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const [internalPanelType, setInternalPanelType] = useState<PanelType>("documents");
+
+  const isControlled = onPanelChange !== undefined;
+  const expanded = isControlled ? !!controlledExpandedPanel : internalExpanded;
+  const panelType: PanelType = isControlled
+    ? (controlledExpandedPanel || internalPanelType)
+    : internalPanelType;
+
+  const setExpanded = (value: boolean, newPanelType?: PanelType) => {
+    if (isControlled) {
+      onPanelChange?.(value ? (newPanelType || panelType) : null);
+    } else {
+      setInternalExpanded(value);
+    }
+  };
+
+  const setPanelType = (type: PanelType) => {
+    setInternalPanelType(type); // Always store internally for fallback
+    if (isControlled) {
+      onPanelChange?.(type);
+    } else {
+      setInternalExpanded(true);
+    }
+  };
+
   const [animateRings, setAnimateRings] = useState(false);
 
   // Fetch offers for SELL_SIDE transactions
@@ -195,6 +208,24 @@ export function TransactionOverviewCard({
     track: "#fed7aa",
     legend: t("transaction.revisionLegend", "Pending fixes"),
   };
+  const ringAwaiting = {
+    key: "awaiting",
+    label: tTx("awaitingReview", "Awaiting review"),
+    value: `${pendingCount}/${submittedCount || 0}`,
+    percent: submittedCount ? Math.min(100, Math.max(0, (pendingCount / submittedCount) * 100)) : 0,
+    color: "#64748b",
+    track: "#e2e8f0",
+    legend: tTx("awaitingReviewLegend", "Pending review"),
+  };
+  const ringRequested = {
+    key: "requested",
+    label: tTx("documentStatus.requested", "Requested"),
+    value: `${requestedDocumentCount}`,
+    percent: 100,
+    color: "#ea580c",
+    track: "#ffedd5",
+    legend: tTx("requestedLegend", "Total requested"),
+  };
 
   // Trigger ring fill animation whenever documents panel opens or data changes
   useEffect(() => {
@@ -209,8 +240,9 @@ export function TransactionOverviewCard({
 
   const cardStyle = "bg-gradient-to-br from-orange-50/50 via-white to-white dark:from-orange-950/20 dark:via-background dark:to-background border-l-4 border-l-orange-500";
 
-  return (
-    <Card className={`relative overflow-visible hover:shadow-lg transition-all duration-300 ${cardStyle}`}>
+  // Desktop: side-by-side layout when expanded
+  const cardElement = (
+    <Card className={`relative overflow-visible hover:shadow-lg transition-all duration-700 ease-in-out ${cardStyle} ${expanded ? "lg:flex-shrink-0 lg:w-[400px]" : ""}`}>
       <CardHeader className="pb-2 pt-4 px-4 relative z-10">
         <div className="flex items-start justify-between gap-3 mb-3">
           {/* Icône Buy/Sell avec label visible */}
@@ -248,9 +280,9 @@ export function TransactionOverviewCard({
         <div className={expanded ? "flex-1 space-y-3" : "space-y-3"}>
           {/* Mini timeline dans la card (stages avec point, stage actuel plus gros + label) */}
           {totalStagesResolved > 1 && (
-            <div className="relative px-2 py-8 mt-8 mb-4">
+            <div className="relative px-2 py-4 mt-2 mb-2">
               {/* Progress indicator */}
-              <div className="flex justify-between items-center mb-8">
+              <div className="flex justify-between items-center mb-4">
                 <span className="text-xs font-medium text-muted-foreground">
                   {t("transaction.stage", "Stage")} {currentStageIndex + 1} / {totalStagesResolved}
                 </span>
@@ -319,81 +351,62 @@ export function TransactionOverviewCard({
             </div>
           )}
 
-          {/* Résumé des statuts documents */}
-          <div className="flex flex-wrap gap-2 text-xs">
-            <Badge variant="secondary" className="bg-orange-50 text-orange-700 border-orange-100 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700">
-              {tTx("documentStatus.requested", "Requested")}: {requestedDocumentCount}
-            </Badge>
-            <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700">
-              {t("transaction.submitted", "Submitted")}: {submittedCount}
-            </Badge>
-            <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700">
-              {t("transaction.approved", "Approved")}: {approvedCount}
-            </Badge>
-            <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700">
-              {t("transaction.needsRevision", "Needs revision")}: {revisionCount}
-            </Badge>
-            <Badge variant="secondary" className="bg-slate-50 text-slate-700 border-slate-100 dark:bg-slate-900/30 dark:text-slate-300 dark:border-slate-700">
-              {tTx("awaitingReview", "Awaiting review")}: {pendingCount}
-            </Badge>
-          </div>
-
           <Button
             variant="default"
             size="sm"
-            className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center gap-2 overflow-hidden hover:scale-100 active:scale-100"
             onClick={() => {
-              // Show rings panel (documents)
+              // Toggle documents panel
               if (expanded && panelType === "documents") {
                 setExpanded(false);
               } else {
                 setPanelType("documents");
-                setExpanded(true);
               }
             }}
           >
-            {tTx("viewDocumentDetails", "View document details")}
+            {expanded && panelType === "documents"
+              ? tTx("hideDocumentDetails", "Hide document details")
+              : tTx("viewDocumentDetails", "View document details")}
+            <ChevronRight className={`h-4 w-4 transition-transform duration-300 ${expanded && panelType === "documents" ? "rotate-90" : ""}`} />
           </Button>
 
           <Button
             variant="outline"
             size="sm"
-            className="w-full hover:bg-orange-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-2"
+            className="w-full hover:bg-orange-500 hover:text-white transition-colors duration-200 flex items-center justify-center gap-2 overflow-hidden hover:scale-100 active:scale-100"
             onClick={() => {
-              // Show transaction details panel
+              // Toggle transaction details panel
               if (expanded && panelType === "transaction") {
                 setExpanded(false);
               } else {
                 setPanelType("transaction");
-                setExpanded(true);
               }
             }}
           >
             {expanded && panelType === "transaction"
               ? t("transaction.hideDetails", "Hide details")
               : tTx("viewTransactionDetails", "View transaction details")}
-            <ChevronRight className={`h-4 w-4 transition-transform ${expanded && panelType === "transaction" ? "translate-x-1" : ""}`} />
+            <ChevronRight className={`h-4 w-4 transition-transform duration-300 ${expanded && panelType === "transaction" ? "rotate-90" : ""}`} />
           </Button>
 
           {transaction.side === "SELL_SIDE" && (
             <Button
               variant="outline"
               size="sm"
-              className="w-full hover:bg-green-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-2"
+              className="w-full hover:bg-green-500 hover:text-white transition-colors duration-200 flex items-center justify-center gap-2 overflow-hidden hover:scale-100 active:scale-100"
               onClick={() => {
-                // Show offers panel
+                // Toggle offers panel
                 if (expanded && panelType === "offers") {
                   setExpanded(false);
                 } else {
                   setPanelType("offers");
-                  setExpanded(true);
                 }
               }}
             >
               {expanded && panelType === "offers"
                 ? tTx("hideOffers", "Hide offers")
                 : tTx("viewOffers", "View offers")}
-              <DollarSign className={`h-4 w-4 transition-transform ${expanded && panelType === "offers" ? "translate-x-1" : ""}`} />
+              <ChevronRight className={`h-4 w-4 transition-transform duration-300 ${expanded && panelType === "offers" ? "rotate-90" : ""}`} />
             </Button>
           )}
 
@@ -401,28 +414,27 @@ export function TransactionOverviewCard({
             <Button
               variant="outline"
               size="sm"
-              className="w-full hover:bg-blue-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-2"
+              className="w-full hover:bg-blue-500 hover:text-white transition-colors duration-200 flex items-center justify-center gap-2 overflow-hidden hover:scale-100 active:scale-100"
               onClick={() => {
-                // Show properties panel
+                // Toggle properties panel
                 if (expanded && panelType === "properties") {
                   setExpanded(false);
                 } else {
                   setPanelType("properties");
-                  setExpanded(true);
                 }
               }}
             >
               {expanded && panelType === "properties"
                 ? tTx("hideProperties", "Hide properties")
                 : tTx("viewProperties", "View properties")}
-              <Building2 className={`h-4 w-4 transition-transform ${expanded && panelType === "properties" ? "translate-x-1" : ""}`} />
+              <ChevronRight className={`h-4 w-4 transition-transform duration-300 ${expanded && panelType === "properties" ? "rotate-90" : ""}`} />
             </Button>
           )}
         </div>
 
         {expanded && (
           panelType === "documents" ? (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center lg:hidden">
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center hidden sm:grid lg:!hidden">
               {[ringSubmitted, ringApproved, ringRevision].map((item) => (
                 <div key={item.key} className="flex flex-col items-center gap-2">
                   <div className="relative w-24 h-24">
@@ -442,7 +454,7 @@ export function TransactionOverviewCard({
               ))}
             </div>
           ) : (
-            <div className="mt-4 grid grid-cols-1 gap-4 text-sm lg:hidden">
+            <div className="mt-4 grid grid-cols-1 gap-4 text-sm hidden sm:grid lg:!hidden">
               <div className="rounded-lg border p-3">
                 <p className="font-semibold mb-2">{t("transaction.summary", "Transaction summary")}</p>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1">
@@ -484,284 +496,208 @@ export function TransactionOverviewCard({
           )
         )}
       </CardContent>
+    </Card>
+  );
 
-      {expanded && (
-        <div className="hidden lg:block px-4 pb-4">
-          <div className="border border-orange-200 dark:border-orange-900 bg-white dark:bg-slate-900 rounded-xl shadow-lg overflow-hidden">
-            {panelType === "documents" ? (
-              <div className="px-8 py-6 flex items-center justify-between gap-12">
-                {/* Left: Needs revision */}
-                <div className="flex flex-col items-center gap-3 translate-y-2">
-                  <div className="relative w-24 h-24">
-                    <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-                      <circle cx="60" cy="60" r="50" fill="none" stroke={ringRevision.track} strokeWidth="18" />
-                      <circle cx="60" cy="60" r="50" fill="none" stroke={ringRevision.color} strokeWidth="18" strokeDasharray={circumference} strokeDashoffset={animateRings ? ringOffset(ringRevision.percent) : circumference} strokeLinecap="round" className="transition-[stroke-dashoffset] duration-700 ease-out" />
-                    </svg>
-                    <div className="absolute inset-3 rounded-full bg-white dark:bg-slate-900 flex flex-col items-center justify-center text-xs font-semibold shadow-sm">
-                      <span className="text-xs">{ringRevision.value}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1 text-center">
-                    <p className="text-base font-semibold text-slate-800 dark:text-slate-100">{ringRevision.label}</p>
-                    <p className="text-sm text-muted-foreground">{ringRevision.legend}</p>
+  // Desktop side-by-side panel (always rendered for smooth transitions)
+  const desktopPanel = (
+    <div className="border border-orange-200 dark:border-orange-900 bg-white dark:bg-slate-900 rounded-xl shadow-lg overflow-hidden h-full min-w-[300px]">
+      {panelType === "documents" ? (
+        <div className="px-8 py-8 flex flex-col justify-center h-full">
+          {/* Top row: 3 rings */}
+          <div className="flex items-start justify-around gap-6 mb-8">
+            {[ringRequested, ringSubmitted, ringApproved].map((ring) => (
+              <div key={ring.key} className="flex flex-col items-center gap-3">
+                <div className="relative w-24 h-24">
+                  <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                    <circle cx="60" cy="60" r="50" fill="none" stroke={ring.track} strokeWidth="14" />
+                    <circle cx="60" cy="60" r="50" fill="none" stroke={ring.color} strokeWidth="14" strokeDasharray={circumference} strokeDashoffset={animateRings ? ringOffset(ring.percent) : circumference} strokeLinecap="round" className="transition-[stroke-dashoffset] duration-700 ease-out" />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-base font-semibold">{ring.value}</span>
                   </div>
                 </div>
-
-                {/* Center: Submitted */}
-                <div className="flex flex-col items-center gap-3 -translate-y-8">
-                  <div className="relative w-32 h-32">
-                    <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-                      <circle cx="60" cy="60" r="50" fill="none" stroke={ringSubmitted.track} strokeWidth="18" />
-                      <circle cx="60" cy="60" r="50" fill="none" stroke={ringSubmitted.color} strokeWidth="18" strokeDasharray={circumference} strokeDashoffset={animateRings ? ringOffset(ringSubmitted.percent) : circumference} strokeLinecap="round" className="transition-[stroke-dashoffset] duration-700 ease-out" />
-                    </svg>
-                    <div className="absolute inset-3 rounded-full bg-white dark:bg-slate-900 flex flex-col items-center justify-center text-xs font-semibold shadow-sm">
-                      <span className="text-base">{ringSubmitted.value}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1 text-center">
-                    <p className="text-base font-semibold text-slate-800 dark:text-slate-100">{ringSubmitted.label}</p>
-                    <p className="text-sm text-muted-foreground">{ringSubmitted.legend}</p>
-                  </div>
-                </div>
-
-                {/* Right: Approved */}
-                <div className="flex flex-col items-center gap-3 translate-y-2">
-                  <div className="relative w-24 h-24">
-                    <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-                      <circle cx="60" cy="60" r="50" fill="none" stroke={ringApproved.track} strokeWidth="18" />
-                      <circle cx="60" cy="60" r="50" fill="none" stroke={ringApproved.color} strokeWidth="18" strokeDasharray={circumference} strokeDashoffset={animateRings ? ringOffset(ringApproved.percent) : circumference} strokeLinecap="round" className="transition-[stroke-dashoffset] duration-700 ease-out" />
-                    </svg>
-                    <div className="absolute inset-3 rounded-full bg-white dark:bg-slate-900 flex flex-col items-center justify-center text-xs font-semibold shadow-sm">
-                      <span className="text-xs">{ringApproved.value}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1 text-center">
-                    <p className="text-base font-semibold text-slate-800 dark:text-slate-100">{ringApproved.label}</p>
-                    <p className="text-sm text-muted-foreground">{ringApproved.legend}</p>
-                  </div>
+                <div className="space-y-1 text-center">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{ring.label}</p>
+                  <p className="text-xs text-muted-foreground">{ring.legend}</p>
                 </div>
               </div>
-            ) : panelType === "offers" ? (
-              /* Offers Panel - Desktop */
-              <div className="px-8 py-6 max-h-96 overflow-y-auto">
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
-                    <DollarSign className="w-5 h-5 text-green-600" /> {tTx("offers", "Offers")} ({offers.length})
-                  </h4>
-                  {offers.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground bg-slate-50/50 dark:bg-slate-900/50 rounded-lg border border-dashed border-slate-300 dark:border-slate-700">
-                      <DollarSign className="h-16 w-16 mx-auto mb-3 opacity-30" />
-                      <p className="text-sm font-medium">{tTx("noOffers", "No offers received yet")}</p>
-                      <p className="text-xs mt-1 text-muted-foreground/70">{tTx("noOffersDesc", "Offers from potential buyers will appear here")}</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {offers.map((offer) => (
-                        <div
-                          key={offer.offerId}
-                          className="bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-800 dark:to-slate-800/50 p-5 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-orange-300 dark:hover:border-orange-700 transition-all shadow-sm hover:shadow-md"
-                        >
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
-                              </div>
-                              <div>
-                                <p className="font-semibold text-base text-slate-900 dark:text-slate-100">{offer.buyerName}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {tTx("receivedOn", "Received on")} {new Date(offer.createdAt).toLocaleDateString(locale.code)}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge variant={offerStatusVariantMap[offer.status]} className="text-xs">
-                              {tTx(`offerStatus.${offer.status}`, offer.status)}
-                            </Badge>
-                          </div>
-                          {offer.offerAmount && (
-                            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-3">
-                              <p className="text-xs text-green-700 dark:text-green-300 mb-1">{tTx("offerAmount", "Offer Amount")}</p>
-                              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                ${offer.offerAmount.toLocaleString()}
-                              </p>
-                            </div>
-                          )}
-                          {offer.notes && (
-                            <div className="bg-slate-100 dark:bg-slate-900/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
-                              <p className="text-xs text-muted-foreground mb-1">{tTx("notes", "Notes")}</p>
-                              <p className="text-sm text-slate-700 dark:text-slate-300">{offer.notes}</p>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+            ))}
+          </div>
+          {/* Bottom row: 2 rings */}
+          <div className="flex items-start justify-center gap-16">
+            {[ringAwaiting, ringRevision].map((ring) => (
+              <div key={ring.key} className="flex flex-col items-center gap-3">
+                <div className="relative w-20 h-20">
+                  <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                    <circle cx="60" cy="60" r="50" fill="none" stroke={ring.track} strokeWidth="14" />
+                    <circle cx="60" cy="60" r="50" fill="none" stroke={ring.color} strokeWidth="14" strokeDasharray={circumference} strokeDashoffset={animateRings ? ringOffset(ring.percent) : circumference} strokeLinecap="round" className="transition-[stroke-dashoffset] duration-700 ease-out" />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-sm font-semibold">{ring.value}</span>
+                  </div>
+                </div>
+                <div className="space-y-1 text-center">
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{ring.label}</p>
+                  <p className="text-xs text-muted-foreground">{ring.legend}</p>
                 </div>
               </div>
-            ) : panelType === "properties" ? (
-              /* Properties Panel - Desktop */
-              <div className="px-8 py-6 max-h-96 overflow-y-auto">
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
-                    <Building2 className="w-5 h-5 text-blue-600" /> {tTx("properties", "Properties")} ({properties.length})
-                  </h4>
-                  {properties.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground bg-slate-50/50 dark:bg-slate-900/50 rounded-lg border border-dashed border-slate-300 dark:border-slate-700">
-                      <Building2 className="h-16 w-16 mx-auto mb-3 opacity-30" />
-                      <p className="text-sm font-medium">{tTx("noProperties", "No properties added yet")}</p>
-                      <p className="text-xs mt-1 text-muted-foreground/70">{tTx("noPropertiesDesc", "Properties you are considering will appear here")}</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {properties.map((property) => (
-                        <div
-                          key={property.propertyId}
-                          className="bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-800 dark:to-slate-800/50 p-5 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 transition-all shadow-sm hover:shadow-md"
-                        >
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                                <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="font-semibold text-base text-slate-900 dark:text-slate-100 truncate">{property.address?.street || "Unknown"}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {property.address?.city}, {property.address?.province} {property.address?.postalCode}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge
-                              variant={propertyStatusConfig[property.offerStatus].variant}
-                              className={`text-xs flex-shrink-0 ${propertyStatusConfig[property.offerStatus].className}`}
-                            >
-                              {tTx(`propertyStatus.${property.offerStatus}`, property.offerStatus)}
-                            </Badge>
-                          </div>
-                          {property.centrisNumber && (
-                            <div className="text-xs text-muted-foreground mb-3">
-                              <span className="font-medium">Centris: </span>{property.centrisNumber}
-                            </div>
-                          )}
-                          <div className="grid grid-cols-2 gap-3">
-                            {property.askingPrice && (
-                              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                                <p className="text-xs text-blue-700 dark:text-blue-300 mb-1">{tTx("askingPrice", "Asking Price")}</p>
-                                <p className="font-bold text-blue-600 dark:text-blue-400">
-                                  ${property.askingPrice.toLocaleString()}
-                                </p>
-                              </div>
-                            )}
-                            {property.offerAmount && (
-                              <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
-                                <p className="text-xs text-green-700 dark:text-green-300 mb-1">{tTx("offerAmount", "Offer Amount")}</p>
-                                <p className="font-bold text-green-600 dark:text-green-400">
-                                  ${property.offerAmount.toLocaleString()}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+            ))}
+          </div>
+        </div>
+      ) : panelType === "offers" ? (
+        <div className="px-4 py-4 flex flex-col max-h-96 overflow-hidden">
+          <div className="flex-1 space-y-3 overflow-y-auto">
+            <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-2 sticky top-0 bg-white dark:bg-slate-900">
+              <DollarSign className="w-4 h-4 text-green-600" /> {tTx("offers", "Offers")} ({offers.length})
+            </h4>
+            {offers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground bg-slate-50/50 dark:bg-slate-900/50 rounded-lg border border-dashed border-slate-300 dark:border-slate-700">
+                <DollarSign className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <p className="text-xs font-medium">{tTx("noOffers", "No offers received yet")}</p>
               </div>
             ) : (
-              <div className="p-6 space-y-6">
-                {/* Transaction Info Section */}
-                <div className="border-l-4 border-l-orange-500 pl-4 w-full min-w-0">
-                  <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-                    <HomeIcon className="w-4 h-4 text-orange-600" /> {t("transaction.type", "Type")}
-                  </h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm">
-                    <div>
-                      <span className="text-muted-foreground text-xs">{t("transaction.type", "Type")}</span>
-                      <p className="font-medium">{sideInfo.label}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground text-xs block">{t("transaction.opened", "Opened")}</span>
-                      <p className="font-medium">{relativeTime ?? "--"}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground text-xs">{t("transaction.stage", "Stage")}</span>
-                      <p className="font-medium">{stageValueDisplay}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Transaction Details Section */}
-                <div className="border-l-4 border-l-orange-500 pl-4">
-                  <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-orange-600" /> {t("transaction.details", "Details")}
-                  </h4>
-                  <div className="space-y-4 text-sm">
-                    <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded border border-slate-200 dark:border-slate-700">
-                      <span className="text-muted-foreground text-xs block mb-1">Transaction ID</span>
-                      <p className="font-mono text-sm font-bold text-orange-700 dark:text-orange-400 break-all">{transaction.transactionId}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                      <div>
-                        <span className="text-muted-foreground text-xs">{t("transaction.status", "Status")}</span>
-                        <p className="font-medium">{transaction.status || "ACTIVE"}</p>
+              <div className="space-y-2">
+                {offers.map((offer) => (
+                  <div
+                    key={offer.offerId}
+                    className="bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-800 dark:to-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                          <DollarSign className="w-3 h-3 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-xs">{offer.buyerName}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(offer.createdAt).toLocaleDateString(locale.code)}</p>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground text-xs block">{t("transaction.address", "Address")}</span>
-                        <p className="font-medium text-sm leading-tight">{transaction.propertyAddress?.street || "--"}</p>
-                      </div>
+                      <Badge variant={offerStatusVariantMap[offer.status]} className="text-xs">
+                        {tTx(`receivedOfferStatuses.${offer.status}`, offer.status)}
+                      </Badge>
                     </div>
-                  </div>
-                </div>
-
-                {/* Conditions Section */}
-                <div className="border-l-4 border-l-orange-500 pl-4 w-full min-w-0">
-                  <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-orange-600" /> {tTx("conditions.title", "Conditions")}
-                  </h4>
-                  <div className="w-full min-w-0 max-h-60 overflow-y-auto pr-1 space-y-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg p-3">
-                    {conditions.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">{tTx("conditions.noConditions", "No conditions added.")}</p>
-                    ) : (
-                      conditions.map((cond) => {
-                        const deadlineStatus = cond.status === 'PENDING'
-                          ? getDeadlineStatus(cond.deadlineDate)
-                          : 'normal';
-                        const showOverdateBadge = cond.status === 'PENDING' && deadlineStatus === 'overdue';
-
-                        return (
-                          <div key={cond.conditionId} className="text-sm space-y-1">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="font-semibold text-slate-800 dark:text-slate-100 flex-1 min-w-0">
-                                {cond.customTitle || tTx(`conditionTypes.${cond.type}`, cond.type)}
-                              </p>
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                {showOverdateBadge && (
-                                  <Badge variant="destructive" className="text-xs flex items-center gap-1">
-                                    <AlertTriangle className="w-3 h-3" />
-                                    {tTx("overdue", "Overdue")}
-                                  </Badge>
-                                )}
-                                <Badge variant={cond.status === "SATISFIED" ? "default" : cond.status === "FAILED" ? "destructive" : "secondary"} className="text-xs">
-                                  {tTx(`conditionStatus.${cond.status}`, cond.status)}
-                                </Badge>
-                              </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground">{cond.description}</p>
-                            <div className="flex justify-between text-[11px] text-muted-foreground">
-                              <span>{tTx("conditions.deadline", "Deadline")}: {cond.deadlineDate ? format(new Date(cond.deadlineDate), "PPP", { locale }) : "--"}</span>
-                              {cond.satisfiedAt && (
-                                <span>{tTx("conditionSatisfied", "Satisfied")}: {format(new Date(cond.satisfiedAt), "PPP", { locale })}</span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })
+                    {offer.offerAmount && (
+                      <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded p-1.5 text-center">
+                        <p className="text-base font-bold text-green-600 dark:text-green-400">${offer.offerAmount.toLocaleString()}</p>
+                      </div>
                     )}
                   </div>
-                </div>
+                ))}
               </div>
             )}
           </div>
         </div>
+      ) : panelType === "properties" ? (
+        <div className="px-4 py-4 flex flex-col max-h-96 overflow-hidden">
+          <div className="flex-1 space-y-3 overflow-y-auto">
+            <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-2 sticky top-0 bg-white dark:bg-slate-900">
+              <Building2 className="w-4 h-4 text-blue-600" /> {tTx("properties", "Properties")} ({properties.length})
+            </h4>
+            {properties.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground bg-slate-50/50 dark:bg-slate-900/50 rounded-lg border border-dashed border-slate-300 dark:border-slate-700">
+                <Building2 className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <p className="text-xs font-medium">{tTx("noProperties", "No properties added yet")}</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {properties.map((property) => (
+                  <div
+                    key={property.propertyId}
+                    className="bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-800 dark:to-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700"
+                  >
+                    <div className="flex items-start justify-between mb-1">
+                      <p className="font-medium text-xs truncate flex-1">{property.address?.street || "Unknown"}</p>
+                      <Badge
+                        variant={propertyStatusConfig[property.offerStatus].variant}
+                        className={`text-xs ${propertyStatusConfig[property.offerStatus].className}`}
+                      >
+                        {tTx(`propertyStatus.${property.offerStatus}`, property.offerStatus)}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-2">{property.address?.city}, {property.address?.province}</p>
+                    <div className="flex gap-2">
+                      {property.askingPrice && (
+                        <div className="bg-blue-50 dark:bg-blue-950/30 rounded p-1.5 flex-1 text-center">
+                          <p className="text-xs text-blue-600 font-bold">${property.askingPrice.toLocaleString()}</p>
+                        </div>
+                      )}
+                      {property.offerAmount && (
+                        <div className="bg-green-50 dark:bg-green-950/30 rounded p-1.5 flex-1 text-center">
+                          <p className="text-xs text-green-600 font-bold">${property.offerAmount.toLocaleString()}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="p-6 h-full flex flex-col justify-center">
+          <div className="border-l-4 border-l-orange-500 pl-4 mb-6">
+            <h4 className="font-semibold text-base mb-4 flex items-center gap-2">
+              <HomeIcon className="w-5 h-5 text-orange-600" /> {t("transaction.summary", "Summary")}
+            </h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-muted-foreground text-sm">{t("transaction.type", "Type")}</span>
+                <p className="font-semibold text-base">{sideInfo.label}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-sm">{t("transaction.stage", "Stage")}</span>
+                <p className="font-semibold text-base">{stageValueDisplay}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-sm">{t("transaction.opened", "Opened")}</span>
+                <p className="font-semibold text-base">{relativeTime ?? "--"}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-sm">{t("transaction.status", "Status")}</span>
+                <p className="font-semibold text-base">{tTx(transaction.status || "ACTIVE", transaction.status || "Active")}</p>
+              </div>
+            </div>
+          </div>
+          <div className="border-l-4 border-l-orange-500 pl-4">
+            <h4 className="font-semibold text-base mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-orange-600" /> {tTx("conditions.title", "Conditions")}
+            </h4>
+            <div className="space-y-3">
+              {conditions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{tTx("conditions.noConditions", "No conditions added.")}</p>
+              ) : (
+                conditions.slice(0, 4).map((cond) => (
+                  <div key={cond.conditionId} className="flex items-center justify-between gap-2 py-2 border-b border-slate-100 dark:border-slate-800">
+                    <span className="text-sm font-medium truncate">{cond.customTitle || tTx(`conditionTypes.${cond.type}`, cond.type)}</span>
+                    <Badge variant={cond.status === "SATISFIED" ? "default" : cond.status === "FAILED" ? "destructive" : "secondary"} className="text-xs">
+                      {tTx(`conditionStatus.${cond.status}`, cond.status)}
+                    </Badge>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       )}
-    </Card>
+    </div>
+  );
+
+  // Return flex layout - always use flex on desktop for smooth transitions
+  return (
+    <div className="lg:flex lg:gap-4 lg:items-start">
+      <div className={`transition-all duration-700 ease-in-out lg:self-start ${expanded ? "lg:w-[400px] lg:flex-shrink-0" : "lg:w-full"}`}>
+        {cardElement}
+      </div>
+      <div
+        className={`hidden lg:block transition-all duration-700 ease-in-out overflow-hidden ${expanded
+          ? "lg:flex-1 lg:opacity-100 lg:translate-x-0"
+          : "lg:w-0 lg:opacity-0 lg:translate-x-full lg:pointer-events-none"
+          }`}
+        style={{ maxHeight: expanded ? '100%' : undefined }}
+      >
+        {desktopPanel}
+      </div>
+    </div>
   );
 }

@@ -240,6 +240,8 @@ export function useAddOffer() {
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: offerKeys.all(variables.transactionId) });
             queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+            // Invalidate dashboard so broker dashboard updates immediately
+            queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
         },
     });
 }
@@ -256,6 +258,8 @@ export function useUpdateOffer() {
             queryClient.invalidateQueries({ queryKey: offerKeys.all(variables.transactionId) });
             queryClient.invalidateQueries({ queryKey: offerKeys.detail(variables.transactionId, variables.offerId) });
             queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+            // Invalidate dashboard so broker dashboard updates immediately
+            queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
         },
     });
 }
@@ -270,6 +274,8 @@ export function useRemoveOffer() {
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: offerKeys.all(variables.transactionId) });
             queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+            // Invalidate dashboard so broker dashboard updates immediately
+            queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
         },
     });
 }

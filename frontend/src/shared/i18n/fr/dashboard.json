@@ -105,6 +105,11 @@
             "list": "Liste"
         }
     },
+    "carousel": {
+        "previous": "Transaction précédente",
+        "next": "Transaction suivante",
+        "position": "Transaction {{current}} sur {{total}}"
+    },
     "appointments": {
         "title": "Rendez-vous à venir",
         "description": "Votre calendrier pour les 7 prochains jours.",

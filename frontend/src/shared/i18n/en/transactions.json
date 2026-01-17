@@ -460,6 +460,9 @@
     "requested": "Requested"
   },
   "viewDocumentDetails": "View document details",
+  "hideDocumentDetails": "Hide document details",
+  "awaitingReviewLegend": "Pending review",
+  "requestedLegend": "Total requested",
   "viewTransactionDetails": "View transaction details",
   "viewOffers": "View offers",
   "hideOffers": "Hide offers",

@@ -16,7 +16,6 @@ import {
     TableRow
 } from '@/shared/components/ui/table';
 import { Badge } from '@/shared/components/ui/badge';
-import { ScrollArea } from '@/shared/components/ui/scroll-area';
 import type { Offer, ReceivedOfferStatus } from '@/shared/api/types';
 
 interface OfferComparisonModalProps {
@@ -54,7 +53,7 @@ export function OfferComparisonModal({ isOpen, onClose, offers }: OfferCompariso
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+            <DialogContent className="max-w-[95vw] w-fit min-w-[600px] max-h-[85vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>{t('compareOffers')}</DialogTitle>
                     <DialogDescription>
@@ -62,15 +61,15 @@ export function OfferComparisonModal({ isOpen, onClose, offers }: OfferCompariso
                     </DialogDescription>
                 </DialogHeader>
 
-                <ScrollArea className="flex-1 mt-4">
+                <div className="flex-1 mt-4 overflow-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[200px] font-bold bg-muted/50 text-foreground">
+                                <TableHead className="w-[180px] min-w-[180px] font-bold bg-muted text-foreground sticky left-0 z-10 border-r">
                                     {t('feature')}
                                 </TableHead>
                                 {offers.map((offer) => (
-                                    <TableHead key={offer.offerId} className="min-w-[200px] text-center font-bold text-foreground">
+                                    <TableHead key={offer.offerId} className="min-w-[220px] text-center font-bold text-foreground">
                                         <div className="flex flex-col items-center gap-1">
                                             <span className="text-lg">{offer.buyerName}</span>
                                             <Badge variant={statusVariantMap[offer.status]} className="text-xs">
@@ -83,7 +82,7 @@ export function OfferComparisonModal({ isOpen, onClose, offers }: OfferCompariso
                         </TableHeader>
                         <TableBody>
                             <TableRow>
-                                <TableCell className="font-medium bg-muted/30">{t('offerAmount')}</TableCell>
+                                <TableCell className="font-medium bg-muted sticky left-0 z-10 border-r">{t('offerAmount')}</TableCell>
                                 {offers.map((offer) => (
                                     <TableCell key={offer.offerId} className="text-center font-semibold text-lg">
                                         {formatCurrency(offer.offerAmount)}
@@ -92,7 +91,7 @@ export function OfferComparisonModal({ isOpen, onClose, offers }: OfferCompariso
                             </TableRow>
 
                             <TableRow>
-                                <TableCell className="font-medium bg-muted/30">{t('expiryDate')}</TableCell>
+                                <TableCell className="font-medium bg-muted sticky left-0 z-10 border-r">{t('expiryDate')}</TableCell>
                                 {offers.map((offer) => (
                                     <TableCell key={offer.offerId} className="text-center">
                                         {formatDate(offer.expiryDate)}
@@ -101,7 +100,7 @@ export function OfferComparisonModal({ isOpen, onClose, offers }: OfferCompariso
                             </TableRow>
 
                             <TableRow>
-                                <TableCell className="font-medium bg-muted/30">{t('documents')}</TableCell>
+                                <TableCell className="font-medium bg-muted sticky left-0 z-10 border-r">{t('documents')}</TableCell>
                                 {offers.map((offer) => (
                                     <TableCell key={offer.offerId} className="text-center">
                                         {offer.documents?.length || 0}
@@ -110,7 +109,7 @@ export function OfferComparisonModal({ isOpen, onClose, offers }: OfferCompariso
                             </TableRow>
 
                             <TableRow>
-                                <TableCell className="font-medium bg-muted/30 align-top">{t('notes')}</TableCell>
+                                <TableCell className="font-medium bg-muted sticky left-0 z-10 border-r align-top">{t('notes')}</TableCell>
                                 {offers.map((offer) => (
                                     <TableCell key={offer.offerId} className="text-center align-top text-sm text-muted-foreground whitespace-pre-wrap max-w-[200px]">
                                         {offer.notes || t('noNotes')}
@@ -119,7 +118,7 @@ export function OfferComparisonModal({ isOpen, onClose, offers }: OfferCompariso
                             </TableRow>
                         </TableBody>
                     </Table>
-                </ScrollArea>
+                </div>
             </DialogContent>
         </Dialog>
     );

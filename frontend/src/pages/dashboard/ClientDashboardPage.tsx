@@ -12,7 +12,7 @@ import {
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
 import { useClientDashboardStats } from "@/features/dashboard/hooks/useDashboardStats";
-import { TransactionOverviewCard } from "@/features/documents/components/TransactionOverviewCard";
+import { TransactionCarousel } from "@/features/documents/components/TransactionCarousel";
 import { UpcomingAppointmentsWidget } from "@/features/dashboard/components/UpcomingAppointmentsWidget";
 import { useNotifications, useMarkNotificationAsRead } from "@/features/notifications/api/notificationsApi";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
@@ -327,19 +327,17 @@ export function ClientDashboardPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {transactions.map((transaction) => (
-              <TransactionOverviewCard
-                key={transaction.transactionId}
-                transaction={transaction}
-                documentCount={getDocumentCountByTransaction(transaction.transactionId)}
-                approvedDocumentCount={getApprovedDocumentCountByTransaction(transaction.transactionId)}
-                needsRevisionCount={getNeedsRevisionCountByTransaction(transaction.transactionId)}
-                submittedDocumentCount={getSubmittedDocumentCountByTransaction(transaction.transactionId)}
-                requestedDocumentCount={getRequestedDocumentCountByTransaction(transaction.transactionId)}
-              />
-            ))}
-          </div>
+          <TransactionCarousel
+            transactions={transactions}
+            getDocumentCounts={(transactionId) => ({
+              documentCount: getDocumentCountByTransaction(transactionId),
+              approvedDocumentCount: getApprovedDocumentCountByTransaction(transactionId),
+              needsRevisionCount: getNeedsRevisionCountByTransaction(transactionId),
+              submittedDocumentCount: getSubmittedDocumentCountByTransaction(transactionId),
+              requestedDocumentCount: getRequestedDocumentCountByTransaction(transactionId),
+            })}
+            onViewDetails={(transactionId) => navigate(`/transactions/${transactionId}`)}
+          />
         )}
       </Section>
 

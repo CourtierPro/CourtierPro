@@ -460,6 +460,9 @@
     "requested": "Demandé"
   },
   "viewDocumentDetails": "Voir les détails des documents",
+  "hideDocumentDetails": "Masquer les détails des documents",
+  "awaitingReviewLegend": "En attente de révision",
+  "requestedLegend": "Total demandé",
   "viewTransactionDetails": "Voir les détails de la transaction",
   "viewOffers": "Voir les offres",
   "hideOffers": "Masquer les offres",
