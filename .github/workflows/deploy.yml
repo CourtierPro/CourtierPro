@@ -102,10 +102,10 @@ jobs:
 
             # 4. Health Check
             echo "🏥 Performing Health Check..."
-            sleep 30 # Give the Spring Boot app more time to start
+            sleep 60 # Give the Spring Boot app more time to start
 
             HEALTH_CHECK_URL="http://localhost:80/api/actuator/health"
-            MAX_RETRIES=5
+            MAX_RETRIES=15
             COUNT=0
             SUCCESS=0
 
