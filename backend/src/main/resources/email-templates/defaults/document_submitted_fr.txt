@@ -1,0 +1,13 @@
+[HEADING-LG]Document soumis[/HEADING-LG]
+
+Bonjour,
+
+Un document a été soumis par [BOLD]{{uploaderName}}[/BOLD] :
+
+[BOX-gray]
+[HEADING-MD]{{documentName}}[/HEADING-MD]
+[/BOX-gray]
+
+ID de transaction : {{transactionId}}
+
+Veuillez vous connecter à CourtierPro pour examiner ce document.

@@ -11,12 +11,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -57,11 +60,9 @@ public class OrganizationSettingsServiceImpl implements OrganizationSettingsServ
                 !Objects.equals(settings.getInviteSubjectFr(), request.getInviteSubjectFr()) ||
                         !Objects.equals(settings.getInviteBodyFr(), request.getInviteBodyFr());
 
-        settings.setDefaultLanguage(request.getDefaultLanguage());
-        settings.setInviteSubjectEn(request.getInviteSubjectEn());
-        settings.setInviteBodyEn(request.getInviteBodyEn());
-        settings.setInviteSubjectFr(request.getInviteSubjectFr());
-        settings.setInviteBodyFr(request.getInviteBodyFr());
+        // Update all fields from request
+        mapper.updateEntityFromRequest(request, settings);
+
         settings.setUpdatedAt(Instant.now());
 
         OrganizationSettings saved = repository.save(settings);
@@ -102,13 +103,63 @@ public class OrganizationSettingsServiceImpl implements OrganizationSettingsServ
         return mapper.toResponseModel(saved);
     }
 
+    private String loadTemplate(String filename) {
+        try {
+            ClassPathResource resource = new ClassPathResource("email-templates/defaults/" + filename);
+            return new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.error("Failed to load email template: {}", filename, e);
+            return "";
+        }
+    }
+
     private OrganizationSettings createDefaultSettings() {
         OrganizationSettings settings = OrganizationSettings.builder()
                 .defaultLanguage("fr")
                 .inviteSubjectEn("Welcome to CourtierPro")
-                .inviteBodyEn("Hi {{name}}, your CourtierPro account has been created.")
+                .inviteBodyEn(loadTemplate("invite_en.txt"))
                 .inviteSubjectFr("Bienvenue sur CourtierPro")
-                .inviteBodyFr("Bonjour {{name}}, votre compte CourtierPro a été créé.")
+                .inviteBodyFr(loadTemplate("invite_fr.txt"))
+                // Document Submitted Template
+                .documentSubmittedSubjectEn("Document Submitted")
+                .documentSubmittedBodyEn(loadTemplate("document_submitted_en.txt"))
+                .documentSubmittedSubjectFr("Document soumis")
+                .documentSubmittedBodyFr(loadTemplate("document_submitted_fr.txt"))
+                // Document Requested Template
+                .documentRequestedSubjectEn("Document Requested")
+                .documentRequestedBodyEn(loadTemplate("document_requested_en.txt"))
+                .documentRequestedSubjectFr("Document demandé")
+                .documentRequestedBodyFr(loadTemplate("document_requested_fr.txt"))
+                // Document Review Template
+                .documentReviewSubjectEn("Document Reviewed")
+                .documentReviewBodyEn(loadTemplate("document_review_en.txt"))
+                .documentReviewSubjectFr("Document examiné")
+                .documentReviewBodyFr(loadTemplate("document_review_fr.txt"))
+                // Stage Update Template
+                .stageUpdateSubjectEn("Transaction Update")
+                .stageUpdateBodyEn(loadTemplate("stage_update_en.txt"))
+                .stageUpdateSubjectFr("Mise à jour de la transaction")
+                .stageUpdateBodyFr(loadTemplate("stage_update_fr.txt"))
+                // Property Offer Made Template
+                .propertyOfferMadeSubjectEn("Offer Submitted")
+                .propertyOfferMadeBodyEn(loadTemplate("property_offer_made_en.txt"))
+                .propertyOfferMadeSubjectFr("Offre soumise")
+                .propertyOfferMadeBodyFr(loadTemplate("property_offer_made_fr.txt"))
+                // Property Offer Status Template
+                .propertyOfferStatusSubjectEn("Offer Status Update")
+                .propertyOfferStatusBodyEn(loadTemplate("property_offer_status_en.txt"))
+                .propertyOfferStatusSubjectFr("Mise à jour de l'offre")
+                .propertyOfferStatusBodyFr(loadTemplate("property_offer_status_fr.txt"))
+                // Offer Received Template
+                .offerReceivedSubjectEn("New Offer Received")
+                .offerReceivedBodyEn(loadTemplate("offer_received_en.txt"))
+                .offerReceivedSubjectFr("Nouvelle offre reçue")
+                .offerReceivedBodyFr(loadTemplate("offer_received_fr.txt"))
+                // Offer Status Template
+                .offerStatusSubjectEn("Offer Status Update")
+                .offerStatusBodyEn(loadTemplate("offer_status_en.txt"))
+                .offerStatusSubjectFr("Mise à jour de l'offre")
+                .offerStatusBodyFr(loadTemplate("offer_status_fr.txt"))
                 .updatedAt(Instant.now())
                 .build();
 
