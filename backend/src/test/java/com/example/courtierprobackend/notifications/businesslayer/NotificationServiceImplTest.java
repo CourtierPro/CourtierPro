@@ -52,6 +52,10 @@ class NotificationServiceImplTest {
                 String title = "Test Title";
                 String message = "Test Message";
                 String relatedTransactionId = UUID.randomUUID().toString();
+                com.example.courtierprobackend.user.dataaccesslayer.UserAccount user = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+                user.setId(UUID.fromString(recipientId));
+                user.setInAppNotificationsEnabled(true);
+                when(userAccountRepository.findById(UUID.fromString(recipientId))).thenReturn(java.util.Optional.of(user));
 
                 // Act
                 notificationService.createNotification(recipientId, title, message, relatedTransactionId,
@@ -73,6 +77,10 @@ class NotificationServiceImplTest {
                 String messageKey = "notifications.welcome.message";
                 Map<String, Object> params = Map.of("firstName", "John");
                 String relatedTransactionId = null;
+                com.example.courtierprobackend.user.dataaccesslayer.UserAccount user = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+                user.setId(UUID.fromString(recipientId));
+                user.setInAppNotificationsEnabled(true);
+                when(userAccountRepository.findById(UUID.fromString(recipientId))).thenReturn(java.util.Optional.of(user));
 
                 when(objectMapper.writeValueAsString(params)).thenReturn("{\"firstName\":\"John\"}");
 
@@ -99,6 +107,10 @@ class NotificationServiceImplTest {
                 String recipientId = UUID.randomUUID().toString();
                 String titleKey = "notifications.welcome.title";
                 String messageKey = "notifications.welcome.message";
+                com.example.courtierprobackend.user.dataaccesslayer.UserAccount user = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+                user.setId(UUID.fromString(recipientId));
+                user.setInAppNotificationsEnabled(true);
+                when(userAccountRepository.findById(UUID.fromString(recipientId))).thenReturn(java.util.Optional.of(user));
 
                 // Act - null params
                 notificationService.createNotification(recipientId, titleKey, messageKey, null, null,
@@ -120,6 +132,10 @@ class NotificationServiceImplTest {
                 String recipientId = UUID.randomUUID().toString();
                 String titleKey = "notifications.test.title";
                 String messageKey = "notifications.test.message";
+                com.example.courtierprobackend.user.dataaccesslayer.UserAccount user = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+                user.setId(UUID.fromString(recipientId));
+                user.setInAppNotificationsEnabled(true);
+                when(userAccountRepository.findById(UUID.fromString(recipientId))).thenReturn(java.util.Optional.of(user));
 
                 // Act - empty params map
                 notificationService.createNotification(recipientId, titleKey, messageKey, Map.of(), null,
@@ -141,6 +157,10 @@ class NotificationServiceImplTest {
                 String titleKey = "notifications.test.title";
                 String messageKey = "notifications.test.message";
                 Map<String, Object> params = Map.of("key", "value");
+                com.example.courtierprobackend.user.dataaccesslayer.UserAccount user = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+                user.setId(UUID.fromString(recipientId));
+                user.setInAppNotificationsEnabled(true);
+                when(userAccountRepository.findById(UUID.fromString(recipientId))).thenReturn(java.util.Optional.of(user));
 
                 when(objectMapper.writeValueAsString(params))
                                 .thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("Test error") {});

@@ -148,8 +148,10 @@ public class EmailService {
         try {
             boolean isFrench = brokerLanguage != null && brokerLanguage.equalsIgnoreCase("fr");
             // Translate document type based on broker's language
-            String translatedDocType = translateDocumentType(docType, isFrench);
-            String displayName = documentName.equals(docType) ? translatedDocType : documentName;
+            String safeDocType = docType == null ? "" : docType;
+            String translatedDocType = translateDocumentType(safeDocType, isFrench);
+            String safeDocumentName = documentName == null ? "" : documentName;
+            String displayName = safeDocumentName.equals(safeDocType) ? translatedDocType : safeDocumentName;
             String subject = isFrench ? ("Document soumis : " + displayName) : ("Document Submitted: " + displayName);
             String templatePath = isFrench
                     ? "email-templates/document_submitted_fr.html"
@@ -180,8 +182,10 @@ public class EmailService {
         try {
             boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
             // Translate document type based on client's language
-            String translatedDocType = translateDocumentType(docType, isFrench);
-            String displayName = documentName.equals(docType) ? translatedDocType : documentName;
+            String safeDocType = docType == null ? "" : docType;
+            String translatedDocType = translateDocumentType(safeDocType, isFrench);
+            String safeDocumentName = documentName == null ? "" : documentName;
+            String displayName = safeDocumentName.equals(safeDocType) ? translatedDocType : safeDocumentName;
             String subject = isFrench
                 ? ("Document demandé : " + displayName)
                 : ("Document Requested: " + displayName);
@@ -476,7 +480,7 @@ public class EmailService {
     /**
      * Translate offer status enum values to human-readable strings.
      */
-    private String translateOfferStatus(String status, boolean isFrench) {
+    String translateOfferStatus(String status, boolean isFrench) {
         if (status == null) return "";
         return switch (status) {
             case "OFFER_MADE" -> isFrench ? "Offre soumise" : "Offer Made";
@@ -490,7 +494,10 @@ public class EmailService {
         };
     }
 
-    private String translateDocumentType(String docType, boolean isFrench) {
+    String translateDocumentType(String docType, boolean isFrench) {
+        if (docType == null) {
+            return isFrench ? "Autre" : "Other";
+        }
         return switch (docType) {
             case "MORTGAGE_PRE_APPROVAL" -> isFrench ? "Pré-approbation hypothécaire" : "Mortgage Pre-Approval";
             case "MORTGAGE_APPROVAL" -> isFrench ? "Approbation hypothécaire" : "Mortgage Approval";
@@ -509,7 +516,7 @@ public class EmailService {
         };
     }
 
-    private boolean sendEmail(String to, String subject, String body)
+    boolean sendEmail(String to, String subject, String body)
             throws MessagingException, UnsupportedEncodingException {
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
@@ -536,7 +543,7 @@ public class EmailService {
         return true;
     }
 
-    private String loadTemplateFromClasspath(String path) throws IOException {
+    String loadTemplateFromClasspath(String path) throws IOException {
         ClassPathResource resource = new ClassPathResource(path);
 
         try (InputStream is = resource.getInputStream()) {
@@ -576,7 +583,7 @@ public class EmailService {
         }
     }
 
-    private String escapeHtml(String s) {
+    String escapeHtml(String s) {
         if (s == null) {
             return "";
         }
@@ -598,7 +605,7 @@ public class EmailService {
         sendSimpleEmail(newEmail, subject, body);
     }
 
-    private void sendSimpleEmail(String to, String subject, String body) {
+    void sendSimpleEmail(String to, String subject, String body) {
         // Minimal implementation using JavaMail. You may want to use your existing logic or templates.
         try {
             Properties props = new Properties();

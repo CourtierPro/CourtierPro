@@ -14,6 +14,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.*;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.*;
 
 class Auth0UserSyncServiceTest {
@@ -205,5 +206,68 @@ class Auth0UserSyncServiceTest {
         verify(userRepository).save(argThat(user -> user.getAuth0UserId().equals("auth0|good")));
         // Verify bad user caused no save (implicitly, or explicitly verify exact count)
         verify(userRepository, times(1)).save(any(UserAccount.class));
+    }
+
+    @Test
+    void syncUsersFromAuth0_CreateUserWithNullFields() {
+        // Arrange
+        String auth0Id = "auth0|nulls";
+        Auth0User auth0User = new Auth0User(auth0Id, null, null, null, Collections.emptyMap());
+        List<Auth0User> auth0Users = List.of(auth0User);
+        List<Auth0Role> roles = List.of(new Auth0Role("roleId", "CLIENT"));
+
+        when(auth0Client.listAllUsers()).thenReturn(auth0Users);
+        when(auth0Client.getUserRoles(auth0Id)).thenReturn(roles);
+        when(auth0Client.mapRoleToUserRole(roles)).thenReturn(UserRole.CLIENT);
+        when(userRepository.findByAuth0UserId(auth0Id)).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(null)).thenReturn(Optional.empty());
+        when(userRepository.findAll()).thenReturn(Collections.emptyList());
+
+        // Act
+        syncService.syncUsersFromAuth0();
+
+        // Assert: should use default values for null fields
+        verify(userRepository).save(argThat(user ->
+                user.getAuth0UserId().equals(auth0Id)
+                        && user.getEmail().equals("unknown@example.com")
+                        && user.getFirstName().equals("Unknown")
+                        && user.getLastName().equals("User")
+        ));
+    }
+
+    @Test
+    void syncUsersFromAuth0_UnchangedUserIsSkipped() {
+        // Arrange
+        String auth0Id = "auth0|skip";
+        String email = "skip@example.com";
+        Auth0User auth0User = new Auth0User(auth0Id, email, "First", "Last", Collections.emptyMap());
+        UserAccount existingUser = new UserAccount(auth0Id, email, "First", "Last", UserRole.CLIENT, "en");
+        List<Auth0User> auth0Users = List.of(auth0User);
+        List<Auth0Role> roles = List.of(new Auth0Role("roleId", "CLIENT"));
+
+        when(auth0Client.listAllUsers()).thenReturn(auth0Users);
+        when(auth0Client.getUserRoles(auth0Id)).thenReturn(roles);
+        when(auth0Client.mapRoleToUserRole(roles)).thenReturn(UserRole.CLIENT);
+        when(userRepository.findByAuth0UserId(auth0Id)).thenReturn(Optional.of(existingUser));
+        when(userRepository.findAll()).thenReturn(List.of(existingUser));
+
+        // Act
+        syncService.syncUsersFromAuth0();
+
+        // Assert: should not save unchanged user
+        verify(userRepository, never()).save(existingUser);
+    }
+
+    @Test
+    void syncUsersFromAuth0_ExceptionOnDeleteIsHandled() {
+        // Arrange
+        UserAccount userToDelete = new UserAccount("auth0|gone", "gone@exa.com", "G", "O", UserRole.CLIENT, "en");
+        when(auth0Client.listAllUsers()).thenReturn(Collections.emptyList());
+        when(userRepository.findAll()).thenReturn(List.of(userToDelete));
+        doThrow(new RuntimeException("delete failed")).when(userRepository).delete(userToDelete);
+
+        // Act & Assert: should not throw
+        assertDoesNotThrow(() -> syncService.syncUsersFromAuth0());
+        verify(userRepository).delete(userToDelete);
     }
 }
