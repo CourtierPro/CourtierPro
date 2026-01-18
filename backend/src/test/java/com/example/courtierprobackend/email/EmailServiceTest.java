@@ -136,6 +136,25 @@ class EmailServiceTest {
             transportMock.verify(() -> Transport.send(any(Message.class)), times(1));
         }
     }
+
+    @Test
+    void sendPasswordSetupEmail_FrenchSubjectAndBodyFallbacks() throws Exception {
+        // Lines 76, 80 - French fallback subject and body when settings are null/blank
+        OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
+                .defaultLanguage("fr")
+                .inviteSubjectEn("Subject EN")
+                .inviteBodyEn("Body EN")
+                .inviteSubjectFr(null)
+                .inviteBodyFr("")
+                .build();
+        when(organizationSettingsService.getSettings()).thenReturn(settings);
+
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            boolean result = emailService.sendPasswordSetupEmail("user@example.com", "http://link", "fr");
+            assertThat(result).isTrue();
+            transportMock.verify(() -> Transport.send(any(Message.class)), times(1));
+        }
+    }
     @Test
     void sendDocumentSubmittedNotification_SendsEmailIfNotificationsEnabled() throws Exception {
         // Arrange

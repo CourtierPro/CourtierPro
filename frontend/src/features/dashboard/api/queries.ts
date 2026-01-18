@@ -92,6 +92,7 @@ export const dashboardKeys = {
     pendingDocuments: () => [...dashboardKeys.all, 'pending-documents'] as const,
     recentActivity: (page: number, size: number) => [...dashboardKeys.all, 'recent-activity', page, size] as const,
     pinnedTransactions: () => [...dashboardKeys.all, 'pinned-transactions'] as const,
+    approachingConditions: () => [...dashboardKeys.all, 'approaching-conditions'] as const,
 };
 
 export function useExpiringOffers() {
@@ -136,3 +137,26 @@ export function usePinnedTransactions() {
     });
 }
 
+export interface ApproachingCondition {
+    conditionId: string;
+    transactionId: string;
+    propertyAddress: string;
+    clientName: string;
+    conditionType: string;
+    customTitle: string | null;
+    description: string;
+    deadlineDate: string;
+    daysUntilDeadline: number;
+    status: string;
+    transactionSide: 'BUY_SIDE' | 'SELL_SIDE' | '';
+}
+
+export function useApproachingConditions() {
+    return useQuery({
+        queryKey: dashboardKeys.approachingConditions(),
+        queryFn: async () => {
+            const res = await axiosInstance.get<ApproachingCondition[]>('/api/v1/dashboard/broker/approaching-conditions');
+            return res.data;
+        },
+    });
+}

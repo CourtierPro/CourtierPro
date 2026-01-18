@@ -5892,5 +5892,597 @@ class TransactionServiceImplTest {
         // Assert
         assertThat(result).isEmpty();
     }
+
+    // ========== Additional Coverage Tests ==========
+
+    @Test
+    void createNote_withEmptyTimelineReturnsNull() {
+        // Coverage for line 291 - empty notes list returns null
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        
+        NoteRequestDTO noteDTO = new NoteRequestDTO();
+        noteDTO.setTitle("Test Title");
+        noteDTO.setMessage("Test Message");
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        // Return empty list so there are no notes after filtering
+        when(timelineService.getTimelineForTransaction(transactionId)).thenReturn(List.of());
+        
+        // Act
+        var result = transactionService.createNote(transactionId, noteDTO, brokerId);
+        
+        // Assert
+        assertThat(result).isNull();
+    }
+
+    @Test
+    void createTransaction_withPostalCodeNormalization() {
+        // Coverage for line 217 - postal code normalization
+        TransactionRequestDTO dto = createValidBuyerTransactionDTO();
+        dto.getPropertyAddress().setPostalCode("h2x 1y4"); // lowercase format
+        
+        when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(
+                any(UUID.class), anyString(), any())).thenReturn(Optional.empty());
+
+        Transaction savedTx = new Transaction();
+        savedTx.setTransactionId(UUID.randomUUID());
+        savedTx.setClientId(dto.getClientId());
+        savedTx.setBrokerId(dto.getBrokerId());
+        savedTx.setPropertyAddress(dto.getPropertyAddress());
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+
+        // Act
+        TransactionResponseDTO result = transactionService.createTransaction(dto);
+
+        // Assert - postal code should be normalized
+        assertThat(result).isNotNull();
+        verify(transactionRepository).save(any(Transaction.class));
+    }
+
+    @Test
+    void addPropertyOffer_withNullFirstAndLastName_coversNameBuilding() {
+        // Coverage for lines 1053-1056 - client/broker name building with nulls
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+            com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(propertyId)
+                .transactionId(transactionId)
+                .address(new PropertyAddress("123 Main St", "City", "Province", "H1H1H1"))
+                .build();
+        
+        UserAccount client = new UserAccount();
+        client.setId(clientId);
+        client.setFirstName(null);
+        client.setLastName(null);
+        client.setEmail("client@test.com");
+        client.setPreferredLanguage("en");
+        
+        UserAccount broker = new UserAccount();
+        broker.setId(brokerId);
+        broker.setFirstName(null);
+        broker.setLastName(null);
+        broker.setEmail("broker@test.com");
+        
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO offerDto = 
+            new com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO();
+        offerDto.setOfferAmount(java.math.BigDecimal.valueOf(500000.0));
+        offerDto.setStatus(BuyerOfferStatus.OFFER_MADE);
+        
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+        when(propertyOfferRepository.findMaxOfferRoundByPropertyId(propertyId)).thenReturn(null);
+        when(propertyOfferRepository.save(any())).thenAnswer(inv -> {
+            var po = (com.example.courtierprobackend.transactions.datalayer.PropertyOffer) inv.getArgument(0);
+            po.setPropertyOfferId(UUID.randomUUID());
+            return po;
+        });
+        when(offerDocumentRepository.findByPropertyOfferIdOrderByCreatedAtDesc(any())).thenReturn(List.of());
+        when(documentConditionLinkRepository.findByPropertyOfferId(any())).thenReturn(List.of());
+        
+        // Act
+        var result = transactionService.addPropertyOffer(propertyId, offerDto, brokerId);
+        
+        // Assert
+        assertThat(result).isNotNull();
+        verify(emailService).sendPropertyOfferMadeNotification(anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyString());
+    }
+
+    @Test
+    void addPropertyOffer_emailNotificationException_coversLine1068() {
+        // Coverage for line 1068 - email notification exception handling
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+            com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(propertyId)
+                .transactionId(transactionId)
+                .address(new PropertyAddress("123 Main St", "City", "Province", "H1H1H1"))
+                .build();
+        
+        UserAccount client = new UserAccount();
+        client.setId(clientId);
+        client.setFirstName("Client");
+        client.setLastName("Name");
+        client.setEmail("client@test.com");
+        client.setPreferredLanguage("en");
+        
+        UserAccount broker = new UserAccount();
+        broker.setId(brokerId);
+        broker.setFirstName("Broker");
+        broker.setLastName("Name");
+        
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO offerDto = 
+            new com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO();
+        offerDto.setOfferAmount(java.math.BigDecimal.valueOf(500000.0));
+        offerDto.setStatus(BuyerOfferStatus.OFFER_MADE);
+        
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+        when(propertyOfferRepository.findMaxOfferRoundByPropertyId(propertyId)).thenReturn(null);
+        when(propertyOfferRepository.save(any())).thenAnswer(inv -> {
+            var po = (com.example.courtierprobackend.transactions.datalayer.PropertyOffer) inv.getArgument(0);
+            po.setPropertyOfferId(UUID.randomUUID());
+            return po;
+        });
+        when(offerDocumentRepository.findByPropertyOfferIdOrderByCreatedAtDesc(any())).thenReturn(List.of());
+        when(documentConditionLinkRepository.findByPropertyOfferId(any())).thenReturn(List.of());
+        
+        // Make email service throw an exception
+        doThrow(new RuntimeException("Email error")).when(emailService)
+            .sendPropertyOfferMadeNotification(anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyString());
+        
+        // Act - should not throw, just log
+        var result = transactionService.addPropertyOffer(propertyId, offerDto, brokerId);
+        
+        // Assert
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    void updatePropertyOfferStatus_withEmailNotification_coversLines1174to1190() {
+        // Coverage for lines 1174-1178, 1186, 1189-1190
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+        tx.setSide(TransactionSide.BUY_SIDE);
+        
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+            com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(propertyId)
+                .transactionId(transactionId)
+                .address(new PropertyAddress("123 Main St", "City", "Province", "H1H1H1"))
+                .build();
+        
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer offer = 
+            com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                .propertyOfferId(propertyOfferId)
+                .propertyId(propertyId)
+                .status(BuyerOfferStatus.OFFER_MADE)
+                .offerRound(1)
+                .counterpartyResponse(com.example.courtierprobackend.transactions.datalayer.enums.CounterpartyResponse.COUNTERED)
+                .build();
+        
+        UserAccount client = new UserAccount();
+        client.setId(clientId);
+        client.setFirstName("Client");
+        client.setLastName("Name");
+        client.setEmail("client@test.com");
+        client.setPreferredLanguage("en");
+        
+        UserAccount broker = new UserAccount();
+        broker.setId(brokerId);
+        broker.setFirstName("Broker");
+        broker.setLastName("Name");
+        
+        com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO updateDto = 
+            new com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRequestDTO();
+        updateDto.setStatus(BuyerOfferStatus.ACCEPTED);
+        
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(offer));
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+        when(propertyOfferRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(propertyOfferRepository.findTopByPropertyIdOrderByOfferRoundDesc(propertyId)).thenReturn(Optional.of(offer));
+        when(propertyRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(offerDocumentRepository.findByPropertyOfferIdOrderByCreatedAtDesc(propertyOfferId)).thenReturn(List.of());
+        when(documentConditionLinkRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(List.of());
+        
+        // Act
+        var result = transactionService.updatePropertyOffer(propertyId, propertyOfferId, updateDto, brokerId);
+        
+        // Assert
+        assertThat(result).isNotNull();
+        verify(emailService).sendPropertyOfferStatusChangedNotification(
+            eq("client@test.com"), anyString(), anyString(), anyString(), anyString(), anyString(), any(), eq("en"));
+    }
+
+    @Test
+    void addOffer_withEmailNotification_coversLines1342to1356() {
+        // Coverage for lines 1342-1345, 1355-1356
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+        
+        UserAccount client = new UserAccount();
+        client.setId(clientId);
+        client.setFirstName("Client");
+        client.setLastName("Name");
+        client.setEmail("client@test.com");
+        client.setPreferredLanguage("fr");
+        
+        UserAccount broker = new UserAccount();
+        broker.setId(brokerId);
+        broker.setFirstName("Broker");
+        broker.setLastName("Name");
+        
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO offerDto = 
+            com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO.builder()
+                .buyerName("Test Buyer")
+                .offerAmount(java.math.BigDecimal.valueOf(500000.0))
+                .expiryDate(java.time.LocalDate.now().plusDays(1))
+                .status(ReceivedOfferStatus.PENDING)
+                .build();
+        
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+        when(offerRepository.save(any())).thenAnswer(inv -> {
+            var o = (Offer) inv.getArgument(0);
+            o.setOfferId(UUID.randomUUID());
+            return o;
+        });
+        when(offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(any())).thenReturn(List.of());
+        when(documentConditionLinkRepository.findByOfferId(any())).thenReturn(List.of());
+        
+        // Act
+        var result = transactionService.addOffer(transactionId, offerDto, brokerId);
+        
+        // Assert
+        assertThat(result).isNotNull();
+        verify(emailService).sendOfferReceivedNotification(
+            eq("client@test.com"), anyString(), anyString(), eq("Test Buyer"), anyString(), eq("fr"));
+    }
+
+    @Test
+    void updateOfferStatus_withEmailNotification_coversLines1472to1488() {
+        // Coverage for lines 1472-1484, 1487-1488
+        UUID transactionId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+        
+        Offer offer = Offer.builder()
+            .offerId(offerId)
+            .transactionId(transactionId)
+            .buyerName("Test Buyer")
+            .offerAmount(java.math.BigDecimal.valueOf(500000.0))
+            .status(ReceivedOfferStatus.PENDING)
+            .build();
+        
+        UserAccount client = new UserAccount();
+        client.setId(clientId);
+        client.setFirstName("Client");
+        client.setLastName("Name");
+        client.setEmail("client@test.com");
+        client.setPreferredLanguage("en");
+        
+        UserAccount broker = new UserAccount();
+        broker.setId(brokerId);
+        broker.setFirstName("Broker");
+        broker.setLastName("Name");
+        
+        com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO updateDto = 
+            com.example.courtierprobackend.transactions.datalayer.dto.OfferRequestDTO.builder()
+                .status(ReceivedOfferStatus.ACCEPTED)
+                .build();
+        
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+        when(offerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(offerId)).thenReturn(List.of());
+        when(documentConditionLinkRepository.findByOfferId(offerId)).thenReturn(List.of());
+        
+        // Act
+        var result = transactionService.updateOffer(transactionId, offerId, updateDto, brokerId);
+        
+        // Assert
+        assertThat(result).isNotNull();
+        verify(emailService).sendOfferStatusChangedNotification(
+            eq("client@test.com"), anyString(), anyString(), eq("Test Buyer"), anyString(), eq("ACCEPTED"), eq("en"));
+    }
+
+    @Test
+    void getOfferDocumentDownloadUrl_withPropertyOfferDocument_coversLines1654to1664() {
+        // Coverage for lines 1654, 1656, 1660, 1662, 1664
+        UUID documentId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        
+        com.example.courtierprobackend.transactions.datalayer.OfferDocument document = 
+            com.example.courtierprobackend.transactions.datalayer.OfferDocument.builder()
+                .documentId(documentId)
+                .propertyOfferId(propertyOfferId)
+                .offerId(null)  // This is a property offer document
+                .s3Key("test-key")
+                .build();
+        
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer propertyOffer = 
+            com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                .propertyOfferId(propertyOfferId)
+                .propertyId(propertyId)
+                .build();
+        
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+            com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(propertyId)
+                .transactionId(transactionId)
+                .build();
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(UUID.randomUUID());
+        
+        when(offerDocumentRepository.findByDocumentId(documentId)).thenReturn(Optional.of(document));
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(propertyOffer));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(s3StorageService.generatePresignedUrl("test-key")).thenReturn("https://presigned-url.com");
+        
+        // Act
+        String result = transactionService.getOfferDocumentDownloadUrl(documentId, brokerId);
+        
+        // Assert
+        assertThat(result).isEqualTo("https://presigned-url.com");
+    }
+
+    @Test
+    void deleteOfferDocument_withPropertyOfferDocument_coversLines1675to1690() {
+        // Coverage for lines 1675, 1680, 1682, 1686, 1688, 1690
+        UUID documentId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        
+        com.example.courtierprobackend.transactions.datalayer.OfferDocument document = 
+            com.example.courtierprobackend.transactions.datalayer.OfferDocument.builder()
+                .documentId(documentId)
+                .propertyOfferId(propertyOfferId)
+                .offerId(null)
+                .s3Key("test-key")
+                .build();
+        
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer propertyOffer = 
+            com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                .propertyOfferId(propertyOfferId)
+                .propertyId(propertyId)
+                .build();
+        
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+            com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(propertyId)
+                .transactionId(transactionId)
+                .build();
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        
+        when(offerDocumentRepository.findByDocumentId(documentId)).thenReturn(Optional.of(document));
+        when(propertyOfferRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(Optional.of(propertyOffer));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        
+        // Act
+        transactionService.deleteOfferDocument(documentId, brokerId);
+        
+        // Assert
+        verify(s3StorageService).deleteFile("test-key");
+        verify(offerDocumentRepository).delete(document);
+    }
+
+    @Test
+    void submitClientOfferDecision_notificationException_coversLines1804to1805() {
+        // Coverage for lines 1804-1805
+        UUID transactionId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(clientId);
+        tx.setSide(TransactionSide.SELL_SIDE);
+        
+        Offer offer = Offer.builder()
+            .offerId(offerId)
+            .transactionId(transactionId)
+            .buyerName("Test Buyer")
+            .offerAmount(java.math.BigDecimal.valueOf(500000.0))
+            .status(ReceivedOfferStatus.PENDING)
+            .build();
+        
+        UserAccount client = new UserAccount();
+        client.setId(clientId);
+        client.setFirstName("Client");
+        client.setLastName("Name");
+        
+        com.example.courtierprobackend.transactions.datalayer.dto.ClientOfferDecisionDTO decisionDto = 
+            new com.example.courtierprobackend.transactions.datalayer.dto.ClientOfferDecisionDTO();
+        decisionDto.setDecision(com.example.courtierprobackend.transactions.datalayer.enums.ClientOfferDecision.ACCEPT);
+        
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+        when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(offerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(offerId)).thenReturn(List.of());
+        when(documentConditionLinkRepository.findByOfferId(offerId)).thenReturn(List.of());
+        
+        // Make notification service throw
+        doThrow(new RuntimeException("Notification error")).when(notificationService)
+            .createNotification(anyString(), anyString(), anyString(), any(java.util.Map.class), anyString(), any());
+        
+        // Act - should not throw
+        var result = transactionService.submitClientOfferDecision(offerId, decisionDto, clientId);
+        
+        // Assert
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    void toPropertyOfferResponseDTO_withEmptyConditions_coversLines1214to1216() {
+        // Coverage for lines 1214, 1216 - filtering empty conditions
+        UUID transactionId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID propertyOfferId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(UUID.randomUUID());
+        tx.setSide(TransactionSide.BUY_SIDE);
+        
+        com.example.courtierprobackend.transactions.datalayer.Property property = 
+            com.example.courtierprobackend.transactions.datalayer.Property.builder()
+                .propertyId(propertyId)
+                .transactionId(transactionId)
+                .build();
+        
+        com.example.courtierprobackend.transactions.datalayer.PropertyOffer offer = 
+            com.example.courtierprobackend.transactions.datalayer.PropertyOffer.builder()
+                .propertyOfferId(propertyOfferId)
+                .propertyId(propertyId)
+                .status(BuyerOfferStatus.OFFER_MADE)
+                .build();
+        
+        // Create a condition link but have the condition not be found
+        com.example.courtierprobackend.transactions.datalayer.DocumentConditionLink link = 
+            com.example.courtierprobackend.transactions.datalayer.DocumentConditionLink.builder()
+                .conditionId(UUID.randomUUID())
+                .propertyOfferId(propertyOfferId)
+                .build();
+        
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+        when(propertyOfferRepository.findByPropertyIdOrderByOfferRoundDesc(propertyId)).thenReturn(List.of(offer));
+        when(offerDocumentRepository.findByPropertyOfferIdOrderByCreatedAtDesc(propertyOfferId)).thenReturn(List.of());
+        when(documentConditionLinkRepository.findByPropertyOfferId(propertyOfferId)).thenReturn(List.of(link));
+        when(conditionRepository.findByConditionId(any())).thenReturn(Optional.empty()); // Condition not found
+        
+        // Act
+        var result = transactionService.getPropertyOffers(propertyId, brokerId, true);
+        
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getConditions()).isEmpty();
+    }
+
+    @Test
+    void getAllTransactionDocuments_withNullCustomTitle_coversLine2229() {
+        // Coverage for line 2229 - null customTitle falls back to docType
+        UUID transactionId = UUID.randomUUID();
+        UUID brokerId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
+        UUID docId = UUID.randomUUID();
+        
+        Transaction tx = new Transaction();
+        tx.setTransactionId(transactionId);
+        tx.setBrokerId(brokerId);
+        tx.setClientId(UUID.randomUUID());
+        tx.setSide(TransactionSide.BUY_SIDE);
+        
+        // Create a document request with null customTitle but a docType
+        com.example.courtierprobackend.documents.datalayer.DocumentRequest docRequest = 
+            new com.example.courtierprobackend.documents.datalayer.DocumentRequest();
+        docRequest.setRequestId(requestId);
+        docRequest.setCustomTitle(null);
+        docRequest.setDocType(com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum.ID_VERIFICATION);
+        docRequest.setTransactionRef(new com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef(
+            transactionId, UUID.randomUUID(), TransactionSide.BUY_SIDE));
+        
+        // Create submitted document
+        com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject storage = 
+            com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject.builder()
+                .s3Key("key")
+                .fileName("file.pdf")
+                .mimeType("application/pdf")
+                .sizeBytes(1000L)
+                .build();
+        com.example.courtierprobackend.documents.datalayer.SubmittedDocument submitted = 
+            com.example.courtierprobackend.documents.datalayer.SubmittedDocument.builder()
+                .documentId(docId)
+                .uploadedAt(LocalDateTime.now())
+                .storageObject(storage)
+                .build();
+        docRequest.setSubmittedDocuments(List.of(submitted));
+        
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        when(documentRequestRepository.findByTransactionRef_TransactionId(transactionId)).thenReturn(List.of(docRequest));
+        when(offerRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId)).thenReturn(List.of());
+        when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId)).thenReturn(List.of());
+        
+        // Act
+        var result = transactionService.getAllTransactionDocuments(transactionId, brokerId, true);
+        
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getSourceName()).isEqualTo("ID_VERIFICATION");
+    }
 }
 

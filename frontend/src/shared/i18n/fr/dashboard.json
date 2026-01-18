@@ -52,6 +52,14 @@
                 "empty": "Aucun rendez-vous à venir.",
                 "today": "Aujourd'hui",
                 "tomorrow": "Demain"
+            },
+            "approachingConditions": {
+                "title": "Conditions à échéance",
+                "description": "Conditions avec des échéances dans les 7 prochains jours.",
+                "empty": "Aucune condition à échéance prochaine.",
+                "today": "Aujourd'hui",
+                "tomorrow": "Demain",
+                "daysLeft": "{{days}}j restants"
             }
         },
         "activityFeed": {
