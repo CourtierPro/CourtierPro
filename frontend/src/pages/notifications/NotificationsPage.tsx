@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Megaphone } from "lucide-react";
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { useNotifications, useMarkNotificationAsRead } from "@/features/notifications/api/notificationsApi";
+import { useUserProfile } from "@/features/profile/api/queries";
 import { NotificationItem } from "@/features/notifications/components/NotificationItem";
 import { BroadcastMessageModal } from "@/features/notifications/components/BroadcastMessageModal";
 import { useCurrentUser } from "@/features/auth/api/useCurrentUser";
@@ -13,6 +14,8 @@ import { Loader2 } from "lucide-react";
 
 export function NotificationsPage() {
   const { t } = useTranslation("notifications");
+  const { data: user } = useUserProfile();
+  const notificationsEnabled = user?.inAppNotificationsEnabled;
   const { data: notifications, isLoading } = useNotifications();
   const { mutate: markAsRead } = useMarkNotificationAsRead();
   const { data: currentUser } = useCurrentUser();
@@ -20,6 +23,19 @@ export function NotificationsPage() {
 
   const isAdmin = currentUser?.role === "ADMIN";
 
+  if (user && !notificationsEnabled) {
+    return (
+      <div className="space-y-6 container max-w-3xl mx-auto">
+        <PageHeader
+          title={t("title")}
+          subtitle={t("subtitle") || "Manage your alerts and updates"}
+        />
+        <div className="p-8 text-center text-sm text-muted-foreground">
+          {t('inAppNotificationsDisabled', 'In-app notifications are disabled in your profile settings.')}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6 container max-w-3xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

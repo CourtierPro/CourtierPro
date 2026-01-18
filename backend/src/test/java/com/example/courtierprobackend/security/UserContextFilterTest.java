@@ -57,6 +57,9 @@ class UserContextFilterTest {
         UUID internalId = UUID.randomUUID();
         UserAccount user = new UserAccount();
         user.setId(internalId);
+        user.setActive(true); // Ensure user is active
+        user.setRole(com.example.courtierprobackend.user.dataaccesslayer.UserRole.CLIENT); // Set a valid role
+        user.setPreferredLanguage("en"); // Set required field if needed
 
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.getToken()).thenReturn(jwt);

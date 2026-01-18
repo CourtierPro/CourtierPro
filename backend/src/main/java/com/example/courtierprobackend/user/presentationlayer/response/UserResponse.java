@@ -17,4 +17,7 @@ public class UserResponse {
     String role;
     boolean active;
     String preferredLanguage;
+
+    boolean emailNotificationsEnabled;
+    boolean inAppNotificationsEnabled;
 }

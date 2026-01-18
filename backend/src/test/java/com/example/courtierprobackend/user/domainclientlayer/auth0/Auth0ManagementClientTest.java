@@ -263,5 +263,48 @@ class Auth0ManagementClientTest {
         assertThat(client.mapRoleToUserRole(List.of(new Auth0Role("1", "ADMIN")))).isEqualTo(UserRole.ADMIN);
         assertThat(client.mapRoleToUserRole(Collections.emptyList())).isEqualTo(UserRole.CLIENT); // Default
     }
+    @Test
+    void updateUserEmail_SuccessfulPatch_LogsInfo() {
+        String userId = "auth0|user";
+        String newEmail = "new@email.com";
+        String url = "https://example.auth0.com/api/v2/users/" + userId;
+        ResponseEntity<Void> response = ResponseEntity.ok().build();
+        when(restTemplate.exchange(eq(url), eq(HttpMethod.PATCH), any(HttpEntity.class), eq(Void.class))).thenReturn(response);
+
+        // Act
+        client.updateUserEmail(userId, newEmail);
+
+        // Assert
+        verify(restTemplate).exchange(eq(url), eq(HttpMethod.PATCH), any(HttpEntity.class), eq(Void.class));
+    }
+
+    @Test
+    void updateUserEmail_Non2xxResponse_LogsWarn() {
+        String userId = "auth0|user";
+        String newEmail = "fail@email.com";
+        String url = "https://example.auth0.com/api/v2/users/" + userId;
+        ResponseEntity<Void> response = ResponseEntity.status(400).build();
+        when(restTemplate.exchange(eq(url), eq(HttpMethod.PATCH), any(HttpEntity.class), eq(Void.class))).thenReturn(response);
+
+        // Act
+        client.updateUserEmail(userId, newEmail);
+
+        // Assert
+        verify(restTemplate).exchange(eq(url), eq(HttpMethod.PATCH), any(HttpEntity.class), eq(Void.class));
+    }
+
+    @Test
+    void updateUserEmail_ExceptionThrown_LogsError() {
+        String userId = "auth0|user";
+        String newEmail = "err@email.com";
+        String url = "https://example.auth0.com/api/v2/users/" + userId;
+        when(restTemplate.exchange(eq(url), eq(HttpMethod.PATCH), any(HttpEntity.class), eq(Void.class))).thenThrow(new RuntimeException("fail"));
+
+        // Act
+        client.updateUserEmail(userId, newEmail);
+
+        // Assert
+        verify(restTemplate).exchange(eq(url), eq(HttpMethod.PATCH), any(HttpEntity.class), eq(Void.class));
+    }
 }
 

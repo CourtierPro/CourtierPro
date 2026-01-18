@@ -1,5 +1,7 @@
+import React, { useState } from 'react';
+import { Toast } from '@/shared/components/ui/Toast';
 import { useTranslation } from 'react-i18next';
-import { Mail, Globe, User, Shield, Loader2 } from 'lucide-react';
+import { Mail, Globe, User, Shield, Loader2, Bell, BellOff } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -34,6 +36,8 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     const { data: user, isLoading, isError, refetch } = useUserProfile();
     const updateProfile = useUpdateUserProfile();
 
+    const [showToast, setShowToast] = useState(false);
+
     const initials = user
         ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
         : '';
@@ -65,21 +69,84 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         }
     };
 
+
+    const [emailInput, setEmailInput] = useState(user?.email || '');
+    const [emailDirty, setEmailDirty] = useState(false);
+    const [emailChangeMsg, setEmailChangeMsg] = useState<string | null>(null);
+    const [emailNotifications, setEmailNotifications] = useState(user?.emailNotificationsEnabled ?? true);
+    const [inAppNotifications, setInAppNotifications] = useState(user?.inAppNotificationsEnabled ?? true);
+
+    // Sync state when user changes
+    React.useEffect(() => {
+        setEmailInput(user?.email || '');
+        setEmailNotifications(user?.emailNotificationsEnabled ?? true);
+        setInAppNotifications(user?.inAppNotificationsEnabled ?? true);
+    }, [user]);
+
     const handleLanguageChange = (newLanguage: string) => {
         updateProfile.mutate(
             { preferredLanguage: newLanguage },
             {
                 onSuccess: () => {
-                    // Also update the UI language immediately
                     setLanguage(newLanguage as 'en' | 'fr');
                 },
             }
         );
     };
 
+    const handleEmailChange = () => {
+        if (emailInput && emailInput !== user?.email) {
+            updateProfile.mutate(
+                { 
+                    email: emailInput, 
+                    preferredLanguage: user?.preferredLanguage || 'en' // Always include preferredLanguage
+                },
+                {
+                    onSuccess: () => {
+                        setEmailChangeMsg(t('emailChangeSent', 'Confirmation sent to new email. Please check your inbox.'));
+                        setShowToast(true);
+                        setEmailDirty(false);
+                        refetch(); // Refetch user profile to update UI
+                        setTimeout(() => {
+                            setShowToast(false);
+                            // Clear auth tokens (adjust if you use a different storage or context)
+                            localStorage.removeItem('accessToken');
+                            localStorage.removeItem('refreshToken');
+                            window.location.replace('/login');
+                        }, 4000); // Increased delay for better visibility
+                    },
+                }
+            );
+        }
+    };
+
+    const handleNotificationChange = (type: 'email' | 'inApp', value: boolean) => {
+        if (!user) return;
+        if (type === 'email') {
+            setEmailNotifications(value);
+            updateProfile.mutate({ 
+                emailNotificationsEnabled: value,
+                preferredLanguage: user.preferredLanguage || 'en'
+            });
+        } else {
+            setInAppNotifications(value);
+            updateProfile.mutate({ 
+                inAppNotificationsEnabled: value,
+                preferredLanguage: user.preferredLanguage || 'en'
+            });
+        }
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="max-w-md">
+                {showToast && (
+                    <Toast
+                        message={t('emailChangeSent', 'Confirmation sent to new email. Please check your inbox.')}
+                        onClose={() => setShowToast(false)}
+                        duration={3500}
+                    />
+                )}
                 {isLoading && <LoadingState message={t('loading', 'Loading profile...')} />}
 
                 {isError && (
@@ -131,8 +198,55 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                                     <div className="flex items-center gap-3 text-sm">
                                         <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                         <span className="text-muted-foreground">{t('email', 'Email')}:</span>
-                                        <span className="text-foreground">{user.email}</span>
+                                        <input
+                                            className="border rounded px-2 py-1 text-foreground bg-background"
+                                            type="email"
+                                            value={emailInput}
+                                            onChange={e => {
+                                                setEmailInput(e.target.value);
+                                                setEmailDirty(e.target.value !== user?.email);
+                                                setEmailChangeMsg(null);
+                                            }}
+                                            disabled={updateProfile.isPending}
+                                            style={{ width: 220 }}
+                                        />
+                                        {emailDirty && (
+                                            <button
+                                                className="ml-2 px-2 py-1 bg-primary text-primary-foreground rounded"
+                                                onClick={handleEmailChange}
+                                                disabled={updateProfile.isPending}
+                                            >
+                                                {t('update', 'Update')}
+                                            </button>
+                                        )}
                                     </div>
+                                    {emailChangeMsg && (
+                                        <div className="text-xs text-green-600 pl-8">{emailChangeMsg}</div>
+                                    )}
+                                                                        <div className="flex items-center gap-3 text-sm">
+                                                                            <Bell className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                                                            <span className="text-muted-foreground">{t('emailNotifications', 'Email Notifications')}:</span>
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={emailNotifications}
+                                                                                onChange={e => handleNotificationChange('email', e.target.checked)}
+                                                                                disabled={updateProfile.isPending}
+                                                                                className="ml-2"
+                                                                            />
+                                                                            <span className="text-muted-foreground">{emailNotifications ? t('on', 'On') : t('off', 'Off')}</span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-3 text-sm">
+                                                                            <BellOff className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                                                            <span className="text-muted-foreground">{t('inAppNotifications', 'In-App Notifications')}:</span>
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={inAppNotifications}
+                                                                                onChange={e => handleNotificationChange('inApp', e.target.checked)}
+                                                                                disabled={updateProfile.isPending}
+                                                                                className="ml-2"
+                                                                            />
+                                                                            <span className="text-muted-foreground">{inAppNotifications ? t('on', 'On') : t('off', 'Off')}</span>
+                                                                        </div>
                                     <div className="flex items-center gap-3 text-sm">
                                         <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                         <span className="text-muted-foreground">{t('preferredLanguage', 'Language')}:</span>

@@ -37,71 +37,70 @@ public class SecurityConfig {
             throws Exception {
 
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource))
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
+            .csrf(csrf -> csrf.disable())
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                .requestMatchers("/actuator/**").denyAll()
 
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // Allow unauthenticated email confirmation
+                .requestMatchers(HttpMethod.GET, "/api/me/confirm-email").permitAll()
 
-                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        .requestMatchers("/actuator/**").denyAll()
+                // Auth logout endpoint - accessible to all authenticated users
+                .requestMatchers(HttpMethod.POST, "/auth/logout").authenticated()
 
-                        // Auth logout endpoint - accessible to all authenticated users
-                        .requestMatchers(HttpMethod.POST, "/auth/logout").authenticated()
+                // Admin user management
+                .requestMatchers(HttpMethod.POST, "/api/admin/users").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/admin/users/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/admin/users").hasRole("ADMIN")
 
-                        // Admin user management
-                        .requestMatchers(HttpMethod.POST, "/api/admin/users").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/admin/users/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/admin/users").hasRole("ADMIN")
+                // Admin organization settings
+                .requestMatchers("/api/admin/settings/**").hasRole("ADMIN")
 
-                        // Admin organization settings
-                        .requestMatchers("/api/admin/settings/**").hasRole("ADMIN")
+                // TODO: Implement webhook signature verification (HMAC/JWT) or IP allowlisting
+                // Currently exposed without authentication - Auth0 should sign webhook payloads
+                .requestMatchers("/api/webhooks/**").permitAll()
 
-                        // TODO: Implement webhook signature verification (HMAC/JWT) or IP allowlisting
-                        // Currently exposed without authentication - Auth0 should sign webhook payloads
-                        .requestMatchers("/api/webhooks/**").permitAll()
+                // Document APIs
+                .requestMatchers(HttpMethod.GET, "/transactions/*/documents").hasAnyRole("BROKER", "CLIENT")
+                .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*").hasAnyRole("BROKER", "CLIENT")
+                .requestMatchers(HttpMethod.POST, "/transactions/*/documents/*/submit").hasAnyRole("BROKER", "CLIENT")
+                .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*/documents/*/download").hasAnyRole("BROKER", "CLIENT")
 
-                        // Document APIs
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/documents").hasAnyRole("BROKER", "CLIENT")
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*").hasAnyRole("BROKER", "CLIENT")
-                        .requestMatchers(HttpMethod.POST, "/transactions/*/documents/*/submit")
-                        .hasAnyRole("BROKER", "CLIENT")
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*/documents/*/download")
-                        .hasAnyRole("BROKER", "CLIENT")
+                // Timeline client endpoint
+                .requestMatchers(HttpMethod.GET, "/transactions/*/timeline/client").hasRole("CLIENT")
 
-                        // Timeline client endpoint
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/timeline/client").hasRole("CLIENT")
+                // Transaction APIs
+                .requestMatchers(HttpMethod.GET, "/transactions/*/participants").hasAnyRole("BROKER", "CLIENT")
+                .requestMatchers(HttpMethod.GET, "/transactions/*/properties").hasAnyRole("BROKER", "CLIENT")
+                .requestMatchers(HttpMethod.GET, "/transactions/*/properties/*").hasAnyRole("BROKER", "CLIENT")
+                .requestMatchers(HttpMethod.GET, "/transactions/*").hasAnyRole("BROKER", "CLIENT")
+                // Conditions: GET is accessible to both, modifications are broker-only (handled by @PreAuthorize)
+                .requestMatchers(HttpMethod.GET, "/transactions/*/conditions").hasAnyRole("BROKER", "CLIENT")
+                // Offers: GET accessible to both, modifications are broker-only (handled by @PreAuthorize)
+                .requestMatchers(HttpMethod.GET, "/transactions/*/offers").hasAnyRole("BROKER", "CLIENT")
+                .requestMatchers(HttpMethod.GET, "/transactions/*/offers/*").hasAnyRole("BROKER", "CLIENT")
+                .requestMatchers(HttpMethod.GET, "/transactions/*/offers/*/documents").hasAnyRole("BROKER", "CLIENT")
+                .requestMatchers(HttpMethod.GET, "/transactions/*/offers/*/revisions").hasAnyRole("BROKER", "CLIENT")
+                // Document download endpoint - accessible to both broker and client
+                .requestMatchers(HttpMethod.GET, "/transactions/documents/*/download").hasAnyRole("BROKER", "CLIENT")
+                // Property offer documents
+                .requestMatchers(HttpMethod.GET, "/transactions/properties/*/offers").hasAnyRole("BROKER", "CLIENT")
+                .requestMatchers(HttpMethod.GET, "/transactions/properties/*/offers/*/documents").hasAnyRole("BROKER", "CLIENT")
+                // Unified documents endpoint - aggregates all document sources
+                .requestMatchers(HttpMethod.GET, "/transactions/*/all-documents").hasAnyRole("BROKER", "CLIENT")
+                // Catch-all for other transaction endpoints - requires broker role
+                .requestMatchers("/transactions/**").hasRole("BROKER")
 
-                        // Transaction APIs
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/participants").hasAnyRole("BROKER", "CLIENT")
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/properties").hasAnyRole("BROKER", "CLIENT")
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/properties/*").hasAnyRole("BROKER", "CLIENT")
-                        .requestMatchers(HttpMethod.GET, "/transactions/*").hasAnyRole("BROKER", "CLIENT")
-                        // Conditions: GET is accessible to both, modifications are broker-only (handled by @PreAuthorize)
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/conditions").hasAnyRole("BROKER", "CLIENT")
-                        // Offers: GET accessible to both, modifications are broker-only (handled by @PreAuthorize)
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/offers").hasAnyRole("BROKER", "CLIENT")
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/offers/*").hasAnyRole("BROKER", "CLIENT")
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/offers/*/documents").hasAnyRole("BROKER", "CLIENT")
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/offers/*/revisions").hasAnyRole("BROKER", "CLIENT")
-                        // Document download endpoint - accessible to both broker and client
-                        .requestMatchers(HttpMethod.GET, "/transactions/documents/*/download").hasAnyRole("BROKER", "CLIENT")
-                        // Property offer documents
-                        .requestMatchers(HttpMethod.GET, "/transactions/properties/*/offers").hasAnyRole("BROKER", "CLIENT")
-                        .requestMatchers(HttpMethod.GET, "/transactions/properties/*/offers/*/documents").hasAnyRole("BROKER", "CLIENT")
-                        // Unified documents endpoint - aggregates all document sources
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/all-documents").hasAnyRole("BROKER", "CLIENT")
-                        // Catch-all for other transaction endpoints - requires broker role
-                        .requestMatchers("/transactions/**").hasRole("BROKER")
-
-                        // Everything else must be authenticated
-                        .anyRequest().authenticated())
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
-                // Add UserContextFilter after JWT authentication to translate Auth0 ID to
-                // internal UUID
-                .addFilterAfter(userContextFilter,
-                        org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class);
+                // Everything else must be authenticated
+                .anyRequest().authenticated())
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+            // Add UserContextFilter after JWT authentication to translate Auth0 ID to
+            // internal UUID
+            .addFilterAfter(userContextFilter,
+                org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class);
 
         return http.build();
     }

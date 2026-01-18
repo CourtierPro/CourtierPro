@@ -34,6 +34,12 @@ public class NotificationServiceImpl implements NotificationService {
         @org.springframework.transaction.annotation.Transactional
         public void createNotification(String recipientId, String title, String message, String relatedTransactionId,
                         com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory category) {
+                // Check user in-app notification preference
+                var userOpt = userAccountRepository.findById(UUID.fromString(recipientId));
+                if (userOpt.isEmpty() || !userOpt.get().isInAppNotificationsEnabled()) {
+                    // Do not send notification if user has disabled in-app notifications
+                    return;
+                }
                 Notification notification = Notification.builder()
                                 .recipientId(recipientId) // Expecting internal UUID here
                                 .title(title)
@@ -52,6 +58,12 @@ public class NotificationServiceImpl implements NotificationService {
         public void createNotification(String recipientId, String titleKey, String messageKey,
                         Map<String, Object> params, String relatedTransactionId,
                         com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory category) {
+                // Check user in-app notification preference
+                var userOpt = userAccountRepository.findById(UUID.fromString(recipientId));
+                if (userOpt.isEmpty() || !userOpt.get().isInAppNotificationsEnabled()) {
+                    // Do not send notification if user has disabled in-app notifications
+                    return;
+                }
                 String paramsJson = null;
                 if (params != null && !params.isEmpty()) {
                         try {

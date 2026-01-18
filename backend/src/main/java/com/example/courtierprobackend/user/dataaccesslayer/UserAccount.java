@@ -22,6 +22,12 @@ public class UserAccount {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(nullable = false)
+    private boolean emailNotificationsEnabled = true;
+
+    @Column(nullable = false)
+    private boolean inAppNotificationsEnabled = true;
+
     private String firstName;
     private String lastName;
 
@@ -58,6 +64,8 @@ public class UserAccount {
         this.lastName = lastName;
         this.role = role;
         this.preferredLanguage = preferredLanguage;
+        this.emailNotificationsEnabled = true;
+        this.inAppNotificationsEnabled = true;
         this.active = true;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
@@ -70,6 +78,16 @@ public class UserAccount {
 
     public void setPreferredLanguage(String preferredLanguage) {
         this.preferredLanguage = preferredLanguage;
+        this.updatedAt = Instant.now();
+    }
+
+    public void setEmailNotificationsEnabled(boolean enabled) {
+        this.emailNotificationsEnabled = enabled;
+        this.updatedAt = Instant.now();
+    }
+
+    public void setInAppNotificationsEnabled(boolean enabled) {
+        this.inAppNotificationsEnabled = enabled;
         this.updatedAt = Instant.now();
     }
 

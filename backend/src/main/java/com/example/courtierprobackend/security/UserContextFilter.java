@@ -59,6 +59,14 @@ public class UserContextFilter extends OncePerRequestFilter {
 
                 if (userOpt.isPresent()) {
                     UserAccount user = userOpt.get();
+                    // Allow inactive users to access /api/me/confirm-email
+                    String path = request.getRequestURI();
+                    boolean isEmailConfirm = path != null && path.startsWith("/api/me/confirm-email");
+                    if (!user.isActive() && !isEmailConfirm) {
+                        logger.warn("Blocked request for inactive user: {}", auth0UserId);
+                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Account is inactive. Please confirm your new email to reactivate.");
+                        return;
+                    }
                     UUID internalId = user.getId();
                     request.setAttribute(INTERNAL_USER_ID_ATTR, internalId);
                     request.setAttribute(USER_ROLE_ATTR, user.getRole());

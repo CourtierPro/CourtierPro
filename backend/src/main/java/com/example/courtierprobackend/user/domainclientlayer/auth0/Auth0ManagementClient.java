@@ -436,5 +436,28 @@ public class Auth0ManagementClient {
             return response.getBody().length > 0;
         }
         return false;
+     * Updates the user's email in Auth0.
+     */
+    public void updateUserEmail(String auth0UserId, String newEmail) {
+        String token = getManagementToken();
+        String url = managementBaseUrl + "/users/" + auth0UserId;
+        Map<String, Object> body = Map.of(
+                "email", newEmail,
+                "email_verified", false // Require verification again
+        );
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+        log.info("Attempting to update Auth0 user {} email to {} via PATCH {}", auth0UserId, newEmail, url);
+        try {
+            ResponseEntity<Void> response = restTemplate.exchange(url, HttpMethod.PATCH, entity, Void.class);
+            log.info("Auth0 PATCH response for user {}: status {}", auth0UserId, response.getStatusCode());
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                log.warn("Failed to update email in Auth0 for user {}: status {}", auth0UserId, response.getStatusCode());
+            }
+        } catch (Exception e) {
+            log.error("Exception while updating email in Auth0 for user {}: {}", auth0UserId, e.getMessage(), e);
+        }
     }
 }

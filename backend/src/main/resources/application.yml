@@ -1,6 +1,10 @@
 server:
   port: 8080
 
+# Base URL for frontend (used in email confirmation links)
+app:
+  frontendBaseUrl: http://localhost:8081
+
 # Valeurs par défaut pour le dev local (override par .env si besoin)
 auth0:
   domain: ${AUTH0_DOMAIN:dev-xxxxx.us.auth0.com}

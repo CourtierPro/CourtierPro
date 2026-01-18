@@ -33,6 +33,8 @@ public class UserMapper {
                 .role(account.getRole().name())
                 .active(account.isActive())
                 .preferredLanguage(account.getPreferredLanguage())
+                .emailNotificationsEnabled(account.isEmailNotificationsEnabled())
+                .inAppNotificationsEnabled(account.isInAppNotificationsEnabled())
                 .build();
     }
 }
