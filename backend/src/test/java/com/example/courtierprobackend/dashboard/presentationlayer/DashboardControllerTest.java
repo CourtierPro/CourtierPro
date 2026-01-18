@@ -61,6 +61,8 @@ class DashboardControllerTest {
         private com.example.courtierprobackend.transactions.businesslayer.TransactionService transactionService;
         @Mock
         private com.example.courtierprobackend.dashboard.datalayer.TimelineEntrySeenRepository timelineEntrySeenRepository;
+        @Mock
+        private ConditionRepository conditionRepository;
 
         private DashboardController controller;
 
@@ -77,7 +79,8 @@ class DashboardControllerTest {
                                 transactionService,
                                 timelineEntrySeenRepository,
                                 loginAuditEventRepository,
-                                adminDeletionAuditRepository
+                                adminDeletionAuditRepository,
+                                conditionRepository
         );
     }
 

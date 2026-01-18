@@ -161,6 +161,7 @@ jobs:
             if [ $SUCCESS -eq 1 ]; then
               echo "✅ Deployment Successful!"
               rm -f .env.bak  # Clean up backup on success
+              echo "::DEPLOY_RESULT=success::"
               exit 0
             else
               echo "❌ Deployment Failed! Attempting rollback..."
@@ -210,35 +211,41 @@ jobs:
                 if [ $ROLLBACK_SUCCESS -eq 1 ]; then
                   echo "✅ Rollback successful! System restored to $ROLLBACK_TAG"
                   echo "⚠️ Note: Deployment failed but system is now healthy with previous version."
-                  echo "ROLLBACK_SUCCESS=true" >> $GITHUB_OUTPUT
+                  echo "::DEPLOY_RESULT=rollback::"
                   rm -f .env.bak
                   exit 0  # Exit 0 so workflow can send proper notification
                 else
                   echo "❌ CRITICAL: Rollback failed! System may be in an unhealthy state."
                   echo "Manual intervention required. Backup .env available at .env.bak"
+                  echo "::DEPLOY_RESULT=failure::"
                   exit 1  # Exit with 1 to indicate complete failure
                 fi
               else
                 echo "⚠️ No previous version available for rollback (ROLLBACK_TAG is empty or same as current)"
                 rm -f .env.bak  # Clean up backup before exit
+                echo "::DEPLOY_RESULT=failure::"
                 exit 1
               fi
             fi
 
-      # Check deployment result
-      - name: Check deployment result
-        id: deploy_result
+      # Parse the deploy script output to determine the actual result
+      - name: Parse deployment result
+        id: parse_result
         if: always()
+        env:
+          DEPLOY_OUTPUT: ${{ steps.deploy.outputs.stdout }}
         run: |
-          if [ "${{ steps.deploy.outcome }}" == "success" ]; then
-            echo "result=success" >> $GITHUB_OUTPUT
+          if echo "$DEPLOY_OUTPUT" | grep -q "::DEPLOY_RESULT=success::"; then
+            echo "deploy_status=success" >> $GITHUB_OUTPUT
+          elif echo "$DEPLOY_OUTPUT" | grep -q "::DEPLOY_RESULT=rollback::"; then
+            echo "deploy_status=rollback" >> $GITHUB_OUTPUT
           else
-            echo "result=failure" >> $GITHUB_OUTPUT
+            echo "deploy_status=failure" >> $GITHUB_OUTPUT
           fi
 
       # Discord notification on success (normal deployment)
       - name: Discord notification (Success)
-        if: success() && !contains(steps.deploy.outputs.ROLLBACK_SUCCESS, 'true')
+        if: always() && steps.parse_result.outputs.deploy_status == 'success'
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -253,7 +260,7 @@ jobs:
 
       # Discord notification on rollback success
       - name: Discord notification (Rollback Success)
-        if: success() && contains(steps.deploy.outputs.ROLLBACK_SUCCESS, 'true')
+        if: always() && steps.parse_result.outputs.deploy_status == 'rollback'
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -264,13 +271,13 @@ jobs:
             **Branch:** `${{ github.ref_name }}`
             **Author:** ${{ github.actor }}
             
-            Deployment failed but system was restored to previous version.
+            Deployment of this commit failed, but the system was rolled back to the previous version successfully.
           color: 0xFFA500
           url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       # Discord notification on failure
       - name: Discord notification (Failure)
-        if: failure()
+        if: always() && steps.parse_result.outputs.deploy_status == 'failure'
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -281,6 +288,6 @@ jobs:
             **Branch:** `${{ github.ref_name }}`
             **Author:** ${{ github.actor }}
             
-            Check the workflow run for details. Rollback may have failed.
+            Deployment failed and rollback may have also failed. Manual intervention may be required.
           color: 0xFF0000
           url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

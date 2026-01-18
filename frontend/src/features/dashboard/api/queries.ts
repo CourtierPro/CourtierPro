@@ -136,3 +136,26 @@ export function usePinnedTransactions() {
     });
 }
 
+export interface ApproachingCondition {
+    conditionId: string;
+    transactionId: string;
+    propertyAddress: string;
+    clientName: string;
+    conditionType: string;
+    customTitle: string | null;
+    description: string;
+    deadlineDate: string;
+    daysUntilDeadline: number;
+    status: string;
+    transactionSide: 'BUY_SIDE' | 'SELL_SIDE' | '';
+}
+
+export function useApproachingConditions() {
+    return useQuery({
+        queryKey: [...dashboardKeys.all, 'approaching-conditions'] as const,
+        queryFn: async () => {
+            const res = await axiosInstance.get<ApproachingCondition[]>('/api/v1/dashboard/broker/approaching-conditions');
+            return res.data;
+        },
+    });
+}

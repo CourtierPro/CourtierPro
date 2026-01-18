@@ -8,6 +8,7 @@ import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEn
 import com.example.courtierprobackend.security.UserContextUtils;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
 import com.example.courtierprobackend.transactions.datalayer.*;
+import com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus;
 import com.example.courtierprobackend.transactions.datalayer.repositories.*;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
@@ -53,8 +54,10 @@ public class DashboardController {
     private final TimelineEntrySeenRepository timelineEntrySeenRepository;
     private final LoginAuditEventRepository loginAuditRepository;
     private final AdminDeletionAuditRepository deletionAuditRepository;
+    private final ConditionRepository conditionRepository;
 
     private static final int EXPIRY_DAYS_THRESHOLD = 7;
+    private static final int CONDITION_DEADLINE_THRESHOLD = 7;
 
     @GetMapping("/client")
     @PreAuthorize("hasRole('CLIENT')")
@@ -116,12 +119,16 @@ public class DashboardController {
         // Expiring offers count
         int expiringOffersCount = countExpiringOffers(activeTransactions);
 
+        // Approaching conditions count
+        int approachingConditionsCount = countApproachingConditions(activeTransactionIds);
+
         return ResponseEntity.ok(BrokerDashboardStats.builder()
                 .activeTransactions(activeTransactions.size())
                 .activeClients(activeClients)
                 .totalCommission(totalCommission)
                 .pendingDocumentReviews(pendingDocumentReviews)
                 .expiringOffersCount(expiringOffersCount)
+                .approachingConditionsCount(approachingConditionsCount)
                 .build());
     }
 
@@ -200,6 +207,87 @@ public class DashboardController {
         expiringOffers.sort(Comparator.comparingInt(ExpiringOfferDTO::getDaysUntilExpiry));
 
         return ResponseEntity.ok(expiringOffers);
+    }
+
+    @GetMapping("/broker/approaching-conditions")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<List<ApproachingConditionDTO>> getApproachingConditions(
+            @RequestHeader(value = "x-broker-id", required = false) String headerId,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request
+    ) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, headerId);
+        LocalDate today = LocalDate.now();
+        LocalDate cutoffDate = today.plusDays(CONDITION_DEADLINE_THRESHOLD);
+
+        List<Transaction> activeTransactions = transactionRepository.findAllByBrokerId(brokerId).stream()
+                .filter(t -> t.getStatus() == TransactionStatus.ACTIVE)
+                .toList();
+
+        Set<UUID> activeTransactionIds = activeTransactions.stream()
+                .map(Transaction::getTransactionId)
+                .collect(Collectors.toSet());
+
+        // Build transaction lookup map for property addresses and client names
+        Map<UUID, Transaction> transactionMap = activeTransactions.stream()
+                .collect(Collectors.toMap(Transaction::getTransactionId, t -> t, (a, b) -> a));
+
+        // Build map of transactionId -> most recent property for buy-side transactions
+        Map<UUID, Property> propertyMap = new HashMap<>();
+        for (Transaction tx : activeTransactions) {
+            if (tx.getSide() == com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE) {
+                List<Property> properties = propertyRepository.findByTransactionIdOrderByCreatedAtDesc(tx.getTransactionId());
+                if (!properties.isEmpty()) {
+                    propertyMap.put(tx.getTransactionId(), properties.get(0));
+                }
+            }
+        }
+
+        // Fetch pending conditions with deadlines within threshold
+        List<Condition> approachingConditions = conditionRepository.findByTransactionIdInAndStatusAndDeadlineDateBetween(
+                activeTransactionIds,
+                ConditionStatus.PENDING,
+                today,
+                cutoffDate
+        );
+
+        List<ApproachingConditionDTO> result = approachingConditions.stream()
+                .map(condition -> {
+                    Transaction tx = transactionMap.get(condition.getTransactionId());
+                    
+                    // Determine property address
+                    String propertyAddress;
+                    if (tx == null) {
+                        propertyAddress = "";
+                    } else if (tx.getSide() == com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.SELL_SIDE) {
+                        propertyAddress = tx.getPropertyAddress() != null ? tx.getPropertyAddress().getStreet() : "";
+                    } else {
+                        Property property = propertyMap.get(tx.getTransactionId());
+                        propertyAddress = property != null && property.getAddress() != null 
+                                ? property.getAddress().getStreet() : "";
+                    }
+                    
+                    String clientName = tx != null ? getClientName(tx.getClientId()) : "";
+                    String side = tx != null && tx.getSide() != null ? tx.getSide().name() : "";
+                    
+                    return ApproachingConditionDTO.builder()
+                            .conditionId(condition.getConditionId())
+                            .transactionId(condition.getTransactionId())
+                            .propertyAddress(propertyAddress)
+                            .clientName(clientName)
+                            .conditionType(condition.getType() != null ? condition.getType().name() : "")
+                            .customTitle(condition.getCustomTitle())
+                            .description(condition.getDescription())
+                            .deadlineDate(condition.getDeadlineDate())
+                            .daysUntilDeadline((int) ChronoUnit.DAYS.between(today, condition.getDeadlineDate()))
+                            .status(condition.getStatus() != null ? condition.getStatus().name() : "")
+                            .transactionSide(side)
+                            .build();
+                })
+                .sorted(Comparator.comparingInt(ApproachingConditionDTO::getDaysUntilDeadline))
+                .toList();
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/broker/pending-documents")
@@ -514,6 +602,21 @@ public class DashboardController {
         return count;
     }
 
+    private int countApproachingConditions(Set<UUID> activeTransactionIds) {
+        if (activeTransactionIds.isEmpty()) {
+            return 0;
+        }
+        LocalDate today = LocalDate.now();
+        LocalDate cutoffDate = today.plusDays(CONDITION_DEADLINE_THRESHOLD);
+        
+        return conditionRepository.findByTransactionIdInAndStatusAndDeadlineDateBetween(
+                activeTransactionIds,
+                ConditionStatus.PENDING,
+                today,
+                cutoffDate
+        ).size();
+    }
+
     private String getClientName(UUID clientId) {
         if (clientId == null) return "";
         return userRepository.findById(clientId)
@@ -538,6 +641,7 @@ public class DashboardController {
         private double totalCommission;
         private int pendingDocumentReviews;
         private int expiringOffersCount;
+        private int approachingConditionsCount;
     }
 
         @Data

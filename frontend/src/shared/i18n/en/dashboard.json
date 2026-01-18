@@ -52,6 +52,14 @@
                 "empty": "No upcoming appointments.",
                 "today": "Today",
                 "tomorrow": "Tomorrow"
+            },
+            "approachingConditions": {
+                "title": "Approaching Conditions",
+                "description": "Conditions with deadlines in the next 7 days.",
+                "empty": "No approaching condition deadlines.",
+                "today": "Today",
+                "tomorrow": "Tomorrow",
+                "daysLeft": "{{days}}d left"
             }
         },
         "activityFeed": {
