@@ -71,7 +71,7 @@ public class Auth0ManagementClient {
 
 
     // Obtention of token Management (with caching to avoid rate limits)
-    private synchronized String getManagementToken() {
+    synchronized String getManagementToken() {
         // Return cached token if still valid
         if (cachedToken != null && tokenExpiresAt != null && Instant.now().isBefore(tokenExpiresAt)) {
             return cachedToken;
@@ -418,8 +418,26 @@ public class Auth0ManagementClient {
     }
 
     /**
-     * Updates the user's email in Auth0.
+     * Checks if a user has any MFA factors enrolled in Auth0.
      */
+    public boolean isMfaEnabled(String auth0UserId) {
+        String token = getManagementToken();
+        String url = managementBaseUrl + "/users/" + auth0UserId + "/enrollments";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Object[]> response = restTemplate.exchange(
+                url, HttpMethod.GET, entity, Object[].class);
+
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            return response.getBody().length > 0;
+        }
+        return false;
+    }
+
     public void updateUserEmail(String auth0UserId, String newEmail) {
         String token = getManagementToken();
         String url = managementBaseUrl + "/users/" + auth0UserId;

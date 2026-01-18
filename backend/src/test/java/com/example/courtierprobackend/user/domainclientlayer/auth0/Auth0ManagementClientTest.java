@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
@@ -305,6 +306,53 @@ class Auth0ManagementClientTest {
 
         // Assert
         verify(restTemplate).exchange(eq(url), eq(HttpMethod.PATCH), any(HttpEntity.class), eq(Void.class));
+    }
+
+    @Test
+    void isMfaEnabled_ReturnsTrue_WhenEnrollmentsExist() {
+        Object[] enrollments = new Object[] { new Object() };
+        ResponseEntity<Object[]> response = new ResponseEntity<>(enrollments, HttpStatus.OK);
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object[].class)))
+                .thenReturn(response);
+        // Use reflection to set the token method to avoid real HTTP
+        Auth0ManagementClient spyClient = spy(client);
+        doReturn("test-token").when(spyClient).getManagementToken();
+        boolean result = spyClient.isMfaEnabled("auth0|user1");
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void isMfaEnabled_ReturnsFalse_WhenNoEnrollments() {
+        Object[] enrollments = new Object[] {};
+        ResponseEntity<Object[]> response = new ResponseEntity<>(enrollments, HttpStatus.OK);
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object[].class)))
+                .thenReturn(response);
+        Auth0ManagementClient spyClient = spy(client);
+        doReturn("test-token").when(spyClient).getManagementToken();
+        boolean result = spyClient.isMfaEnabled("auth0|user2");
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void isMfaEnabled_ReturnsFalse_OnNon2xxResponse() {
+        ResponseEntity<Object[]> response = new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object[].class)))
+                .thenReturn(response);
+        Auth0ManagementClient spyClient = spy(client);
+        doReturn("test-token").when(spyClient).getManagementToken();
+        boolean result = spyClient.isMfaEnabled("auth0|user3");
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void isMfaEnabled_ReturnsFalse_OnNullBody() {
+        ResponseEntity<Object[]> response = new ResponseEntity<>(null, HttpStatus.OK);
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object[].class)))
+                .thenReturn(response);
+        Auth0ManagementClient spyClient = spy(client);
+        doReturn("test-token").when(spyClient).getManagementToken();
+        boolean result = spyClient.isMfaEnabled("auth0|user4");
+        assertThat(result).isFalse();
     }
 }
 
