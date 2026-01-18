@@ -71,7 +71,7 @@ public class Auth0ManagementClient {
 
 
     // Obtention of token Management (with caching to avoid rate limits)
-    private synchronized String getManagementToken() {
+    synchronized String getManagementToken() {
         // Return cached token if still valid
         if (cachedToken != null && tokenExpiresAt != null && Instant.now().isBefore(tokenExpiresAt)) {
             return cachedToken;
