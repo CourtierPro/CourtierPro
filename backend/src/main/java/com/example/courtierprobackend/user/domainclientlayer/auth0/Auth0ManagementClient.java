@@ -436,8 +436,8 @@ public class Auth0ManagementClient {
             return response.getBody().length > 0;
         }
         return false;
-     * Updates the user's email in Auth0.
-     */
+    }
+
     public void updateUserEmail(String auth0UserId, String newEmail) {
         String token = getManagementToken();
         String url = managementBaseUrl + "/users/" + auth0UserId;

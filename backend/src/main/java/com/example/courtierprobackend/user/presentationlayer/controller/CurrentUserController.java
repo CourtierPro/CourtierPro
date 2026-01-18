@@ -169,6 +169,7 @@ public class CurrentUserController {
             log.warn("Failed to check MFA status for user {}: {}", auth0Id, e.getMessage());
         }
         return ResponseEntity.ok(Map.of("mfaEnabled", mfaEnabled));
+    }
 
     /**
      * Endpoint to confirm email change via token (GET /api/me/confirm-email?token=...)
