@@ -115,4 +115,36 @@ public class CurrentUserController {
 
         return ResponseEntity.ok(userMapper.toResponse(savedAccount));
     }
+    /**
+     * Returns whether the current user has MFA enabled in Auth0.
+     */
+    @GetMapping("/mfa-status")
+    public ResponseEntity<Map<String, Object>> getMfaStatus(
+            HttpServletRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        String auth0Id = null;
+        Object internalIdObj = request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR);
+        if (internalIdObj instanceof UUID internalId) {
+            UserAccount account = userAccountRepository.findById(internalId)
+                    .orElse(null);
+            if (account != null) {
+                auth0Id = account.getAuth0UserId();
+            }
+        }
+        if (auth0Id == null && jwt != null) {
+            auth0Id = jwt.getClaimAsString("sub");
+        }
+        if (auth0Id == null) {
+            throw new UnauthorizedException("Authentication required");
+        }
+
+        boolean mfaEnabled = false;
+        try {
+            mfaEnabled = auth0ManagementClient.isMfaEnabled(auth0Id);
+        } catch (Exception e) {
+            log.warn("Failed to check MFA status for user {}: {}", auth0Id, e.getMessage());
+        }
+        return ResponseEntity.ok(Map.of("mfaEnabled", mfaEnabled));
+    }
 }

@@ -416,4 +416,25 @@ public class Auth0ManagementClient {
         }
         return UserRole.CLIENT; // Default to CLIENT if no role found
     }
+
+    /**
+     * Checks if a user has any MFA factors enrolled in Auth0.
+     */
+    public boolean isMfaEnabled(String auth0UserId) {
+        String token = getManagementToken();
+        String url = managementBaseUrl + "/users/" + auth0UserId + "/enrollments";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Object[]> response = restTemplate.exchange(
+                url, HttpMethod.GET, entity, Object[].class);
+
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            return response.getBody().length > 0;
+        }
+        return false;
+    }
 }
