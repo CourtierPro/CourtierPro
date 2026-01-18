@@ -1958,5 +1958,526 @@ class DashboardControllerTest {
 
         assertThat(response.getBody().getExpiringOffersCount()).isEqualTo(2);
     }
+
+    // ========== Approaching Conditions Endpoint Tests ==========
+
+    @Test
+    void getApproachingConditions_WithSellSideConditions_ReturnsCorrectData() {
+        UUID brokerId = UUID.randomUUID();
+        UUID txId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(brokerId);
+        LocalDate today = LocalDate.now();
+
+        Transaction tx = Transaction.builder()
+                .transactionId(txId)
+                .brokerId(brokerId)
+                .clientId(clientId)
+                .status(TransactionStatus.ACTIVE)
+                .side(TransactionSide.SELL_SIDE)
+                .propertyAddress(new PropertyAddress("123 Sell St", "Montreal", "QC", "H1A 1A1"))
+                .build();
+        when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
+
+        UserAccount client = new UserAccount("auth0|123", "client@test.com", "John", "Doe", UserRole.CLIENT, "en");
+        when(userRepository.findById(clientId)).thenReturn(Optional.of(client));
+
+        Condition condition = Condition.builder()
+                .conditionId(conditionId)
+                .transactionId(txId)
+                .type(ConditionType.FINANCING)
+                .description("Financing approval required")
+                .deadlineDate(today.plusDays(3))
+                .status(ConditionStatus.PENDING)
+                .build();
+        when(conditionRepository.findByTransactionIdInAndStatusAndDeadlineDateBetween(any(), any(), any(), any()))
+                .thenReturn(List.of(condition));
+
+        ResponseEntity<List<ApproachingConditionDTO>> response = controller.getApproachingConditions(null, null, request);
+
+        assertThat(response.getBody()).hasSize(1);
+        ApproachingConditionDTO dto = response.getBody().get(0);
+        assertThat(dto.getConditionId()).isEqualTo(conditionId);
+        assertThat(dto.getTransactionId()).isEqualTo(txId);
+        assertThat(dto.getPropertyAddress()).isEqualTo("123 Sell St");
+        assertThat(dto.getClientName()).isEqualTo("John Doe");
+        assertThat(dto.getConditionType()).isEqualTo("FINANCING");
+        assertThat(dto.getDaysUntilDeadline()).isEqualTo(3);
+        assertThat(dto.getTransactionSide()).isEqualTo("SELL_SIDE");
+    }
+
+    @Test
+    void getApproachingConditions_WithBuySideAndProperty_ReturnsPropertyAddress() {
+        UUID brokerId = UUID.randomUUID();
+        UUID txId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+        UUID propertyId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(brokerId);
+        LocalDate today = LocalDate.now();
+
+        Transaction tx = Transaction.builder()
+                .transactionId(txId)
+                .brokerId(brokerId)
+                .clientId(clientId)
+                .status(TransactionStatus.ACTIVE)
+                .side(TransactionSide.BUY_SIDE)
+                .build();
+        when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
+
+        Property property = Property.builder()
+                .propertyId(propertyId)
+                .transactionId(txId)
+                .address(new PropertyAddress("456 Buy Ave", "Laval", "QC", "H7T 1Z1"))
+                .build();
+        when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(txId)).thenReturn(List.of(property));
+
+        UserAccount client = new UserAccount("auth0|456", "buyer@test.com", "Jane", "Smith", UserRole.CLIENT, "en");
+        when(userRepository.findById(clientId)).thenReturn(Optional.of(client));
+
+        Condition condition = Condition.builder()
+                .conditionId(conditionId)
+                .transactionId(txId)
+                .type(ConditionType.INSPECTION)
+                .description("Home inspection")
+                .deadlineDate(today.plusDays(5))
+                .status(ConditionStatus.PENDING)
+                .build();
+        when(conditionRepository.findByTransactionIdInAndStatusAndDeadlineDateBetween(any(), any(), any(), any()))
+                .thenReturn(List.of(condition));
+
+        ResponseEntity<List<ApproachingConditionDTO>> response = controller.getApproachingConditions(null, null, request);
+
+        assertThat(response.getBody()).hasSize(1);
+        ApproachingConditionDTO dto = response.getBody().get(0);
+        assertThat(dto.getPropertyAddress()).isEqualTo("456 Buy Ave");
+        assertThat(dto.getTransactionSide()).isEqualTo("BUY_SIDE");
+    }
+
+    @Test
+    void getApproachingConditions_WithBuySideNoProperty_ReturnsEmptyAddress() {
+        UUID brokerId = UUID.randomUUID();
+        UUID txId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(brokerId);
+        LocalDate today = LocalDate.now();
+
+        Transaction tx = Transaction.builder()
+                .transactionId(txId)
+                .brokerId(brokerId)
+                .status(TransactionStatus.ACTIVE)
+                .side(TransactionSide.BUY_SIDE)
+                .build();
+        when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
+        when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(txId)).thenReturn(List.of());
+
+        Condition condition = Condition.builder()
+                .conditionId(conditionId)
+                .transactionId(txId)
+                .type(ConditionType.OTHER)
+                .customTitle("Custom Condition")
+                .description("Custom description")
+                .deadlineDate(today.plusDays(2))
+                .status(ConditionStatus.PENDING)
+                .build();
+        when(conditionRepository.findByTransactionIdInAndStatusAndDeadlineDateBetween(any(), any(), any(), any()))
+                .thenReturn(List.of(condition));
+
+        ResponseEntity<List<ApproachingConditionDTO>> response = controller.getApproachingConditions(null, null, request);
+
+        assertThat(response.getBody()).hasSize(1);
+        ApproachingConditionDTO dto = response.getBody().get(0);
+        assertThat(dto.getPropertyAddress()).isEmpty();
+        assertThat(dto.getCustomTitle()).isEqualTo("Custom Condition");
+    }
+
+    @Test
+    void getApproachingConditions_SortsByDaysUntilDeadline() {
+        UUID brokerId = UUID.randomUUID();
+        UUID txId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(brokerId);
+        LocalDate today = LocalDate.now();
+
+        Transaction tx = Transaction.builder()
+                .transactionId(txId)
+                .brokerId(brokerId)
+                .status(TransactionStatus.ACTIVE)
+                .side(TransactionSide.SELL_SIDE)
+                .build();
+        when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
+
+        Condition condition5Days = Condition.builder()
+                .conditionId(UUID.randomUUID())
+                .transactionId(txId)
+                .type(ConditionType.FINANCING)
+                .description("Later condition")
+                .deadlineDate(today.plusDays(5))
+                .status(ConditionStatus.PENDING)
+                .build();
+        Condition condition1Day = Condition.builder()
+                .conditionId(UUID.randomUUID())
+                .transactionId(txId)
+                .type(ConditionType.INSPECTION)
+                .description("Urgent condition")
+                .deadlineDate(today.plusDays(1))
+                .status(ConditionStatus.PENDING)
+                .build();
+        when(conditionRepository.findByTransactionIdInAndStatusAndDeadlineDateBetween(any(), any(), any(), any()))
+                .thenReturn(List.of(condition5Days, condition1Day));
+
+        ResponseEntity<List<ApproachingConditionDTO>> response = controller.getApproachingConditions(null, null, request);
+
+        assertThat(response.getBody()).hasSize(2);
+        assertThat(response.getBody().get(0).getDaysUntilDeadline()).isEqualTo(1);
+        assertThat(response.getBody().get(1).getDaysUntilDeadline()).isEqualTo(5);
+    }
+
+    @Test
+    void getApproachingConditions_WithNoConditions_ReturnsEmptyList() {
+        UUID brokerId = UUID.randomUUID();
+        UUID txId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(brokerId);
+
+        Transaction tx = Transaction.builder()
+                .transactionId(txId)
+                .brokerId(brokerId)
+                .status(TransactionStatus.ACTIVE)
+                .side(TransactionSide.SELL_SIDE)
+                .build();
+        when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
+        when(conditionRepository.findByTransactionIdInAndStatusAndDeadlineDateBetween(any(), any(), any(), any()))
+                .thenReturn(List.of());
+
+        ResponseEntity<List<ApproachingConditionDTO>> response = controller.getApproachingConditions(null, null, request);
+
+        assertThat(response.getBody()).isEmpty();
+    }
+
+    @Test
+    void getApproachingConditions_SellSideWithNullPropertyAddress_ReturnsEmptyAddress() {
+        UUID brokerId = UUID.randomUUID();
+        UUID txId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(brokerId);
+        LocalDate today = LocalDate.now();
+
+        Transaction tx = Transaction.builder()
+                .transactionId(txId)
+                .brokerId(brokerId)
+                .status(TransactionStatus.ACTIVE)
+                .side(TransactionSide.SELL_SIDE)
+                .propertyAddress(null)
+                .build();
+        when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
+
+        Condition condition = Condition.builder()
+                .conditionId(conditionId)
+                .transactionId(txId)
+                .type(ConditionType.FINANCING)
+                .description("Test")
+                .deadlineDate(today.plusDays(3))
+                .status(ConditionStatus.PENDING)
+                .build();
+        when(conditionRepository.findByTransactionIdInAndStatusAndDeadlineDateBetween(any(), any(), any(), any()))
+                .thenReturn(List.of(condition));
+
+        ResponseEntity<List<ApproachingConditionDTO>> response = controller.getApproachingConditions(null, null, request);
+
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().get(0).getPropertyAddress()).isEmpty();
+    }
+
+    @Test
+    void getApproachingConditions_BuySideWithPropertyNullAddress_ReturnsEmptyAddress() {
+        UUID brokerId = UUID.randomUUID();
+        UUID txId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(brokerId);
+        LocalDate today = LocalDate.now();
+
+        Transaction tx = Transaction.builder()
+                .transactionId(txId)
+                .brokerId(brokerId)
+                .status(TransactionStatus.ACTIVE)
+                .side(TransactionSide.BUY_SIDE)
+                .build();
+        when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
+
+        Property property = Property.builder()
+                .propertyId(UUID.randomUUID())
+                .transactionId(txId)
+                .address(null)
+                .build();
+        when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(txId)).thenReturn(List.of(property));
+
+        Condition condition = Condition.builder()
+                .conditionId(conditionId)
+                .transactionId(txId)
+                .type(ConditionType.INSPECTION)
+                .description("Test")
+                .deadlineDate(today.plusDays(2))
+                .status(ConditionStatus.PENDING)
+                .build();
+        when(conditionRepository.findByTransactionIdInAndStatusAndDeadlineDateBetween(any(), any(), any(), any()))
+                .thenReturn(List.of(condition));
+
+        ResponseEntity<List<ApproachingConditionDTO>> response = controller.getApproachingConditions(null, null, request);
+
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().get(0).getPropertyAddress()).isEmpty();
+    }
+
+    @Test
+    void getApproachingConditions_WithNullConditionType_ReturnsEmptyType() {
+        UUID brokerId = UUID.randomUUID();
+        UUID txId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(brokerId);
+        LocalDate today = LocalDate.now();
+
+        Transaction tx = Transaction.builder()
+                .transactionId(txId)
+                .brokerId(brokerId)
+                .status(TransactionStatus.ACTIVE)
+                .side(TransactionSide.SELL_SIDE)
+                .build();
+        when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
+
+        Condition condition = Condition.builder()
+                .conditionId(conditionId)
+                .transactionId(txId)
+                .type(null)
+                .description("Test")
+                .deadlineDate(today.plusDays(2))
+                .status(ConditionStatus.PENDING)
+                .build();
+        when(conditionRepository.findByTransactionIdInAndStatusAndDeadlineDateBetween(any(), any(), any(), any()))
+                .thenReturn(List.of(condition));
+
+        ResponseEntity<List<ApproachingConditionDTO>> response = controller.getApproachingConditions(null, null, request);
+
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().get(0).getConditionType()).isEmpty();
+    }
+
+    @Test
+    void getApproachingConditions_WithNullConditionStatus_ReturnsEmptyStatus() {
+        UUID brokerId = UUID.randomUUID();
+        UUID txId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(brokerId);
+        LocalDate today = LocalDate.now();
+
+        Transaction tx = Transaction.builder()
+                .transactionId(txId)
+                .brokerId(brokerId)
+                .status(TransactionStatus.ACTIVE)
+                .side(TransactionSide.SELL_SIDE)
+                .build();
+        when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
+
+        Condition condition = Condition.builder()
+                .conditionId(conditionId)
+                .transactionId(txId)
+                .type(ConditionType.FINANCING)
+                .description("Test")
+                .deadlineDate(today.plusDays(2))
+                .status(null)
+                .build();
+        when(conditionRepository.findByTransactionIdInAndStatusAndDeadlineDateBetween(any(), any(), any(), any()))
+                .thenReturn(List.of(condition));
+
+        ResponseEntity<List<ApproachingConditionDTO>> response = controller.getApproachingConditions(null, null, request);
+
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().get(0).getStatus()).isEmpty();
+    }
+
+    // ========== Admin Recent Actions Tests ==========
+
+    @Test
+    void getRecentActions_ReturnsLoginsAndDeletions() {
+        com.example.courtierprobackend.audit.loginaudit.dataaccesslayer.LoginAuditEvent login = 
+            com.example.courtierprobackend.audit.loginaudit.dataaccesslayer.LoginAuditEvent.builder()
+                .userId("auth0|test")
+                .email("test@test.com")
+                .role("BROKER")
+                .timestamp(java.time.Instant.now())
+                .build();
+        com.example.courtierprobackend.audit.resourcedeletion.datalayer.AdminDeletionAuditLog deletion = 
+            com.example.courtierprobackend.audit.resourcedeletion.datalayer.AdminDeletionAuditLog.builder()
+                .adminId(UUID.randomUUID())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        when(loginAuditEventRepository.findAllByOrderByTimestampDesc()).thenReturn(List.of(login));
+        when(adminDeletionAuditRepository.findAllByOrderByTimestampDesc()).thenReturn(List.of(deletion));
+
+        ResponseEntity<DashboardController.RecentActionsResponse> response = controller.getRecentActions();
+
+        assertThat(response.getBody().getRecentLogins()).hasSize(1);
+        assertThat(response.getBody().getRecentDeletions()).hasSize(1);
+    }
+
+    @Test
+    void getRecentActions_WithEmptyData_ReturnsEmptyLists() {
+        when(loginAuditEventRepository.findAllByOrderByTimestampDesc()).thenReturn(List.of());
+        when(adminDeletionAuditRepository.findAllByOrderByTimestampDesc()).thenReturn(List.of());
+
+        ResponseEntity<DashboardController.RecentActionsResponse> response = controller.getRecentActions();
+
+        assertThat(response.getBody().getRecentLogins()).isEmpty();
+        assertThat(response.getBody().getRecentDeletions()).isEmpty();
+    }
+
+    // ========== Admin Stats Extended Tests ==========
+
+    @Test
+    void getAdminStats_WithActiveTransactions_ReturnsCorrectCount() {
+        Transaction activeTx = Transaction.builder()
+                .transactionId(UUID.randomUUID())
+                .status(TransactionStatus.ACTIVE)
+                .build();
+        Transaction closedTx = Transaction.builder()
+                .transactionId(UUID.randomUUID())
+                .status(TransactionStatus.CLOSED_SUCCESSFULLY)
+                .build();
+
+        when(userRepository.count()).thenReturn(0L);
+        when(userRepository.findAll()).thenReturn(List.of());
+        when(transactionRepository.findAll()).thenReturn(List.of(activeTx, closedTx));
+        when(loginAuditEventRepository.findByTimestampBetweenOrderByTimestampDesc(any(), any())).thenReturn(List.of());
+
+        ResponseEntity<DashboardController.AdminDashboardStats> response = controller.getAdminStats();
+
+        assertThat(response.getBody().getActiveTransactions()).isEqualTo(1);
+    }
+
+    @Test
+    void getAdminStats_WithNewUsersToday_ReturnsCorrectCount() {
+        UserAccount newUser = new UserAccount("auth0|new", "new@test.com", "New", "User", UserRole.CLIENT, "en");
+        newUser.setCreatedAt(java.time.Instant.now().minusSeconds(3600)); // 1 hour ago
+
+        UserAccount oldUser = new UserAccount("auth0|old", "old@test.com", "Old", "User", UserRole.CLIENT, "en");
+        oldUser.setCreatedAt(java.time.Instant.now().minusSeconds(86400 * 30)); // 30 days ago
+
+        when(userRepository.count()).thenReturn(2L);
+        when(userRepository.findAll()).thenReturn(List.of(newUser, oldUser));
+        when(transactionRepository.findAll()).thenReturn(List.of());
+        when(loginAuditEventRepository.findByTimestampBetweenOrderByTimestampDesc(any(), any())).thenReturn(List.of());
+
+        ResponseEntity<DashboardController.AdminDashboardStats> response = controller.getAdminStats();
+
+        assertThat(response.getBody().getNewUsers()).isEqualTo(1);
+    }
+
+    @Test
+    void getAdminStats_WithNullCreatedAt_CountsAsNotNew() {
+        UserAccount userWithNullCreatedAt = new UserAccount("auth0|null", "null@test.com", "Null", "User", UserRole.CLIENT, "en");
+        userWithNullCreatedAt.setCreatedAt(null);
+
+        when(userRepository.count()).thenReturn(1L);
+        when(userRepository.findAll()).thenReturn(List.of(userWithNullCreatedAt));
+        when(transactionRepository.findAll()).thenReturn(List.of());
+        when(loginAuditEventRepository.findByTimestampBetweenOrderByTimestampDesc(any(), any())).thenReturn(List.of());
+
+        ResponseEntity<DashboardController.AdminDashboardStats> response = controller.getAdminStats();
+
+        assertThat(response.getBody().getNewUsers()).isZero();
+    }
+
+    @Test
+    void getAdminStats_WithManyFailedLogins_ReturnsIssuesDetected() {
+        // Create 15 login events to trigger "Issues Detected"
+        List<com.example.courtierprobackend.audit.loginaudit.dataaccesslayer.LoginAuditEvent> manyLogins = 
+            java.util.stream.IntStream.range(0, 15)
+                .mapToObj(i -> com.example.courtierprobackend.audit.loginaudit.dataaccesslayer.LoginAuditEvent.builder()
+                        .userId("auth0|user" + i)
+                        .email("user" + i + "@test.com")
+                        .role("CLIENT")
+                        .timestamp(java.time.Instant.now())
+                        .build())
+                .collect(java.util.stream.Collectors.toList());
+
+        when(userRepository.count()).thenReturn(0L);
+        when(userRepository.findAll()).thenReturn(List.of());
+        when(transactionRepository.findAll()).thenReturn(List.of());
+        when(loginAuditEventRepository.findByTimestampBetweenOrderByTimestampDesc(any(), any())).thenReturn(manyLogins);
+
+        ResponseEntity<DashboardController.AdminDashboardStats> response = controller.getAdminStats();
+
+        assertThat(response.getBody().getFailedLogins()).isEqualTo(15);
+        assertThat(response.getBody().getSystemHealth()).isEqualTo("Issues Detected");
+    }
+
+    @Test
+    void getAdminStats_CountsClientsCorrectly() {
+        UserAccount broker = new UserAccount("auth0|broker", "broker@test.com", "John", "Broker", UserRole.BROKER, "en");
+        broker.setActive(true);
+        UserAccount client1 = new UserAccount("auth0|c1", "c1@test.com", "Client", "One", UserRole.CLIENT, "en");
+        UserAccount client2 = new UserAccount("auth0|c2", "c2@test.com", "Client", "Two", UserRole.CLIENT, "en");
+
+        when(userRepository.count()).thenReturn(3L);
+        when(userRepository.findAll()).thenReturn(List.of(broker, client1, client2));
+        when(transactionRepository.findAll()).thenReturn(List.of());
+        when(loginAuditEventRepository.findByTimestampBetweenOrderByTimestampDesc(any(), any())).thenReturn(List.of());
+
+        ResponseEntity<DashboardController.AdminDashboardStats> response = controller.getAdminStats();
+
+        assertThat(response.getBody().getClientCount()).isEqualTo(2);
+        assertThat(response.getBody().getActiveBrokers()).isEqualTo(1);
+    }
+
+    // ========== Broker Stats with Approaching Conditions ==========
+
+    @Test
+    void getBrokerStats_WithNoActiveTransactions_ReturnsZeroApproachingConditions() {
+        UUID brokerId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(brokerId);
+
+        Transaction closedTx = Transaction.builder()
+                .transactionId(UUID.randomUUID())
+                .brokerId(brokerId)
+                .status(TransactionStatus.CLOSED_SUCCESSFULLY)
+                .build();
+        when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(closedTx));
+        when(documentRequestRepository.findAll()).thenReturn(List.of());
+
+        ResponseEntity<DashboardController.BrokerDashboardStats> response = controller.getBrokerStats(null, null, request);
+
+        assertThat(response.getBody().getApproachingConditionsCount()).isZero();
+    }
+
+    @Test
+    void getBrokerStats_WithApproachingConditions_ReturnsCorrectCount() {
+        UUID brokerId = UUID.randomUUID();
+        UUID txId = UUID.randomUUID();
+        MockHttpServletRequest request = createRequestWithInternalId(brokerId);
+
+        Transaction tx = Transaction.builder()
+                .transactionId(txId)
+                .brokerId(brokerId)
+                .clientId(UUID.randomUUID())
+                .status(TransactionStatus.ACTIVE)
+                .side(TransactionSide.SELL_SIDE)
+                .build();
+        when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
+        when(documentRequestRepository.findAll()).thenReturn(List.of());
+        when(offerRepository.findByTransactionIdOrderByCreatedAtDesc(txId)).thenReturn(List.of());
+
+        Condition condition = Condition.builder()
+                .conditionId(UUID.randomUUID())
+                .transactionId(txId)
+                .deadlineDate(LocalDate.now().plusDays(3))
+                .status(ConditionStatus.PENDING)
+                .build();
+        when(conditionRepository.findByTransactionIdInAndStatusAndDeadlineDateBetween(any(), any(), any(), any()))
+                .thenReturn(List.of(condition));
+
+        ResponseEntity<DashboardController.BrokerDashboardStats> response = controller.getBrokerStats(null, null, request);
+
+        assertThat(response.getBody().getApproachingConditionsCount()).isEqualTo(1);
+    }
 }
 

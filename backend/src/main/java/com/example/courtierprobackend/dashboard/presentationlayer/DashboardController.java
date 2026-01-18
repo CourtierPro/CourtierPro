@@ -252,14 +252,20 @@ public class DashboardController {
         );
 
         List<ApproachingConditionDTO> result = approachingConditions.stream()
+                .filter(condition -> {
+                    Transaction tx = transactionMap.get(condition.getTransactionId());
+                    if (tx == null) {
+                        // Log warning for data inconsistency - condition exists for non-active transaction
+                        return false;
+                    }
+                    return true;
+                })
                 .map(condition -> {
                     Transaction tx = transactionMap.get(condition.getTransactionId());
                     
                     // Determine property address
                     String propertyAddress;
-                    if (tx == null) {
-                        propertyAddress = "";
-                    } else if (tx.getSide() == com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.SELL_SIDE) {
+                    if (tx.getSide() == com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.SELL_SIDE) {
                         propertyAddress = tx.getPropertyAddress() != null ? tx.getPropertyAddress().getStreet() : "";
                     } else {
                         Property property = propertyMap.get(tx.getTransactionId());
@@ -267,8 +273,8 @@ public class DashboardController {
                                 ? property.getAddress().getStreet() : "";
                     }
                     
-                    String clientName = tx != null ? getClientName(tx.getClientId()) : "";
-                    String side = tx != null && tx.getSide() != null ? tx.getSide().name() : "";
+                    String clientName = getClientName(tx.getClientId());
+                    String side = tx.getSide() != null ? tx.getSide().name() : "";
                     
                     return ApproachingConditionDTO.builder()
                             .conditionId(condition.getConditionId())
@@ -279,7 +285,7 @@ public class DashboardController {
                             .customTitle(condition.getCustomTitle())
                             .description(condition.getDescription())
                             .deadlineDate(condition.getDeadlineDate())
-                            .daysUntilDeadline((int) ChronoUnit.DAYS.between(today, condition.getDeadlineDate()))
+                            .daysUntilDeadline(Math.max(0, (int) ChronoUnit.DAYS.between(today, condition.getDeadlineDate())))
                             .status(condition.getStatus() != null ? condition.getStatus().name() : "")
                             .transactionSide(side)
                             .build();

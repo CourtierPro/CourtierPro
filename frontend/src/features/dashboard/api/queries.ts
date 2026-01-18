@@ -92,6 +92,7 @@ export const dashboardKeys = {
     pendingDocuments: () => [...dashboardKeys.all, 'pending-documents'] as const,
     recentActivity: (page: number, size: number) => [...dashboardKeys.all, 'recent-activity', page, size] as const,
     pinnedTransactions: () => [...dashboardKeys.all, 'pinned-transactions'] as const,
+    approachingConditions: () => [...dashboardKeys.all, 'approaching-conditions'] as const,
 };
 
 export function useExpiringOffers() {
@@ -152,7 +153,7 @@ export interface ApproachingCondition {
 
 export function useApproachingConditions() {
     return useQuery({
-        queryKey: [...dashboardKeys.all, 'approaching-conditions'] as const,
+        queryKey: dashboardKeys.approachingConditions(),
         queryFn: async () => {
             const res = await axiosInstance.get<ApproachingCondition[]>('/api/v1/dashboard/broker/approaching-conditions');
             return res.data;
