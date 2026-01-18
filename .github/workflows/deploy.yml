@@ -88,6 +88,8 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           # Ensure you are using the NEW Ed25519 Private Key here
           key: ${{ secrets.EC2_SSH_KEY }}
+          # Capture stdout so we can parse the deployment result markers
+          capture_output: true
           script: |
             cd /home/${{ secrets.EC2_USER }}/app
 
