@@ -95,6 +95,7 @@ public class CurrentUserController {
             // Start email change flow: send confirmation, do not update email yet
             emailChangeService.initiateEmailChange(account, updateRequest.getEmail());
             account.setActive(false); // Optionally deactivate until confirmed
+            userAccountRepository.save(account); // Persist the deactivation
             emailChanged = true;
         }
 

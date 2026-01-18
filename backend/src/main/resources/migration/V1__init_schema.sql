@@ -10,10 +10,10 @@
 -- - Pinned Transactions
 -- ============================================================================
 
--- Enable the pg_trgm extension for trigram-based indexing (needed for search)
--- Enable the pg_trgm extension for trigram-based indexing (needed for search)
--- CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
+-- Enable the pgcrypto extension for gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+-- CREATE EXTENSION IF NOT EXISTS pg_trgm;
 -- =============================================================================
 -- USER ACCOUNTS
 -- =============================================================================
@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS user_accounts (
     active BOOLEAN NOT NULL DEFAULT true,
     preferred_language VARCHAR(10) NOT NULL DEFAULT 'en',
     email_notifications_enabled BOOLEAN NOT NULL DEFAULT true,
+    in_app_notifications_enabled BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -98,7 +99,7 @@ CREATE INDEX idx_transactions_broker_archived ON transactions(broker_id, archive
 -- TIMELINE ENTRIES
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS timeline_entries (
-    id UUID DEFAULT RANDOM_UUID() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     transaction_id UUID NOT NULL,
     timestamp TIMESTAMP NOT NULL,
     actor_id UUID NOT NULL,
@@ -324,7 +325,7 @@ CREATE INDEX IF NOT EXISTS idx_logout_audit_timestamp ON logout_audit_events(tim
 
 -- Password Reset Events
 CREATE TABLE IF NOT EXISTS password_reset_events (
-    id UUID DEFAULT RANDOM_UUID() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     event_type VARCHAR(50) NOT NULL CHECK (event_type IN ('REQUESTED', 'COMPLETED')),
@@ -346,8 +347,8 @@ CREATE TABLE IF NOT EXISTS admin_deletion_audit_logs (
     admin_id UUID NOT NULL,
     resource_type VARCHAR(50) NOT NULL,
     resource_id UUID NOT NULL,
-    resource_snapshot CLOB,
-    cascaded_deletions CLOB,
+        resource_snapshot jsonb,
+    cascaded_deletions jsonb,
     action VARCHAR(20) DEFAULT 'DELETE' NOT NULL
 );
 
@@ -605,7 +606,7 @@ CREATE TABLE IF NOT EXISTS system_alert (
 -- TIMELINE ENTRIES SEEN (for tracking broker's seen/unseen events)
 -- =============================================================================
 CREATE TABLE timeline_entries_seen (
-    id UUID DEFAULT RANDOM_UUID() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     broker_id UUID NOT NULL,
     timeline_entry_id UUID NOT NULL REFERENCES timeline_entries(id) ON DELETE CASCADE,
     seen_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
