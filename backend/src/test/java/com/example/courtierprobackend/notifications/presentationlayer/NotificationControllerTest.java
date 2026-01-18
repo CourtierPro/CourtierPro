@@ -4,6 +4,8 @@ import com.example.courtierprobackend.notifications.businesslayer.NotificationSe
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -30,17 +32,16 @@ import com.example.courtierprobackend.security.UserContextFilter;
 
 @WebMvcTest(NotificationController.class)
 @EnableMethodSecurity
-@org.springframework.context.annotation.Import(com.example.courtierprobackend.config.SecurityConfig.class)
 class NotificationControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @MockBean
-    private NotificationService notificationService;
+        @MockBean
+        private NotificationService notificationService;
 
-    @MockBean
-    private UserContextFilter userContextFilter;
+        @MockBean
+        private UserContextFilter userContextFilter;
 
     @org.junit.jupiter.api.BeforeEach
     void setup() throws Exception {

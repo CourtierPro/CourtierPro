@@ -1,0 +1,28 @@
+[HEADING-LG]Examen du document[/HEADING-LG]
+
+Bonjour {{clientName}},
+
+[IF-isApproved]
+Votre courtier [BOLD]{{brokerName}}[/BOLD] a approuvé le document suivant :
+
+[BOX-green]
+[HEADING-MD]{{documentName}}[/HEADING-MD]
+[/BOX-green]
+[/IF-isApproved]
+
+[IF-isNeedsRevision]
+Votre courtier [BOLD]{{brokerName}}[/BOLD] a demandé des corrections pour le document suivant :
+
+[BOX-orange]
+[HEADING-MD]{{documentName}}[/HEADING-MD]
+[/BOX-orange]
+[/IF-isNeedsRevision]
+
+[IF-brokerNotes]
+[BOX-gray]
+[BOLD]Notes :[/BOLD]
+{{brokerNotes}}
+[/BOX-gray]
+[/IF-brokerNotes]
+
+Veuillez vous connecter à CourtierPro pour examiner ce document.

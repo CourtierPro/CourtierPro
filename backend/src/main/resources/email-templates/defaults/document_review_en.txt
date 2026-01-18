@@ -1,0 +1,28 @@
+[HEADING-LG]Document Review[/HEADING-LG]
+
+Hello {{clientName}},
+
+[IF-isApproved]
+Your broker [BOLD]{{brokerName}}[/BOLD] has approved the following document:
+
+[BOX-green]
+[HEADING-MD]{{documentName}}[/HEADING-MD]
+[/BOX-green]
+[/IF-isApproved]
+
+[IF-isNeedsRevision]
+Your broker [BOLD]{{brokerName}}[/BOLD] has requested changes to the following document:
+
+[BOX-orange]
+[HEADING-MD]{{documentName}}[/HEADING-MD]
+[/BOX-orange]
+[/IF-isNeedsRevision]
+
+[IF-brokerNotes]
+[BOX-gray]
+[BOLD]Notes:[/BOLD]
+{{brokerNotes}}
+[/BOX-gray]
+[/IF-brokerNotes]
+
+Please log in to CourtierPro to review this document.

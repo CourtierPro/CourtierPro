@@ -1,0 +1,16 @@
+[HEADING-LG]New Offer Received[/HEADING-LG]
+
+Hello {{clientName}},
+
+Your broker [BOLD]{{brokerName}}[/BOLD] has received an offer on your property:
+
+[BOX-gray]
+[BOLD]Buyer:[/BOLD] {{buyerName}}
+[/BOX-gray]
+
+[BOX-blue]
+[BOLD]Offer Amount:[/BOLD]
+[HEADING-MD]{{offerAmount}}[/HEADING-MD]
+[/BOX-blue]
+
+Log in to CourtierPro to review this offer and discuss next steps with your broker.

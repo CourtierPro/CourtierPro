@@ -1,0 +1,12 @@
+[HEADING-LG]Mise à jour de l'étape de transaction[/HEADING-LG]
+
+Bonjour {{clientName}},
+
+Il y a une mise à jour concernant votre transaction pour [BOLD]{{transactionAddress}}[/BOLD].
+
+[BOX-gray]
+[BOLD]Nouvelle étape :[/BOLD]
+{{newStage}}
+[/BOX-gray]
+
+Votre courtier [BOLD]{{brokerName}}[/BOLD] a fait avancer votre transaction. Veuillez vous connecter à votre portail pour plus de détails.
