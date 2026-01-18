@@ -7,6 +7,7 @@ import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.example.courtierprobackend.user.domainclientlayer.auth0.Auth0ManagementClient;
+import com.example.courtierprobackend.user.businesslayer.EmailChangeService;
 import com.example.courtierprobackend.user.mapper.UserMapper;
 import com.example.courtierprobackend.user.presentationlayer.response.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,6 +37,7 @@ public class CurrentUserController {
     private final UserAccountRepository userAccountRepository;
     private final UserMapper userMapper;
     private final Auth0ManagementClient auth0ManagementClient;
+    private final EmailChangeService emailChangeService;
 
     /**
      * Returns the current authenticated user's profile.
@@ -74,26 +76,42 @@ public class CurrentUserController {
     @PatchMapping
     public ResponseEntity<UserResponse> updateCurrentUser(
             HttpServletRequest request,
-            @RequestBody Map<String, Object> updates
+            @RequestBody com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest
     ) {
         Object internalIdObj = request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR);
-
         if (!(internalIdObj instanceof UUID internalId)) {
             throw new UnauthorizedException("Authentication required");
         }
-
         UserAccount account = userAccountRepository.findById(internalId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         String languageUpdated = null;
+        boolean emailChanged = false;
+        String oldEmail = account.getEmail();
+
+
+        // Handle email update (confirmation flow required)
+        if (updateRequest.getEmail() != null && !updateRequest.getEmail().equals(account.getEmail())) {
+            // Start email change flow: send confirmation, do not update email yet
+            emailChangeService.initiateEmailChange(account, updateRequest.getEmail());
+            account.setActive(false); // Optionally deactivate until confirmed
+            userAccountRepository.save(account); // Persist the deactivation
+            emailChanged = true;
+        }
+
+        // Handle notification preferences
+        if (updateRequest.getEmailNotificationsEnabled() != null) {
+            account.setEmailNotificationsEnabled(updateRequest.getEmailNotificationsEnabled());
+        }
+        if (updateRequest.getInAppNotificationsEnabled() != null) {
+            account.setInAppNotificationsEnabled(updateRequest.getInAppNotificationsEnabled());
+        }
 
         // Handle preferredLanguage update
-        if (updates.containsKey("preferredLanguage")) {
-            Object languageValue = updates.get("preferredLanguage");
-            if (!(languageValue instanceof String)) {
-                throw new BadRequestException("Invalid language. Value must be a string.");
-            }
-            String newLanguage = (String) languageValue;
+        if (updateRequest.getPreferredLanguage() == null) {
+            throw new BadRequestException("Invalid language. Allowed values: en, fr");
+        } else {
+            String newLanguage = updateRequest.getPreferredLanguage();
             if (!ALLOWED_LANGUAGES.contains(newLanguage.toLowerCase())) {
                 throw new BadRequestException("Invalid language. Allowed values: en, fr");
             }
@@ -108,11 +126,29 @@ public class CurrentUserController {
             try {
                 auth0ManagementClient.updateUserLanguage(savedAccount.getAuth0UserId(), languageUpdated);
             } catch (Exception e) {
-                // Log but don't fail the request if Auth0 sync fails
                 log.warn("Failed to sync language to Auth0 for user {}: {}", savedAccount.getId(), e.getMessage());
             }
         }
 
+        // If email changed, trigger confirmation email (placeholder)
+        if (emailChanged) {
+            // TODO: Send confirmation email to new address
+            // emailService.sendEmailChangeConfirmation(savedAccount, oldEmail, updateRequest.getEmail());
+        }
+
         return ResponseEntity.ok(userMapper.toResponse(savedAccount));
+    }
+
+    /**
+     * Endpoint to confirm email change via token (GET /api/me/confirm-email?token=...)
+     */
+    @GetMapping("/confirm-email")
+    public ResponseEntity<String> confirmEmailChange(@RequestParam("token") String token) {
+        boolean success = emailChangeService.confirmEmailChange(token);
+        if (success) {
+            return ResponseEntity.ok("Email address confirmed and updated.");
+        } else {
+            return ResponseEntity.badRequest().body("Invalid or expired token.");
+        }
     }
 }

@@ -32,6 +32,72 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CurrentUserControllerTest {
+    @Mock
+    private com.example.courtierprobackend.user.businesslayer.EmailChangeService emailChangeService;
+
+    @Test
+    void confirmEmailChange_Success() {
+        when(emailChangeService.confirmEmailChange("validtoken")).thenReturn(true);
+        CurrentUserController controllerWithEmail = new CurrentUserController(userAccountRepository, userMapper, auth0ManagementClient, emailChangeService);
+        ResponseEntity<String> result = controllerWithEmail.confirmEmailChange("validtoken");
+        assertThat(result.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(result.getBody()).contains("confirmed");
+    }
+
+    @Test
+    void confirmEmailChange_Failure() {
+        when(emailChangeService.confirmEmailChange("badtoken")).thenReturn(false);
+        CurrentUserController controllerWithEmail = new CurrentUserController(userAccountRepository, userMapper, auth0ManagementClient, emailChangeService);
+        ResponseEntity<String> result = controllerWithEmail.confirmEmailChange("badtoken");
+        assertThat(result.getStatusCode().is4xxClientError()).isTrue();
+        assertThat(result.getBody()).contains("Invalid");
+    }
+
+    @Test
+    void updateCurrentUser_EmailChangeFlow_TriggersEmailChangeService() {
+        UUID internalId = UUID.randomUUID();
+        UserAccount account = new UserAccount();
+        account.setEmail("old@example.com");
+        UserResponse response = UserResponse.builder().build();
+
+        when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(internalId);
+        when(userAccountRepository.findById(internalId)).thenReturn(Optional.of(account));
+        when(userAccountRepository.save(account)).thenReturn(account);
+        when(userMapper.toResponse(account)).thenReturn(response);
+
+
+        com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
+        updateRequest.setEmail("new@example.com");
+        updateRequest.setPreferredLanguage("en");
+
+        ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updateRequest);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(emailChangeService).initiateEmailChange(account, "new@example.com");
+        assertThat(account.isActive()).isFalse();
+    }
+
+    @Test
+    void updateCurrentUser_NotificationPreferences() {
+        UUID internalId = UUID.randomUUID();
+        UserAccount account = new UserAccount();
+        UserResponse response = UserResponse.builder().build();
+
+        when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(internalId);
+        when(userAccountRepository.findById(internalId)).thenReturn(Optional.of(account));
+        when(userAccountRepository.save(account)).thenReturn(account);
+        when(userMapper.toResponse(account)).thenReturn(response);
+
+
+        com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
+        updateRequest.setEmailNotificationsEnabled(true);
+        updateRequest.setInAppNotificationsEnabled(false);
+        updateRequest.setPreferredLanguage("en");
+
+        ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updateRequest);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(account.isEmailNotificationsEnabled()).isTrue();
+        assertThat(account.isInAppNotificationsEnabled()).isFalse();
+    }
 
     @Mock
     private UserAccountRepository userAccountRepository;
@@ -134,10 +200,10 @@ class CurrentUserControllerTest {
             when(userAccountRepository.save(account)).thenReturn(account);
             when(userMapper.toResponse(account)).thenReturn(response);
 
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("preferredLanguage", "en");
+                com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
+                updateRequest.setPreferredLanguage("en");
 
-            ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updates);
+                ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updateRequest);
 
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(account.getPreferredLanguage()).isEqualTo("en");
@@ -158,10 +224,10 @@ class CurrentUserControllerTest {
             when(userAccountRepository.save(account)).thenReturn(account);
             when(userMapper.toResponse(account)).thenReturn(response);
 
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("preferredLanguage", "fr");
+                com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
+                updateRequest.setPreferredLanguage("fr");
 
-            ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updates);
+                ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updateRequest);
 
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(account.getPreferredLanguage()).isEqualTo("fr");
@@ -179,10 +245,10 @@ class CurrentUserControllerTest {
             when(userAccountRepository.save(account)).thenReturn(account);
             when(userMapper.toResponse(account)).thenReturn(response);
 
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("preferredLanguage", "EN");
+                com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
+                updateRequest.setPreferredLanguage("EN");
 
-            controller.updateCurrentUser(request, updates);
+                controller.updateCurrentUser(request, updateRequest);
 
             assertThat(account.getPreferredLanguage()).isEqualTo("en");
         }
@@ -195,10 +261,10 @@ class CurrentUserControllerTest {
             when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(internalId);
             when(userAccountRepository.findById(internalId)).thenReturn(Optional.of(account));
 
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("preferredLanguage", "de");
+                com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
+                updateRequest.setPreferredLanguage("de");
 
-            assertThatThrownBy(() -> controller.updateCurrentUser(request, updates))
+                assertThatThrownBy(() -> controller.updateCurrentUser(request, updateRequest))
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("Invalid language");
         }
@@ -211,10 +277,10 @@ class CurrentUserControllerTest {
             when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(internalId);
             when(userAccountRepository.findById(internalId)).thenReturn(Optional.of(account));
 
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("preferredLanguage", null);
+                com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
+                updateRequest.setPreferredLanguage(null);
 
-            assertThatThrownBy(() -> controller.updateCurrentUser(request, updates))
+                assertThatThrownBy(() -> controller.updateCurrentUser(request, updateRequest))
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("Invalid language");
         }
@@ -223,10 +289,10 @@ class CurrentUserControllerTest {
         void updateCurrentUser_NoInternalId_ThrowsUnauthorized() {
             when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(null);
 
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("preferredLanguage", "en");
+                com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
+                updateRequest.setPreferredLanguage("en");
 
-            assertThatThrownBy(() -> controller.updateCurrentUser(request, updates))
+                assertThatThrownBy(() -> controller.updateCurrentUser(request, updateRequest))
                     .isInstanceOf(UnauthorizedException.class)
                     .hasMessage("Authentication required");
         }
@@ -237,10 +303,10 @@ class CurrentUserControllerTest {
             when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(internalId);
             when(userAccountRepository.findById(internalId)).thenReturn(Optional.empty());
 
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("preferredLanguage", "en");
+                com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
+                updateRequest.setPreferredLanguage("en");
 
-            assertThatThrownBy(() -> controller.updateCurrentUser(request, updates))
+                assertThatThrownBy(() -> controller.updateCurrentUser(request, updateRequest))
                     .isInstanceOf(NotFoundException.class)
                     .hasMessage("User not found");
         }
@@ -257,9 +323,11 @@ class CurrentUserControllerTest {
             when(userAccountRepository.save(account)).thenReturn(account);
             when(userMapper.toResponse(account)).thenReturn(response);
 
-            Map<String, Object> updates = new HashMap<>();
 
-            ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updates);
+            com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
+            updateRequest.setPreferredLanguage("en");
+
+            ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updateRequest);
 
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(account.getPreferredLanguage()).isEqualTo("en");
@@ -281,10 +349,10 @@ class CurrentUserControllerTest {
             doThrow(new RuntimeException("Auth0 API error")).when(auth0ManagementClient)
                     .updateUserLanguage(anyString(), anyString());
 
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("preferredLanguage", "en");
+                com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
+                updateRequest.setPreferredLanguage("en");
 
-            ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updates);
+                ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updateRequest);
 
             // Request should still succeed even if Auth0 sync fails
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);

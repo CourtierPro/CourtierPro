@@ -4,6 +4,9 @@ import { profileKeys, type UserProfile } from '@/features/profile/api/queries';
 
 export interface UpdateProfileData {
     preferredLanguage?: string;
+    email?: string;
+    emailNotificationsEnabled?: boolean;
+    inAppNotificationsEnabled?: boolean;
 }
 
 export function useUpdateUserProfile() {

@@ -39,6 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(TransactionController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import(GlobalExceptionHandler.class)
+@org.springframework.test.context.ActiveProfiles("test")
 class PropertyOfferControllerIntegrationTest {
 
     @MockitoBean

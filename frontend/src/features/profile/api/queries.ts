@@ -14,6 +14,8 @@ export interface UserProfile {
     role: 'BROKER' | 'CLIENT' | 'ADMIN';
     active: boolean;
     preferredLanguage: string;
+    emailNotificationsEnabled: boolean;
+    inAppNotificationsEnabled: boolean;
 }
 
 export function useUserProfile() {

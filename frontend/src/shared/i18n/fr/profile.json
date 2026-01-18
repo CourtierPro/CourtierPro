@@ -23,5 +23,11 @@
     "roleAdmin": "Administrateur",
     "roleClient": "Client",
     "languageEnglish": "Anglais",
-    "languageFrench": "Français"
+    "languageFrench": "Français",
+    "emailNotifications": "Notifications par courriel",
+    "inAppNotifications": "Notifications dans l'application",
+    "on": "Activées",
+    "off": "Désactivées",
+    "update": "Mettre à jour",
+    "emailChangeSent": "Confirmation envoyée au nouveau courriel. Veuillez vérifier votre boîte de réception."
 }

@@ -8,11 +8,14 @@ import { ScrollArea } from '@/shared/components/ui/scroll-area';
 import { Badge } from '@/shared/components/ui/badge';
 import { useNotifications, useMarkNotificationAsRead } from '../api/notificationsApi';
 import { NotificationItem } from './NotificationItem';
+import { useUserProfile } from '@/features/profile/api/queries';
 
 export function NotificationPopover() {
     const { t } = useTranslation('notifications');
     const navigate = useNavigate();
     const [open, setOpen] = useState(false);
+    const { data: user } = useUserProfile();
+    const notificationsEnabled = user?.inAppNotificationsEnabled;
     const { data: notifications = [] } = useNotifications();
     const { mutate: markAsRead } = useMarkNotificationAsRead();
 
@@ -27,6 +30,22 @@ export function NotificationPopover() {
         navigate('/notifications');
     };
 
+    if (user && !notificationsEnabled) {
+        return (
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative text-foreground" aria-label={t('title')}>
+                        <Bell className="w-5 h-5" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="end">
+                    <div className="p-8 text-center text-sm text-muted-foreground">
+                        {t('inAppNotificationsDisabled', 'In-app notifications are disabled in your profile settings.')}
+                    </div>
+                </PopoverContent>
+            </Popover>
+        );
+    }
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
