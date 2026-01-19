@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
+import com.example.courtierprobackend.transactions.util.TransactionAccessUtils;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -26,7 +27,7 @@ class TransactionAccessUtilsTest {
     void setUp() {
         brokerId = UUID.randomUUID();
         clientId = UUID.randomUUID();
-        
+
         transaction = new Transaction();
         transaction.setTransactionId(UUID.randomUUID());
         transaction.setBrokerId(brokerId);
@@ -55,7 +56,7 @@ class TransactionAccessUtilsTest {
         @DisplayName("should deny access for unauthorized user")
         void verifyTransactionAccess_asUnauthorized_throws() {
             UUID unauthorizedUser = UUID.randomUUID();
-            
+
             assertThatThrownBy(() -> TransactionAccessUtils.verifyTransactionAccess(transaction, unauthorizedUser))
                     .isInstanceOf(ForbiddenException.class)
                     .hasMessageContaining("do not have access");
@@ -101,7 +102,7 @@ class TransactionAccessUtilsTest {
         @DisplayName("should deny access when transaction has no broker")
         void verifyBrokerAccess_transactionNoBroker_throws() {
             transaction.setBrokerId(null);
-            
+
             assertThatThrownBy(() -> TransactionAccessUtils.verifyBrokerAccess(transaction, brokerId))
                     .isInstanceOf(ForbiddenException.class)
                     .hasMessageContaining("do not have access");
@@ -139,7 +140,7 @@ class TransactionAccessUtilsTest {
         @DisplayName("should deny access when transaction has no client")
         void verifyClientAccess_transactionNoClient_throws() {
             transaction.setClientId(null);
-            
+
             assertThatThrownBy(() -> TransactionAccessUtils.verifyClientAccess(transaction, clientId))
                     .isInstanceOf(ForbiddenException.class)
                     .hasMessageContaining("do not have access");
@@ -149,7 +150,7 @@ class TransactionAccessUtilsTest {
         @DisplayName("should deny access for unauthorized user")
         void verifyClientAccess_asUnauthorized_throws() {
             UUID unauthorizedUser = UUID.randomUUID();
-            
+
             assertThatThrownBy(() -> TransactionAccessUtils.verifyClientAccess(transaction, unauthorizedUser))
                     .isInstanceOf(ForbiddenException.class)
                     .hasMessageContaining("do not have access");

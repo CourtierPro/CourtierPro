@@ -60,7 +60,7 @@ export function EditParticipantModal({ isOpen, onClose, transactionId, participa
     const { t } = useTranslation('transactions');
     const updateParticipant = useUpdateParticipant();
 
-    const { register, handleSubmit, reset, control, watch, setValue, formState: { errors } } = useForm<ParticipantFormValues>({
+    const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<ParticipantFormValues>({
         defaultValues: {
             name: '',
             role: 'CO_BROKER',
@@ -80,6 +80,7 @@ export function EditParticipantModal({ isOpen, onClose, transactionId, participa
         }
     }, [participant, setValue]);
 
+    // eslint-disable-next-line react-hooks/incompatible-library
     const selectedRole = watch('role');
 
     const onSubmit = async (data: ParticipantFormValues) => {

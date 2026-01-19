@@ -54,6 +54,7 @@ export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParti
         }
     });
 
+    // eslint-disable-next-line react-hooks/incompatible-library
     const selectedRole = watch('role');
 
     const onSubmit = async (data: ParticipantFormValues) => {
