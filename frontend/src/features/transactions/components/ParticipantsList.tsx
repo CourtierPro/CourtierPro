@@ -1,13 +1,15 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Trash2, Mail, Phone } from 'lucide-react';
+import { Plus, Trash2, Mail, Phone, Pencil } from 'lucide-react';
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { useTransactionParticipants } from '@/features/transactions/api/queries';
 import { useRemoveParticipant } from '@/features/transactions/api/mutations';
 import { AddParticipantModal } from './AddParticipantModal';
+import { EditParticipantModal } from './EditParticipantModal'; // Add import
+import type { TransactionParticipant } from '@/shared/api/types'; // Add type import
 import { toast } from 'sonner';
 import {
     AlertDialog,
@@ -32,6 +34,7 @@ export function ParticipantsList({ transactionId, isReadOnly = false }: Particip
 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [participantToDelete, setParticipantToDelete] = useState<string | null>(null);
+    const [editingParticipant, setEditingParticipant] = useState<TransactionParticipant | null>(null); // Add state
 
     const handleRemove = async () => {
         if (!participantToDelete) return;
@@ -88,17 +91,37 @@ export function ParticipantsList({ transactionId, isReadOnly = false }: Particip
                                             </div>
                                         )}
                                     </div>
+                                    {participant.role === 'CO_BROKER' && participant.permissions && participant.permissions.length > 0 && (
+                                        <div className="mt-2 flex flex-wrap gap-1">
+                                            {participant.permissions.map((perm) => (
+                                                <Badge key={perm} variant="secondary" className="text-[10px] px-1 py-0 h-5">
+                                                    {t(`permissions.${perm}`) || perm.replace('MANAGE_', '').replace('_', ' ')}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 {!isReadOnly && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="text-muted-foreground hover:text-destructive"
-                                        onClick={() => setParticipantToDelete(participant.id)}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                        <span className="sr-only">{t('remove')}</span>
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-muted-foreground hover:text-primary"
+                                            onClick={() => setEditingParticipant(participant)}
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                            <span className="sr-only">{t('edit')}</span>
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-muted-foreground hover:text-destructive"
+                                            onClick={() => setParticipantToDelete(participant.id)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                            <span className="sr-only">{t('remove')}</span>
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
                         ))}
@@ -110,6 +133,13 @@ export function ParticipantsList({ transactionId, isReadOnly = false }: Particip
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
                 transactionId={transactionId}
+            />
+
+            <EditParticipantModal
+                isOpen={!!editingParticipant}
+                onClose={() => setEditingParticipant(null)}
+                transactionId={transactionId}
+                participant={editingParticipant}
             />
 
             <AlertDialog open={!!participantToDelete} onOpenChange={(open) => !open && setParticipantToDelete(null)}>
@@ -128,6 +158,6 @@ export function ParticipantsList({ transactionId, isReadOnly = false }: Particip
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </Card>
+        </Card >
     );
 }

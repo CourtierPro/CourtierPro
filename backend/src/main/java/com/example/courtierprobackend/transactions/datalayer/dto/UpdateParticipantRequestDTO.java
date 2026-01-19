@@ -8,7 +8,7 @@ import java.util.Set;
 import com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission;
 
 @Data
-public class AddParticipantRequestDTO {
+public class UpdateParticipantRequestDTO {
     @NotBlank(message = "Name is required")
     private String name;
 

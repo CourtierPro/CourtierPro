@@ -1,3 +1,38 @@
+// Permissions possibles pour un participant (doit correspondre au backend)
+export type ParticipantPermission =
+  | 'VIEW'
+  | 'EDIT'
+  | 'MANAGE_DOCUMENTS'
+  | 'MANAGE_OFFERS'
+  | 'MANAGE_CONDITIONS'; // Added MANAGE_CONDITIONS to match backend
+
+export type ParticipantRole = 'BROKER' | 'CO_BROKER' | 'NOTARY' | 'LAWYER' | 'BUYER' | 'SELLER' | 'OTHER';
+
+export interface TransactionParticipant {
+  id: string;
+  transactionId: string;
+  name: string;
+  role: ParticipantRole;
+  email?: string;
+  phoneNumber?: string;
+  permissions?: ParticipantPermission[];
+}
+
+export interface UpdateParticipantRequestDTO {
+  name?: string;
+  role?: ParticipantRole;
+  email?: string;
+  phoneNumber?: string;
+  permissions?: ParticipantPermission[];
+}
+
+export interface AddParticipantRequestDTO {
+  name: string;
+  role: ParticipantRole;
+  email?: string;
+  phoneNumber?: string;
+  permissions?: ParticipantPermission[];
+}
 export interface PropertyAddress {
   street: string;
   city?: string;

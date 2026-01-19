@@ -16,17 +16,20 @@ public interface DocumentRequestService {
 
     DocumentRequestResponseDTO getDocumentRequest(UUID requestId, UUID userId);
 
-    DocumentRequestResponseDTO createDocumentRequest(UUID transactionId, DocumentRequestRequestDTO requestDTO);
+    DocumentRequestResponseDTO createDocumentRequest(UUID transactionId, DocumentRequestRequestDTO requestDTO,
+            UUID userId);
 
-    DocumentRequestResponseDTO updateDocumentRequest(UUID requestId, DocumentRequestRequestDTO requestDTO);
+    DocumentRequestResponseDTO updateDocumentRequest(UUID requestId, DocumentRequestRequestDTO requestDTO, UUID userId);
 
-    void deleteDocumentRequest(UUID requestId);
+    void deleteDocumentRequest(UUID requestId, UUID userId);
 
-    DocumentRequestResponseDTO submitDocument(UUID transactionId, UUID requestId, MultipartFile file, UUID uploaderId, UploadedByRefEnum uploaderType) throws IOException;
+    DocumentRequestResponseDTO submitDocument(UUID transactionId, UUID requestId, MultipartFile file, UUID uploaderId,
+            UploadedByRefEnum uploaderType) throws IOException;
 
     List<DocumentRequestResponseDTO> getAllDocumentsForUser(UUID userId);
 
     String getDocumentDownloadUrl(UUID requestId, UUID documentId, UUID userId);
 
-    DocumentRequestResponseDTO reviewDocument(UUID transactionId, UUID requestId, DocumentReviewRequestDTO reviewDTO, UUID brokerId);
+    DocumentRequestResponseDTO reviewDocument(UUID transactionId, UUID requestId, DocumentReviewRequestDTO reviewDTO,
+            UUID brokerId);
 }
