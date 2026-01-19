@@ -70,10 +70,11 @@ public class TransactionAccessUtils {
 
         // 2. Check if Co-Broker with Permission
         if (participants != null && userEmail != null) {
+            String normalizedUserEmail = userEmail.trim();
             for (com.example.courtierprobackend.transactions.datalayer.TransactionParticipant p : participants) {
                 if (p.getRole() == com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER
-                        &&
-                        userEmail.equalsIgnoreCase(p.getEmail())) {
+                        && p.getEmail() != null
+                        && normalizedUserEmail.equalsIgnoreCase(p.getEmail().trim())) {
 
                     if (p.getPermissions() != null && p.getPermissions().contains(requiredPermission)) {
                         return;
@@ -86,7 +87,54 @@ public class TransactionAccessUtils {
     }
 
     /**
+     * Verifies that the user has VIEW access to a specific resource (documents,
+     * properties, etc.).
+     * - Primary Broker: Allowed
+     * - Client: Allowed
+     * - Co-Broker: Must have requiredPermission
+     * - Other Participants: Allowed (default view access)
+     */
+    public static void verifyViewAccess(Transaction tx, UUID userId, String userEmail,
+            java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants,
+            com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission requiredPermission) {
+
+        if (userId == null) {
+            throw new ForbiddenException("You do not have access to this transaction");
+        }
+
+        // 1. Primary Broker & Client always have access
+        if ((tx.getBrokerId() != null && tx.getBrokerId().equals(userId)) ||
+                (tx.getClientId() != null && tx.getClientId().equals(userId))) {
+            return;
+        }
+
+        // 2. Check Participants
+        if (participants != null && userEmail != null) {
+            String normalizedUserEmail = userEmail.trim();
+            for (com.example.courtierprobackend.transactions.datalayer.TransactionParticipant p : participants) {
+                if (p.getEmail() != null && normalizedUserEmail.equalsIgnoreCase(p.getEmail().trim())) {
+                    // For Co-Brokers, enforce granular permission
+                    if (p.getRole() == com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER) {
+                        if (p.getPermissions() != null && p.getPermissions().contains(requiredPermission)) {
+                            return;
+                        } else {
+                            // Co-Broker exists but lacks permission
+                            throw new ForbiddenException("You do not have permission to view this resource.");
+                        }
+                    }
+                    // For other participants (Notary, Lawyer, etc.), allow view access by default
+                    return;
+                }
+            }
+        }
+
+        throw new ForbiddenException("You do not have access to this transaction");
+    }
+
+    /**
      * Verifies that the user is the Broker, Client, or a defined Participant.
+     * WARNING: This grants generic read access. Use verifyViewAccess for granular
+     * checks.
      */
     public static void verifyTransactionAccess(Transaction tx, UUID userId, String userEmail,
             java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants) {

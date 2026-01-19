@@ -22,6 +22,8 @@ import {
     AlertDialogTitle,
 } from "@/shared/components/ui/alert-dialog";
 
+import { useParticipantPermissions } from '@/features/transactions/hooks/useParticipantPermissions';
+
 interface ParticipantsListProps {
     transactionId: string;
     isReadOnly?: boolean;
@@ -31,6 +33,10 @@ export function ParticipantsList({ transactionId, isReadOnly = false }: Particip
     const { t } = useTranslation('transactions');
     const { data: participants, isLoading } = useTransactionParticipants(transactionId);
     const removeParticipant = useRemoveParticipant();
+    const { role } = useParticipantPermissions(transactionId);
+
+    // Only primary broker can manage participants
+    const canManageParticipants = role === 'BROKER';
 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [participantToDelete, setParticipantToDelete] = useState<string | null>(null);
@@ -56,7 +62,7 @@ export function ParticipantsList({ transactionId, isReadOnly = false }: Particip
         <Card>
             <CardHeader className="flex flex-row items-center justify-between py-4">
                 <CardTitle className="text-lg font-medium">{t('participants')}</CardTitle>
-                {!isReadOnly && (
+                {!isReadOnly && canManageParticipants && (
                     <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="gap-2">
                         <Plus className="h-4 w-4" />
                         {t('addParticipant')}
@@ -101,7 +107,7 @@ export function ParticipantsList({ transactionId, isReadOnly = false }: Particip
                                         </div>
                                     )}
                                 </div>
-                                {!isReadOnly && (
+                                {!isReadOnly && canManageParticipants && (
                                     <div className="flex gap-2">
                                         <Button
                                             variant="ghost"

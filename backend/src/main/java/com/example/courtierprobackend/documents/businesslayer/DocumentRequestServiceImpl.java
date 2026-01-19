@@ -58,13 +58,23 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         private final DocumentConditionLinkRepository documentConditionLinkRepository;
         private final com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository participantRepository;
 
-        private void verifyAccess(Transaction tx, UUID userId) {
+        private void verifyViewAccess(Transaction tx, UUID userId) {
                 String userEmail = userAccountRepository.findById(userId)
                                 .map(UserAccount::getEmail)
                                 .orElse(null);
-                List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants = participantRepository
+                java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants = participantRepository
                                 .findByTransactionId(tx.getTransactionId());
-                TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail, participants);
+                TransactionAccessUtils.verifyViewAccess(tx, userId, userEmail, participants,
+                                com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.VIEW_DOCUMENTS);
+        }
+
+        private void verifyEditAccess(Transaction tx, UUID userId) {
+                // For submitDocument (Client or Broker or Co-Broker with EDIT)
+                if (tx.getClientId().equals(userId))
+                        return;
+
+                verifyBrokerOrCoManager(tx, userId,
+                                com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
         }
 
         private void verifyBrokerOrCoManager(Transaction tx, UUID userId,
@@ -72,7 +82,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 String userEmail = userAccountRepository.findById(userId)
                                 .map(UserAccount::getEmail)
                                 .orElse(null);
-                List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants = participantRepository
+                java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants = participantRepository
                                 .findByTransactionId(tx.getTransactionId());
                 TransactionAccessUtils.verifyBrokerOrCoManagerAccess(tx, userId, userEmail, participants,
                                 requiredPermission);
@@ -93,7 +103,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 Transaction tx = transactionRepository.findByTransactionId(transactionId)
                                 .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
 
-                verifyAccess(tx, userId);
+                verifyViewAccess(tx, userId);
 
                 return repository.findByTransactionRef_TransactionId(transactionId).stream()
                                 .map(this::mapToResponseDTO)
@@ -116,7 +126,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                 .findByTransactionId(request.getTransactionRef().getTransactionId())
                                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-                verifyAccess(tx, userId);
+                verifyViewAccess(tx, userId);
 
                 return mapToResponseDTO(request);
         }
@@ -129,10 +139,10 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                 .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
 
                 verifyBrokerOrCoManager(tx, userId,
-                                com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.MANAGE_DOCUMENTS);
+                                com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
 
                 // Verify broker or co-manager access
-                // Since creating a request is managing documents, we require MANAGE_DOCUMENTS
+                // Since creating a request is managing documents, we require EDIT_DOCUMENTS
                 // But wait, the controller doesn't pass userId to createDocumentRequest!
                 // The controller uses @RequestBody RequestDTO.
                 // WE FOUND A BUG IN CONTROLLER TOO?
@@ -140,6 +150,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 // @RequestBody dto)
                 // It does NOT resolve userId!
                 // I need to fix Controller first to pass userId!
+                // (Fixed in previous step)
 
                 DocumentRequest request = new DocumentRequest();
                 request.setRequestId(UUID.randomUUID());
@@ -229,7 +240,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
                 verifyBrokerOrCoManager(tx, userId,
-                                com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.MANAGE_DOCUMENTS);
+                                com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
                 // Helper: normalize string (null, empty, whitespace)
                 java.util.function.Function<String, String> normStr = s -> s == null ? "" : s.trim();
                 // Helper: normalize enum or string (case-insensitive string compare)
@@ -402,7 +413,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
                 verifyBrokerOrCoManager(tx, userId,
-                                com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.MANAGE_DOCUMENTS);
+                                com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
                 repository.delete(request);
         }
 
@@ -421,7 +432,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 Transaction tx = transactionRepository.findByTransactionId(transactionId)
                                 .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
 
-                verifyAccess(tx, uploaderId);
+                verifyEditAccess(tx, uploaderId);
 
                 StorageObject storageObject = storageService.uploadFile(file, transactionId, requestId);
 
@@ -539,7 +550,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                 .findByTransactionId(request.getTransactionRef().getTransactionId())
                                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-                verifyAccess(tx, userId);
+                verifyViewAccess(tx, userId);
 
                 SubmittedDocument submittedDocument = request.getSubmittedDocuments().stream()
                                 .filter(doc -> doc.getDocumentId().equals(documentId))
@@ -568,7 +579,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                 .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
 
                 verifyBrokerOrCoManager(tx, brokerId,
-                                com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.MANAGE_DOCUMENTS);
+                                com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
 
                 if (request.getStatus() != DocumentStatusEnum.SUBMITTED) {
                         throw new BadRequestException("Only submitted documents can be reviewed");

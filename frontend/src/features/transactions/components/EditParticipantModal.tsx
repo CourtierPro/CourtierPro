@@ -42,10 +42,18 @@ interface ParticipantFormValues {
 const ROLES: ParticipantRole[] = ['BROKER', 'CO_BROKER', 'NOTARY', 'LAWYER', 'BUYER', 'SELLER', 'OTHER'];
 
 const PERMISSIONS: { id: ParticipantPermission; label: string }[] = [
-    { id: 'EDIT', label: 'Edit Transaction' },
-    { id: 'MANAGE_DOCUMENTS', label: 'Manage Documents' },
-    { id: 'MANAGE_OFFERS', label: 'Manage Offers' },
-    { id: 'MANAGE_CONDITIONS', label: 'Manage Conditions' }
+    { id: 'VIEW_DOCUMENTS', label: 'View Documents' },
+    { id: 'EDIT_DOCUMENTS', label: 'Edit Documents' },
+    { id: 'VIEW_PROPERTIES', label: 'View Properties' },
+    { id: 'EDIT_PROPERTIES', label: 'Edit Properties' },
+    { id: 'VIEW_STAGE', label: 'View Stage' },
+    { id: 'EDIT_STAGE', label: 'Edit Stage' },
+    { id: 'VIEW_OFFERS', label: 'View Offers' },
+    { id: 'EDIT_OFFERS', label: 'Edit Offers' },
+    { id: 'VIEW_CONDITIONS', label: 'View Conditions' },
+    { id: 'EDIT_CONDITIONS', label: 'Edit Conditions' },
+    { id: 'VIEW_NOTES', label: 'View Notes' },
+    { id: 'EDIT_NOTES', label: 'Edit Notes' }
 ];
 
 export function EditParticipantModal({ isOpen, onClose, transactionId, participant }: EditParticipantModalProps) {
@@ -100,7 +108,7 @@ export function EditParticipantModal({ isOpen, onClose, transactionId, participa
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{t('editParticipant')}</DialogTitle>
                     <DialogDescription>
@@ -180,7 +188,7 @@ export function EditParticipantModal({ isOpen, onClose, transactionId, participa
 
                     {selectedRole === 'CO_BROKER' && (
                         <div className="border rounded-md p-4 space-y-3 bg-muted/20">
-                            <h4 className="text-sm font-medium">{t('permissions.label')}</h4>
+                            <h4 className="text-sm font-medium">{t('permissionsLabel')}</h4>
                             <div className="grid grid-cols-2 gap-3">
                                 {PERMISSIONS.map((permission) => (
                                     <Controller

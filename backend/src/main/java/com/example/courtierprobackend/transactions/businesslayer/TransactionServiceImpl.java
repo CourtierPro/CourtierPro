@@ -274,8 +274,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
         // 2. Vérifier l'accès du broker
-        // 2. Vérifier l'accès du broker
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.VIEW);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.VIEW_NOTES);
 
         // 3. Récupérer les notes
         List<TimelineEntryDTO> entries = timelineService.getTimelineForTransaction(transactionId);
@@ -295,7 +294,7 @@ public class TransactionServiceImpl implements TransactionService {
         // Optionally add access checks here
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_NOTES);
         timelineService.addEntry(
                 transactionId,
                 brokerId,
@@ -464,7 +463,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_STAGE);
 
         // Guard Clause: Cannot update stage if transaction is already closed or
         // terminated
@@ -623,7 +622,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.VIEW);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.VIEW_STAGE);
 
         // Check if already pinned
         if (pinnedTransactionRepository.existsByBrokerIdAndTransactionId(brokerId, transactionId)) {
@@ -645,7 +644,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.VIEW);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.VIEW_STAGE);
 
         pinnedTransactionRepository.deleteByBrokerIdAndTransactionId(brokerId, transactionId);
     }
@@ -845,7 +844,8 @@ public class TransactionServiceImpl implements TransactionService {
         }
         java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants2 = participantRepository
                 .findByTransactionId(tx.getTransactionId());
-        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail2, participants2);
+        TransactionAccessUtils.verifyViewAccess(tx, userId, userEmail2, participants2,
+                ParticipantPermission.VIEW_PROPERTIES);
 
         // Only BUY_SIDE transactions can have multiple properties
         if (tx.getSide() != TransactionSide.BUY_SIDE) {
@@ -865,7 +865,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_PROPERTIES);
 
         // Only BUY_SIDE transactions can have multiple properties
         if (tx.getSide() != TransactionSide.BUY_SIDE) {
@@ -931,7 +931,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_PROPERTIES);
 
         Property property = propertyRepository.findByPropertyId(propertyId)
                 .orElseThrow(() -> new NotFoundException("Property not found"));
@@ -993,7 +993,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_PROPERTIES);
 
         Property property = propertyRepository.findByPropertyId(propertyId)
                 .orElseThrow(() -> new NotFoundException("Property not found"));
@@ -1035,7 +1035,8 @@ public class TransactionServiceImpl implements TransactionService {
         }
         java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants3 = participantRepository
                 .findByTransactionId(tx.getTransactionId());
-        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail3, participants3);
+        TransactionAccessUtils.verifyViewAccess(tx, userId, userEmail3, participants3,
+                ParticipantPermission.VIEW_PROPERTIES);
 
         return toPropertyResponseDTO(property, isBroker);
     }
@@ -1072,7 +1073,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_PROPERTIES);
 
         // If propertyId is null, clear the active property
         if (propertyId == null) {
@@ -1104,7 +1105,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_PROPERTIES);
 
         tx.setPropertyAddress(null);
         repo.save(tx);
@@ -1126,7 +1127,8 @@ public class TransactionServiceImpl implements TransactionService {
         }
         java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants4 = participantRepository
                 .findByTransactionId(tx.getTransactionId());
-        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail4, participants4);
+        TransactionAccessUtils.verifyViewAccess(tx, userId, userEmail4, participants4,
+                ParticipantPermission.VIEW_OFFERS);
 
         List<PropertyOffer> offers = propertyOfferRepository.findByPropertyIdOrderByOfferRoundDesc(propertyId);
 
@@ -1144,7 +1146,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(property.getTransactionId())
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.MANAGE_OFFERS);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_OFFERS);
 
         // Calculate next offer round
         Integer maxRound = propertyOfferRepository.findMaxOfferRoundByPropertyId(propertyId);
@@ -1251,7 +1253,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(property.getTransactionId())
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.MANAGE_OFFERS);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_OFFERS);
 
         PropertyOffer offer = propertyOfferRepository.findByPropertyOfferId(propertyOfferId)
                 .orElseThrow(() -> new NotFoundException("Property offer not found"));
@@ -1432,7 +1434,8 @@ public class TransactionServiceImpl implements TransactionService {
         }
         java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants5 = participantRepository
                 .findByTransactionId(tx.getTransactionId());
-        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail5, participants5);
+        TransactionAccessUtils.verifyViewAccess(tx, userId, userEmail5, participants5,
+                ParticipantPermission.VIEW_OFFERS);
 
         // Only SELL_SIDE transactions can have offers
         if (tx.getSide() != TransactionSide.SELL_SIDE) {
@@ -1452,7 +1455,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.MANAGE_OFFERS);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_OFFERS);
 
         // Only SELL_SIDE transactions can have offers
         if (tx.getSide() != TransactionSide.SELL_SIDE) {
@@ -1546,7 +1549,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.MANAGE_OFFERS);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_OFFERS);
 
         Offer offer = offerRepository.findByOfferId(offerId)
                 .orElseThrow(() -> new NotFoundException("Offer not found"));
@@ -1721,7 +1724,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(offer.getTransactionId())
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.MANAGE_DOCUMENTS);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_DOCUMENTS);
 
         try {
             String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed";
@@ -1765,7 +1768,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(property.getTransactionId())
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.MANAGE_DOCUMENTS);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_DOCUMENTS);
 
         try {
             String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed";
@@ -1809,7 +1812,8 @@ public class TransactionServiceImpl implements TransactionService {
         }
         java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants7 = participantRepository
                 .findByTransactionId(tx.getTransactionId());
-        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail7, participants7);
+        TransactionAccessUtils.verifyViewAccess(tx, userId, userEmail7, participants7,
+                ParticipantPermission.VIEW_DOCUMENTS);
 
         List<OfferDocument> documents = offerDocumentRepository.findByOfferIdOrderByCreatedAtDesc(offerId);
 
@@ -1836,7 +1840,8 @@ public class TransactionServiceImpl implements TransactionService {
         }
         java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants8 = participantRepository
                 .findByTransactionId(tx.getTransactionId());
-        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail8, participants8);
+        TransactionAccessUtils.verifyViewAccess(tx, userId, userEmail8, participants8,
+                ParticipantPermission.VIEW_DOCUMENTS);
 
         List<OfferDocument> documents = offerDocumentRepository
                 .findByPropertyOfferIdOrderByCreatedAtDesc(propertyOfferId);
@@ -1863,7 +1868,8 @@ public class TransactionServiceImpl implements TransactionService {
             }
             java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants11 = participantRepository
                     .findByTransactionId(tx.getTransactionId());
-            TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail11, participants11);
+            TransactionAccessUtils.verifyViewAccess(tx, userId, userEmail11, participants11,
+                    ParticipantPermission.VIEW_DOCUMENTS);
         } else if (document.getPropertyOfferId() != null) {
             PropertyOffer propertyOffer = propertyOfferRepository.findByPropertyOfferId(document.getPropertyOfferId())
                     .orElseThrow(() -> new NotFoundException("Property offer not found"));
@@ -1877,7 +1883,8 @@ public class TransactionServiceImpl implements TransactionService {
             }
             java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants12 = participantRepository
                     .findByTransactionId(tx.getTransactionId());
-            TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail12, participants12);
+            TransactionAccessUtils.verifyViewAccess(tx, userId, userEmail12, participants12,
+                    ParticipantPermission.VIEW_DOCUMENTS);
         }
 
         return s3StorageService.generatePresignedUrl(document.getS3Key());
@@ -1895,7 +1902,7 @@ public class TransactionServiceImpl implements TransactionService {
                     .orElseThrow(() -> new NotFoundException("Offer not found"));
             Transaction tx = repo.findByTransactionId(offer.getTransactionId())
                     .orElseThrow(() -> new NotFoundException("Transaction not found"));
-            verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.MANAGE_DOCUMENTS);
+            verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_DOCUMENTS);
         } else if (document.getPropertyOfferId() != null) {
             PropertyOffer propertyOffer = propertyOfferRepository.findByPropertyOfferId(document.getPropertyOfferId())
                     .orElseThrow(() -> new NotFoundException("Property offer not found"));
@@ -1903,7 +1910,7 @@ public class TransactionServiceImpl implements TransactionService {
                     .orElseThrow(() -> new NotFoundException("Property not found"));
             Transaction tx = repo.findByTransactionId(property.getTransactionId())
                     .orElseThrow(() -> new NotFoundException("Transaction not found"));
-            verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.MANAGE_DOCUMENTS);
+            verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_DOCUMENTS);
         }
 
         // Delete from S3
@@ -1921,7 +1928,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.MANAGE_OFFERS);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_OFFERS);
 
         Offer offer = offerRepository.findByOfferId(offerId)
                 .orElseThrow(() -> new NotFoundException("Offer not found"));
@@ -1963,7 +1970,8 @@ public class TransactionServiceImpl implements TransactionService {
         }
         java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants9 = participantRepository
                 .findByTransactionId(tx.getTransactionId());
-        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail9, participants9);
+        TransactionAccessUtils.verifyViewAccess(tx, userId, userEmail9, participants9,
+                ParticipantPermission.VIEW_OFFERS);
 
         return toOfferResponseDTO(offer, isBroker);
     }
@@ -2073,7 +2081,8 @@ public class TransactionServiceImpl implements TransactionService {
         }
         java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants10 = participantRepository
                 .findByTransactionId(tx.getTransactionId());
-        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail10, participants10);
+        TransactionAccessUtils.verifyViewAccess(tx, userId, userEmail10, participants10,
+                ParticipantPermission.VIEW_CONDITIONS);
 
         List<Condition> conditions = conditionRepository.findByTransactionIdOrderByDeadlineDateAsc(transactionId);
 
@@ -2088,7 +2097,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.MANAGE_CONDITIONS);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_CONDITIONS);
 
         // Validate: OTHER type requires customTitle
         if (dto.getType() == ConditionType.OTHER &&
@@ -2158,7 +2167,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.MANAGE_CONDITIONS);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_CONDITIONS);
 
         Condition condition = conditionRepository.findByConditionId(conditionId)
                 .orElseThrow(() -> new NotFoundException("Condition not found"));
@@ -2227,7 +2236,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.MANAGE_CONDITIONS);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_CONDITIONS);
 
         Condition condition = conditionRepository.findByConditionId(conditionId)
                 .orElseThrow(() -> new NotFoundException("Condition not found"));
@@ -2264,7 +2273,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.MANAGE_CONDITIONS);
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_CONDITIONS);
 
         Condition condition = conditionRepository.findByConditionId(conditionId)
                 .orElseThrow(() -> new NotFoundException("Condition not found"));
@@ -2376,7 +2385,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT);
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
 
         if (tx.getArchived() != null && tx.getArchived()) {
             throw new BadRequestException("Transaction is already archived");
@@ -2403,7 +2412,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT);
+        TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
 
         if (tx.getArchived() == null || !tx.getArchived()) {
             throw new BadRequestException("Transaction is not archived");
@@ -2443,7 +2452,8 @@ public class TransactionServiceImpl implements TransactionService {
         }
         java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants13 = participantRepository
                 .findByTransactionId(tx.getTransactionId());
-        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail13, participants13);
+        TransactionAccessUtils.verifyViewAccess(tx, userId, userEmail13, participants13,
+                ParticipantPermission.VIEW_DOCUMENTS);
 
         List<UnifiedDocumentDTO> allDocuments = new ArrayList<>();
 

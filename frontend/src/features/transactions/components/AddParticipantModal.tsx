@@ -26,10 +26,18 @@ interface ParticipantFormValues {
 }
 
 const PERMISSIONS: { id: ParticipantPermission; label: string }[] = [
-    { id: 'EDIT', label: 'Edit Transaction' },
-    { id: 'MANAGE_DOCUMENTS', label: 'Manage Documents' },
-    { id: 'MANAGE_OFFERS', label: 'Manage Offers' },
-    { id: 'MANAGE_CONDITIONS', label: 'Manage Conditions' },
+    { id: 'VIEW_DOCUMENTS', label: 'View Documents' },
+    { id: 'EDIT_DOCUMENTS', label: 'Edit Documents' },
+    { id: 'VIEW_PROPERTIES', label: 'View Properties' },
+    { id: 'EDIT_PROPERTIES', label: 'Edit Properties' },
+    { id: 'VIEW_STAGE', label: 'View Stage' },
+    { id: 'EDIT_STAGE', label: 'Edit Stage' },
+    { id: 'VIEW_OFFERS', label: 'View Offers' },
+    { id: 'EDIT_OFFERS', label: 'Edit Offers' },
+    { id: 'VIEW_CONDITIONS', label: 'View Conditions' },
+    { id: 'EDIT_CONDITIONS', label: 'Edit Conditions' },
+    { id: 'VIEW_NOTES', label: 'View Notes' },
+    { id: 'EDIT_NOTES', label: 'Edit Notes' }
 ];
 
 export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParticipantModalProps) {
@@ -76,7 +84,7 @@ export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParti
 
     return (
         <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{t('addParticipant')}</DialogTitle>
                 </DialogHeader>
@@ -119,11 +127,11 @@ export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParti
 
                     {selectedRole === 'CO_BROKER' && (
                         <div className="space-y-3 border p-4 rounded-md bg-muted/20">
-                            <Label className="text-base font-semibold">{t('permissions') || 'Permissions'}</Label>
+                            <Label className="text-base font-semibold">{t('permissionsLabel')}</Label>
                             <p className="text-sm text-muted-foreground mb-2">
-                                {t('permissionsDescription') || 'Select what this co-broker can do in this transaction.'}
+                                {t('permissionsDescription')}
                             </p>
-                            <div className="grid grid-cols-1 gap-3">
+                            <div className="grid grid-cols-2 gap-3">
                                 <Controller
                                     control={control}
                                     name="permissions"

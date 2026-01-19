@@ -37,6 +37,7 @@ import { useTransactionStages } from '@/features/transactions/hooks/useTransacti
 import { getStageLabel } from '@/shared/utils/stages';
 import { requestDocumentSchema, type RequestDocumentFormValues } from '@/shared/schemas';
 import { ConditionSelector } from '@/features/transactions/components/ConditionSelector';
+import { useParticipantPermissions } from '@/features/transactions/hooks/useParticipantPermissions';
 
 interface RequestDocumentModalProps {
   isOpen: boolean;
@@ -57,6 +58,7 @@ export function RequestDocumentModal({
 }: RequestDocumentModalProps) {
   const { t, i18n } = useTranslation('documents');
   const { t: tTx } = useTranslation('transactions');
+  const { checkPermission } = useParticipantPermissions(transactionId);
 
   const customTitleInputRef = useRef<HTMLInputElement>(null);
   const [selectedConditionIds, setSelectedConditionIds] = useState<string[]>([]);
@@ -288,7 +290,7 @@ export function RequestDocumentModal({
               transactionId={transactionId}
               selectedConditionIds={selectedConditionIds}
               onChange={setSelectedConditionIds}
-              showCreateButton
+              showCreateButton={checkPermission('EDIT_CONDITIONS')}
             />
 
             <div className="p-4 rounded-lg border-2 border-border bg-muted/50">

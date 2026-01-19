@@ -266,6 +266,9 @@
   "remove": "Retirer",
   "confirmRemoveParticipant": "Retirer le participant",
   "confirmRemoveParticipantDescription": "Êtes-vous sûr de vouloir retirer ce participant? Cette action est irréversible.",
+  "editParticipant": "Modifier le participant",
+  "editParticipantDescription": "Mettez à jour les détails et les permissions du participant.",
+  "brokerEmailNote": "L'adresse courriel doit être associée à un compte courtier valide.",
   "timelineType": {
     "CREATED": "Transaction créée",
     "STAGE_CHANGE": "Changement d'étape",
@@ -293,6 +296,9 @@
   "timelineType.PROPERTY_OFFER_MADE": "Offre de propriété faite",
   "timelineType.PROPERTY_OFFER_UPDATED": "Offre de propriété mise à jour",
   "timelineType.OFFER_DOCUMENT_UPLOADED": "Document d'offre téléversé",
+  "timelineType.PARTICIPANT_ADDED": "Participant ajouté",
+  "timelineType.PARTICIPANT_REMOVED": "Participant retiré",
+  "timelineType.PARTICIPANT_UPDATED": "Participant mis à jour",
   "timeline.propertyOfferMade": "Offre faite pour {{address}} à {{amount}}",
   "timeline.propertyOfferUpdated": "Offre mise à jour pour {{address}} à {{amount}}",
   "timeline.propertyOfferStatusChanged": "Offre pour {{address}} statut changé de {{fromStatus}} à {{toStatus}}",
@@ -494,6 +500,7 @@
     "EXPIRED": "Expirée",
     "WITHDRAWN": "Retirée"
   },
+  "participantUpdated": "Participant mis à jour",
   "noPropertyOffers": "Aucune offre faite",
   "noPropertyOffersDescription": "Vous n'avez pas encore fait d'offre sur cette propriété.",
   "noPropertyOffersClientDescription": "Aucune offre n'a été faite sur cette propriété.",
@@ -541,5 +548,26 @@
   "receivedOffers": "Offres reçues",
   "propertyOffers": "Offres de propriété",
   "noLinkedItems": "Aucun élément lié",
-  "unknownProperty": "Propriété inconnue"
+  "unknownProperty": "Propriété inconnue",
+  "permissions": {
+    "VIEW_DOCUMENTS": "Voir les documents",
+    "EDIT_DOCUMENTS": "Modifier les documents",
+    "VIEW_PROPERTIES": "Voir les propriétés",
+    "EDIT_PROPERTIES": "Modifier les propriétés",
+    "VIEW_STAGE": "Voir l'étape",
+    "EDIT_STAGE": "Modifier l'étape",
+    "VIEW_OFFERS": "Voir les offres",
+    "EDIT_OFFERS": "Modifier les offres",
+    "VIEW_CONDITIONS": "Voir les conditions",
+    "EDIT_CONDITIONS": "Modifier les conditions",
+    "VIEW_NOTES": "Voir les notes",
+    "EDIT_NOTES": "Modifier les notes"
+  },
+  "permissionsLabel": "Permissions",
+  "permissionsDescription": "Sélectionnez les droits d'accès pour ce co-courtier.",
+  "noPermissionViewStage": "Vous n'avez pas la permission de voir l'étape de la transaction.",
+  "noPermissionViewConditions": "Vous n'avez pas la permission de voir les conditions.",
+  "noPermissionViewDocuments": "Vous n'avez pas la permission de voir les documents.",
+  "noPermissionViewProperties": "Vous n'avez pas la permission de voir les propriétés.",
+  "noPermissionViewNotes": "Vous n'avez pas la permission de voir les notes."
 }

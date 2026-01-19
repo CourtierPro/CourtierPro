@@ -1,10 +1,28 @@
 // Permissions possibles pour un participant (doit correspondre au backend)
 export type ParticipantPermission =
-  | 'VIEW'
-  | 'EDIT'
-  | 'MANAGE_DOCUMENTS'
-  | 'MANAGE_OFFERS'
-  | 'MANAGE_CONDITIONS'; // Added MANAGE_CONDITIONS to match backend
+  // Document Management
+  | 'VIEW_DOCUMENTS'
+  | 'EDIT_DOCUMENTS'
+
+  // Property Management (Buyer side)
+  | 'VIEW_PROPERTIES'
+  | 'EDIT_PROPERTIES'
+
+  // Stage Management
+  | 'VIEW_STAGE'
+  | 'EDIT_STAGE'
+
+  // Offer Management (Seller side) & Property Offers (Buyer side)
+  | 'VIEW_OFFERS'
+  | 'EDIT_OFFERS'
+
+  // Conditions Management
+  | 'VIEW_CONDITIONS'
+  | 'EDIT_CONDITIONS'
+
+  // Notes Management
+  | 'VIEW_NOTES'
+  | 'EDIT_NOTES';
 
 export type ParticipantRole = 'BROKER' | 'CO_BROKER' | 'NOTARY' | 'LAWYER' | 'BUYER' | 'SELLER' | 'OTHER';
 
