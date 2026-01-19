@@ -18,9 +18,16 @@ interface PropertyListProps {
     isReadOnly?: boolean;
     onTransactionUpdate?: () => void;
     currentTransactionAddress?: { street: string; city?: string; postalCode?: string };
+    canEdit?: boolean;
 }
 
-export function PropertyList({ transactionId, isReadOnly = false, onTransactionUpdate, currentTransactionAddress }: PropertyListProps) {
+export function PropertyList({
+    transactionId,
+    isReadOnly = false,
+    onTransactionUpdate,
+    currentTransactionAddress,
+    canEdit = true
+}: PropertyListProps) {
     const { t } = useTranslation('transactions');
     const { data: properties, isLoading, error, refetch } = useTransactionProperties(transactionId);
     const { mutate: setActiveProperty } = useSetActiveProperty();
@@ -74,16 +81,19 @@ export function PropertyList({ transactionId, isReadOnly = false, onTransactionU
                     title={t('noProperties')}
                     description={isReadOnly ? t('noPropertiesClientDescription') : t('noPropertiesDescription')}
                     action={
-                        !isReadOnly ? (
+                        (!isReadOnly && canEdit) ? (
                             <Button variant="outline" onClick={() => setIsAddModalOpen(true)}>
                                 <Plus className="w-4 h-4 mr-2" />
-                                {t('addProperty')}
+                                <Button variant="outline" onClick={() => setIsAddModalOpen(true)}>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    {t('addProperty')}
+                                </Button>
                             </Button>
                         ) : undefined
                     }
                 />
 
-                {!isReadOnly && (
+                {!isReadOnly && canEdit && (
                     <AddPropertyModal
                         isOpen={isAddModalOpen}
                         onClose={() => setIsAddModalOpen(false)}
@@ -99,7 +109,7 @@ export function PropertyList({ transactionId, isReadOnly = false, onTransactionU
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">{t('properties')}</h3>
                 <div className="flex gap-2">
-                    {!isReadOnly && currentTransactionAddress?.street && (
+                    {!isReadOnly && canEdit && currentTransactionAddress?.street && (
                         <Button
                             variant="outline"
                             size="sm"
@@ -113,7 +123,7 @@ export function PropertyList({ transactionId, isReadOnly = false, onTransactionU
                             {t('clearActiveProperty')}
                         </Button>
                     )}
-                    {!isReadOnly && (
+                    {!isReadOnly && canEdit && (
                         <Button onClick={() => setIsAddModalOpen(true)} size="sm" className="gap-2">
                             <Plus className="w-4 h-4" />
                             {t('addProperty')}
@@ -133,7 +143,7 @@ export function PropertyList({ transactionId, isReadOnly = false, onTransactionU
                                 isReadOnly={isReadOnly}
                                 isActive={isActive}
                             />
-                            {!isReadOnly && !isActive && (
+                            {!isReadOnly && canEdit && !isActive && (
                                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <Button
                                         variant="secondary"
@@ -164,7 +174,7 @@ export function PropertyList({ transactionId, isReadOnly = false, onTransactionU
             />
 
             {/* Add Modal (broker only) */}
-            {!isReadOnly && (
+            {!isReadOnly && canEdit && (
                 <AddPropertyModal
                     isOpen={isAddModalOpen}
                     onClose={() => setIsAddModalOpen(false)}

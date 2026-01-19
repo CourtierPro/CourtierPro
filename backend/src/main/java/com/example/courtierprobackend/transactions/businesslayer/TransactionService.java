@@ -48,6 +48,9 @@ public interface TransactionService {
     // Participants
     ParticipantResponseDTO addParticipant(UUID transactionId, AddParticipantRequestDTO dto, UUID brokerId);
 
+    ParticipantResponseDTO updateParticipant(UUID transactionId, UUID participantId, UpdateParticipantRequestDTO dto,
+            UUID brokerId);
+
     void removeParticipant(UUID transactionId, UUID participantId, UUID brokerId);
 
     List<ParticipantResponseDTO> getParticipants(UUID transactionId, UUID userId);
@@ -62,7 +65,7 @@ public interface TransactionService {
     void removeProperty(UUID transactionId, UUID propertyId, UUID brokerId);
 
     PropertyResponseDTO getPropertyById(UUID propertyId, UUID userId, boolean isBroker);
-    
+
     void setActiveProperty(UUID transactionId, UUID propertyId, UUID brokerId);
 
     void clearActiveProperty(UUID transactionId, UUID brokerId);
@@ -72,7 +75,8 @@ public interface TransactionService {
 
     PropertyOfferResponseDTO addPropertyOffer(UUID propertyId, PropertyOfferRequestDTO dto, UUID brokerId);
 
-    PropertyOfferResponseDTO updatePropertyOffer(UUID propertyId, UUID propertyOfferId, PropertyOfferRequestDTO dto, UUID brokerId);
+    PropertyOfferResponseDTO updatePropertyOffer(UUID propertyId, UUID propertyOfferId, PropertyOfferRequestDTO dto,
+            UUID brokerId);
 
     // Offers (for seller transactions)
     List<OfferResponseDTO> getOffers(UUID transactionId, UUID userId, boolean isBroker);
@@ -92,9 +96,11 @@ public interface TransactionService {
     List<OfferRevisionResponseDTO> getOfferRevisions(UUID offerId, UUID userId, boolean isBroker);
 
     // Offer Documents (for both sell-side and buy-side)
-    OfferDocumentResponseDTO uploadOfferDocument(UUID offerId, org.springframework.web.multipart.MultipartFile file, UUID brokerId);
+    OfferDocumentResponseDTO uploadOfferDocument(UUID offerId, org.springframework.web.multipart.MultipartFile file,
+            UUID brokerId);
 
-    OfferDocumentResponseDTO uploadPropertyOfferDocument(UUID propertyOfferId, org.springframework.web.multipart.MultipartFile file, UUID brokerId);
+    OfferDocumentResponseDTO uploadPropertyOfferDocument(UUID propertyOfferId,
+            org.springframework.web.multipart.MultipartFile file, UUID brokerId);
 
     List<OfferDocumentResponseDTO> getOfferDocuments(UUID offerId, UUID userId, boolean isBroker);
 
@@ -113,7 +119,7 @@ public interface TransactionService {
 
     void removeCondition(UUID transactionId, UUID conditionId, UUID brokerId);
 
-    ConditionResponseDTO updateConditionStatus(UUID transactionId, UUID conditionId, 
+    ConditionResponseDTO updateConditionStatus(UUID transactionId, UUID conditionId,
             com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus status, UUID brokerId);
 
     // Archive functionality
@@ -122,7 +128,7 @@ public interface TransactionService {
     void unarchiveTransaction(UUID transactionId, UUID brokerId);
 
     List<TransactionResponseDTO> getArchivedTransactions(UUID brokerId);
+
     // Unified Documents (aggregates all document sources)
     List<UnifiedDocumentDTO> getAllTransactionDocuments(UUID transactionId, UUID userId, boolean isBroker);
 }
-

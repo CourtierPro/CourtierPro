@@ -277,6 +277,9 @@
   "remove": "Remove",
   "confirmRemoveParticipant": "Remove Participant",
   "confirmRemoveParticipantDescription": "Are you sure you want to remove this participant? This action cannot be undone.",
+  "editParticipant": "Edit Participant",
+  "editParticipantDescription": "Update the participant's details and permissions.",
+  "brokerEmailNote": "The email address must be associated with a valid broker account.",
   "timelineType": {
     "CREATED": "Transaction Created",
     "STAGE_CHANGE": "Stage Updated",
@@ -408,6 +411,9 @@
   "timelineType.PROPERTY_OFFER_MADE": "Property Offer Made",
   "timelineType.PROPERTY_OFFER_UPDATED": "Property Offer Updated",
   "timelineType.OFFER_DOCUMENT_UPLOADED": "Offer Document Uploaded",
+  "timelineType.PARTICIPANT_ADDED": "Participant Added",
+  "timelineType.PARTICIPANT_REMOVED": "Participant Removed",
+  "timelineType.PARTICIPANT_UPDATED": "Participant Updated",
   "timeline.propertyOfferMade": "Offer made for {{address}} at {{amount}}",
   "timeline.propertyOfferUpdated": "Offer updated for {{address}} to {{amount}}",
   "timeline.propertyOfferStatusChanged": "Offer for {{address}} status changed from {{fromStatus}} to {{toStatus}}",
@@ -494,6 +500,7 @@
     "EXPIRED": "Expired",
     "WITHDRAWN": "Withdrawn"
   },
+  "participantUpdated": "Participant updated",
   "noPropertyOffers": "No Offers Made",
   "noPropertyOffersDescription": "You haven't made any offers on this property yet.",
   "noPropertyOffersClientDescription": "No offers have been made on this property.",
@@ -541,5 +548,26 @@
   "receivedOffers": "Received Offers",
   "propertyOffers": "Property Offers",
   "noLinkedItems": "No linked items",
-  "unknownProperty": "Unknown Property"
+  "unknownProperty": "Unknown Property",
+  "permissions": {
+    "VIEW_DOCUMENTS": "View Documents",
+    "EDIT_DOCUMENTS": "Edit Documents",
+    "VIEW_PROPERTIES": "View Properties",
+    "EDIT_PROPERTIES": "Edit Properties",
+    "VIEW_STAGE": "View Stage",
+    "EDIT_STAGE": "Edit Stage",
+    "VIEW_OFFERS": "View Offers",
+    "EDIT_OFFERS": "Edit Offers",
+    "VIEW_CONDITIONS": "View Conditions",
+    "EDIT_CONDITIONS": "Edit Conditions",
+    "VIEW_NOTES": "View Notes",
+    "EDIT_NOTES": "Edit Notes"
+  },
+  "permissionsLabel": "Permissions",
+  "permissionsDescription": "Select the access rights for this co-broker.",
+  "noPermissionViewStage": "You do not have permission to view the transaction stage.",
+  "noPermissionViewConditions": "You do not have permission to view the conditions.",
+  "noPermissionViewDocuments": "You do not have permission to view the documents.",
+  "noPermissionViewProperties": "You do not have permission to view the properties.",
+  "noPermissionViewNotes": "You do not have permission to view the notes."
 }

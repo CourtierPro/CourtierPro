@@ -27,6 +27,7 @@ import { useAllTransactionDocuments } from "@/features/transactions/api/queries"
 import axiosInstance from "@/shared/api/axiosInstance";
 import { format } from "date-fns";
 import type { UnifiedDocument } from "@/shared/api/types";
+import { useParticipantPermissions } from "@/features/transactions/hooks/useParticipantPermissions";
 
 interface DocumentsPageProps {
   transactionId: string;
@@ -54,6 +55,9 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
     setIsModalOpen,
     handleRequestDocument
   } = useDocumentsPageLogic(transactionId);
+
+  const { checkPermission } = useParticipantPermissions(transactionId);
+  const canEditDocuments = checkPermission('EDIT_DOCUMENTS');
 
   // Fetch unified documents (includes offer attachments)
   const { data: allDocuments = [], isLoading: isLoadingAllDocs } = useAllTransactionDocuments(transactionId, clientId);
@@ -196,7 +200,7 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
         title={tDocuments('title', 'Documents')}
         subtitle={tDocuments('subtitle', 'Manage all your transaction documents in one place.')}
         actions={
-          !isReadOnly && !hideRequestButton && canReview && (
+          !isReadOnly && !hideRequestButton && canReview && canEditDocuments && (
             <Button onClick={() => setIsModalOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               {tDocuments('requestDocument', 'Request Document')}
@@ -220,7 +224,7 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
             title={tDocuments('noDocumentsTitle', 'No documents found')}
             description={tDocuments('noDocumentsForStage', 'No documents for this transaction yet.')}
             action={
-              !isReadOnly && !hideRequestButton && canReview ? (
+              !isReadOnly && !hideRequestButton && canReview && canEditDocuments ? (
                 <Button onClick={() => setIsModalOpen(true)} className="mt-4">
                   <Plus className="w-4 h-4 mr-2" />
                   {tDocuments('requestDocument', 'Request Document')}
@@ -236,7 +240,7 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
               documents={filteredDocuments}
               onUpload={canUpload ? handleUploadClick : undefined}
               onReview={canReview ? handleReviewClick : undefined}
-              onEdit={canReview ? handleEditClick : undefined}
+              onEdit={canReview && canEditDocuments ? handleEditClick : undefined}
               focusDocumentId={focusDocumentId}
             />
           )}
