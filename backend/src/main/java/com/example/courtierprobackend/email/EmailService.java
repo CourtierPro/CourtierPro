@@ -28,16 +28,22 @@ public class EmailService {
 
     private final String gmailUsername;
     private final String gmailPassword;
+    private final String gmailHost;
+    private final String gmailPort;
     final OrganizationSettingsService organizationSettingsService;
     final com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
 
     public EmailService(
             @Value("${gmail.username}") String gmailUsername,
             @Value("${gmail.password}") String gmailPassword,
+            @Value("${gmail.host:smtp.gmail.com}") String gmailHost,
+            @Value("${gmail.port:587}") String gmailPort,
             OrganizationSettingsService organizationSettingsService,
             com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository) {
         this.gmailUsername = gmailUsername;
         this.gmailPassword = gmailPassword;
+        this.gmailHost = gmailHost;
+        this.gmailPort = gmailPort;
         this.organizationSettingsService = organizationSettingsService;
         this.userAccountRepository = userAccountRepository;
     }
@@ -560,9 +566,10 @@ public class EmailService {
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.smtp.host", "smtp.gmail.com");
-        props.put("mail.smtp.port", "587");
-        props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
+        // Use configured host/port or fallback to Gmail defaults
+        props.put("mail.smtp.host", gmailHost != null ? gmailHost : "smtp.gmail.com");
+        props.put("mail.smtp.port", gmailPort != null ? gmailPort : "587");
+        props.put("mail.smtp.ssl.trust", gmailHost != null ? gmailHost : "smtp.gmail.com");
 
         Session session = Session.getInstance(props, new Authenticator() {
             @Override

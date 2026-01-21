@@ -34,6 +34,7 @@ services:
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      JAVA_TOOL_OPTIONS: "-Djava.net.preferIPv4Stack=true"
       # --- FIX START: Tell Flyway where your SQL files are ---
       SPRING_FLYWAY_LOCATIONS: classpath:migration
       # --- FIX END ---
