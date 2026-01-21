@@ -1,0 +1,434 @@
+package com.example.courtierprobackend.appointments.businesslayer;
+
+import com.example.courtierprobackend.appointments.datalayer.Appointment;
+import com.example.courtierprobackend.appointments.datalayer.AppointmentRepository;
+import com.example.courtierprobackend.appointments.datalayer.dto.AppointmentResponseDTO;
+import com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus;
+import com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType;
+import com.example.courtierprobackend.common.exceptions.NotFoundException;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
+import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+/**
+ * Unit tests for AppointmentServiceImpl.
+ * Tests all service methods with mocked repositories.
+ */
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class AppointmentServiceImplTest {
+
+    @Mock
+    private AppointmentRepository appointmentRepository;
+
+    @Mock
+    private UserAccountRepository userAccountRepository;
+
+    private AppointmentServiceImpl appointmentService;
+
+    private UUID brokerId;
+    private UUID clientId;
+    private UUID transactionId;
+
+    @BeforeEach
+    void setUp() {
+        appointmentService = new AppointmentServiceImpl(appointmentRepository, userAccountRepository);
+        brokerId = UUID.randomUUID();
+        clientId = UUID.randomUUID();
+        transactionId = UUID.randomUUID();
+    }
+
+    // ========== Helper Methods ==========
+
+    private Appointment createTestAppointment() {
+        Appointment apt = new Appointment();
+        apt.setAppointmentId(UUID.randomUUID());
+        apt.setTitle("Test Appointment");
+        apt.setTransactionId(transactionId);
+        apt.setBrokerId(brokerId);
+        apt.setClientId(clientId);
+        apt.setFromDateTime(LocalDateTime.now());
+        apt.setToDateTime(LocalDateTime.now().plusHours(1));
+        apt.setStatus(AppointmentStatus.PROPOSED);
+        apt.setInitiatedBy(InitiatorType.BROKER);
+        apt.setLocation("123 Main St");
+        apt.setLatitude(45.5);
+        apt.setLongitude(-73.5);
+        apt.setNotes("Test notes");
+        apt.setCreatedAt(LocalDateTime.now());
+        apt.setUpdatedAt(LocalDateTime.now());
+        return apt;
+    }
+
+    private UserAccount createUserAccount(UUID id, String firstName, String lastName) {
+        UserAccount user = new UserAccount();
+        user.setId(id);
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        return user;
+    }
+
+    private void mockUserAccounts() {
+        when(userAccountRepository.findAllById(any()))
+                .thenReturn(List.of(
+                        createUserAccount(brokerId, "John", "Broker"),
+                        createUserAccount(clientId, "Jane", "Client")
+                ));
+    }
+
+    // ========== getAppointmentsForBroker Tests ==========
+
+    @Test
+    void getAppointmentsForBroker_returnsAppointments() {
+        // Arrange
+        Appointment apt = createTestAppointment();
+        when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                .thenReturn(List.of(apt));
+        mockUserAccounts();
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForBroker(brokerId);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).title()).isEqualTo("Test Appointment");
+        assertThat(result.get(0).brokerName()).isEqualTo("John Broker");
+        assertThat(result.get(0).clientName()).isEqualTo("Jane Client");
+        verify(appointmentRepository).findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId);
+    }
+
+    @Test
+    void getAppointmentsForBroker_withNoAppointments_returnsEmptyList() {
+        // Arrange
+        when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                .thenReturn(List.of());
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForBroker(brokerId);
+
+        // Assert
+        assertThat(result).isEmpty();
+    }
+
+    // ========== getAppointmentsForClient Tests ==========
+
+    @Test
+    void getAppointmentsForClient_returnsAppointments() {
+        // Arrange
+        Appointment apt = createTestAppointment();
+        when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                .thenReturn(List.of(apt));
+        mockUserAccounts();
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).title()).isEqualTo("Test Appointment");
+        verify(appointmentRepository).findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId);
+    }
+
+    @Test
+    void getAppointmentsForClient_withNoAppointments_returnsEmptyList() {
+        // Arrange
+        when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                .thenReturn(List.of());
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId);
+
+        // Assert
+        assertThat(result).isEmpty();
+    }
+
+    // ========== getAppointmentsForBrokerByDateRange Tests ==========
+
+    @Test
+    void getAppointmentsForBrokerByDateRange_returnsFilteredAppointments() {
+        // Arrange
+        LocalDateTime from = LocalDateTime.now();
+        LocalDateTime to = LocalDateTime.now().plusDays(7);
+        Appointment apt = createTestAppointment();
+        when(appointmentRepository.findByBrokerIdAndDateRange(brokerId, from, to))
+                .thenReturn(List.of(apt));
+        mockUserAccounts();
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForBrokerByDateRange(brokerId, from, to);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        verify(appointmentRepository).findByBrokerIdAndDateRange(brokerId, from, to);
+    }
+
+    // ========== getAppointmentsForClientByDateRange Tests ==========
+
+    @Test
+    void getAppointmentsForClientByDateRange_returnsFilteredAppointments() {
+        // Arrange
+        LocalDateTime from = LocalDateTime.now();
+        LocalDateTime to = LocalDateTime.now().plusDays(7);
+        Appointment apt = createTestAppointment();
+        when(appointmentRepository.findByClientIdAndDateRange(clientId, from, to))
+                .thenReturn(List.of(apt));
+        mockUserAccounts();
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClientByDateRange(clientId, from, to);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        verify(appointmentRepository).findByClientIdAndDateRange(clientId, from, to);
+    }
+
+    // ========== getAppointmentsForBrokerByStatus Tests ==========
+
+    @Test
+    void getAppointmentsForBrokerByStatus_returnsFilteredAppointments() {
+        // Arrange
+        Appointment apt = createTestAppointment();
+        apt.setStatus(AppointmentStatus.CONFIRMED);
+        when(appointmentRepository.findByBrokerIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId, AppointmentStatus.CONFIRMED))
+                .thenReturn(List.of(apt));
+        mockUserAccounts();
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForBrokerByStatus(brokerId, AppointmentStatus.CONFIRMED);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).status()).isEqualTo(AppointmentStatus.CONFIRMED);
+        verify(appointmentRepository).findByBrokerIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId, AppointmentStatus.CONFIRMED);
+    }
+
+    // ========== getAppointmentsForClientByStatus Tests ==========
+
+    @Test
+    void getAppointmentsForClientByStatus_returnsFilteredAppointments() {
+        // Arrange
+        Appointment apt = createTestAppointment();
+        apt.setStatus(AppointmentStatus.DECLINED);
+        when(appointmentRepository.findByClientIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId, AppointmentStatus.DECLINED))
+                .thenReturn(List.of(apt));
+        mockUserAccounts();
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClientByStatus(clientId, AppointmentStatus.DECLINED);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).status()).isEqualTo(AppointmentStatus.DECLINED);
+        verify(appointmentRepository).findByClientIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId, AppointmentStatus.DECLINED);
+    }
+
+    // ========== getAppointmentsForTransaction Tests ==========
+
+    @Test
+    void getAppointmentsForTransaction_returnsAppointments() {
+        // Arrange
+        Appointment apt = createTestAppointment();
+        when(appointmentRepository.findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(transactionId))
+                .thenReturn(List.of(apt));
+        mockUserAccounts();
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForTransaction(transactionId);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).transactionId()).isEqualTo(transactionId);
+        verify(appointmentRepository).findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(transactionId);
+    }
+
+    @Test
+    void getAppointmentsForTransaction_withNoAppointments_returnsEmptyList() {
+        // Arrange
+        when(appointmentRepository.findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(transactionId))
+                .thenReturn(List.of());
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForTransaction(transactionId);
+
+        // Assert
+        assertThat(result).isEmpty();
+    }
+
+    // ========== getAppointmentById Tests ==========
+
+    @Test
+    void getAppointmentById_returnsAppointment() {
+        // Arrange
+        UUID appointmentId = UUID.randomUUID();
+        Appointment apt = createTestAppointment();
+        apt.setAppointmentId(appointmentId);
+        when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                .thenReturn(Optional.of(apt));
+        mockUserAccounts();
+
+        // Act
+        AppointmentResponseDTO result = appointmentService.getAppointmentById(appointmentId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.appointmentId()).isEqualTo(appointmentId);
+        verify(appointmentRepository).findByAppointmentIdAndDeletedAtIsNull(appointmentId);
+    }
+
+    @Test
+    void getAppointmentById_notFound_throwsNotFoundException() {
+        // Arrange
+        UUID appointmentId = UUID.randomUUID();
+        when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                .thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> appointmentService.getAppointmentById(appointmentId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Appointment not found");
+    }
+
+    // ========== User Name Mapping Tests ==========
+
+    @Test
+    void mapToDTO_withUnknownUser_usesUnknownFallback() {
+        // Arrange
+        Appointment apt = createTestAppointment();
+        when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                .thenReturn(List.of(apt));
+        // Return empty list so user names are not found
+        when(userAccountRepository.findAllById(any())).thenReturn(List.of());
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForBroker(brokerId);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).brokerName()).isEqualTo("Unknown");
+        assertThat(result.get(0).clientName()).isEqualTo("Unknown");
+    }
+
+    @Test
+    void getFullName_withNullFirstName_returnsLastNameOnly() {
+        // Arrange
+        Appointment apt = createTestAppointment();
+        when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                .thenReturn(List.of(apt));
+        
+        UserAccount brokerUser = createUserAccount(brokerId, null, "BrokerLastName");
+        UserAccount clientUser = createUserAccount(clientId, "Jane", "Client");
+        when(userAccountRepository.findAllById(any())).thenReturn(List.of(brokerUser, clientUser));
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForBroker(brokerId);
+
+        // Assert
+        assertThat(result.get(0).brokerName()).isEqualTo("BrokerLastName");
+    }
+
+    @Test
+    void getFullName_withNullLastName_returnsFirstNameOnly() {
+        // Arrange
+        Appointment apt = createTestAppointment();
+        when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                .thenReturn(List.of(apt));
+        
+        UserAccount brokerUser = createUserAccount(brokerId, "John", null);
+        UserAccount clientUser = createUserAccount(clientId, "Jane", "Client");
+        when(userAccountRepository.findAllById(any())).thenReturn(List.of(brokerUser, clientUser));
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForBroker(brokerId);
+
+        // Assert
+        assertThat(result.get(0).brokerName()).isEqualTo("John");
+    }
+
+    @Test
+    void getFullName_withBothNamesNull_returnsEmptyString() {
+        // Arrange
+        Appointment apt = createTestAppointment();
+        when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                .thenReturn(List.of(apt));
+        
+        UserAccount brokerUser = createUserAccount(brokerId, null, null);
+        UserAccount clientUser = createUserAccount(clientId, "Jane", "Client");
+        when(userAccountRepository.findAllById(any())).thenReturn(List.of(brokerUser, clientUser));
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForBroker(brokerId);
+
+        // Assert
+        assertThat(result.get(0).brokerName()).isEmpty();
+    }
+
+    // ========== DTO Mapping Tests ==========
+
+    @Test
+    void mapToDTO_mapsAllFields() {
+        // Arrange
+        Appointment apt = createTestAppointment();
+        when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                .thenReturn(List.of(apt));
+        mockUserAccounts();
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForBroker(brokerId);
+
+        // Assert
+        AppointmentResponseDTO dto = result.get(0);
+        assertThat(dto.appointmentId()).isEqualTo(apt.getAppointmentId());
+        assertThat(dto.title()).isEqualTo(apt.getTitle());
+        assertThat(dto.transactionId()).isEqualTo(apt.getTransactionId());
+        assertThat(dto.brokerId()).isEqualTo(apt.getBrokerId());
+        assertThat(dto.clientId()).isEqualTo(apt.getClientId());
+        assertThat(dto.fromDateTime()).isEqualTo(apt.getFromDateTime());
+        assertThat(dto.toDateTime()).isEqualTo(apt.getToDateTime());
+        assertThat(dto.status()).isEqualTo(apt.getStatus());
+        assertThat(dto.initiatedBy()).isEqualTo(apt.getInitiatedBy());
+        assertThat(dto.location()).isEqualTo(apt.getLocation());
+        assertThat(dto.latitude()).isEqualTo(apt.getLatitude());
+        assertThat(dto.longitude()).isEqualTo(apt.getLongitude());
+        assertThat(dto.notes()).isEqualTo(apt.getNotes());
+        assertThat(dto.createdAt()).isEqualTo(apt.getCreatedAt());
+        assertThat(dto.updatedAt()).isEqualTo(apt.getUpdatedAt());
+    }
+
+    @Test
+    void getAppointmentsForBroker_withMultipleAppointments_returnsAll() {
+        // Arrange
+        Appointment apt1 = createTestAppointment();
+        apt1.setTitle("Appointment 1");
+        Appointment apt2 = createTestAppointment();
+        apt2.setTitle("Appointment 2");
+        apt2.setAppointmentId(UUID.randomUUID());
+
+        when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                .thenReturn(List.of(apt1, apt2));
+        mockUserAccounts();
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForBroker(brokerId);
+
+        // Assert
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).title()).isEqualTo("Appointment 1");
+        assertThat(result.get(1).title()).isEqualTo("Appointment 2");
+    }
+}

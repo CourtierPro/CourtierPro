@@ -269,9 +269,11 @@
   "timelineType": {
     "CREATED": "Transaction créée",
     "STAGE_CHANGE": "Changement d'étape",
+    "STATUS_CHANGE": "Changement de statut",
     "NOTE": "Note",
     "TRANSACTION_NOTE": "Note",
     "DOCUMENT_REQUESTED": "Demande de document",
+    "DOCUMENT_REQUEST_UPDATED": "Document mis à jour",
     "DOCUMENT_SUBMITTED": "Document soumis",
     "DOCUMENT_APPROVED": "Document approuvé",
     "DOCUMENT_NEEDS_REVISION": "Document à réviser",

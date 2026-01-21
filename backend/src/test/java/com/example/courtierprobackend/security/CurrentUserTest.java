@@ -124,4 +124,141 @@ class CurrentUserTest {
         // Act & Assert
         assertThat(currentUser.jwt()).isEqualTo(jwt);
     }
+
+    @Test
+    void internalId_returnsUuidFromRequestAttribute() {
+        // Arrange
+        java.util.UUID expectedId = java.util.UUID.randomUUID();
+        org.springframework.mock.web.MockHttpServletRequest request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.setAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR, expectedId);
+        org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(
+                new org.springframework.web.context.request.ServletRequestAttributes(request));
+
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .subject("auth0|123")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+        CurrentUser currentUser = new CurrentUser(jwt);
+
+        // Act
+        java.util.UUID result = currentUser.internalId();
+
+        // Assert
+        assertThat(result).isEqualTo(expectedId);
+
+        // Cleanup
+        org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
+    }
+
+    @Test
+    void internalId_returnsNullWhenNoRequestAttributes() {
+        // Arrange
+        org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .subject("auth0|123")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+        CurrentUser currentUser = new CurrentUser(jwt);
+
+        // Act
+        java.util.UUID result = currentUser.internalId();
+
+        // Assert
+        assertThat(result).isNull();
+    }
+
+    @Test
+    void internalId_returnsNullWhenAttributeNotUuid() {
+        // Arrange
+        org.springframework.mock.web.MockHttpServletRequest request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.setAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR, "not-a-uuid");
+        org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(
+                new org.springframework.web.context.request.ServletRequestAttributes(request));
+
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .subject("auth0|123")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+        CurrentUser currentUser = new CurrentUser(jwt);
+
+        // Act
+        java.util.UUID result = currentUser.internalId();
+
+        // Assert
+        assertThat(result).isNull();
+
+        // Cleanup
+        org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
+    }
+
+    @Test
+    void internalIdString_returnsStringRepresentation() {
+        // Arrange
+        java.util.UUID expectedId = java.util.UUID.randomUUID();
+        org.springframework.mock.web.MockHttpServletRequest request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.setAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR, expectedId);
+        org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(
+                new org.springframework.web.context.request.ServletRequestAttributes(request));
+
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .subject("auth0|123")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+        CurrentUser currentUser = new CurrentUser(jwt);
+
+        // Act
+        String result = currentUser.internalIdString();
+
+        // Assert
+        assertThat(result).isEqualTo(expectedId.toString());
+
+        // Cleanup
+        org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
+    }
+
+    @Test
+    void internalIdString_returnsNullWhenNoInternalId() {
+        // Arrange
+        org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .subject("auth0|123")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+        CurrentUser currentUser = new CurrentUser(jwt);
+
+        // Act
+        String result = currentUser.internalIdString();
+
+        // Assert
+        assertThat(result).isNull();
+    }
+
+    @Test
+    void auth0Id_returnsSubClaim() {
+        // Arrange
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .subject("auth0|user123")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+        CurrentUser currentUser = new CurrentUser(jwt);
+
+        // Act
+        String result = currentUser.auth0Id();
+
+        // Assert
+        assertThat(result).isEqualTo("auth0|user123");
+    }
 }
+

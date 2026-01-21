@@ -37,6 +37,7 @@
   "loginAudit": "Journal des connexions",
   "loginAuditSubtitle": "Consultez l'activité de connexion et les diagnostics d'authentification.",
   "action": "Action",
+  "actions": "Actions",
   "timestamp": "Horodatage",
   "loginUser": "utilisateur",
   "ipAddress": "ipAddress",

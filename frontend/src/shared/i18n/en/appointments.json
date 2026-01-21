@@ -1,5 +1,6 @@
 {
-    "title": "Schedule Appointment",
+    "title": "Appointments",
+    "subtitle": "View and manage your upcoming appointments.",
     "appointmentType": "Appointment Type",
     "selectType": "Select appointment type",
     "date": "Date",
@@ -28,5 +29,17 @@
     "noTransactionsAvailable": "No transactions for this client",
     "noAppointmentsTitle": "No appointments scheduled",
     "noAppointmentsDesc": "You don't have any upcoming appointments. Schedule one now.",
-    "scheduleAppointment": "Schedule Appointment"
+    "scheduleAppointment": "Schedule Appointment",
+    "calendarView": "Calendar",
+    "listView": "List",
+    "today": "Today",
+    "selectDate": "Select a date",
+    "clickToSee": "Click on a date to see appointments",
+    "noAppointmentsDate": "No appointments on this date",
+    "status": {
+        "proposed": "Proposed",
+        "confirmed": "Confirmed",
+        "declined": "Declined",
+        "cancelled": "Cancelled"
+    }
 }

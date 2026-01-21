@@ -160,7 +160,7 @@ export function AdminResourcesPage() {
                                 <th className="px-6 py-4 font-medium">{t("created")}</th>
                                 <th className="px-6 py-4 font-medium">{t("status")}</th>
                                 <th className="px-6 py-4 font-medium text-right">
-                                    <span className="sr-only">Actions</span>
+                                    <span className="sr-only">{t("actions")}</span>
                                 </th>
                             </tr>
                         </thead>

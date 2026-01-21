@@ -111,4 +111,90 @@ class UserContextFilterTest {
         verify(request, never()).setAttribute(eq(UserContextFilter.AUTH0_USER_ID_ATTR), any());
         verify(filterChain).doFilter(request, response);
     }
+
+    @Test
+    void doFilterInternal_InactiveUser_BlocksRequestWithForbidden() throws ServletException, IOException {
+        String auth0Id = "auth0|inactive";
+        UUID internalId = UUID.randomUUID();
+        UserAccount user = new UserAccount();
+        user.setId(internalId);
+        user.setActive(false); // Inactive user
+        user.setRole(com.example.courtierprobackend.user.dataaccesslayer.UserRole.CLIENT);
+
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getToken()).thenReturn(jwt);
+        when(jwt.getClaimAsString("sub")).thenReturn(auth0Id);
+        when(userAccountRepository.findByAuth0UserId(auth0Id)).thenReturn(Optional.of(user));
+        when(request.getRequestURI()).thenReturn("/api/transactions");
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(response).sendError(eq(HttpServletResponse.SC_FORBIDDEN), anyString());
+        verify(filterChain, never()).doFilter(request, response);
+    }
+
+    @Test
+    void doFilterInternal_InactiveUserAccessingEmailConfirm_AllowsRequest() throws ServletException, IOException {
+        String auth0Id = "auth0|inactive";
+        UUID internalId = UUID.randomUUID();
+        UserAccount user = new UserAccount();
+        user.setId(internalId);
+        user.setActive(false); // Inactive user
+        user.setRole(com.example.courtierprobackend.user.dataaccesslayer.UserRole.CLIENT);
+
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getToken()).thenReturn(jwt);
+        when(jwt.getClaimAsString("sub")).thenReturn(auth0Id);
+        when(userAccountRepository.findByAuth0UserId(auth0Id)).thenReturn(Optional.of(user));
+        when(request.getRequestURI()).thenReturn("/api/me/confirm-email");
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(response, never()).sendError(anyInt(), anyString());
+        verify(request).setAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR, internalId);
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    void doFilterInternal_InactiveUserAccessingEmailConfirmSubpath_AllowsRequest() throws ServletException, IOException {
+        String auth0Id = "auth0|inactive";
+        UUID internalId = UUID.randomUUID();
+        UserAccount user = new UserAccount();
+        user.setId(internalId);
+        user.setActive(false); // Inactive user
+        user.setRole(com.example.courtierprobackend.user.dataaccesslayer.UserRole.CLIENT);
+
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getToken()).thenReturn(jwt);
+        when(jwt.getClaimAsString("sub")).thenReturn(auth0Id);
+        when(userAccountRepository.findByAuth0UserId(auth0Id)).thenReturn(Optional.of(user));
+        when(request.getRequestURI()).thenReturn("/api/me/confirm-email/token123");
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(response, never()).sendError(anyInt(), anyString());
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    void doFilterInternal_NullRequestUri_InactiveUserBlocked() throws ServletException, IOException {
+        String auth0Id = "auth0|inactive";
+        UUID internalId = UUID.randomUUID();
+        UserAccount user = new UserAccount();
+        user.setId(internalId);
+        user.setActive(false);
+        user.setRole(com.example.courtierprobackend.user.dataaccesslayer.UserRole.CLIENT);
+
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getToken()).thenReturn(jwt);
+        when(jwt.getClaimAsString("sub")).thenReturn(auth0Id);
+        when(userAccountRepository.findByAuth0UserId(auth0Id)).thenReturn(Optional.of(user));
+        when(request.getRequestURI()).thenReturn(null);
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(response).sendError(eq(HttpServletResponse.SC_FORBIDDEN), anyString());
+        verify(filterChain, never()).doFilter(request, response);
+    }
 }
+
