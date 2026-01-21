@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import axiosInstance from '@/shared/api/axiosInstance';
 import { type Appointment, type AppointmentFilters } from '../types';
 
@@ -29,6 +29,7 @@ export function useAppointments(filters?: AppointmentFilters) {
             const res = await axiosInstance.get<Appointment[]>(url);
             return res.data;
         },
+        placeholderData: keepPreviousData,
     });
 }
 

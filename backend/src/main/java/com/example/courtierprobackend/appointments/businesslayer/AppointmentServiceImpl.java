@@ -87,6 +87,22 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
+    public List<AppointmentResponseDTO> getAppointmentsForBrokerByDateRangeAndStatus(
+            UUID brokerId, LocalDateTime from, LocalDateTime to, AppointmentStatus status) {
+        List<Appointment> appointments = appointmentRepository
+                .findByBrokerIdAndDateRangeAndStatus(brokerId, from, to, status);
+        return mapToDTOs(appointments);
+    }
+
+    @Override
+    public List<AppointmentResponseDTO> getAppointmentsForClientByDateRangeAndStatus(
+            UUID clientId, LocalDateTime from, LocalDateTime to, AppointmentStatus status) {
+        List<Appointment> appointments = appointmentRepository
+                .findByClientIdAndDateRangeAndStatus(clientId, from, to, status);
+        return mapToDTOs(appointments);
+    }
+
+    @Override
     public List<AppointmentResponseDTO> getAppointmentsForTransaction(UUID transactionId, UUID requesterId) {
         Transaction transaction = transactionRepository.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));

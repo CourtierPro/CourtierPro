@@ -16,6 +16,7 @@ interface AppointmentCalendarViewProps {
     onPreviousMonth: () => void;
     onNextMonth: () => void;
     onToday: () => void;
+    isLoading?: boolean;
 }
 
 export function AppointmentCalendarView({
@@ -24,6 +25,7 @@ export function AppointmentCalendarView({
     onPreviousMonth,
     onNextMonth,
     onToday,
+    isLoading = false,
 }: AppointmentCalendarViewProps) {
     const { t, i18n } = useTranslation('appointments');
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -64,11 +66,19 @@ export function AppointmentCalendarView({
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Calendar Section */}
-            <Card className="lg:col-span-2">
+            <Card className="lg:col-span-2 relative">
+                {isLoading && (
+                    <div className="absolute inset-0 bg-background/50 z-10 flex items-center justify-center backdrop-blur-[1px] rounded-lg">
+                        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                )}
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                     <CardTitle className="text-xl font-semibold capitalize">{monthYear}</CardTitle>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={onToday}>
+                        <Button variant="outline" size="sm" onClick={() => {
+                            onToday();
+                            setSelectedDate(new Date());
+                        }}>
                             {t('today', 'Today')}
                         </Button>
                         <Button variant="outline" size="icon" onClick={onPreviousMonth}>

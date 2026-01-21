@@ -25,9 +25,10 @@ export function AppointmentsPage() {
     goToPreviousMonth,
     goToNextMonth,
     goToToday,
+    isFetching,
   } = useAppointmentsPageLogic();
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading && !appointments.length) return <LoadingState />;
   if (error) return <ErrorState message={error.message} onRetry={() => refetch()} />;
 
   const hasAppointments = appointments.length > 0;
@@ -70,6 +71,7 @@ export function AppointmentsPage() {
             onPreviousMonth={goToPreviousMonth}
             onNextMonth={goToNextMonth}
             onToday={goToToday}
+            isLoading={isFetching}
           />
           {!hasAppointments && (
             <div className="mt-6 text-center text-muted-foreground">

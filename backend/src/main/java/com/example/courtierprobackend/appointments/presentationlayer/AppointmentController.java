@@ -3,6 +3,7 @@ package com.example.courtierprobackend.appointments.presentationlayer;
 import com.example.courtierprobackend.appointments.businesslayer.AppointmentService;
 import com.example.courtierprobackend.appointments.datalayer.dto.AppointmentResponseDTO;
 import com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus;
+import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.security.UserContextUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -46,9 +47,18 @@ public class AppointmentController {
         UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
         boolean isBroker = UserContextUtils.isBroker(request);
 
+        if ((from != null && to == null) || (from == null && to != null)) {
+            throw new BadRequestException("Both 'from' and 'to' parameters must be provided for date filtering.");
+        }
+
         List<AppointmentResponseDTO> appointments;
 
-        if (from != null && to != null) {
+        if (from != null && to != null && status != null) {
+            // Filter by date range AND status
+            appointments = isBroker
+                    ? appointmentService.getAppointmentsForBrokerByDateRangeAndStatus(userId, from, to, status)
+                    : appointmentService.getAppointmentsForClientByDateRangeAndStatus(userId, from, to, status);
+        } else if (from != null && to != null) {
             // Filter by date range
             appointments = isBroker
                     ? appointmentService.getAppointmentsForBrokerByDateRange(userId, from, to)

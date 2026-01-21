@@ -4,6 +4,7 @@ import com.example.courtierprobackend.appointments.businesslayer.AppointmentServ
 import com.example.courtierprobackend.appointments.datalayer.dto.AppointmentResponseDTO;
 import com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus;
 import com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType;
+import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.security.UserContextFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -117,6 +118,23 @@ class AppointmentControllerTest {
     }
 
     @Test
+    void getAppointments_brokerWithPartialDateRange_throwsBadRequest() {
+        // Arrange
+        MockHttpServletRequest request = createBrokerRequest(brokerId);
+        Jwt jwt = createJwt("auth0|broker");
+        LocalDateTime from = LocalDateTime.now();
+        
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(BadRequestException.class, () -> {
+            controller.getAppointments(from, null, null, null, jwt, request);
+        });
+
+        org.junit.jupiter.api.Assertions.assertThrows(BadRequestException.class, () -> {
+            controller.getAppointments(null, from, null, null, jwt, request); // using from as to
+        });
+    }
+
+    @Test
     void getAppointments_brokerWithDateRange_returnsFilteredAppointments() {
         // Arrange
         MockHttpServletRequest request = createBrokerRequest(brokerId);
@@ -158,6 +176,30 @@ class AppointmentControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).hasSize(1);
         verify(appointmentService).getAppointmentsForBrokerByStatus(brokerId, AppointmentStatus.CONFIRMED);
+    }
+
+    @Test
+    void getAppointments_brokerWithDateRangeAndStatus_returnsFilteredAppointments() {
+        // Arrange
+        MockHttpServletRequest request = createBrokerRequest(brokerId);
+        Jwt jwt = createJwt("auth0|broker");
+        LocalDateTime from = LocalDateTime.now();
+        LocalDateTime to = LocalDateTime.now().plusDays(7);
+        AppointmentStatus status = AppointmentStatus.CONFIRMED;
+        AppointmentResponseDTO dto = createTestAppointmentDTO();
+
+        when(appointmentService.getAppointmentsForBrokerByDateRangeAndStatus(brokerId, from, to, status))
+                .thenReturn(List.of(dto));
+
+        // Act
+        ResponseEntity<List<AppointmentResponseDTO>> response = controller.getAppointments(
+                from, to, status, null, jwt, request
+        );
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+        verify(appointmentService).getAppointmentsForBrokerByDateRangeAndStatus(brokerId, from, to, status);
     }
 
     // ========== GET /appointments Tests - Client ==========
@@ -224,6 +266,30 @@ class AppointmentControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).hasSize(1);
         verify(appointmentService).getAppointmentsForClientByStatus(clientId, AppointmentStatus.DECLINED);
+    }
+
+    @Test
+    void getAppointments_clientWithDateRangeAndStatus_returnsFilteredAppointments() {
+        // Arrange
+        MockHttpServletRequest request = createClientRequest(clientId);
+        Jwt jwt = createJwt("auth0|client");
+        LocalDateTime from = LocalDateTime.now();
+        LocalDateTime to = LocalDateTime.now().plusDays(7);
+        AppointmentStatus status = AppointmentStatus.CONFIRMED;
+        AppointmentResponseDTO dto = createTestAppointmentDTO();
+
+        when(appointmentService.getAppointmentsForClientByDateRangeAndStatus(clientId, from, to, status))
+                .thenReturn(List.of(dto));
+
+        // Act
+        ResponseEntity<List<AppointmentResponseDTO>> response = controller.getAppointments(
+                from, to, status, null, jwt, request
+        );
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+        verify(appointmentService).getAppointmentsForClientByDateRangeAndStatus(clientId, from, to, status);
     }
 
     // ========== GET /appointments Tests - Header Override ==========

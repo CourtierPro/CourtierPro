@@ -12,7 +12,7 @@ export function useAppointmentsPageLogic() {
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth();
 
-    const { data: appointments = [], isLoading, error, refetch } = useAppointmentsForMonth(
+    const { data: appointments = [], isLoading, error, refetch, isFetching } = useAppointmentsForMonth(
         currentYear,
         currentMonth
     );
@@ -24,11 +24,11 @@ export function useAppointmentsPageLogic() {
 
     // Date navigation
     const goToPreviousMonth = () => {
-        setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
+        setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
     };
 
     const goToNextMonth = () => {
-        setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
+        setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
     };
 
     const goToToday = () => {
@@ -40,6 +40,7 @@ export function useAppointmentsPageLogic() {
         appointments,
         groupedAppointments,
         isLoading,
+        isFetching,
         error,
         refetch,
 

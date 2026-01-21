@@ -38,11 +38,9 @@ export function TopNav({
   const { setIsOpen } = useSearchContext();
   const { data: user, isLoading: isUserLoading } = useUserProfile();
 
-  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  const languageRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Compute user initials from profile data
@@ -59,12 +57,6 @@ export function TopNav({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        languageRef.current &&
-        !languageRef.current.contains(event.target as Node)
-      ) {
-        setIsLanguageMenuOpen(false);
-      }
-      if (
         userMenuRef.current &&
         !userMenuRef.current.contains(event.target as Node)
       ) {
@@ -78,19 +70,13 @@ export function TopNav({
     };
   }, []);
 
-  const toggleLanguageMenu = () => {
-    setIsLanguageMenuOpen((prev) => !prev);
-    setIsUserMenuOpen(false);
+  const toggleLanguage = () => {
+    const newLang = language === "en" ? "fr" : "en";
+    onLanguageChange(newLang);
   };
 
   const toggleUserMenu = () => {
     setIsUserMenuOpen((prev) => !prev);
-    setIsLanguageMenuOpen(false);
-  };
-
-  const selectLanguage = (lang: "en" | "fr") => {
-    onLanguageChange(lang);
-    setIsLanguageMenuOpen(false);
   };
 
   const handleLogoutClick = () => {
@@ -151,67 +137,18 @@ export function TopNav({
         </Button>
 
         <ModeToggle />
-        {/* Language selector */}
-        <div className="relative" ref={languageRef}>
-          <Button
-            variant="ghost"
-            onClick={toggleLanguageMenu}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                toggleLanguageMenu();
-              }
-              if (e.key === "Escape") {
-                setIsLanguageMenuOpen(false);
-              }
-            }}
-            className="flex items-center gap-2 px-3 py-2 text-foreground"
-            aria-label={t("language")}
-            aria-expanded={isLanguageMenuOpen}
-            aria-haspopup="true"
-          >
-            <Globe className="w-5 h-5" />
-            <span className="hidden sm:inline">
-              {language.toUpperCase()}
-            </span>
-          </Button>
-          {isLanguageMenuOpen && (
-            <div
-              className="absolute right-0 mt-2 w-32 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg"
-              role="menu"
-              aria-label={t("language")}
-            >
-              <button
-                onClick={() => selectLanguage("en")}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    selectLanguage("en");
-                  }
-                }}
-                className={`w-full px-4 py-2 text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none ${language === "en" ? "bg-accent/50" : ""
-                  }`}
-                role="menuitem"
-              >
-                English
-              </button>
-              <button
-                onClick={() => selectLanguage("fr")}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    selectLanguage("fr");
-                  }
-                }}
-                className={`w-full px-4 py-2 text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none ${language === "fr" ? "bg-accent/50" : ""
-                  }`}
-                role="menuitem"
-              >
-                Français
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Language selector toggle */}
+        <Button
+          variant="ghost"
+          onClick={toggleLanguage}
+          className="flex items-center gap-2 px-3 py-2 text-foreground"
+          aria-label={t("language")}
+        >
+          <Globe className="w-5 h-5" />
+          <span className="hidden sm:inline">
+            {language.toUpperCase()}
+          </span>
+        </Button>
 
         {/* Notifications */}
         <NotificationPopover />

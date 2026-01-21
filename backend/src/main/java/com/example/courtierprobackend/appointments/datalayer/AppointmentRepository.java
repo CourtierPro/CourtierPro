@@ -69,6 +69,34 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             UUID clientId, AppointmentStatus status);
 
     /**
+     * Find appointments for a broker within a date range and with specific status.
+     */
+    @Query("SELECT a FROM Appointment a WHERE a.brokerId = :brokerId " +
+           "AND a.deletedAt IS NULL " +
+           "AND a.status = :status " +
+           "AND a.fromDateTime >= :fromDate AND a.fromDateTime < :toDate " +
+           "ORDER BY a.fromDateTime ASC")
+    List<Appointment> findByBrokerIdAndDateRangeAndStatus(
+            @Param("brokerId") UUID brokerId,
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
+            @Param("status") AppointmentStatus status);
+
+    /**
+     * Find appointments for a client within a date range and with specific status.
+     */
+    @Query("SELECT a FROM Appointment a WHERE a.clientId = :clientId " +
+           "AND a.deletedAt IS NULL " +
+           "AND a.status = :status " +
+           "AND a.fromDateTime >= :fromDate AND a.fromDateTime < :toDate " +
+           "ORDER BY a.fromDateTime ASC")
+    List<Appointment> findByClientIdAndDateRangeAndStatus(
+            @Param("clientId") UUID clientId,
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
+            @Param("status") AppointmentStatus status);
+
+    /**
      * Find appointments for a specific transaction.
      */
     List<Appointment> findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(UUID transactionId);

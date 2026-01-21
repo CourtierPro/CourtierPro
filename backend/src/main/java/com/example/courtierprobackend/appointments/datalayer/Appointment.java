@@ -87,11 +87,21 @@ public class Appointment {
         }
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        validateDates();
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+        validateDates();
+    }
+
+    private void validateDates() {
+        if (fromDateTime != null && toDateTime != null) {
+            if (!toDateTime.isAfter(fromDateTime)) {
+                throw new IllegalArgumentException("Appointment end time must be after start time");
+            }
+        }
     }
 
     // Getters and Setters

@@ -42,5 +42,5 @@ CREATE INDEX idx_appointments_deleted_at ON appointments(deleted_at);
 -- Composite index for common broker date range queries
 CREATE INDEX idx_appointments_broker_date ON appointments(broker_id, from_date_time);
 
--- Composite index for common client date range queries  
+-- Composite index for common client date range queries
 CREATE INDEX idx_appointments_client_date ON appointments(client_id, from_date_time);

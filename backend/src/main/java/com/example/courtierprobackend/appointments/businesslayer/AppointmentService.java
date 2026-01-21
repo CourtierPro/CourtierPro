@@ -47,6 +47,18 @@ public interface AppointmentService {
             UUID clientId, AppointmentStatus status);
 
     /**
+     * Get appointments for a broker within a date range and with specific status.
+     */
+    List<AppointmentResponseDTO> getAppointmentsForBrokerByDateRangeAndStatus(
+            UUID brokerId, LocalDateTime from, LocalDateTime to, AppointmentStatus status);
+
+    /**
+     * Get appointments for a client within a date range and with specific status.
+     */
+    List<AppointmentResponseDTO> getAppointmentsForClientByDateRangeAndStatus(
+            UUID clientId, LocalDateTime from, LocalDateTime to, AppointmentStatus status);
+
+    /**
      * Get appointments for a specific transaction.
      * Includes transaction ownership verification.
      */

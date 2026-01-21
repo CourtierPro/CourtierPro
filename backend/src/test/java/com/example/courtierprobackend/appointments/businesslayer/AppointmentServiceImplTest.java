@@ -244,11 +244,50 @@ class AppointmentServiceImplTest {
         verify(appointmentRepository).findByClientIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId, AppointmentStatus.DECLINED);
     }
 
+    // ========== getAppointmentsForBrokerByDateRangeAndStatus Tests ==========
+
+    @Test
+    void getAppointmentsForBrokerByDateRangeAndStatus_returnsFilteredAppointments() {
+        // Arrange
+        LocalDateTime from = LocalDateTime.now();
+        LocalDateTime to = LocalDateTime.now().plusDays(7);
+        Appointment apt = createTestAppointment();
+        when(appointmentRepository.findByBrokerIdAndDateRangeAndStatus(brokerId, from, to, AppointmentStatus.CONFIRMED))
+                .thenReturn(List.of(apt));
+        mockUserAccounts();
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForBrokerByDateRangeAndStatus(brokerId, from, to, AppointmentStatus.CONFIRMED);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        verify(appointmentRepository).findByBrokerIdAndDateRangeAndStatus(brokerId, from, to, AppointmentStatus.CONFIRMED);
+    }
+
+    // ========== getAppointmentsForClientByDateRangeAndStatus Tests ==========
+
+    @Test
+    void getAppointmentsForClientByDateRangeAndStatus_returnsFilteredAppointments() {
+        // Arrange
+        LocalDateTime from = LocalDateTime.now();
+        LocalDateTime to = LocalDateTime.now().plusDays(7);
+        Appointment apt = createTestAppointment();
+        when(appointmentRepository.findByClientIdAndDateRangeAndStatus(clientId, from, to, AppointmentStatus.CONFIRMED))
+                .thenReturn(List.of(apt));
+        mockUserAccounts();
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClientByDateRangeAndStatus(clientId, from, to, AppointmentStatus.CONFIRMED);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        verify(appointmentRepository).findByClientIdAndDateRangeAndStatus(clientId, from, to, AppointmentStatus.CONFIRMED);
+    }
+
     // ========== getAppointmentsForTransaction Tests ==========
 
     @Test
     void getAppointmentsForTransaction_returnsAppointments() {
-        // Arrange
         // Arrange
         Appointment apt = createTestAppointment();
         Transaction transaction = new Transaction();
@@ -304,6 +343,17 @@ class AppointmentServiceImplTest {
 
         // Assert
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getAppointmentsForTransaction_notFound_throwsNotFoundException() {
+        // Arrange
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> appointmentService.getAppointmentsForTransaction(transactionId, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
     }
 
     // ========== getAppointmentById Tests ==========
@@ -428,6 +478,26 @@ class AppointmentServiceImplTest {
 
         // Assert
         assertThat(result.get(0).brokerName()).isEmpty();
+    }
+
+    @Test
+    void getUserNamesMap_withDuplicateUsers_handlesCollision() {
+        // Arrange
+        Appointment apt = createTestAppointment();
+        when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                .thenReturn(List.of(apt));
+
+        // Simulate repository returning duplicate users for the same ID (edge case)
+        UserAccount user1 = createUserAccount(brokerId, "John", "Doe");
+        UserAccount user2 = createUserAccount(brokerId, "John", "Doe"); // Duplicate
+        when(userAccountRepository.findAllById(any())).thenReturn(List.of(user1, user2));
+
+        // Act
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForBroker(brokerId);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).brokerName()).isEqualTo("John Doe");
     }
 
     // ========== DTO Mapping Tests ==========

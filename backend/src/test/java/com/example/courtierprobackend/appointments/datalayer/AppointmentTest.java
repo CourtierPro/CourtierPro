@@ -70,6 +70,43 @@ class AppointmentTest {
         assertThat(appointment.getUpdatedAt()).isAfter(originalTime);
     }
 
+    @Test
+    void onCreate_validateDates_throwsExceptionWhenEndDateBeforeStartDate() {
+        // Arrange
+        appointment.setFromDateTime(LocalDateTime.now().plusHours(2));
+        appointment.setToDateTime(LocalDateTime.now().plusHours(1));
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            appointment.onCreate();
+        });
+    }
+
+    @Test
+    void onCreate_validateDates_throwsExceptionWhenEndDateEqualStartDate() {
+        // Arrange
+        LocalDateTime now = LocalDateTime.now();
+        appointment.setFromDateTime(now);
+        appointment.setToDateTime(now);
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            appointment.onCreate();
+        });
+    }
+
+    @Test
+    void onUpdate_validateDates_throwsExceptionWhenEndDateBeforeStartDate() {
+        // Arrange
+        appointment.setFromDateTime(LocalDateTime.now().plusHours(2));
+        appointment.setToDateTime(LocalDateTime.now().plusHours(1));
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            appointment.onUpdate();
+        });
+    }
+
     // ========== isDeleted ==========
 
     @Test
