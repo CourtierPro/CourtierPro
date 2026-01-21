@@ -34,6 +34,7 @@ export interface TransactionParticipant {
   email?: string;
   phoneNumber?: string;
   permissions?: ParticipantPermission[];
+  isSystem?: boolean; // Ajouté pour la protection UI et exclusion autocomplete
 }
 
 export interface UpdateParticipantRequestDTO {

@@ -1,13 +1,13 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Trash2, Mail, Phone, Pencil } from 'lucide-react';
+import { Trash2, Mail, Phone, Pencil } from 'lucide-react';
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { useTransactionParticipants } from '@/features/transactions/api/queries';
 import { useRemoveParticipant } from '@/features/transactions/api/mutations';
-import { AddParticipantModal } from './AddParticipantModal';
+import AddParticipantModal from './AddParticipantModal';
 import { EditParticipantModal } from './EditParticipantModal'; // Add import
 import type { TransactionParticipant } from '@/shared/api/types'; // Add type import
 import { toast } from 'sonner';
@@ -64,7 +64,6 @@ export function ParticipantsList({ transactionId, isReadOnly = false }: Particip
                 <CardTitle className="text-lg font-medium">{t('participants')}</CardTitle>
                 {!isReadOnly && canManageParticipants && (
                     <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="gap-2">
-                        <Plus className="h-4 w-4" />
                         {t('addParticipant')}
                     </Button>
                 )}
@@ -107,7 +106,8 @@ export function ParticipantsList({ transactionId, isReadOnly = false }: Particip
                                         </div>
                                     )}
                                 </div>
-                                {!isReadOnly && canManageParticipants && (
+                                {/* Empêcher modification/suppression si participant système */}
+                                {!isReadOnly && canManageParticipants && !participant.isSystem && participant.role !== 'BUYER' && participant.role !== 'SELLER' && participant.role !== 'BROKER' && (
                                     <div className="flex gap-2">
                                         <Button
                                             variant="ghost"

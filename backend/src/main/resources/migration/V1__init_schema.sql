@@ -244,6 +244,7 @@ CREATE TABLE IF NOT EXISTS transaction_participants (
     role VARCHAR(50) NOT NULL,
     email VARCHAR(255),
     phone_number VARCHAR(50),
+    is_system BOOLEAN NOT NULL DEFAULT FALSE,
     CONSTRAINT fk_participant_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE
 );
 

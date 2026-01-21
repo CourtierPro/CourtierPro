@@ -39,6 +39,101 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(TransactionController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class TransactionControllerTest {
+                @Test
+                @WithMockUser(roles = "BROKER")
+                void removeParticipant_systemParticipant_returnsForbidden() throws Exception {
+                        UUID txId = UUID.randomUUID();
+                        UUID participantId = UUID.randomUUID();
+                        UUID brokerUuid = UUID.randomUUID();
+                        String brokerId = brokerUuid.toString();
+
+                        // Simule une exception de protection côté service
+                        org.mockito.Mockito.doThrow(new IllegalArgumentException("Cannot remove system participant"))
+                                .when(transactionService).removeParticipant(txId, participantId, brokerUuid);
+
+                        mockMvc.perform(delete("/transactions/" + txId + "/participants/" + participantId)
+                                                        .with(jwt())
+                                                        .header("x-broker-id", brokerId))
+                                        .andExpect(status().isForbidden());
+                }
+
+                @Test
+                @WithMockUser(roles = "BROKER")
+                void addParticipant_duplicateEmail_returnsBadRequest() throws Exception {
+                        UUID txId = UUID.randomUUID();
+                        UUID brokerUuid = UUID.randomUUID();
+                        String brokerId = brokerUuid.toString();
+
+                        AddParticipantRequestDTO requestDto = new AddParticipantRequestDTO();
+                        requestDto.setName("Jane Doe");
+                        requestDto.setRole(ParticipantRole.CO_BROKER);
+                        requestDto.setEmail("duplicate@email.com");
+
+                        org.mockito.Mockito.when(transactionService.addParticipant(eq(txId), any(), eq(brokerUuid)))
+                                .thenThrow(new IllegalArgumentException("Email already exists"));
+
+                        mockMvc.perform(post("/transactions/" + txId + "/participants")
+                                                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                                        .content(objectMapper.writeValueAsString(requestDto))
+                                                        .with(jwt())
+                                                        .header("x-broker-id", brokerId))
+                                        .andExpect(status().isBadRequest());
+                }
+
+                @Test
+                @WithMockUser(roles = "BROKER")
+                void addParticipant_primaryBrokerAsCoBroker_returnsBadRequest() throws Exception {
+                        UUID txId = UUID.randomUUID();
+                        UUID brokerUuid = UUID.randomUUID();
+                        String brokerId = brokerUuid.toString();
+
+                        AddParticipantRequestDTO requestDto = new AddParticipantRequestDTO();
+                        requestDto.setName("Primary Broker");
+                        requestDto.setRole(ParticipantRole.CO_BROKER);
+                        requestDto.setEmail("primary@broker.com");
+
+                        org.mockito.Mockito.when(transactionService.addParticipant(eq(txId), any(), eq(brokerUuid)))
+                                .thenThrow(new IllegalArgumentException("Cannot add primary broker as co-broker"));
+
+                        mockMvc.perform(post("/transactions/" + txId + "/participants")
+                                                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                                        .content(objectMapper.writeValueAsString(requestDto))
+                                                        .with(jwt())
+                                                        .header("x-broker-id", brokerId))
+                                        .andExpect(status().isBadRequest());
+                }
+
+                @Test
+                @WithMockUser(roles = "BROKER")
+                void createTransaction_includesSystemParticipants() throws Exception {
+                        UUID txId = UUID.randomUUID();
+                        UUID brokerUuid = UUID.randomUUID();
+                        String brokerId = brokerUuid.toString();
+
+                        TransactionResponseDTO responseDto = TransactionResponseDTO.builder()
+                                        .transactionId(txId)
+                                        .brokerId(brokerUuid)
+                                        .participants(List.of(
+                                                        ParticipantResponseDTO.builder().name("Client").role(ParticipantRole.CLIENT).isSystem(true).build(),
+                                                        ParticipantResponseDTO.builder().name("Broker").role(ParticipantRole.BROKER).isSystem(true).build()
+                                        ))
+                                        .build();
+
+                        org.mockito.Mockito.when(transactionService.createTransaction(any(), eq(brokerUuid)))
+                                .thenReturn(responseDto);
+
+                        com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO requestDto = new com.example.courtierprobackend.transactions.datalayer.dto.TransactionRequestDTO();
+                        requestDto.setClientId(UUID.randomUUID());
+
+                        mockMvc.perform(post("/transactions")
+                                                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                                        .content(objectMapper.writeValueAsString(requestDto))
+                                                        .with(jwt())
+                                                        .header("x-broker-id", brokerId))
+                                        .andExpect(status().isCreated())
+                                        .andExpect(jsonPath("$.participants[?(@.role=='CLIENT' && @.isSystem==true)]").exists())
+                                        .andExpect(jsonPath("$.participants[?(@.role=='BROKER' && @.isSystem==true)]").exists());
+                }
         @Autowired
         private MockMvc mockMvc;
 

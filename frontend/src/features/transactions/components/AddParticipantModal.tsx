@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { toast } from 'sonner';
 import { useAddParticipant } from '@/features/transactions/api/mutations';
+import { useTransactionParticipants, useTransaction, useBrokers } from '@/features/transactions/api/queries';
 import type { ParticipantRole, ParticipantPermission } from '@/shared/api/types';
 
 interface AddParticipantModalProps {
@@ -37,14 +38,16 @@ const PERMISSIONS: { id: ParticipantPermission; label: string }[] = [
     { id: 'VIEW_CONDITIONS', label: 'View Conditions' },
     { id: 'EDIT_CONDITIONS', label: 'Edit Conditions' },
     { id: 'VIEW_NOTES', label: 'View Notes' },
-    { id: 'EDIT_NOTES', label: 'Edit Notes' }
+    { id: 'EDIT_NOTES', label: 'Edit Notes' },
 ];
 
-export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParticipantModalProps) {
+export default function AddParticipantModal({ isOpen, onClose, transactionId }: AddParticipantModalProps) {
     const { t } = useTranslation('transactions');
     const addParticipant = useAddParticipant();
+    const { data: participants = [] } = useTransactionParticipants(transactionId);
+    const { data: transaction } = useTransaction(transactionId);
 
-    const { register, handleSubmit, reset, control, watch, formState: { errors } } = useForm<ParticipantFormValues>({
+    const { register, handleSubmit, reset, control, watch, formState: { errors }, setError, setValue, getValues } = useForm<ParticipantFormValues>({
         defaultValues: {
             name: '',
             role: 'CO_BROKER',
@@ -54,10 +57,37 @@ export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParti
         }
     });
 
-    // eslint-disable-next-line react-hooks/incompatible-library
     const selectedRole = watch('role');
 
+    // Liste des emails déjà présents (participants système inclus)
+    const existingEmails = participants.map(p => p.email?.toLowerCase()).filter(Boolean);
+
+    // Email du broker principal à exclure
+    const primaryBrokerEmail = transaction?.brokerId
+        ? participants.find(p => p.role === 'BROKER' && p.isSystem)?.email?.toLowerCase()
+        : undefined;
+
     const onSubmit = async (data: ParticipantFormValues) => {
+        const emailLower = data.email?.toLowerCase();
+
+        // Vérification côté UI des doublons d'email
+        if (emailLower && existingEmails.includes(emailLower)) {
+            setError('email', {
+                type: 'manual',
+                message: t('emailAlreadyExists') || 'Cet email est déjà utilisé dans la transaction.'
+            });
+            return;
+        }
+
+        // Vérification: Impossible d'ajouter le broker principal comme participant
+        if (primaryBrokerEmail && emailLower && emailLower === primaryBrokerEmail) {
+            setError('email', {
+                type: 'manual',
+                message: t('cannotAddPrimaryBroker') || 'Impossible d’ajouter le broker principal comme participant.'
+            });
+            return;
+        }
+
         try {
             await addParticipant.mutateAsync({
                 transactionId,
@@ -82,6 +112,14 @@ export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParti
             onClose();
         }
     };
+
+    const { data: brokers = [] } = useBrokers();
+
+    // Filter brokers to exclude primary broker
+    const availableBrokers = brokers.filter(b =>
+        (!primaryBrokerEmail || b.email.toLowerCase() !== primaryBrokerEmail) &&
+        !existingEmails.includes(b.email.toLowerCase())
+    );
 
     return (
         <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -132,6 +170,25 @@ export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParti
                             <p className="text-sm text-muted-foreground mb-2">
                                 {t('permissionsDescription')}
                             </p>
+                            <div className="mb-3">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs h-7"
+                                    onClick={() => {
+                                        const allPermissionIds = PERMISSIONS.map(p => p.id);
+                                        const currentPermissions = getValues('permissions') || [];
+                                        if (currentPermissions.length === allPermissionIds.length) {
+                                            setValue('permissions', []);
+                                        } else {
+                                            setValue('permissions', allPermissionIds);
+                                        }
+                                    }}
+                                >
+                                    {t('selectAll') || 'Tout sélectionner'}
+                                </Button>
+                            </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <Controller
                                     control={control}
@@ -144,13 +201,12 @@ export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParti
                                                         id={permission.id}
                                                         checked={field.value?.includes(permission.id)}
                                                         onCheckedChange={(checked) => {
-                                                            return checked
-                                                                ? field.onChange([...(field.value || []), permission.id])
-                                                                : field.onChange(
-                                                                    (field.value || []).filter(
-                                                                        (value) => value !== permission.id
-                                                                    )
-                                                                );
+                                                            const currentValues = field.value || [];
+                                                            if (checked) {
+                                                                field.onChange([...currentValues, permission.id]);
+                                                            } else {
+                                                                field.onChange(currentValues.filter((v) => v !== permission.id));
+                                                            }
                                                         }}
                                                     />
                                                     <Label
@@ -172,14 +228,30 @@ export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParti
                         <Label htmlFor="email">{t('email')}</Label>
                         <Input
                             id="email"
+                            list="broker-emails"
                             {...register('email', {
                                 pattern: {
                                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                                     message: t('invalidEmail') || 'Invalid email address'
+                                },
+                                onChange: (e) => {
+                                    // Auto-fill name if email matches a broker
+                                    const email = e.target.value;
+                                    const broker = availableBrokers.find(b => b.email === email);
+                                    if (broker && !getValues('name')) {
+                                        setValue('name', `${broker.firstName} ${broker.lastName}`);
+                                    }
                                 }
                             })}
                             placeholder="example@email.com"
                         />
+                        <datalist id="broker-emails">
+                            {availableBrokers.map(broker => (
+                                <option key={broker.id} value={broker.email}>
+                                    {broker.firstName} {broker.lastName}
+                                </option>
+                            ))}
+                        </datalist>
                         {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
                     </div>
 
@@ -194,6 +266,6 @@ export function AddParticipantModal({ isOpen, onClose, transactionId }: AddParti
                     </DialogFooter>
                 </form>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     );
 }

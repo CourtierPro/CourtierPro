@@ -20,9 +20,12 @@ COPY . .
 RUN npm run build
 
 FROM nginx:alpine
+# Install dos2unix to fix line endings issues when building on Windows
+RUN apk add --no-cache dos2unix
+
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY docker-entrypoint.sh /
-RUN chmod +x /docker-entrypoint.sh
+RUN dos2unix /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 EXPOSE 80
 ENTRYPOINT ["/docker-entrypoint.sh"]

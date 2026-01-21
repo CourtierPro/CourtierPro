@@ -163,6 +163,24 @@ export function useTransactionParticipants(transactionId: string) {
     });
 }
 
+export interface BrokerUser {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+}
+
+export function useBrokers() {
+    return useQuery({
+        queryKey: ['brokers'],
+        queryFn: async () => {
+            const res = await axiosInstance.get<BrokerUser[]>('/api/broker/colleagues');
+            return res.data;
+        },
+    });
+}
+
 // ==================== PROPERTY QUERIES ====================
 
 import type { Property } from '@/shared/api/types';

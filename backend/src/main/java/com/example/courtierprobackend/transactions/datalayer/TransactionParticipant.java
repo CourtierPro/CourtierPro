@@ -39,4 +39,11 @@ public class TransactionParticipant {
     @Column(name = "permission")
     private java.util.Set<com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission> permissions;
 
+    /**
+     * Indique si ce participant est un participant système (client ou broker principal).
+     * Les participants système ne peuvent pas être modifiés ou supprimés via l'UI ou l'API.
+     */
+    @Builder.Default
+    private boolean isSystem = false;
+
 }

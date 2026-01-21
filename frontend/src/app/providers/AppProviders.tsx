@@ -32,16 +32,26 @@ function Auth0ProviderWithNavigate({ children }: { children: ReactNode }) {
         navigate(appState?.returnTo || window.location.pathname);
     };
 
+    // Debug Auth0 Configuration
+    console.log("Auth0 Config:", {
+        domain,
+        clientId,
+        audience,
+        redirect_uri: window.location.origin,
+    });
+
     return (
         <Auth0Provider
             domain={domain}
             clientId={clientId}
             authorizationParams={{
                 audience,
+                scope: "openid profile email offline_access",
                 redirect_uri: window.location.origin,
             }}
             onRedirectCallback={onRedirectCallback}
             cacheLocation="localstorage"
+            useRefreshTokens={true}
         >
             {children}
         </Auth0Provider>

@@ -132,7 +132,7 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
                             <Lock className="w-4 h-4" />
                             {t('transactionTerminated') || "Transaction Terminated"}
                         </Badge>
-                    ) : (
+                    ) : checkPermission('EDIT_STAGE') && (
                         <Button onClick={onUpdateStage} className="w-full sm:w-auto">
                             {t('updateStage')}
                         </Button>

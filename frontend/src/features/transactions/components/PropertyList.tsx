@@ -84,10 +84,7 @@ export function PropertyList({
                         (!isReadOnly && canEdit) ? (
                             <Button variant="outline" onClick={() => setIsAddModalOpen(true)}>
                                 <Plus className="w-4 h-4 mr-2" />
-                                <Button variant="outline" onClick={() => setIsAddModalOpen(true)}>
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    {t('addProperty')}
-                                </Button>
+                                {t('addProperty')}
                             </Button>
                         ) : undefined
                     }

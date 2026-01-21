@@ -29,6 +29,26 @@ export function useParticipantPermissions(transactionId: string) {
         if (isPrimaryBroker) return true;
         if (role === 'BROKER') return true;
 
+        if (role === 'BUYER') {
+            const defaultBuyerPermissions: ParticipantPermission[] = [
+                'VIEW_DOCUMENTS',
+                'VIEW_PROPERTIES',
+                'VIEW_STAGE',
+                'VIEW_CONDITIONS'
+            ];
+            if (defaultBuyerPermissions.includes(permission)) return true;
+        }
+
+        if (role === 'SELLER') {
+            const defaultSellerPermissions: ParticipantPermission[] = [
+                'VIEW_DOCUMENTS',
+                'VIEW_OFFERS',
+                'VIEW_STAGE',
+                'VIEW_CONDITIONS'
+            ];
+            if (defaultSellerPermissions.includes(permission)) return true;
+        }
+
         if (!currentParticipant) return false;
         return permissions.includes(permission);
     };

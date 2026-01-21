@@ -1,5 +1,6 @@
 
 package com.example.courtierprobackend.user.presentationlayer.controller;
+
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
 
 import com.example.courtierprobackend.security.UserContextUtils;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/broker/clients")
+@RequestMapping("/api/broker")
 @PreAuthorize("hasRole('BROKER')")
 public class BrokerController {
 
@@ -27,20 +28,29 @@ public class BrokerController {
         this.transactionService = transactionService;
     }
 
-    @GetMapping
+    @GetMapping("/clients")
     public List<UserResponse> getClients() {
         return userService.getClients();
+    }
+
+    @GetMapping("/colleagues")
+    public List<UserResponse> getColleagues() {
+        try {
+            return userService.getBrokers();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error fetching colleagues: " + e.getMessage(), e);
+        }
     }
 
     /**
      * Get all transactions for a specific client.
      * The broker can only see transactions they are the broker of.
      */
-    @GetMapping("/{clientId}/transactions")
+    @GetMapping("/clients/{clientId}/transactions")
     public List<TransactionResponseDTO> getClientTransactions(
             @PathVariable String clientId,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         UUID brokerId = UserContextUtils.resolveUserId(request);
         // Convert clientId to UUID if possible, else throw error (for now, expect UUID)
         UUID clientUuid;
@@ -57,10 +67,9 @@ public class BrokerController {
      * Returns broker names with each transaction for display purposes.
      * Note: Access to transaction details is still controlled by ownership.
      */
-    @GetMapping("/{clientId}/all-transactions")
+    @GetMapping("/clients/{clientId}/all-transactions")
     public List<TransactionResponseDTO> getAllClientTransactions(
-            @PathVariable String clientId
-    ) {
+            @PathVariable String clientId) {
         UUID clientUuid;
         try {
             clientUuid = UUID.fromString(clientId);

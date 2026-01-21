@@ -60,7 +60,7 @@ export function EditParticipantModal({ isOpen, onClose, transactionId, participa
     const { t } = useTranslation('transactions');
     const updateParticipant = useUpdateParticipant();
 
-    const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<ParticipantFormValues>({
+    const { register, handleSubmit, control, watch, setValue, getValues, formState: { errors } } = useForm<ParticipantFormValues>({
         defaultValues: {
             name: '',
             role: 'CO_BROKER',
@@ -190,6 +190,25 @@ export function EditParticipantModal({ isOpen, onClose, transactionId, participa
                     {selectedRole === 'CO_BROKER' && (
                         <div className="border rounded-md p-4 space-y-3 bg-muted/20">
                             <h4 className="text-sm font-medium">{t('permissionsLabel')}</h4>
+                            <div className="mb-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs h-7"
+                                    onClick={() => {
+                                        const allPermissionIds = PERMISSIONS.map(p => p.id);
+                                        const currentPermissions = getValues('permissions') || [];
+                                        if (currentPermissions.length === allPermissionIds.length) {
+                                            setValue('permissions', []);
+                                        } else {
+                                            setValue('permissions', allPermissionIds);
+                                        }
+                                    }}
+                                >
+                                    {t('selectAll') || 'Tout sélectionner'}
+                                </Button>
+                            </div>
                             <div className="grid grid-cols-2 gap-3">
                                 {PERMISSIONS.map((permission) => (
                                     <Controller
