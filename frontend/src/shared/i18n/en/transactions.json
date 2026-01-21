@@ -251,6 +251,7 @@
   "clearActiveProperty": "Clear Selection",
   "add": "Add",
   "participantAdded": "Participant added successfully",
+  "selectAll": "Select All",
   "errorAddingParticipant": "Error adding participant",
   "nameRequired": "Name is required",
   "selectRole": "Select a role",

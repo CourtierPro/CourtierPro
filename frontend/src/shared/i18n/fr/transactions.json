@@ -240,6 +240,7 @@
   "timeline.by": "par {{name}}",
   "add": "Ajouter",
   "participantAdded": "Participant ajouté avec succès",
+  "selectAll": "Tout sélectionner",
   "errorAddingParticipant": "Erreur lors de l'ajout du participant",
   "nameRequired": "Le nom est requis",
   "selectRole": "Sélectionner un rôle",

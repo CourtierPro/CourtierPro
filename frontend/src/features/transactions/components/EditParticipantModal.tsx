@@ -206,7 +206,7 @@ export function EditParticipantModal({ isOpen, onClose, transactionId, participa
                                         }
                                     }}
                                 >
-                                    {t('selectAll') || 'Tout sélectionner'}
+                                    {t('selectAll')}
                                 </Button>
                             </div>
                             <div className="grid grid-cols-2 gap-3">

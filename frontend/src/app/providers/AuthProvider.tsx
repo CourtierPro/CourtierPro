@@ -10,7 +10,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!isAuthenticated) return undefined;
             const token = await getAccessTokenSilently({
                 authorizationParams: {
-                    audience: window.env?.VITE_AUTH0_AUDIENCE || import.meta.env.VITE_AUTH0_AUDIENCE || "https://api.courtierpro.dev",
+                    audience: import.meta.env.VITE_AUTH0_AUDIENCE,
                 },
             });
             return token;

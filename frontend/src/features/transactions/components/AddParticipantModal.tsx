@@ -57,13 +57,10 @@ export default function AddParticipantModal({ isOpen, onClose, transactionId }: 
         }
     });
 
-    // eslint-disable-next-line react-hooks/incompatible-library
     const selectedRole = watch('role');
 
-    // Liste des emails déjà présents (participants système inclus)
     const existingEmails = participants.map(p => p.email?.toLowerCase()).filter(Boolean);
 
-    // Email du broker principal à exclure
     const primaryBrokerEmail = transaction?.brokerId
         ? participants.find(p => p.role === 'BROKER' && p.isSystem)?.email?.toLowerCase()
         : undefined;
@@ -71,7 +68,6 @@ export default function AddParticipantModal({ isOpen, onClose, transactionId }: 
     const onSubmit = async (data: ParticipantFormValues) => {
         const emailLower = data.email?.toLowerCase();
 
-        // Vérification côté UI des doublons d'email
         if (emailLower && existingEmails.includes(emailLower)) {
             setError('email', {
                 type: 'manual',
@@ -80,7 +76,6 @@ export default function AddParticipantModal({ isOpen, onClose, transactionId }: 
             return;
         }
 
-        // Vérification: Impossible d'ajouter le broker principal comme participant
         if (primaryBrokerEmail && emailLower && emailLower === primaryBrokerEmail) {
             setError('email', {
                 type: 'manual',
@@ -187,7 +182,7 @@ export default function AddParticipantModal({ isOpen, onClose, transactionId }: 
                                         }
                                     }}
                                 >
-                                    {t('selectAll') || 'Tout sélectionner'}
+                                    {t('selectAll')}
                                 </Button>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
