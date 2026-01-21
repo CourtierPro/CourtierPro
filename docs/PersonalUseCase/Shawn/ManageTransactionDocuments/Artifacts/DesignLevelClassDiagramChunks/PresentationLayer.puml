@@ -1,0 +1,73 @@
+@startuml PresentationLayer
+skinparam classAttributeIconSize 0
+
+title Presentation Layer
+
+package "Presentation Layer" #LightBlue {
+  class DocumentRequestController {
+    - service: DocumentRequestService
+    --
+    + getDocuments(transactionId, userId): List<DocumentRequestResponseDTO>
+    + createDocumentRequest(transactionId, dto): DocumentRequestResponseDTO
+    + getDocumentRequest(transactionId, requestId, userId): DocumentRequestResponseDTO
+    + updateDocumentRequest(transactionId, requestId, dto): DocumentRequestResponseDTO
+    + deleteDocumentRequest(transactionId, requestId): void
+    + submitDocument(transactionId, requestId, file, userId, type): DocumentRequestResponseDTO
+    + getDocumentDownloadUrl(transactionId, requestId, docId): Map<String, String>
+    + reviewDocument(transactionId, requestId, reviewDto, brokerId): DocumentRequestResponseDTO
+  }
+  
+  class GlobalDocumentController {
+    - service: DocumentRequestService
+    --
+    + getDocumentById(documentId, userId): Map<String, String>
+  }
+  
+  class DocumentRequestRequestDTO {
+    + docType: DocumentTypeEnum
+    + customTitle: String
+    + expectedFrom: DocumentPartyEnum
+    + relatedBuyerStage: BuyerStage
+    + relatedSellerStage: SellerStage
+    + stage: StageEnum
+    + brokerNotes: String
+    + visibleToClient: Boolean
+    + linkedConditionIds: List<UUID>
+  }
+  
+  class DocumentRequestResponseDTO {
+    + requestId: UUID
+    + transactionId: UUID
+    + docType: DocumentTypeEnum
+    + customTitle: String
+    + status: DocumentStatusEnum
+    + expectedFrom: DocumentPartyEnum
+    + stage: StageEnum
+    + brokerNotes: String
+    + visibleToClient: Boolean
+    + submittedDocuments: List<SubmittedDocumentDTO>
+    + lastUpdatedAt: LocalDateTime
+  }
+  
+  class DocumentReviewRequestDTO {
+    + decision: DocumentStatusEnum
+    + brokerNotes: String
+  }
+  
+  class SubmittedDocumentDTO {
+    + documentId: UUID
+    + fileName: String
+    + mimeType: String
+    + uploadedAt: LocalDateTime
+    + uploadedByParty: DocumentPartyEnum
+    + uploadedByName: String
+  }
+  
+  ' Intra-package relationships
+  DocumentRequestController ..> DocumentRequestRequestDTO : receives
+  DocumentRequestController ..> DocumentRequestResponseDTO : returns
+  DocumentRequestController ..> DocumentReviewRequestDTO : receives
+  DocumentRequestResponseDTO ..> SubmittedDocumentDTO : contains
+}
+
+@enduml

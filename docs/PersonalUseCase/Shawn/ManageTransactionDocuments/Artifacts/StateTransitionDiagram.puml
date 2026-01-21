@@ -1,0 +1,99 @@
+@startuml StateTransitionDiagram
+skinparam state {
+  BackgroundColor White
+  BorderColor Black
+  ArrowColor Black
+}
+
+title State Transition Diagram: DocumentRequest Status
+
+[*] --> REQUESTED : Broker creates\ndocument request
+
+state REQUESTED #LightYellow {
+  REQUESTED : Document has been requested
+  REQUESTED : Awaiting submission from expected party
+}
+
+state SUBMITTED #LightBlue {
+  SUBMITTED : Document has been uploaded
+  SUBMITTED : Awaiting broker review
+}
+
+state APPROVED #LightGreen {
+  APPROVED : Document accepted by broker
+  APPROVED : (Terminal State)
+}
+
+state NEEDS_REVISION #Orange {
+  NEEDS_REVISION : Document requires changes
+  NEEDS_REVISION : Client must resubmit
+}
+
+state REJECTED #LightCoral {
+  REJECTED : Document permanently rejected
+  REJECTED : (Terminal State)
+}
+
+' Transitions from REQUESTED
+REQUESTED --> SUBMITTED : Client/Broker uploads file\n[file valid]
+REQUESTED --> REQUESTED : Upload fails\n[file invalid]
+
+' Transitions from SUBMITTED
+SUBMITTED --> APPROVED : Broker approves
+SUBMITTED --> NEEDS_REVISION : Broker requests revision\n[with feedback notes]
+SUBMITTED --> REJECTED : Broker rejects\n[with reason]
+
+' Transitions from NEEDS_REVISION
+NEEDS_REVISION --> SUBMITTED : Client uploads revised file
+
+' Terminal states
+APPROVED --> [*]
+REJECTED --> [*]
+
+note right of REQUESTED
+  **Entry Actions:**
+  - Record timeline entry
+  - Notify client of request
+  
+  **Invariants:**
+  - submittedDocuments is empty
+end note
+
+note right of SUBMITTED
+  **Entry Actions:**
+  - Create SubmittedDocument
+  - Upload file to Cloudflare R2
+  - Notify broker
+  
+  **Invariants:**
+  - At least one SubmittedDocument exists
+end note
+
+note right of APPROVED
+  **Entry Actions:**
+  - Record approval in timeline
+  - Notify client of approval
+  
+  **Invariants:**
+  - Cannot transition to other states
+end note
+
+note left of NEEDS_REVISION
+  **Entry Actions:**
+  - Save broker feedback
+  - Notify client with notes
+  
+  **Guard Conditions:**
+  - brokerNotes is populated
+end note
+
+note left of REJECTED
+  **Entry Actions:**
+  - Save rejection reason
+  - Notify client
+  
+  **Invariants:**
+  - Cannot transition to other states
+end note
+
+@enduml

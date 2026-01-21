@@ -1,0 +1,55 @@
+================================================================================
+                    CROSS-PACKAGE RELATIONSHIPS
+================================================================================
+
+This file lists all relationships that cross package boundaries in the
+Design Level Class Diagram.
+
+--------------------------------------------------------------------------------
+PRESENTATION → BUSINESS
+--------------------------------------------------------------------------------
+| From                        | To                      | Relationship Type |
+|-----------------------------|-------------------------|-------------------|
+| DocumentRequestController   | DocumentRequestService  | uses (-->)        |
+| GlobalDocumentController    | DocumentRequestService  | uses (-->)        |
+
+--------------------------------------------------------------------------------
+BUSINESS → DATA
+--------------------------------------------------------------------------------
+| From                        | To                        | Relationship Type |
+|-----------------------------|---------------------------|-------------------|
+| DocumentRequestServiceImpl  | DocumentRequestRepository | uses (-->)        |
+| DocumentRequestServiceImpl  | TransactionRepository     | uses (-->)        |
+| DocumentRequestServiceImpl  | DocumentRequest           | manages (..>)     |
+
+--------------------------------------------------------------------------------
+BUSINESS → INFRASTRUCTURE
+--------------------------------------------------------------------------------
+| From                        | To                | Relationship Type |
+|-----------------------------|-------------------|-------------------|
+| DocumentRequestServiceImpl  | S3StorageService  | uses (-->)        |
+
+--------------------------------------------------------------------------------
+BUSINESS → BUSINESS (Internal)
+--------------------------------------------------------------------------------
+| From                        | To                  | Relationship Type |
+|-----------------------------|---------------------|-------------------|
+| DocumentRequestServiceImpl  | NotificationService | uses (-->)        |
+
+--------------------------------------------------------------------------------
+BUSINESS → PRESENTATION (Return Types)
+--------------------------------------------------------------------------------
+| From                        | To                        | Relationship Type |
+|-----------------------------|---------------------------|-------------------|
+| DocumentRequestServiceImpl  | DocumentRequestResponseDTO| creates (..>)     |
+
+--------------------------------------------------------------------------------
+DATA → ENUMS
+--------------------------------------------------------------------------------
+| From              | To                  | Relationship Type |
+|-------------------|---------------------|-------------------|
+| DocumentRequest   | DocumentTypeEnum    | uses (-->)        |
+| DocumentRequest   | DocumentStatusEnum  | uses (-->)        |
+| DocumentRequest   | DocumentPartyEnum   | uses (-->)        |
+
+================================================================================

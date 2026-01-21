@@ -1,0 +1,85 @@
+Deliverables:
+1. Use Case Definition & Requirements
+	1.1 Activity Diagram
+	1.2 Fully Developed Use Case
+2. Conceptual & Domain Level Modeling
+3. UI/UX Design
+4. Interaction, Behavioral, and Logical Design
+	4.1. System Sequence Diagram (SSD)
+	4.2. Design Level Sequence Diagram
+	4.3. Design Level Class Diagram
+	4.4. State Transition Diagram
+5. Implementation
+
+=========================================================
+
+Extra Information:
+1.
+	- Artifacts Required:
+		- Activity Diagram
+		- Fully Developed Use Case (name, scenario, triggering event, actors, related use cases, stakeholder, pre/postconditions, flow of activities (divided into Actor and System, and for each actor action, there is a corresponding system actuion. for example the actor action "1. Client requests the required document checklist for an active transaction" has a corresponding system action "1.1. System looks up the active transaction and returns the list of required documents with their current statuses"), inclusions, extensions and exceptions)
+	- Alignment Explanation Required:
+		- How the use case connects to the overall system context.
+		- How the requirements expressed in the Use Case Diagram and the Domain Model map to each part of the FDUC and particularly to the flow of activities and its inclusions, extensions, and exceptions.
+		- How each step in the FDUC activity flow predicts future design artifacts (System Sequence Diagram, Design-Level Sequence Diagrams)
+
+2. 
+	- Alignment Explanation Required:
+		- Show how domain objects in the DDD model support the information needs of the use case.
+		- Explain how the C4 L3 models (tables, components, repositories, DTOs) correspond to the information required in the DDD model, SSD, and UI/UX.
+		- Demonstrate consistency across domain entities -> persistent storage -> components/services.
+
+3. UI/UX Design
+	- Artifacts Required:
+		- UI/UX Design (I will generate the designs, you will provide the "Titles" (what designs I need to generate))
+	- Alignment Explanation Required:
+		- How each UI field maps to domain model attributes and validation rules.
+		- How UI navigation reflects the scenario steps.
+		- How the data captured and returned in Figma matches the C4 L3 data tier model (data types, ranges, validation).
+
+4. Interaction, Behavioral, and Logical Design
+	- Artifacts Required:
+		- System Sequence Diagram (SSD)
+		- Design-Level Sequence Diagram (DLSD)
+		- Design-Level Class Diagram (DLCD)
+		- State Transition Diagram (STD)
+	- Alignment Explanation Required:
+		- How the SSD messages correspond one-to-one with steps in the use case alternate scenarios, inclusions, extensions, and exceptions.
+		- How the DLSD realizes SSD messages with actual object interactions across all three tiers.
+		- How the classes and components used in the DLSD align with those defined in the C4 L3 diagrams across all three tiers.
+		- How the DLCD reflects the classes and methods implied by the DLSD.)
+		- How class responsibilities and method signatures support domain invariants from the DDD model.
+		- How state constraints influence validation and logic in the DLSD and code.
+
+5. Implementation
+	- The code implements the UI/UX flows defined in Figma.
+	- The code flow and components, classes, etc. correspond to the DLSD messages.
+	- Classes, interfaces, and method signatures match the DLCD.
+	- Domain logic and entity validation match the DDD model and use case rules.
+	- Data types and constraints match C4 L3 data tier models.
+	- Code snippets for key classes, interfaces, and methods should be provided.
+
+=========================================================
+
+All PlantUML artifacts (in directory ECP/OwnedUseCase/Artifacts):
+	- Use Case Diagram (High Level and covers all of CourtierPro System, must include the "Manage Transaction Documents" use case, "Manage Transactions" use case, "View Broker Analytics Dashboard" use case, and "Manage Appointments" use case among others)
+	- DDD Domain Model (For entire CourtierPro System, entities, value objects, aggregates, aggregate invariants)
+	- C4 Level 1 (System Context Diagram)
+	- C4 Level 2 (Container Architecture Diagram)
+	- C4 Level 3 (Component for all 3 tiers, frontend, backend, and database)
+	- Activity Diagram
+	- Design Level Sequence Diagram (DLSD)
+	- Design Level Class Diagram (DLCD)
+	- State Transition Diagram (STD)
+
+=========================================================
+
+Instructions:
+	- The owned/specific use case we will be working on is "Manage Transaction Documents"
+	- In OwnedUseCase.txt, generate the deliverables in the order they are listed above.
+	- All PlantUML artifacts should be generated in the directory ECP/OwnedUseCase/Artifacts as .puml files, and in OwnedUseCase.txt, will be referenced with the following format "[Paste X Diagram]" where X is the name of the diagram.
+	- The alignment explanation required for each deliverable should be fully written and under the proper section.
+	- We will break the task into 6 smaller tasks, firstly generating the artifacts that aren't in the deliverables and are system wide diagrams and not specific to the owned/specific use case(Use Case Diagram, DDD Domain Model, C4 Level 1, C4 Level 2, and C4 Level 3), and then each of the 5 sections of the deliverables.
+	- For each task, we shall do in 2 phases, first gather the necessary context from the code (directory CourtierPro), and then generate the artifact(s) and alignment explanation.
+	- Draft puml files can be referenced from the docs/diagrams directory, but the final puml files should be generated in the Artifacts directory.
+
