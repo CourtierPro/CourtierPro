@@ -6,6 +6,4 @@ Your CourtierPro account has been successfully created.
 
 [HEADING-SM]Next Step[/HEADING-SM]
 
-[BOX-gray]
-Click the button below to set your password and complete your account setup.
-[/BOX-gray]
+[BUTTON]Set My Password|{{passwordLink}}[/BUTTON]

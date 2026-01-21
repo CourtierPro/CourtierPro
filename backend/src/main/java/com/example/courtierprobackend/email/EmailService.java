@@ -92,8 +92,8 @@ public class EmailService {
             }
             if (bodyText == null || bodyText.isBlank()) {
                 bodyText = isFrench
-                        ? "Bonjour {{name}}, votre compte CourtierPro a été créé.\n\nDéfinir votre mot de passe\n\nCliquez sur le lien ci-dessous pour finaliser la création de votre compte."
-                        : "Hi {{name}}, your CourtierPro account has been created.\n\nSet Your Password\n\nClick the link below to complete your account setup.";
+                        ? "Bonjour {{name}}, votre compte CourtierPro a été créé.\n\n[HEADING]Définir votre mot de passe[/HEADING]\n\nCliquez sur le bouton ci-dessous pour finaliser la création de votre compte.\n\n[BUTTON]Définir mon mot de passe|{{passwordLink}}[/BUTTON]"
+                        : "Hi {{name}}, your CourtierPro account has been created.\n\n[HEADING]Set Your Password[/HEADING]\n\nClick the button below to complete your account setup.\n\n[BUTTON]Set My Password|{{passwordLink}}[/BUTTON]";
             }
 
             String bodyTextWithVars = bodyText
@@ -797,6 +797,12 @@ public class EmailService {
         escaped = escaped.replaceAll(
                 "(?s)\\[ITALIC\\](.*?)\\[/ITALIC\\]",
                 "<em>$1</em>"
+        );
+
+        // Handle [BUTTON]Label|Url[/BUTTON]
+        escaped = escaped.replaceAll(
+                "(?s)\\[BUTTON\\](.*?)\\|(.*?)\\[/BUTTON\\]",
+                "<div style=\"text-align: center; margin: 24px 0;\"><a href=\"$2\" style=\"display: inline-block; background-color: #3b82f6; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;\">$1</a></div>"
         );
 
         // Handle [HIGHLIGHT]...[/HIGHLIGHT]
