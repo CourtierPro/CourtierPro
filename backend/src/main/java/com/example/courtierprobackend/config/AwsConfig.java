@@ -19,14 +19,27 @@ public class AwsConfig {
     @Value("${aws.s3.endpoint:https://s3.ca-central-1.amazonaws.com}")
     private String endpoint;
 
-    @Value("${aws.ses.region:ca-central-1}")
+    @Value("${aws.ses.region:us-east-1}")
     private String sesRegion;
+
+    @Value("${aws.s3.access-key}")
+    private String s3AccessKey;
+
+    @Value("${aws.s3.secret-key}")
+    private String s3SecretKey;
+
+    @Value("${aws.ses.access-key}")
+    private String sesAccessKey;
+
+    @Value("${aws.ses.secret-key}")
+    private String sesSecretKey;
 
     @Bean
     public S3Client s3Client() {
+        var credentials = software.amazon.awssdk.auth.credentials.AwsBasicCredentials.create(s3AccessKey, s3SecretKey);
         var builder = S3Client.builder()
                 .region(Region.of(region))
-                .credentialsProvider(DefaultCredentialsProvider.create());
+                .credentialsProvider(software.amazon.awssdk.auth.credentials.StaticCredentialsProvider.create(credentials));
         
         if (endpoint != null && !endpoint.isEmpty()) {
             builder.endpointOverride(URI.create(endpoint));
@@ -37,9 +50,10 @@ public class AwsConfig {
 
     @Bean
     public SesClient sesClient() {
+        var credentials = software.amazon.awssdk.auth.credentials.AwsBasicCredentials.create(sesAccessKey, sesSecretKey);
         return SesClient.builder()
                 .region(Region.of(sesRegion))
-                .credentialsProvider(DefaultCredentialsProvider.create())
+                .credentialsProvider(software.amazon.awssdk.auth.credentials.StaticCredentialsProvider.create(credentials))
                 .build();
     }
 

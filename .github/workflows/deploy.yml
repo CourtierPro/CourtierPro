@@ -137,6 +137,14 @@ jobs:
             if ! grep -q "^EMAIL_FROM_ADDRESS=" .env; then
                echo "EMAIL_FROM_ADDRESS=${{ vars.EMAIL_FROM_ADDRESS }}" >> .env
             fi
+
+            # Ensure AWS_SES credentials are present in .env
+            if ! grep -q "^AWS_SES_ACCESS_KEY_ID=" .env; then
+               echo "AWS_SES_ACCESS_KEY_ID=${{ secrets.AWS_SES_ACCESS_KEY_ID }}" >> .env
+            fi
+            if ! grep -q "^AWS_SES_SECRET_ACCESS_KEY=" .env; then
+               echo "AWS_SES_SECRET_ACCESS_KEY=${{ secrets.AWS_SES_SECRET_ACCESS_KEY }}" >> .env
+            fi
             
             # Verify the update was successful
             UPDATED_TAG=$(grep "^IMAGE_TAG=" .env | cut -d'=' -f2)

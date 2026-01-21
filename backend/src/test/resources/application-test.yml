@@ -77,3 +77,9 @@ aws:
   region: ca-central-1
   s3:
     endpoint: https://test.r2.cloudflarestorage.com
+    access-key: test-r2-access-key
+    secret-key: test-r2-secret-key
+  ses:
+    region: us-east-1
+    access-key: test-ses-access-key
+    secret-key: test-ses-secret-key

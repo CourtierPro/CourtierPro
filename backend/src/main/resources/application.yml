@@ -69,6 +69,12 @@ aws:
   s3:
     bucket-name: ${AWS_S3_BUCKET:courtierpro-dev-files}
     endpoint: ${AWS_S3_ENDPOINT:https://s3.us-east-1.amazonaws.com}
+    access-key: ${R2_ACCESS_KEY_ID:dev-access-key}
+    secret-key: ${R2_SECRET_ACCESS_KEY:dev-secret-key}
+  ses:
+    region: ${AWS_SES_REGION:us-east-1}
+    access-key: ${AWS_SES_ACCESS_KEY_ID:dev-ses-access-key}
+    secret-key: ${AWS_SES_SECRET_ACCESS_KEY:dev-ses-secret-key}
 
 # GitHub App integration for user feedback
 github:
