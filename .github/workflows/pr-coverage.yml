@@ -127,15 +127,29 @@ jobs:
               body: coverageComment.body + linksSection,
             });
 
-      # Explicitly fail the job if coverage is below thresholds
-      # Note: fromJson() converts string outputs to numbers for proper numeric comparison
-      # When no Java files are changed, coverage-changed-files may be empty, so default to 100
-      - name: Fail if coverage below thresholds
-        if: >
-          fromJson(steps.jacoco.outputs.coverage-overall) < fromJson(env.MIN_COVERAGE_OVERALL) ||
-          fromJson(steps.jacoco.outputs.coverage-changed-files || '100') < fromJson(env.MIN_COVERAGE_CHANGED)
+      # Validate coverage thresholds using shell for proper numeric comparison
+      # GitHub Actions expressions don't handle floating-point comparison well
+      - name: Validate coverage thresholds
+        env:
+          COVERAGE_OVERALL: ${{ steps.jacoco.outputs.coverage-overall }}
+          COVERAGE_CHANGED: ${{ steps.jacoco.outputs.coverage-changed-files }}
         run: |
-          echo "Coverage below threshold:"
-          echo "  overall: ${{ steps.jacoco.outputs.coverage-overall }}% (min ${{ env.MIN_COVERAGE_OVERALL }}%)"
-          echo "  changed: ${{ steps.jacoco.outputs.coverage-changed-files || 'N/A (no changed files)' }}% (min ${{ env.MIN_COVERAGE_CHANGED }}%)"
-          exit 1
+          # Default changed files coverage to 100 if empty (no Java files changed)
+          CHANGED="${COVERAGE_CHANGED:-100}"
+          
+          echo "Coverage Results:"
+          echo "  Overall:  ${COVERAGE_OVERALL}% (min: ${{ env.MIN_COVERAGE_OVERALL }}%)"
+          echo "  Changed:  ${CHANGED}% (min: ${{ env.MIN_COVERAGE_CHANGED }}%)"
+          
+          # Use bc for floating-point comparison
+          OVERALL_FAIL=$(echo "${COVERAGE_OVERALL} < ${{ env.MIN_COVERAGE_OVERALL }}" | bc -l)
+          CHANGED_FAIL=$(echo "${CHANGED} < ${{ env.MIN_COVERAGE_CHANGED }}" | bc -l)
+          
+          if [ "$OVERALL_FAIL" -eq 1 ] || [ "$CHANGED_FAIL" -eq 1 ]; then
+            echo ""
+            echo "::error::Coverage below threshold!"
+            exit 1
+          else
+            echo ""
+            echo "✅ Coverage thresholds met!"
+          fi
