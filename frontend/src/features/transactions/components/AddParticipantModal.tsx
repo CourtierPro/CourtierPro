@@ -57,6 +57,7 @@ export default function AddParticipantModal({ isOpen, onClose, transactionId }: 
         }
     });
 
+    // eslint-disable-next-line react-hooks/incompatible-library
     const selectedRole = watch('role');
 
     // Liste des emails déjà présents (participants système inclus)
