@@ -5,7 +5,8 @@ import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { Calendar, ArrowRight, Clock, MapPin } from "lucide-react";
-import { useAppointments, type Appointment } from "@/features/appointments/api/queries";
+import { useAppointments } from "@/features/appointments/api/queries";
+import type { Appointment } from "@/features/appointments/types";
 import { cn } from "@/shared/utils/utils";
 import { format, parseISO, isToday, isTomorrow, addDays, isBefore } from "date-fns";
 
@@ -29,29 +30,28 @@ export function UpcomingAppointmentsCard({
     const upcomingAppointments = (appointments ?? [])
         .filter((apt) => {
             try {
-                const aptDate = parseISO(apt.date);
+                const aptDate = parseISO(apt.fromDateTime);
                 return !isBefore(aptDate, new Date()) && isBefore(aptDate, cutoffDate);
             } catch {
                 return false;
             }
         })
         .sort((a, b) => {
-            const dateA = parseISO(a.date);
-            const dateB = parseISO(b.date);
+            const dateA = parseISO(a.fromDateTime);
+            const dateB = parseISO(b.fromDateTime);
             return dateA.getTime() - dateB.getTime();
         })
         .slice(0, maxItems);
 
-    const getAppointmentTypeIcon = (type: Appointment['type']) => {
-        const icons: Record<Appointment['type'], string> = {
-            inspection: "🔍",
-            notary: "📝",
-            showing: "🏠",
-            consultation: "💬",
-            walkthrough: "🚶",
-            meeting: "🤝",
-        };
-        return icons[type] || "📅";
+    const getAppointmentTypeIcon = (title: string) => {
+        const lowerTitle = title.toLowerCase();
+        if (lowerTitle.includes('inspection')) return "🔍";
+        if (lowerTitle.includes('notary')) return "📝";
+        if (lowerTitle.includes('showing') || lowerTitle.includes('visite')) return "🏠";
+        if (lowerTitle.includes('consultation')) return "💬";
+        if (lowerTitle.includes('walkthrough')) return "🚶";
+        if (lowerTitle.includes('meeting') || lowerTitle.includes('réunion')) return "🤝";
+        return "📅";
     };
 
     const formatDateLabel = (dateString: string) => {
@@ -65,8 +65,18 @@ export function UpcomingAppointmentsCard({
         }
     };
 
+    const formatTime = (fromDateTime: string, toDateTime: string) => {
+        try {
+            const start = parseISO(fromDateTime);
+            const end = parseISO(toDateTime);
+            return `${format(start, "HH:mm")} - ${format(end, "HH:mm")}`;
+        } catch {
+            return "";
+        }
+    };
+
     const handleAppointmentClick = (apt: Appointment) => {
-        navigate(`/appointments?id=${apt.id}`);
+        navigate(`/appointments?id=${apt.appointmentId}`);
     };
 
     if (isLoading) {
@@ -124,7 +134,7 @@ export function UpcomingAppointmentsCard({
                 <div className="space-y-2">
                     {upcomingAppointments.map((apt) => (
                         <button
-                            key={apt.id}
+                            key={apt.appointmentId}
                             onClick={() => handleAppointmentClick(apt)}
                             className={cn(
                                 "w-full flex items-center justify-between p-3 rounded-lg",
@@ -134,18 +144,18 @@ export function UpcomingAppointmentsCard({
                         >
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <div className="text-xl flex-shrink-0">
-                                    {getAppointmentTypeIcon(apt.type)}
+                                    {getAppointmentTypeIcon(apt.title)}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-sm capitalize">
-                                        {apt.type}
+                                    <div className="font-medium text-sm">
+                                        {apt.title}
                                     </div>
                                     <div className="text-xs text-muted-foreground truncate">
                                         {apt.clientName}
-                                        {apt.transactionAddress && (
+                                        {apt.location && (
                                             <span className="flex items-center gap-1 mt-0.5">
                                                 <MapPin className="h-3 w-3" />
-                                                {apt.transactionAddress}
+                                                {apt.location}
                                             </span>
                                         )}
                                     </div>
@@ -153,14 +163,14 @@ export function UpcomingAppointmentsCard({
                             </div>
                             <div className="flex flex-col items-end gap-1 ml-2 flex-shrink-0">
                                 <Badge
-                                    variant={isToday(parseISO(apt.date)) ? "warning" : "secondary"}
+                                    variant={isToday(parseISO(apt.fromDateTime)) ? "warning" : "secondary"}
                                     className="text-xs"
                                 >
-                                    {formatDateLabel(apt.date)}
+                                    {formatDateLabel(apt.fromDateTime)}
                                 </Badge>
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                     <Clock className="h-3 w-3" />
-                                    {apt.time}
+                                    {formatTime(apt.fromDateTime, apt.toDateTime)}
                                 </span>
                             </div>
                         </button>

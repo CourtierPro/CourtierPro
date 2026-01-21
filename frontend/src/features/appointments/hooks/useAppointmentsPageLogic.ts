@@ -1,33 +1,58 @@
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { useAppointments } from '../api/queries';
-import { useCreateAppointment, type CreateAppointmentDTO } from '../api/mutations';
-import { type AppointmentFormData } from '../components/CreateAppointmentModal';
+import { useMemo, useState } from 'react';
+import { useAppointmentsForMonth } from '../api/queries';
+import { type AppointmentViewMode, groupAppointmentsByDate } from '../types';
 
 export function useAppointmentsPageLogic() {
-    const { data: appointments = [], isLoading, error, refetch } = useAppointments();
-    const createAppointment = useCreateAppointment();
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    // View state
+    const [viewMode, setViewMode] = useState<AppointmentViewMode>('calendar');
+    const [currentDate, setCurrentDate] = useState(new Date());
 
-    const handleCreateAppointment = async (data: AppointmentFormData) => {
-        try {
-            await createAppointment.mutateAsync({
-                ...data,
-            } as CreateAppointmentDTO);
-            setIsModalOpen(false);
-            toast.success("Appointment created successfully");
-        } catch {
-            toast.error("Failed to create appointment");
-        }
+    // Fetch appointments for current month
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+
+    const { data: appointments = [], isLoading, error, refetch, isFetching } = useAppointmentsForMonth(
+        currentYear,
+        currentMonth
+    );
+
+    // Group appointments by date for list view
+    const groupedAppointments = useMemo(() => {
+        return groupAppointmentsByDate(appointments);
+    }, [appointments]);
+
+    // Date navigation
+    const goToPreviousMonth = () => {
+        setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    };
+
+    const goToNextMonth = () => {
+        setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    };
+
+    const goToToday = () => {
+        setCurrentDate(new Date());
     };
 
     return {
+        // Data
         appointments,
+        groupedAppointments,
         isLoading,
+        isFetching,
         error,
         refetch,
-        isModalOpen,
-        setIsModalOpen,
-        handleCreateAppointment,
+
+        // View state
+        viewMode,
+        setViewMode,
+        currentDate,
+        currentMonth,
+        currentYear,
+
+        // Date navigation
+        goToPreviousMonth,
+        goToNextMonth,
+        goToToday,
     };
 }

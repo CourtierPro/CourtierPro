@@ -284,9 +284,11 @@
   "timelineType": {
     "CREATED": "Transaction Created",
     "STAGE_CHANGE": "Stage Updated",
+    "STATUS_CHANGE": "Status Updated",
     "NOTE": "Note",
     "TRANSACTION_NOTE": "Note",
     "DOCUMENT_REQUESTED": "Document Requested",
+    "DOCUMENT_REQUEST_UPDATED": "Document Updated",
     "DOCUMENT_SUBMITTED": "Document Submitted",
     "DOCUMENT_APPROVED": "Document Approved",
     "DOCUMENT_NEEDS_REVISION": "Document Needs Revision",
@@ -295,7 +297,15 @@
     "PROPERTY_REMOVED": "Property Removed",
     "OFFER_RECEIVED": "Offer Received",
     "OFFER_UPDATED": "Offer Updated",
-    "OFFER_REMOVED": "Offer Removed"
+    "OFFER_REMOVED": "Offer Removed",
+    "PROPERTY_OFFER_MADE": "Property Offer Made",
+    "PROPERTY_OFFER_UPDATED": "Property Offer Updated",
+    "OFFER_DOCUMENT_UPLOADED": "Offer Document Uploaded",
+    "CONDITION_ADDED": "Condition Added",
+    "CONDITION_UPDATED": "Condition Updated",
+    "CONDITION_REMOVED": "Condition Removed",
+    "CONDITION_SATISFIED": "Condition Satisfied",
+    "CONDITION_FAILED": "Condition Failed"
   },
   "properties": "Properties",
   "loadingProperties": "Loading properties...",

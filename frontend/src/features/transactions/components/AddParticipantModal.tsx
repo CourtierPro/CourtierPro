@@ -1,6 +1,5 @@
-
 import { useTranslation } from 'react-i18next';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -47,7 +46,7 @@ export default function AddParticipantModal({ isOpen, onClose, transactionId }: 
     const { data: participants = [] } = useTransactionParticipants(transactionId);
     const { data: transaction } = useTransaction(transactionId);
 
-    const { register, handleSubmit, reset, control, watch, formState: { errors }, setError, setValue, getValues } = useForm<ParticipantFormValues>({
+    const { register, handleSubmit, reset, control, formState: { errors }, setError, setValue, getValues } = useForm<ParticipantFormValues>({
         defaultValues: {
             name: '',
             role: 'CO_BROKER',
@@ -57,7 +56,7 @@ export default function AddParticipantModal({ isOpen, onClose, transactionId }: 
         }
     });
 
-    const selectedRole = watch('role');
+    const selectedRole = useWatch({ control, name: 'role' });
 
     const existingEmails = participants.map(p => p.email?.toLowerCase()).filter(Boolean);
 

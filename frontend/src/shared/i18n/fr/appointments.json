@@ -1,5 +1,5 @@
 {
-    "title": "Planifier un rendez-vous",
+    "title": "Rendez-vous",
     "subtitle": "Consultez et gérez vos rendez-vous à venir.",
     "appointmentType": "Type de rendez-vous",
     "selectType": "Sélectionner le type de rendez-vous",
@@ -29,5 +29,17 @@
     "noTransactionsAvailable": "Aucune transaction pour ce client",
     "noAppointmentsTitle": "Aucun rendez-vous prévu",
     "noAppointmentsDesc": "Vous n'avez aucun rendez-vous à venir. Planifiez-en un maintenant.",
-    "scheduleAppointment": "Planifier un rendez-vous"
+    "scheduleAppointment": "Planifier un rendez-vous",
+    "calendarView": "Calendrier",
+    "listView": "Liste",
+    "today": "Aujourd'hui",
+    "selectDate": "Sélectionner une date",
+    "clickToSee": "Cliquez sur une date pour voir les rendez-vous",
+    "noAppointmentsDate": "Aucun rendez-vous à cette date",
+    "status": {
+        "proposed": "Proposé",
+        "confirmed": "Confirmé",
+        "declined": "Refusé",
+        "cancelled": "Annulé"
+    }
 }
