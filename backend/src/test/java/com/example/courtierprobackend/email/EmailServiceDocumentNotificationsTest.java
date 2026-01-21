@@ -20,7 +20,7 @@ class EmailServiceDocumentNotificationsTest {
     void sendDocumentSubmittedNotification_coversAllBranches() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
         var userRepo = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, userRepo));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, userRepo, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         var userAccount = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
         when(userAccount.isEmailNotificationsEnabled()).thenReturn(true);
@@ -81,7 +81,7 @@ class EmailServiceDocumentNotificationsTest {
     void sendDocumentRequestedNotification_allBranches() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
         var userRepo = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, userRepo));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, userRepo, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         var userAccount = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
         when(userAccount.isEmailNotificationsEnabled()).thenReturn(true);
@@ -133,7 +133,7 @@ class EmailServiceDocumentNotificationsTest {
 
     @Test
     void sendDocumentEditedNotification_allBranches() throws Exception {
-        EmailService service = spy(new EmailService("a", "b", null, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, null, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
 
         // 1. English path
@@ -147,7 +147,7 @@ class EmailServiceDocumentNotificationsTest {
         service.sendDocumentEditedNotification("to@x.com", "Client", "Broker", "PROOF_OF_FUNDS", "PROOF_OF_FUNDS", "en");
 
         // 4. IOException handling (lines 267-271)
-        EmailService ioService = spy(new EmailService("a", "b", null, null));
+        EmailService ioService = spy(new EmailService("a", "b", null, null, null, null, null));
         doThrow(new java.io.IOException("template not found")).when(ioService).loadTemplateFromClasspath(anyString());
         ioService.sendDocumentEditedNotification("to@x.com", "Client", "Broker", "Doc", "TYPE", "en");
         // Should log error but not throw
@@ -158,7 +158,7 @@ class EmailServiceDocumentNotificationsTest {
     @Test
     void sendDocumentStatusUpdatedNotification_allBranches() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
 
         var transactionRef = new TransactionRef(UUID.randomUUID(), null, TransactionSide.BUY_SIDE);
@@ -229,7 +229,7 @@ class EmailServiceDocumentNotificationsTest {
     @Test
     void sendDocumentStatusUpdatedNotification_exceptionHandling() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doThrow(new jakarta.mail.MessagingException("fail")).when(service).sendEmail(anyString(), anyString(), anyString());
 
         var transactionRef = new TransactionRef(UUID.randomUUID(), null, TransactionSide.BUY_SIDE);

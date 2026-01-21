@@ -24,6 +24,12 @@ public class EmailService {
     @Value("${app.frontendBaseUrl:https://localhost:3000}")
     private String frontendBaseUrl;
 
+    @Value("${app.email.provider:gmail}")
+    private String emailProvider;
+
+    @Value("${app.email.from-address:noreply@courtierpro.com}")
+    private String fromAddress;
+
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
     private final String gmailUsername;
@@ -32,6 +38,7 @@ public class EmailService {
     private final String gmailPort;
     final OrganizationSettingsService organizationSettingsService;
     final com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
+    private final software.amazon.awssdk.services.ses.SesClient sesClient;
 
     public EmailService(
             @Value("${gmail.username}") String gmailUsername,
@@ -39,13 +46,15 @@ public class EmailService {
             @Value("${gmail.host:smtp.gmail.com}") String gmailHost,
             @Value("${gmail.port:587}") String gmailPort,
             OrganizationSettingsService organizationSettingsService,
-            com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository) {
+            com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository,
+            software.amazon.awssdk.services.ses.SesClient sesClient) {
         this.gmailUsername = gmailUsername;
         this.gmailPassword = gmailPassword;
         this.gmailHost = gmailHost;
         this.gmailPort = gmailPort;
         this.organizationSettingsService = organizationSettingsService;
         this.userAccountRepository = userAccountRepository;
+        this.sesClient = sesClient;
     }
 
     public boolean sendPasswordSetupEmail(String toEmail, String passwordSetupUrl) {
@@ -558,11 +567,45 @@ public class EmailService {
         };
     }
 
+
+    // ... (keep existing methods until sendEmail) ...
+
     boolean sendEmail(String to, String subject, String body)
             throws MessagingException, UnsupportedEncodingException {
         // Close any open paragraphs and add footer
         String bodyWithFooter = body.replaceAll("</p>$", "") + "</p>" + getEmailFooter();
 
+        if ("ses".equalsIgnoreCase(emailProvider)) {
+            return sendEmailSes(to, subject, bodyWithFooter);
+        } else {
+            return sendEmailSmtp(to, subject, bodyWithFooter);
+        }
+    }
+
+    private boolean sendEmailSes(String to, String subject, String body) {
+        try {
+            software.amazon.awssdk.services.ses.model.SendEmailRequest request = software.amazon.awssdk.services.ses.model.SendEmailRequest.builder()
+                    .source(fromAddress)
+                    .destination(d -> d.toAddresses(to))
+                    .message(m -> m
+                            .subject(s -> s.data(subject).charset("UTF-8"))
+                            .body(b -> b.html(h -> h.data(body).charset("UTF-8"))))
+                    .build();
+
+            sesClient.sendEmail(request);
+            logger.info("Email sent successfully via AWS SES to {}", to);
+            return true;
+        } catch (software.amazon.awssdk.services.ses.model.SesException e) {
+            logger.error("Failed to send email via AWS SES to {}: {}", to, e.awsErrorDetails().errorMessage());
+            // Fallback to SMTP if SES fails? Or just return false?
+            // For now, let's log and fail, or we could fallback.
+            // Given ports are blocked, fallback won't help.
+            return false;
+        }
+    }
+
+    private boolean sendEmailSmtp(String to, String subject, String body)
+            throws MessagingException, UnsupportedEncodingException {
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
@@ -582,10 +625,10 @@ public class EmailService {
         message.setFrom(new InternetAddress(gmailUsername, "CourtierPro"));
         message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
         message.setSubject(subject);
-        message.setContent(bodyWithFooter, "text/html; charset=utf-8");
+        message.setContent(body, "text/html; charset=utf-8");
 
         Transport.send(message);
-        logger.info("Email sent successfully to {}", to);
+        logger.info("Email sent successfully via SMTP to {}", to);
         return true;
     }
 

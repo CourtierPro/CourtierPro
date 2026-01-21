@@ -9,7 +9,7 @@ class EmailServiceStageUpdateTest {
     @Test
     void sendStageUpdateEmail_englishPath() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
@@ -27,7 +27,7 @@ class EmailServiceStageUpdateTest {
     @Test
     void sendStageUpdateEmail_frenchPath() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         // French path (line 597, 602-603)
@@ -46,7 +46,7 @@ class EmailServiceStageUpdateTest {
     @Test
     void sendStageUpdateEmail_nullSettingsFallbacks() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         // Null subject/body from settings (lines 607, 610-612)
@@ -65,7 +65,7 @@ class EmailServiceStageUpdateTest {
     @Test
     void sendStageUpdateEmail_blankSettingsFallbacks() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         // Blank subject/body from settings
@@ -84,7 +84,7 @@ class EmailServiceStageUpdateTest {
     @Test
     void sendStageUpdateEmail_exceptionHandling() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doThrow(new jakarta.mail.MessagingException("fail")).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()

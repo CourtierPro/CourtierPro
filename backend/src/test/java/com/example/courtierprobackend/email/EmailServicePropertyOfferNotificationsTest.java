@@ -11,7 +11,7 @@ class EmailServicePropertyOfferNotificationsTest {
     @Test
     void sendPropertyOfferMadeNotification_englishPath() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
@@ -29,7 +29,7 @@ class EmailServicePropertyOfferNotificationsTest {
     @Test
     void sendPropertyOfferMadeNotification_frenchPath() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         // French with settings (lines 359, 363-364)
@@ -48,7 +48,7 @@ class EmailServicePropertyOfferNotificationsTest {
     @Test
     void sendPropertyOfferMadeNotification_nullSettings() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         // Null subject and body from settings (lines 366, 369)
@@ -67,7 +67,7 @@ class EmailServicePropertyOfferNotificationsTest {
     @Test
     void sendPropertyOfferMadeNotification_clientNameFallbacks() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
@@ -94,7 +94,7 @@ class EmailServicePropertyOfferNotificationsTest {
     @Test
     void sendPropertyOfferMadeNotification_exceptionHandling() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doThrow(new jakarta.mail.MessagingException("fail")).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
@@ -112,7 +112,7 @@ class EmailServicePropertyOfferNotificationsTest {
     @Test
     void sendPropertyOfferStatusChangedNotification_englishPath() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
@@ -130,7 +130,7 @@ class EmailServicePropertyOfferNotificationsTest {
     @Test
     void sendPropertyOfferStatusChangedNotification_frenchPath() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         // French path (line 403, 410-411)
@@ -149,7 +149,7 @@ class EmailServicePropertyOfferNotificationsTest {
     @Test
     void sendPropertyOfferStatusChangedNotification_clientNameFallbacks() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
@@ -176,7 +176,7 @@ class EmailServicePropertyOfferNotificationsTest {
     @Test
     void sendPropertyOfferStatusChangedNotification_counterpartyResponseHandling() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
@@ -195,7 +195,7 @@ class EmailServicePropertyOfferNotificationsTest {
     @Test
     void sendPropertyOfferStatusChangedNotification_exceptionHandling() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doThrow(new jakarta.mail.MessagingException("fail")).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()

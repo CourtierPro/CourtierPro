@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class EmailServiceTranslateStatusTest {
 
-    private final EmailService service = new EmailService(null, null, null, null);
+    private final EmailService service = new EmailService(null, null, null, null, null, null, null);
 
     // ========== translateOfferStatus Tests ==========
 

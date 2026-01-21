@@ -42,8 +42,11 @@ class EmailServiceTest {
         emailService = new EmailService(
                 "testuser@gmail.com",
                 "testpass",
+                "smtp.gmail.com",
+                "587",
                 organizationSettingsService,
-                userAccountRepository
+                userAccountRepository,
+                null
         );
     }
 

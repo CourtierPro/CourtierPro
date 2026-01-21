@@ -4,6 +4,9 @@ server:
 # Base URL for frontend (used in email confirmation links)
 app:
   frontendBaseUrl: http://localhost:8081
+  email:
+    provider: gmail
+    from-address: noreply@courtierpro.com
 
 # Valeurs par défaut pour le dev local (override par .env si besoin)
 auth0:

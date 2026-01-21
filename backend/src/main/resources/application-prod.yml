@@ -1,6 +1,12 @@
 server:
   port: 8080
 
+app:
+  frontendBaseUrl: ${FRONTEND_URL}
+  email:
+    provider: ses
+    from-address: ${EMAIL_FROM_ADDRESS:support@courtier-pro.ca}
+
 spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/courtierpro

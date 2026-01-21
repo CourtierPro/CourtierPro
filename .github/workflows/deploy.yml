@@ -127,6 +127,16 @@ jobs:
             else
               echo "IMAGE_TAG=${{ github.sha }}" >> .env
             fi
+
+            # Ensure FRONTEND_URL is present in .env (if not already managed by other means)
+            if ! grep -q "^FRONTEND_URL=" .env; then
+               echo "FRONTEND_URL=${{ vars.FRONTEND_URL }}" >> .env
+            fi
+
+            # Ensure EMAIL_FROM_ADDRESS is present in .env
+            if ! grep -q "^EMAIL_FROM_ADDRESS=" .env; then
+               echo "EMAIL_FROM_ADDRESS=${{ vars.EMAIL_FROM_ADDRESS }}" >> .env
+            fi
             
             # Verify the update was successful
             UPDATED_TAG=$(grep "^IMAGE_TAG=" .env | cut -d'=' -f2)

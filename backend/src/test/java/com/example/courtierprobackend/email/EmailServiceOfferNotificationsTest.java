@@ -11,7 +11,7 @@ class EmailServiceOfferNotificationsTest {
     @Test
     void sendOfferReceivedNotification_englishPath() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
@@ -29,7 +29,7 @@ class EmailServiceOfferNotificationsTest {
     @Test
     void sendOfferReceivedNotification_frenchPath() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         // French path (line 452, 456-457)
@@ -48,7 +48,7 @@ class EmailServiceOfferNotificationsTest {
     @Test
     void sendOfferReceivedNotification_clientNameFallbacks() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
@@ -75,7 +75,7 @@ class EmailServiceOfferNotificationsTest {
     @Test
     void sendOfferReceivedNotification_exceptionHandling() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doThrow(new jakarta.mail.MessagingException("fail")).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
@@ -93,7 +93,7 @@ class EmailServiceOfferNotificationsTest {
     @Test
     void sendOfferStatusChangedNotification_englishPath() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
@@ -111,7 +111,7 @@ class EmailServiceOfferNotificationsTest {
     @Test
     void sendOfferStatusChangedNotification_frenchPath() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         // French path (line 488, 495-496)
@@ -130,7 +130,7 @@ class EmailServiceOfferNotificationsTest {
     @Test
     void sendOfferStatusChangedNotification_clientNameFallbacks() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
@@ -157,7 +157,7 @@ class EmailServiceOfferNotificationsTest {
     @Test
     void sendOfferStatusChangedNotification_exceptionHandling() throws Exception {
         var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
-        EmailService service = spy(new EmailService("a", "b", orgSettingsService, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, null, null));
         doThrow(new jakarta.mail.MessagingException("fail")).when(service).sendEmail(anyString(), anyString(), anyString());
         
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()

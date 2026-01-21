@@ -59,6 +59,8 @@ services:
       GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY}
       GITHUB_REPO_OWNER: ${GITHUB_REPO_OWNER}
       GITHUB_REPO_NAME: ${GITHUB_REPO_NAME}
+      FRONTEND_URL: ${FRONTEND_URL}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS}
     depends_on:
       db:
         condition: service_healthy

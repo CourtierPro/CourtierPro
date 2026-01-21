@@ -10,7 +10,7 @@ import static org.mockito.Mockito.*;
 class EmailServiceSendEmailTest {
     @Test
     void sendEmail_sendsSuccessfully() throws Exception {
-        EmailService service = new EmailService("a", "b", null, null);
+        EmailService service = new EmailService("a", "b", null, null, null, null, null);
         try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
             boolean result = service.sendEmail("to@x.com", "subj", "body");
             assertThat(result).isTrue();
@@ -20,7 +20,7 @@ class EmailServiceSendEmailTest {
 
     @Test
     void sendEmail_throwsMessagingException() throws Exception {
-        EmailService service = new EmailService("a", "b", null, null);
+        EmailService service = new EmailService("a", "b", null, null, null, null, null);
         try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
             transportMock.when(() -> Transport.send(any(Message.class))).thenThrow(new jakarta.mail.MessagingException("fail"));
             try {

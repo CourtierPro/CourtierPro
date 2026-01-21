@@ -11,7 +11,7 @@ class EmailServiceEmailChangeConfirmationTest {
 
     @Test
     void sendEmailChangeConfirmation_withFirstName() {
-        EmailService service = spy(new EmailService("a", "b", null, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, null, null, null));
         var user = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
         when(user.getFirstName()).thenReturn("John");
         doNothing().when(service).sendSimpleEmail(anyString(), anyString(), anyString());
@@ -23,7 +23,7 @@ class EmailServiceEmailChangeConfirmationTest {
     @Test
     void sendEmailChangeConfirmation_withNullFirstName() {
         // Line 649 - firstName null fallback to "User"
-        EmailService service = spy(new EmailService("a", "b", null, null));
+        EmailService service = spy(new EmailService("a", "b", null, null, null, null, null));
         var user = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
         when(user.getFirstName()).thenReturn(null);
         doNothing().when(service).sendSimpleEmail(anyString(), anyString(), anyString());
@@ -35,7 +35,7 @@ class EmailServiceEmailChangeConfirmationTest {
     @Test
     void sendSimpleEmail_success() {
         // Lines 675, 678
-        EmailService service = new EmailService("test@gmail.com", "pass", null, null);
+        EmailService service = new EmailService("test@gmail.com", "pass", null, null, null, null, null);
         
         try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
             service.sendSimpleEmail("to@x.com", "Subject", "Body");
@@ -46,7 +46,7 @@ class EmailServiceEmailChangeConfirmationTest {
     @Test
     void sendSimpleEmail_exceptionHandling() {
         // Line 678 - exception handling in catch block
-        EmailService service = new EmailService("test@gmail.com", "pass", null, null);
+        EmailService service = new EmailService("test@gmail.com", "pass", null, null, null, null, null);
         
         try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
             transportMock.when(() -> Transport.send(any(Message.class))).thenThrow(new jakarta.mail.MessagingException("fail"));
@@ -58,7 +58,7 @@ class EmailServiceEmailChangeConfirmationTest {
     @Test
     void convertPlainTextToHtml_blankInput() {
         // Line 683 - blank input returns empty string
-        EmailService service = new EmailService(null, null, null, null);
+        EmailService service = new EmailService(null, null, null, null, null, null, null);
         
         assertThat(service.convertPlainTextToHtml(null)).isEmpty();
         assertThat(service.convertPlainTextToHtml("")).isEmpty();
