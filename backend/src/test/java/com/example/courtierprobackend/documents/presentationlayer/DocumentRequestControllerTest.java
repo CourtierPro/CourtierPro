@@ -37,223 +37,237 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class DocumentRequestControllerTest {
 
-    private MockMvc mockMvc;
+        private MockMvc mockMvc;
 
-    @Mock
-    private DocumentRequestService service;
+        @Mock
+        private DocumentRequestService service;
 
-    @InjectMocks
-    private DocumentRequestController controller;
+        @InjectMocks
+        private DocumentRequestController controller;
 
-    private ObjectMapper objectMapper;
-    private DocumentRequestResponseDTO sampleResponse;
+        private ObjectMapper objectMapper;
+        private DocumentRequestResponseDTO sampleResponse;
 
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller)
-                .setCustomArgumentResolvers(new org.springframework.web.method.support.HandlerMethodArgumentResolver() {
-                    @Override
-                    public boolean supportsParameter(org.springframework.core.MethodParameter parameter) {
-                        return parameter.getParameterType().equals(Jwt.class);
-                    }
-                    @Override
-                    public Object resolveArgument(org.springframework.core.MethodParameter parameter, org.springframework.web.method.support.ModelAndViewContainer mavContainer, org.springframework.web.context.request.NativeWebRequest webRequest, org.springframework.web.bind.support.WebDataBinderFactory binderFactory) {
-                        return null; 
-                    }
-                })
-                .build();
-        objectMapper = new ObjectMapper();
-        objectMapper.findAndRegisterModules();
+        @BeforeEach
+        void setUp() {
+                mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                                .setCustomArgumentResolvers(
+                                                new org.springframework.web.method.support.HandlerMethodArgumentResolver() {
+                                                        @Override
+                                                        public boolean supportsParameter(
+                                                                        org.springframework.core.MethodParameter parameter) {
+                                                                return parameter.getParameterType().equals(Jwt.class);
+                                                        }
 
-        TransactionRef transactionRef = TransactionRef.builder()
-                .transactionId(UUID.randomUUID())
-                .clientId(UUID.randomUUID())
-                .side(TransactionSide.BUY_SIDE)
-                .build();
+                                                        @Override
+                                                        public Object resolveArgument(
+                                                                        org.springframework.core.MethodParameter parameter,
+                                                                        org.springframework.web.method.support.ModelAndViewContainer mavContainer,
+                                                                        org.springframework.web.context.request.NativeWebRequest webRequest,
+                                                                        org.springframework.web.bind.support.WebDataBinderFactory binderFactory) {
+                                                                return null;
+                                                        }
+                                                })
+                                .build();
+                objectMapper = new ObjectMapper();
+                objectMapper.findAndRegisterModules();
 
-        sampleResponse = DocumentRequestResponseDTO.builder()
-                .requestId(UUID.randomUUID())
-                .transactionRef(transactionRef)
-                .docType(DocumentTypeEnum.PROOF_OF_FUNDS)
-                .customTitle("Proof of Funds")
-                .status(DocumentStatusEnum.REQUESTED)
-                .expectedFrom(DocumentPartyEnum.CLIENT)
-                .submittedDocuments(List.of())
-                .brokerNotes("Please upload")
-                .lastUpdatedAt(LocalDateTime.now())
-                .visibleToClient(true)
-                .build();
-    }
+                TransactionRef transactionRef = TransactionRef.builder()
+                                .transactionId(UUID.randomUUID())
+                                .clientId(UUID.randomUUID())
+                                .side(TransactionSide.BUY_SIDE)
+                                .build();
 
-    // ==================== GET /transactions/{transactionId}/documents ====================
+                sampleResponse = DocumentRequestResponseDTO.builder()
+                                .requestId(UUID.randomUUID())
+                                .transactionRef(transactionRef)
+                                .docType(DocumentTypeEnum.PROOF_OF_FUNDS)
+                                .customTitle("Proof of Funds")
+                                .status(DocumentStatusEnum.REQUESTED)
+                                .expectedFrom(DocumentPartyEnum.CLIENT)
+                                .submittedDocuments(List.of())
+                                .brokerNotes("Please upload")
+                                .lastUpdatedAt(LocalDateTime.now())
+                                .visibleToClient(true)
+                                .build();
+        }
 
-    @Test
-    void getDocuments_returnsList() throws Exception {
-        UUID txId = UUID.randomUUID();
-        UUID reqId = UUID.randomUUID();
-        UUID brokerUuid = UUID.randomUUID();
-        sampleResponse.setRequestId(reqId);
-        
-        when(service.getDocumentsForTransaction(eq(txId), any(UUID.class)))
-                .thenReturn(List.of(sampleResponse));
+        // ==================== GET /transactions/{transactionId}/documents
+        // ====================
 
-        mockMvc.perform(get("/transactions/" + txId + "/documents")
-                .header("x-broker-id", brokerUuid.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].requestId").value(reqId.toString()))
-                .andExpect(jsonPath("$[0].docType").value("PROOF_OF_FUNDS"));
+        @Test
+        void getDocuments_returnsList() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID reqId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                sampleResponse.setRequestId(reqId);
 
-        verify(service).getDocumentsForTransaction(eq(txId), any(UUID.class));
-    }
+                when(service.getDocumentsForTransaction(eq(txId), any(UUID.class)))
+                                .thenReturn(List.of(sampleResponse));
 
-    @Test
-    void getDocuments_emptyList() throws Exception {
-        UUID txId = UUID.randomUUID();
-        UUID brokerUuid = UUID.randomUUID();
-        when(service.getDocumentsForTransaction(eq(txId), any(UUID.class)))
-                .thenReturn(List.of());
+                mockMvc.perform(get("/transactions/" + txId + "/documents")
+                                .header("x-broker-id", brokerUuid.toString()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$[0].requestId").value(reqId.toString()))
+                                .andExpect(jsonPath("$[0].docType").value("PROOF_OF_FUNDS"));
 
-        mockMvc.perform(get("/transactions/" + txId + "/documents")
-                .header("x-broker-id", brokerUuid.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$").isEmpty());
-    }
+                verify(service).getDocumentsForTransaction(eq(txId), any(UUID.class));
+        }
 
-    // ==================== POST /transactions/{transactionId}/documents ====================
+        @Test
+        void getDocuments_emptyList() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                when(service.getDocumentsForTransaction(eq(txId), any(UUID.class)))
+                                .thenReturn(List.of());
 
-    @Test
-    void createDocumentRequest_returnsCreated() throws Exception {
-        UUID txId = UUID.randomUUID();
-        UUID reqId = UUID.randomUUID();
-        
-        DocumentRequestRequestDTO requestDTO = DocumentRequestRequestDTO.builder()
-                .docType(DocumentTypeEnum.PROOF_OF_FUNDS)
-                .customTitle("Proof of Funds")
-                .expectedFrom(DocumentPartyEnum.CLIENT)
-                .visibleToClient(true)
-                .build();
+                mockMvc.perform(get("/transactions/" + txId + "/documents")
+                                .header("x-broker-id", brokerUuid.toString()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$").isArray())
+                                .andExpect(jsonPath("$").isEmpty());
+        }
 
-        sampleResponse.setRequestId(reqId);
-        when(service.createDocumentRequest(eq(txId), any(DocumentRequestRequestDTO.class)))
-                .thenReturn(sampleResponse);
+        // ==================== POST /transactions/{transactionId}/documents
+        // ====================
 
-        mockMvc.perform(post("/transactions/" + txId + "/documents")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDTO)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.requestId").value(reqId.toString()));
+        @Test
+        void createDocumentRequest_returnsCreated() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID reqId = UUID.randomUUID();
 
-        verify(service).createDocumentRequest(eq(txId), any(DocumentRequestRequestDTO.class));
-    }
+                DocumentRequestRequestDTO requestDTO = DocumentRequestRequestDTO.builder()
+                                .docType(DocumentTypeEnum.PROOF_OF_FUNDS)
+                                .customTitle("Proof of Funds")
+                                .expectedFrom(DocumentPartyEnum.CLIENT)
+                                .visibleToClient(true)
+                                .build();
 
-    // ==================== GET /transactions/{transactionId}/documents/{requestId} ====================
+                sampleResponse.setRequestId(reqId);
+                when(service.createDocumentRequest(eq(txId), any(DocumentRequestRequestDTO.class), any(UUID.class)))
+                                .thenReturn(sampleResponse);
 
-    @Test
-    void getDocumentRequest_returnsDocument() throws Exception {
-        UUID txId = UUID.randomUUID();
-        UUID reqId = UUID.randomUUID();
-        UUID brokerUuid = UUID.randomUUID();
-        
-        sampleResponse.setRequestId(reqId);
-        
-        when(service.getDocumentRequest(eq(reqId), any(UUID.class)))
-                .thenReturn(sampleResponse);
+                mockMvc.perform(post("/transactions/" + txId + "/documents")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .header("x-broker-id", UUID.randomUUID().toString())
+                                .content(objectMapper.writeValueAsString(requestDTO)))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.requestId").value(reqId.toString()));
 
-        mockMvc.perform(get("/transactions/" + txId + "/documents/" + reqId)
-                .header("x-broker-id", brokerUuid.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.requestId").value(reqId.toString()))
-                .andExpect(jsonPath("$.docType").value("PROOF_OF_FUNDS"));
+                verify(service).createDocumentRequest(eq(txId), any(DocumentRequestRequestDTO.class), any(UUID.class));
+        }
 
-        verify(service).getDocumentRequest(eq(reqId), any(UUID.class));
-    }
+        // ==================== GET /transactions/{transactionId}/documents/{requestId}
+        // ====================
 
-    // ==================== PUT /transactions/{transactionId}/documents/{requestId} ====================
+        @Test
+        void getDocumentRequest_returnsDocument() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID reqId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
 
-    @Test
-    void updateDocumentRequest_returnsUpdated() throws Exception {
-        UUID txId = UUID.randomUUID();
-        UUID reqId = UUID.randomUUID();
-        
-        DocumentRequestRequestDTO updateDTO = DocumentRequestRequestDTO.builder()
-                .customTitle("Updated Title")
-                .build();
+                sampleResponse.setRequestId(reqId);
 
-        DocumentRequestResponseDTO updatedResponse = DocumentRequestResponseDTO.builder()
-                .requestId(reqId)
-                .customTitle("Updated Title")
-                .docType(DocumentTypeEnum.PROOF_OF_FUNDS)
-                .status(DocumentStatusEnum.REQUESTED)
-                .build();
+                when(service.getDocumentRequest(eq(reqId), any(UUID.class)))
+                                .thenReturn(sampleResponse);
 
-        when(service.updateDocumentRequest(eq(reqId), any(DocumentRequestRequestDTO.class)))
-                .thenReturn(updatedResponse);
+                mockMvc.perform(get("/transactions/" + txId + "/documents/" + reqId)
+                                .header("x-broker-id", brokerUuid.toString()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.requestId").value(reqId.toString()))
+                                .andExpect(jsonPath("$.docType").value("PROOF_OF_FUNDS"));
 
-        mockMvc.perform(put("/transactions/" + txId + "/documents/" + reqId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateDTO)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.customTitle").value("Updated Title"));
+                verify(service).getDocumentRequest(eq(reqId), any(UUID.class));
+        }
 
-        verify(service).updateDocumentRequest(eq(reqId), any(DocumentRequestRequestDTO.class));
-    }
+        // ==================== PUT /transactions/{transactionId}/documents/{requestId}
+        // ====================
 
-    // ==================== DELETE /transactions/{transactionId}/documents/{requestId} ====================
+        @Test
+        void updateDocumentRequest_returnsUpdated() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID reqId = UUID.randomUUID();
 
-    @Test
-    void deleteDocumentRequest_returnsNoContent() throws Exception {
-        UUID txId = UUID.randomUUID();
-        UUID reqId = UUID.randomUUID();
-        
-        doNothing().when(service).deleteDocumentRequest(reqId);
+                DocumentRequestRequestDTO updateDTO = DocumentRequestRequestDTO.builder()
+                                .customTitle("Updated Title")
+                                .build();
 
-        mockMvc.perform(delete("/transactions/" + txId + "/documents/" + reqId))
-                .andExpect(status().isNoContent());
+                DocumentRequestResponseDTO updatedResponse = DocumentRequestResponseDTO.builder()
+                                .requestId(reqId)
+                                .customTitle("Updated Title")
+                                .docType(DocumentTypeEnum.PROOF_OF_FUNDS)
+                                .status(DocumentStatusEnum.REQUESTED)
+                                .build();
 
-        verify(service).deleteDocumentRequest(reqId);
-    }
+                when(service.updateDocumentRequest(eq(reqId), any(DocumentRequestRequestDTO.class), any(UUID.class)))
+                                .thenReturn(updatedResponse);
 
-    // ==================== POST /transactions/{transactionId}/documents/{requestId}/submit ====================
+                mockMvc.perform(put("/transactions/" + txId + "/documents/" + reqId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .header("x-broker-id", UUID.randomUUID().toString())
+                                .content(objectMapper.writeValueAsString(updateDTO)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.customTitle").value("Updated Title"));
 
-    @Test
-    void submitDocument_returnsUpdatedDocument() throws Exception {
-        UUID txId = UUID.randomUUID();
-        UUID reqId = UUID.randomUUID();
-        UUID brokerUuid = UUID.randomUUID();
-        
-        DocumentRequestResponseDTO submittedResponse = DocumentRequestResponseDTO.builder()
-                .requestId(reqId)
-                .status(DocumentStatusEnum.SUBMITTED)
-                .build();
+                verify(service).updateDocumentRequest(eq(reqId), any(DocumentRequestRequestDTO.class), any(UUID.class));
+        }
 
-        when(service.submitDocument(
-                eq(txId),
-                eq(reqId),
-                any(),
-                eq(brokerUuid),
-                eq(UploadedByRefEnum.CLIENT)
-        )).thenReturn(submittedResponse);
+        // ==================== DELETE
+        // /transactions/{transactionId}/documents/{requestId} ====================
 
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "document.pdf",
-                MediaType.APPLICATION_PDF_VALUE,
-                "PDF content".getBytes()
-        );
+        @Test
+        void deleteDocumentRequest_returnsNoContent() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID reqId = UUID.randomUUID();
 
-        mockMvc.perform(multipart("/transactions/" + txId + "/documents/" + reqId + "/submit")
-                        .file(file)
-                        .header("x-broker-id", brokerUuid.toString())) // Add auth header
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUBMITTED"));
+                doNothing().when(service).deleteDocumentRequest(eq(reqId), any(UUID.class));
 
-        verify(service).submitDocument(
-                eq(txId),
-                eq(reqId),
-                any(),
-                eq(brokerUuid), // Expect BROKER-1 from header as UUID
-                eq(UploadedByRefEnum.CLIENT)
-        );
-    }
+                mockMvc.perform(delete("/transactions/" + txId + "/documents/" + reqId)
+                                .header("x-broker-id", UUID.randomUUID().toString()))
+                                .andExpect(status().isNoContent());
+
+                verify(service).deleteDocumentRequest(eq(reqId), any(UUID.class));
+        }
+
+        // ==================== POST
+        // /transactions/{transactionId}/documents/{requestId}/submit
+        // ====================
+
+        @Test
+        void submitDocument_returnsUpdatedDocument() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID reqId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+
+                DocumentRequestResponseDTO submittedResponse = DocumentRequestResponseDTO.builder()
+                                .requestId(reqId)
+                                .status(DocumentStatusEnum.SUBMITTED)
+                                .build();
+
+                when(service.submitDocument(
+                                eq(txId),
+                                eq(reqId),
+                                any(),
+                                eq(brokerUuid),
+                                eq(UploadedByRefEnum.CLIENT))).thenReturn(submittedResponse);
+
+                MockMultipartFile file = new MockMultipartFile(
+                                "file",
+                                "document.pdf",
+                                MediaType.APPLICATION_PDF_VALUE,
+                                "PDF content".getBytes());
+
+                mockMvc.perform(multipart("/transactions/" + txId + "/documents/" + reqId + "/submit")
+                                .file(file)
+                                .header("x-broker-id", brokerUuid.toString())) // Add auth header
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.status").value("SUBMITTED"));
+
+                verify(service).submitDocument(
+                                eq(txId),
+                                eq(reqId),
+                                any(),
+                                eq(brokerUuid), // Expect BROKER-1 from header as UUID
+                                eq(UploadedByRefEnum.CLIENT));
+        }
 }

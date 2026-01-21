@@ -37,9 +37,10 @@ services:
     container_name: courtierpro_frontend
     environment:
       - VITE_API_URL=http://localhost:8080
-      - VITE_AUTH0_DOMAIN=${AUTH0_DOMAIN:-dev-y7mhv7ttykx4kz4f.us.auth0.com}
-      - VITE_AUTH0_CLIENT_ID=${VITE_AUTH0_CLIENT_ID:-JJIaYMFFtbZqGwP1XKyOx1XcFTPO9Qlr}
-      - VITE_AUTH0_AUDIENCE=${VITE_AUTH0_AUDIENCE:-https://api.courtierpro.dev}
+      - VITE_AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - VITE_AUTH0_CLIENT_ID=${VITE_AUTH0_CLIENT_ID}
+      - VITE_AUTH0_AUDIENCE=${AUTH0_AUDIENCE}
+      - VITE_AUTH0_CALLBACK_URL=http://localhost:8081
     ports:
       - "8081:80"
 

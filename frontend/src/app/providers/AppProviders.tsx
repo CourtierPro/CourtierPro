@@ -42,8 +42,6 @@ function Auth0ProviderWithNavigate({ children }: { children: ReactNode }) {
             }}
             onRedirectCallback={onRedirectCallback}
             cacheLocation="localstorage"
-            useRefreshTokens={true}
-            useRefreshTokensFallback={true}
         >
             {children}
         </Auth0Provider>
