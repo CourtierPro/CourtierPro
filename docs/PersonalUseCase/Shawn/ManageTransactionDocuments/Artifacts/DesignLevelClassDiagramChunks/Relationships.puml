@@ -1,0 +1,106 @@
+@startuml Relationships
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide members
+
+title Design Level Class Diagram: Relationships Overview
+
+package "Presentation Layer" #LightBlue {
+  class DocumentRequestController
+  class GlobalDocumentController
+  class DocumentRequestRequestDTO
+  class DocumentRequestResponseDTO
+  class DocumentReviewRequestDTO
+  class SubmittedDocumentDTO
+}
+
+package "Business Layer" #LightGreen {
+  interface DocumentRequestService
+  class DocumentRequestServiceImpl
+  interface NotificationService
+}
+
+package "Data Layer" #LightYellow {
+  interface DocumentRequestRepository
+  interface TransactionRepository
+  class DocumentRequest <<Entity>>
+  class SubmittedDocument <<Entity>>
+  class TransactionRef <<Value Object>>
+  class StorageObject <<Value Object>>
+  class UploadedBy <<Value Object>>
+}
+
+package "Infrastructure Layer" #LightCoral {
+  interface S3StorageService
+  class S3StorageServiceImpl
+}
+
+package "Enums" #LightGray {
+  enum DocumentTypeEnum
+  enum DocumentStatusEnum
+  enum DocumentPartyEnum
+}
+
+' ==========================================
+' PRESENTATION LAYER - Internal
+' ==========================================
+DocumentRequestController ..> DocumentRequestRequestDTO : receives
+DocumentRequestController ..> DocumentRequestResponseDTO : returns
+DocumentRequestController ..> DocumentReviewRequestDTO : receives
+DocumentRequestResponseDTO ..> SubmittedDocumentDTO : contains
+
+' ==========================================
+' BUSINESS LAYER - Internal
+' ==========================================
+DocumentRequestServiceImpl ..|> DocumentRequestService : implements
+
+' ==========================================
+' DATA LAYER - Internal
+' ==========================================
+DocumentRequestRepository ..> DocumentRequest : persists
+DocumentRequest "1" *-- "1" TransactionRef : contains
+DocumentRequest "1" *-- "0..*" SubmittedDocument : contains
+SubmittedDocument "1" *-- "1" StorageObject : contains
+SubmittedDocument "1" *-- "1" UploadedBy : contains
+
+' ==========================================
+' INFRASTRUCTURE LAYER - Internal
+' ==========================================
+S3StorageServiceImpl ..|> S3StorageService : implements
+
+' ==========================================
+' CROSS-PACKAGE: Presentation → Business
+' ==========================================
+DocumentRequestController --> DocumentRequestService : uses
+GlobalDocumentController --> DocumentRequestService : uses
+
+' ==========================================
+' CROSS-PACKAGE: Business → Data
+' ==========================================
+DocumentRequestServiceImpl --> DocumentRequestRepository : uses
+DocumentRequestServiceImpl --> TransactionRepository : uses
+DocumentRequestServiceImpl ..> DocumentRequest : manages
+
+' ==========================================
+' CROSS-PACKAGE: Business → Infrastructure
+' ==========================================
+DocumentRequestServiceImpl --> S3StorageService : uses
+
+' ==========================================
+' CROSS-PACKAGE: Business → Business
+' ==========================================
+DocumentRequestServiceImpl --> NotificationService : uses
+
+' ==========================================
+' CROSS-PACKAGE: Business → Presentation
+' ==========================================
+DocumentRequestServiceImpl ..> DocumentRequestResponseDTO : creates
+
+' ==========================================
+' CROSS-PACKAGE: Data → Enums
+' ==========================================
+DocumentRequest --> DocumentTypeEnum
+DocumentRequest --> DocumentStatusEnum
+DocumentRequest --> DocumentPartyEnum
+
+@enduml

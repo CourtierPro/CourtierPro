@@ -1,0 +1,102 @@
+@startuml C4Level3Frontend
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+scale 0.42
+!$ICONURL = "https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons"
+!include $ICONURL/common.puml
+!include $ICONURL/devicons2/spring_original.puml
+!include $ICONURL/devicons/react.puml
+!include $ICONURL/devicons/html5.puml
+!include $ICONURL/devicons/postgresql.puml
+
+AddElementTag("microService-java", $shape=EightSidedShape(), $bgColor="#FFDB33", $borderColor="Black", $fontColor="black", $legendText="Spring Boot Container")
+AddElementTag("framework-react", $shape=RoundedBoxShape(), $bgColor="#61DBFB", $borderColor="Black", $fontColor="white", $legendText="React SPA (Vite)")
+AddElementTag("shell-infra", $bgColor="#f5f5f5", $borderColor="Black", $fontColor="black", $legendText="Shell & Infrastructure")
+AddElementTag("broker-area", $bgColor="#e3f2fd", $borderColor="Black", $fontColor="black", $legendText="Broker Workspace")
+AddElementTag("client-area", $bgColor="#e8f5e9", $borderColor="Black", $fontColor="black", $legendText="Client Workspace")
+AddElementTag("admin-area", $bgColor="#fff3e0", $borderColor="Black", $fontColor="black", $legendText="Admin Workspace")
+
+AddRelTag("purple-line", $lineColor="purple", $legendText="API Calls (REST)")
+AddRelTag("green-line", $lineColor="green", $legendText="Documents (R2)")
+
+LAYOUT_TOP_DOWN()
+SHOW_PERSON_OUTLINE()
+
+title CourtierPro — C4 Level 3 (Frontend Web SPA Components)
+
+System_Boundary(cp, "CourtierPro System") {
+
+  Person(broker, "Broker", "Licensed real estate broker in Quebec")
+  Person(client, "Client", "Buyer/Seller working with the brokerage")
+  Person(admin, "Admin", "Administrative staff / system admin")
+
+  Container_Boundary(web_spa, "CourtierPro Web App (React 18 + Vite)", $tags="framework-react") {
+
+    ' Shell & Infrastructure
+    Component(AppShell, "Dashboard Shell", "React Router Layout", "Top navigation, sidebar, route outlet", $tags="shell-infra")
+    Component(AuthGuard, "AuthGuard", "React + Auth0 hooks", "Protects routes, injects user/roles", $tags="shell-infra")
+    Component(I18nProvider, "I18nProvider", "react-i18next", "EN/FR translations and language toggle", $tags="shell-infra")
+    Component(ApiClient, "ApiClient", "Axios wrapper", "Central REST client with token & error handling", $tags="shell-infra")
+    Component(NotificationBanner, "NotificationCenter", "React Component", "Global alerts and status banners", $tags="shell-infra")
+
+    ' Shared role-aware pages (Broker + Client)
+    Component(DashboardPage, "DashboardPage", "React Page", "Role-aware dashboard for broker & client (My Day + summaries)", $tags="broker-area,client-area")
+    Component(TransactionsPage, "TransactionsPage", "React Page", "Role-aware transactions list for broker & client", $tags="broker-area,client-area")
+    Component(TransactionPage, "TransactionPage", "React Page", "Role-aware transaction detail page (docs + appointments)", $tags="broker-area,client-area")
+
+    ' Domain feature components
+    Component(MyDayWidget, "MyDayWidget", "React Component", "Shows tasks, due documents, and upcoming appointments for today", $tags="broker-area,client-area")
+    Component(TransactionsList, "TransactionsList", "React Component", "Lists and filters active/closed transactions", $tags="broker-area,client-area")
+    Component(TransactionDetailsView, "TransactionDetailsView", "React Component", "Shows transaction timeline, stages, and key info", $tags="broker-area,client-area")
+    Component(DocumentsCenter, "DocumentsCenter", "React Component", "Document checklist, upload, and signing status", $tags="broker-area,client-area")
+    Component(AppointmentsCenter, "AppointmentsCenter", "React Component", "Appointments list/calendar and actions", $tags="broker-area,client-area")
+
+    ' Admin workspace
+    Component(AdminUsersPage, "AdminUsersPage", "React Page", "Manage users (brokers, clients, admins)", $tags="admin-area")
+    Component(AdminOrgSettingsPage, "AdminOrgSettingsPage", "React Page", "Org-level settings and templates", $tags="admin-area")
+  }
+
+  Container(backend_api, "CourtierPro Backend API", "Spring Boot 3", "Domain logic & persistence", $sprite="spring_original", $tags="microService-java")
+}
+
+' User relationships
+Rel(broker, AppShell, "Uses via browser", "HTTPS")
+Rel(client, AppShell, "Uses via browser", "HTTPS")
+Rel(admin, AppShell, "Uses via browser", "HTTPS")
+
+' Shell / infrastructure relationships
+Rel(AppShell, NotificationBanner, "Renders notifications region", "Composition")
+Rel(AppShell, AuthGuard, "Wraps protected routes")
+Rel(AppShell, I18nProvider, "Provides i18n context")
+
+' AppShell renders main pages
+Rel(AppShell, DashboardPage, "Renders", "Composition")
+Rel(AppShell, TransactionsPage, "Renders", "Composition")
+Rel(AppShell, TransactionPage, "Renders", "Composition")
+Rel(AppShell, AdminUsersPage, "Renders", "Composition")
+Rel(AppShell, AdminOrgSettingsPage, "Renders", "Composition")
+
+' Dashboard / transactions composition
+Rel(DashboardPage, MyDayWidget, "Embeds", "Composition")
+Rel(DashboardPage, TransactionsList, "Embeds summary list", "Composition")
+
+Rel(TransactionsPage, TransactionsList, "Embeds", "Composition")
+
+Rel(TransactionPage, TransactionDetailsView, "Embeds", "Composition")
+Rel(TransactionPage, DocumentsCenter, "Embeds docs section", "Composition")
+Rel(TransactionPage, AppointmentsCenter, "Embeds appointments section", "Composition")
+
+' Domain components and admin pages using ApiClient
+Rel(MyDayWidget, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(TransactionsList, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(TransactionDetailsView, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(DocumentsCenter, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line,green-line")
+Rel(AppointmentsCenter, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+
+Rel(AdminUsersPage, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(AdminOrgSettingsPage, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+
+' ApiClient calls backend container
+Rel(ApiClient, backend_api, "Calls", "JSON/REST/HTTPS", $tags="purple-line")
+
+SHOW_LEGEND()
+@enduml

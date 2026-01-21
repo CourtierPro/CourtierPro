@@ -1,0 +1,42 @@
+@startuml Enums
+skinparam classAttributeIconSize 0
+
+title Enums
+
+package "Enums" #LightGray {
+  enum DocumentTypeEnum {
+    MORTGAGE_PRE_APPROVAL
+    MORTGAGE_APPROVAL
+    PROOF_OF_FUNDS
+    ID_VERIFICATION
+    EMPLOYMENT_LETTER
+    PAY_STUBS
+    CREDIT_REPORT
+    CERTIFICATE_OF_LOCATION
+    PROMISE_TO_PURCHASE
+    INSPECTION_REPORT
+    INSURANCE_LETTER
+    BANK_STATEMENT
+    OTHER
+  }
+  
+  enum DocumentStatusEnum {
+    REQUESTED
+    SUBMITTED
+    APPROVED
+    NEEDS_REVISION
+    REJECTED
+  }
+  
+  enum DocumentPartyEnum {
+    BUYER
+    SELLER
+    BROKER
+    LENDER
+    NOTARY
+    INSPECTOR
+    OTHER
+  }
+}
+
+@enduml

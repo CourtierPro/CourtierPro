@@ -1,0 +1,128 @@
+@startuml UseCaseDiagram
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor White
+  BorderColor Black
+  ArrowColor Black
+}
+skinparam rectangle {
+  BackgroundColor #f7f4eb
+  BorderColor Black
+}
+
+title CourtierPro - Use Case Diagram
+
+actor "Client\n(Buyer/Seller)" as Client #LightGreen
+actor "Broker" as Broker #LightBlue
+actor "Admin" as Admin #LightCoral
+
+rectangle "CourtierPro System" {
+  
+  ' ========== TRANSACTION MANAGEMENT ==========
+  package "Transaction Management" {
+    usecase "Manage Transactions" as UC_ManageTransactions
+    usecase "View Transaction Details" as UC_ViewTransaction
+    usecase "Update Transaction Stage" as UC_UpdateStage
+    usecase "Add Timeline Note" as UC_AddNote
+    usecase "View Transaction Timeline" as UC_ViewTimeline
+    usecase "Manage Transaction Participants" as UC_ManageParticipants
+  }
+  
+  ' ========== DOCUMENT MANAGEMENT ==========
+  package "Document Management" #LightGreen {
+    usecase "**Manage Transaction Documents**" as UC_ManageDocuments #PaleGreen
+    usecase "Create Document Request" as UC_CreateDocRequest
+    usecase "Submit Document" as UC_SubmitDocument
+    usecase "Review Submitted Document" as UC_ReviewDocument
+    usecase "Download Document" as UC_DownloadDocument
+    usecase "Delete Document Request" as UC_DeleteDocRequest
+  }
+  
+  ' ========== APPOINTMENT MANAGEMENT ==========
+  package "Appointment Management" {
+    usecase "Manage Appointments" as UC_ManageAppointments
+    usecase "Schedule Appointment" as UC_ScheduleAppt
+    usecase "Confirm/Cancel Appointment" as UC_ConfirmAppt
+    usecase "View Appointment Calendar" as UC_ViewCalendar
+  }
+  
+  ' ========== ANALYTICS & DASHBOARD ==========
+  package "Analytics & Dashboard" {
+    usecase "View Broker Analytics Dashboard" as UC_ViewDashboard
+    usecase "View My Day Summary" as UC_ViewMyDay
+    usecase "View KPIs" as UC_ViewKPIs
+  }
+  
+  ' ========== USER MANAGEMENT ==========
+  package "User Management" {
+    usecase "Manage User Profile" as UC_ManageProfile
+    usecase "Manage System Users" as UC_ManageUsers
+    usecase "Configure Organization Settings" as UC_ConfigOrg
+  }
+  
+  ' ========== NOTIFICATIONS ==========
+  package "Notifications" {
+    usecase "View Notifications" as UC_ViewNotifications
+    usecase "Send Broadcast Notification" as UC_SendBroadcast
+  }
+}
+
+' ========== CLIENT ASSOCIATIONS ==========
+Client --> UC_ViewTransaction
+Client --> UC_SubmitDocument
+Client --> UC_DownloadDocument
+Client --> UC_ViewTimeline
+Client --> UC_ViewCalendar
+Client --> UC_ManageProfile
+Client --> UC_ViewNotifications
+
+' ========== BROKER ASSOCIATIONS ==========
+Broker --> UC_ManageTransactions
+Broker --> UC_ViewTransaction
+Broker --> UC_UpdateStage
+Broker --> UC_AddNote
+Broker --> UC_ManageParticipants
+Broker --> UC_ManageDocuments
+Broker --> UC_CreateDocRequest
+Broker --> UC_SubmitDocument
+Broker --> UC_ReviewDocument
+Broker --> UC_DownloadDocument
+Broker --> UC_DeleteDocRequest
+Broker --> UC_ManageAppointments
+Broker --> UC_ScheduleAppt
+Broker --> UC_ConfirmAppt
+Broker --> UC_ViewCalendar
+Broker --> UC_ViewDashboard
+Broker --> UC_ViewMyDay
+Broker --> UC_ViewKPIs
+Broker --> UC_ManageProfile
+Broker --> UC_ViewNotifications
+
+' ========== ADMIN ASSOCIATIONS ==========
+Admin --> UC_ManageUsers
+Admin --> UC_ConfigOrg
+Admin --> UC_SendBroadcast
+Admin --> UC_ViewNotifications
+
+' ========== INCLUDE RELATIONSHIPS ==========
+UC_ManageDocuments ..> UC_CreateDocRequest : <<include>>
+UC_ManageDocuments ..> UC_ReviewDocument : <<include>>
+UC_ManageDocuments ..> UC_DeleteDocRequest : <<include>>
+UC_ManageDocuments ..> UC_DownloadDocument : <<include>>
+
+UC_ManageTransactions ..> UC_ViewTransaction : <<include>>
+UC_ManageTransactions ..> UC_UpdateStage : <<include>>
+UC_ManageTransactions ..> UC_AddNote : <<include>>
+
+UC_ManageAppointments ..> UC_ScheduleAppt : <<include>>
+UC_ManageAppointments ..> UC_ConfirmAppt : <<include>>
+
+UC_ViewDashboard ..> UC_ViewMyDay : <<include>>
+UC_ViewDashboard ..> UC_ViewKPIs : <<include>>
+
+' ========== EXTEND RELATIONSHIPS ==========
+UC_ReviewDocument ..> UC_SubmitDocument : <<extend>>\n[document needs revision]
+
+@enduml
