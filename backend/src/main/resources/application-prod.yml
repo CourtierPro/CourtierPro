@@ -49,3 +49,7 @@ auth0:
     client-id: ${AUTH0_MGMT_CLIENT_ID}
     client-secret: ${AUTH0_MGMT_CLIENT_SECRET}
     audience: ${AUTH0_MGMT_AUDIENCE}
+
+gmail:
+  username: ${GMAIL_USERNAME}
+  password: ${GMAIL_PASSWORD}
