@@ -19,6 +19,9 @@ public class AwsConfig {
     @Value("${aws.s3.endpoint:https://s3.ca-central-1.amazonaws.com}")
     private String endpoint;
 
+    @Value("${aws.ses.region:ca-central-1}")
+    private String sesRegion;
+
     @Bean
     public S3Client s3Client() {
         var builder = S3Client.builder()
@@ -35,7 +38,7 @@ public class AwsConfig {
     @Bean
     public SesClient sesClient() {
         return SesClient.builder()
-                .region(Region.of(region))
+                .region(Region.of(sesRegion))
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
     }

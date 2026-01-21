@@ -46,7 +46,7 @@ aws:
     bucket-name: ${AWS_S3_BUCKET}
     endpoint: ${AWS_S3_ENDPOINT}
   ses:
-    region: ${AWS_REGION}
+    region: ${AWS_SES_REGION:ca-central-1}
 
 auth0:
   domain: ${AUTH0_DOMAIN}
