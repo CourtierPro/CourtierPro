@@ -8,6 +8,7 @@ import com.example.courtierprobackend.transactions.datalayer.dto.TransactionResp
 import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.AddParticipantRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.UpdateParticipantRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.ParticipantResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
@@ -243,6 +244,18 @@ public class TransactionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.addParticipant(transactionId, dto, brokerId));
     }
 
+    @PutMapping("/{transactionId}/participants/{participantId}")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<ParticipantResponseDTO> updateParticipant(
+            @PathVariable UUID transactionId,
+            @PathVariable UUID participantId,
+            @Valid @RequestBody UpdateParticipantRequestDTO dto,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.updateParticipant(transactionId, participantId, dto, brokerId));
+    }
+
     @DeleteMapping("/{transactionId}/participants/{participantId}")
     @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<Void> removeParticipant(
@@ -324,6 +337,7 @@ public class TransactionController {
         boolean isBroker = UserContextUtils.isBroker(request);
         return ResponseEntity.ok(service.getPropertyById(propertyId, userId, isBroker));
     }
+
     @PutMapping("/{transactionId}/active-property/{propertyId}")
     @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<Void> setActiveProperty(
@@ -478,7 +492,8 @@ public class TransactionController {
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             HttpServletRequest request) {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.uploadPropertyOfferDocument(propertyOfferId, file, brokerId));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(service.uploadPropertyOfferDocument(propertyOfferId, file, brokerId));
     }
 
     @GetMapping("/{transactionId}/offers/{offerId}/documents")
@@ -599,4 +614,3 @@ public class TransactionController {
         return ResponseEntity.ok(service.getAllTransactionDocuments(transactionId, userId, isBroker));
     }
 }
-

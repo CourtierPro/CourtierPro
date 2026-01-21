@@ -1,0 +1,46 @@
+    @startuml BusinessLayer
+    skinparam classAttributeIconSize 0
+
+    title Business Layer
+
+    package "Business Layer" #LightGreen {
+    interface DocumentRequestService {
+        + getDocumentsForTransaction(transactionId, userId): List<DocumentRequestResponseDTO>
+        + getDocumentRequest(requestId, userId): DocumentRequestResponseDTO
+        + createDocumentRequest(transactionId, dto): DocumentRequestResponseDTO
+        + updateDocumentRequest(requestId, dto): DocumentRequestResponseDTO
+        + deleteDocumentRequest(requestId): void
+        + submitDocument(transactionId, requestId, file, userId, type): DocumentRequestResponseDTO
+        + getAllDocumentsForUser(userId): List<DocumentRequestResponseDTO>
+        + getDocumentDownloadUrl(requestId, docId, userId): String
+        + reviewDocument(transactionId, requestId, dto, brokerId): DocumentRequestResponseDTO
+    }
+    
+    class DocumentRequestServiceImpl {
+        - documentRequestRepository: DocumentRequestRepository
+        - transactionRepository: TransactionRepository
+        - userAccountRepository: UserAccountRepository
+        - notificationService: NotificationService
+        - s3StorageService: S3StorageService
+        --
+        + getDocumentsForTransaction(transactionId, userId): List<DocumentRequestResponseDTO>
+        + createDocumentRequest(transactionId, dto): DocumentRequestResponseDTO
+        + submitDocument(transactionId, requestId, file, userId, type): DocumentRequestResponseDTO
+        + reviewDocument(transactionId, requestId, dto, brokerId): DocumentRequestResponseDTO
+        - validateFile(file): void
+        - validateCanSubmit(request): void
+        - validateCanReview(request): void
+        - mapToDTO(entity): DocumentRequestResponseDTO
+    }
+    
+    interface NotificationService {
+        + sendDocumentRequestNotification(request): void
+        + sendDocumentSubmittedNotification(request): void
+        + sendDocumentReviewedNotification(request, decision): void
+    }
+    
+    ' Intra-package relationships
+    DocumentRequestServiceImpl ..|> DocumentRequestService : implements
+    }
+
+    @enduml

@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import axiosInstance from '@/shared/api/axiosInstance';
-import type { TimelineEntryDTO } from '@/shared/api/types';
+import type { TimelineEntryDTO, TransactionParticipant } from '@/shared/api/types';
 
 // Re-export a local type alias expected by components
 export type TimelineEntry = TimelineEntryDTO;
+export type Participant = TransactionParticipant;
 
 export const transactionKeys = {
     all: ['transactions'] as const,
@@ -14,15 +15,6 @@ export const transactionKeys = {
     client: (clientId: string) => [...transactionKeys.all, 'client', clientId] as const,
     pinned: () => [...transactionKeys.all, 'pinned'] as const,
 };
-
-export interface Participant {
-    id: string;
-    transactionId: string;
-    name: string;
-    role: 'BROKER' | 'CO_BROKER' | 'NOTARY' | 'LAWYER' | 'BUYER' | 'SELLER' | 'OTHER';
-    email?: string;
-    phoneNumber?: string;
-}
 
 export interface Transaction {
     transactionId: string;
@@ -168,6 +160,24 @@ export function useTransactionParticipants(transactionId: string) {
             return res.data;
         },
         enabled: !!transactionId,
+    });
+}
+
+export interface BrokerUser {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+}
+
+export function useBrokers() {
+    return useQuery({
+        queryKey: ['brokers'],
+        queryFn: async () => {
+            const res = await axiosInstance.get<BrokerUser[]>('/api/broker/colleagues');
+            return res.data;
+        },
     });
 }
 

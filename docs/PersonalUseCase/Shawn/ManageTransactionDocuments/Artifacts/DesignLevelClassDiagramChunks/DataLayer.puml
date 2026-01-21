@@ -1,0 +1,79 @@
+@startuml DataLayer
+skinparam classAttributeIconSize 0
+
+title Data Layer
+
+package "Data Layer" #LightYellow {
+  interface DocumentRequestRepository {
+    + findByRequestId(requestId): Optional<DocumentRequest>
+    + findByTransactionRefTransactionId(transactionId): List<DocumentRequest>
+    + findByTransactionRefClientId(clientId): List<DocumentRequest>
+    + findByStatus(status): List<DocumentRequest>
+    + countByStatus(status): Long
+  }
+  
+  interface TransactionRepository {
+    + findByTransactionId(transactionId): Optional<Transaction>
+    + findByClientId(clientId): List<Transaction>
+  }
+  
+  class DocumentRequest <<Entity>> {
+    - id: Long
+    - requestId: UUID
+    - transactionRef: TransactionRef
+    - docType: DocumentTypeEnum
+    - customTitle: String
+    - status: DocumentStatusEnum
+    - expectedFrom: DocumentPartyEnum
+    - relatedBuyerStage: BuyerStage
+    - relatedSellerStage: SellerStage
+    - stage: StageEnum
+    - submittedDocuments: List<SubmittedDocument>
+    - brokerNotes: String
+    - visibleToClient: boolean
+    - lastUpdatedAt: LocalDateTime
+    - deletedAt: LocalDateTime
+    - deletedBy: UUID
+    --
+    + isVisibleToClient(): boolean
+    + getVisibleToClient(): boolean
+  }
+  
+  class SubmittedDocument <<Entity>> {
+    - id: Long
+    - documentId: UUID
+    - uploadedAt: LocalDateTime
+    - uploadedBy: UploadedBy
+    - storageObject: StorageObject
+    - documentRequest: DocumentRequest
+    - deletedAt: LocalDateTime
+    - deletedBy: UUID
+  }
+  
+  class TransactionRef <<Value Object>> {
+    - transactionId: UUID
+    - clientId: UUID
+    - side: TransactionSideEnum
+  }
+  
+  class StorageObject <<Value Object>> {
+    - s3Key: String
+    - fileName: String
+    - mimeType: String
+  }
+  
+  class UploadedBy <<Value Object>> {
+    - party: DocumentPartyEnum
+    - userId: UUID
+    - externalName: String
+  }
+  
+  ' Intra-package relationships
+  DocumentRequestRepository ..> DocumentRequest : persists
+  DocumentRequest "1" *-- "1" TransactionRef : contains
+  DocumentRequest "1" *-- "0..*" SubmittedDocument : contains
+  SubmittedDocument "1" *-- "1" StorageObject : contains
+  SubmittedDocument "1" *-- "1" UploadedBy : contains
+}
+
+@enduml

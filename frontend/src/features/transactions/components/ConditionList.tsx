@@ -13,6 +13,7 @@ interface ConditionListProps {
     isReadOnly?: boolean;
     offers?: Offer[];
     propertyOffers?: PropertyOffer[];
+    canEdit?: boolean;
 }
 
 export function ConditionList({
@@ -23,6 +24,7 @@ export function ConditionList({
     isReadOnly,
     offers = [],
     propertyOffers = [],
+    canEdit = true,
 }: ConditionListProps) {
     const { t } = useTranslation('transactions');
 
@@ -50,7 +52,7 @@ export function ConditionList({
 
     return (
         <div className="space-y-4">
-            {!isReadOnly && (
+            {!isReadOnly && canEdit && (
                 <div className="flex justify-between items-center">
                     <h3 className="text-lg font-semibold">{t('conditions.title')}</h3>
                     <Button onClick={onAddClick} size="sm">

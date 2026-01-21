@@ -4,6 +4,8 @@ import com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRo
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import java.util.Set;
+import com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission;
 
 @Data
 public class AddParticipantRequestDTO {
@@ -16,4 +18,5 @@ public class AddParticipantRequestDTO {
     @jakarta.validation.constraints.Email(message = "Invalid email format")
     private String email;
     private String phoneNumber;
+    private Set<ParticipantPermission> permissions;
 }

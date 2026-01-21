@@ -35,11 +35,11 @@ public class UserProvisioningService {
     private final com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
 
     public UserProvisioningService(UserAccountRepository userAccountRepository,
-                                   Auth0ManagementClient auth0ManagementClient,
-                                   UserMapper userMapper,
-                                   OrganizationSettingsService organizationSettingsService,
-                                   EmailService emailService,
-                                   com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService) {
+            Auth0ManagementClient auth0ManagementClient,
+            UserMapper userMapper,
+            OrganizationSettingsService organizationSettingsService,
+            EmailService emailService,
+            com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService) {
         this.userAccountRepository = userAccountRepository;
         this.auth0ManagementClient = auth0ManagementClient;
         this.userMapper = userMapper;
@@ -47,7 +47,6 @@ public class UserProvisioningService {
         this.emailService = emailService;
         this.notificationService = notificationService;
     }
-
 
     public List<UserResponse> getAllUsers() {
         return userAccountRepository.findAll()
@@ -63,6 +62,12 @@ public class UserProvisioningService {
                 .toList();
     }
 
+    public List<UserResponse> getBrokers() {
+        return userAccountRepository.findByRole(UserRole.BROKER)
+                .stream()
+                .map(userMapper::toResponse)
+                .toList();
+    }
 
     public UserResponse createUser(CreateUserRequest request) {
 
@@ -87,8 +92,7 @@ public class UserProvisioningService {
                 request.getFirstName(),
                 request.getLastName(),
                 role,
-                effectiveLanguage
-        );
+                effectiveLanguage);
 
         // Auth0 createUser returns just the auth0UserId
         String auth0UserId = result;
@@ -123,8 +127,7 @@ public class UserProvisioningService {
                         "notifications.welcome.message",
                         Map.of(),
                         null,
-                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME
-                );
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.WELCOME);
             } catch (Exception e) {
                 logger.warn("Failed to send welcome notification for new client {}: {}", saved.getId(), e.getMessage());
             }
@@ -132,7 +135,6 @@ public class UserProvisioningService {
 
         return userMapper.toResponse(saved);
     }
-
 
     public UserResponse updateStatus(UUID userId, UpdateStatusRequest request) {
         UserAccount account = userAccountRepository.findById(userId)

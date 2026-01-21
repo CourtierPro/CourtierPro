@@ -18,7 +18,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -39,23 +40,70 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(TransactionController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class TransactionControllerTest {
+
+        @Test
+        @WithMockUser(roles = "BROKER")
+        void addParticipant_duplicateEmail_returnsBadRequest() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                String brokerId = brokerUuid.toString();
+
+                AddParticipantRequestDTO requestDto = new AddParticipantRequestDTO();
+                requestDto.setName("Jane Doe");
+                requestDto.setRole(ParticipantRole.CO_BROKER);
+                requestDto.setEmail("duplicate@email.com");
+
+                org.mockito.Mockito.when(transactionService.addParticipant(eq(txId), any(), eq(brokerUuid)))
+                                .thenThrow(new IllegalArgumentException("Email already exists"));
+
+                mockMvc.perform(post("/transactions/" + txId + "/participants")
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(requestDto))
+                                .with(jwt())
+                                .header("x-broker-id", brokerId))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @WithMockUser(roles = "BROKER")
+        void addParticipant_primaryBrokerAsCoBroker_returnsBadRequest() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                String brokerId = brokerUuid.toString();
+
+                AddParticipantRequestDTO requestDto = new AddParticipantRequestDTO();
+                requestDto.setName("Primary Broker");
+                requestDto.setRole(ParticipantRole.CO_BROKER);
+                requestDto.setEmail("primary@broker.com");
+
+                org.mockito.Mockito.when(transactionService.addParticipant(eq(txId), any(), eq(brokerUuid)))
+                                .thenThrow(new IllegalArgumentException("Cannot add primary broker as co-broker"));
+
+                mockMvc.perform(post("/transactions/" + txId + "/participants")
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(requestDto))
+                                .with(jwt())
+                                .header("x-broker-id", brokerId))
+                                .andExpect(status().isBadRequest());
+        }
+
         @Autowired
         private MockMvc mockMvc;
 
-        @MockBean
+        @MockitoBean
         private TimelineService timelineService;
 
-        @MockBean
+        @MockitoBean
         private TransactionService transactionService;
 
-        @MockBean
+        @MockitoBean
         private UserContextFilter userContextFilter;
 
-        @MockBean
+        @MockitoBean
         private UserAccountRepository userAccountRepository;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+        @Autowired
+        private ObjectMapper objectMapper;
 
         // ========== createTransaction Tests ==========
 
@@ -491,7 +539,7 @@ class TransactionControllerTest {
                 UUID txId = UUID.randomUUID();
                 UUID brokerUuid = UUID.randomUUID();
                 String brokerId = brokerUuid.toString();
-                
+
                 when(timelineService.getTimelineForTransaction(txId)).thenReturn(List.of());
 
                 mockMvc.perform(get("/transactions/" + txId + "/timeline")
@@ -585,19 +633,19 @@ class TransactionControllerTest {
                 UUID brokerUuid = UUID.randomUUID();
                 String brokerId = brokerUuid.toString();
 
-                org.springframework.mock.web.MockMultipartFile file = 
-                        new org.springframework.mock.web.MockMultipartFile(
+                org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
                                 "file", "test.pdf", "application/pdf", "test content".getBytes());
 
-                com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO response = 
-                        com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO.builder()
+                com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO response = com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO
+                                .builder()
                                 .documentId(UUID.randomUUID())
                                 .fileName("test.pdf")
                                 .build();
 
                 when(transactionService.uploadOfferDocument(eq(offerId), any(), eq(brokerUuid))).thenReturn(response);
 
-                mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/transactions/" + txId + "/offers/" + offerId + "/documents")
+                mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                                .multipart("/transactions/" + txId + "/offers/" + offerId + "/documents")
                                 .file(file)
                                 .with(jwt())
                                 .header("x-broker-id", brokerId))
@@ -615,19 +663,21 @@ class TransactionControllerTest {
                 UUID brokerUuid = UUID.randomUUID();
                 String brokerId = brokerUuid.toString();
 
-                org.springframework.mock.web.MockMultipartFile file = 
-                        new org.springframework.mock.web.MockMultipartFile(
+                org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
                                 "file", "offer.pdf", "application/pdf", "offer content".getBytes());
 
-                com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO response = 
-                        com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO.builder()
+                com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO response = com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO
+                                .builder()
                                 .documentId(UUID.randomUUID())
                                 .fileName("offer.pdf")
                                 .build();
 
-                when(transactionService.uploadPropertyOfferDocument(eq(propertyOfferId), any(), eq(brokerUuid))).thenReturn(response);
+                when(transactionService.uploadPropertyOfferDocument(eq(propertyOfferId), any(), eq(brokerUuid)))
+                                .thenReturn(response);
 
-                mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/transactions/properties/" + propertyId + "/offers/" + propertyOfferId + "/documents")
+                mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                                .multipart("/transactions/properties/" + propertyId + "/offers/" + propertyOfferId
+                                                + "/documents")
                                 .file(file)
                                 .with(jwt())
                                 .header("x-broker-id", brokerId))
@@ -645,13 +695,14 @@ class TransactionControllerTest {
                 UUID brokerUuid = UUID.randomUUID();
                 String brokerId = brokerUuid.toString();
 
-                com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO doc = 
-                        com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO.builder()
+                com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO doc = com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO
+                                .builder()
                                 .documentId(UUID.randomUUID())
                                 .fileName("contract.pdf")
                                 .build();
 
-                when(transactionService.getOfferDocuments(eq(offerId), eq(brokerUuid), eq(true))).thenReturn(List.of(doc));
+                when(transactionService.getOfferDocuments(eq(offerId), eq(brokerUuid), eq(true)))
+                                .thenReturn(List.of(doc));
 
                 mockMvc.perform(get("/transactions/" + txId + "/offers/" + offerId + "/documents")
                                 .with(jwt())
@@ -667,15 +718,17 @@ class TransactionControllerTest {
                 UUID brokerUuid = UUID.randomUUID();
                 String brokerId = brokerUuid.toString();
 
-                com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO doc = 
-                        com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO.builder()
+                com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO doc = com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO
+                                .builder()
                                 .documentId(UUID.randomUUID())
                                 .fileName("property-doc.pdf")
                                 .build();
 
-                when(transactionService.getPropertyOfferDocuments(eq(propertyOfferId), eq(brokerUuid), eq(true))).thenReturn(List.of(doc));
+                when(transactionService.getPropertyOfferDocuments(eq(propertyOfferId), eq(brokerUuid), eq(true)))
+                                .thenReturn(List.of(doc));
 
-                mockMvc.perform(get("/transactions/properties/" + propertyId + "/offers/" + propertyOfferId + "/documents")
+                mockMvc.perform(get(
+                                "/transactions/properties/" + propertyId + "/offers/" + propertyOfferId + "/documents")
                                 .with(jwt())
                                 .header("x-broker-id", brokerId))
                                 .andExpect(status().isOk());
@@ -715,4 +768,3 @@ class TransactionControllerTest {
                 verify(transactionService).deleteOfferDocument(documentId, brokerUuid);
         }
 }
-

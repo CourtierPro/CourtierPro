@@ -1,13 +1,15 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Trash2, Mail, Phone } from 'lucide-react';
+import { Trash2, Mail, Phone, Pencil } from 'lucide-react';
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { useTransactionParticipants } from '@/features/transactions/api/queries';
 import { useRemoveParticipant } from '@/features/transactions/api/mutations';
-import { AddParticipantModal } from './AddParticipantModal';
+import AddParticipantModal from './AddParticipantModal';
+import { EditParticipantModal } from './EditParticipantModal'; // Add import
+import type { TransactionParticipant } from '@/shared/api/types'; // Add type import
 import { toast } from 'sonner';
 import {
     AlertDialog,
@@ -20,6 +22,8 @@ import {
     AlertDialogTitle,
 } from "@/shared/components/ui/alert-dialog";
 
+import { useParticipantPermissions } from '@/features/transactions/hooks/useParticipantPermissions';
+
 interface ParticipantsListProps {
     transactionId: string;
     isReadOnly?: boolean;
@@ -29,9 +33,14 @@ export function ParticipantsList({ transactionId, isReadOnly = false }: Particip
     const { t } = useTranslation('transactions');
     const { data: participants, isLoading } = useTransactionParticipants(transactionId);
     const removeParticipant = useRemoveParticipant();
+    const { role } = useParticipantPermissions(transactionId);
+
+    // Only primary broker can manage participants
+    const canManageParticipants = role === 'BROKER';
 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [participantToDelete, setParticipantToDelete] = useState<string | null>(null);
+    const [editingParticipant, setEditingParticipant] = useState<TransactionParticipant | null>(null); // Add state
 
     const handleRemove = async () => {
         if (!participantToDelete) return;
@@ -53,9 +62,8 @@ export function ParticipantsList({ transactionId, isReadOnly = false }: Particip
         <Card>
             <CardHeader className="flex flex-row items-center justify-between py-4">
                 <CardTitle className="text-lg font-medium">{t('participants')}</CardTitle>
-                {!isReadOnly && (
+                {!isReadOnly && canManageParticipants && (
                     <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="gap-2">
-                        <Plus className="h-4 w-4" />
                         {t('addParticipant')}
                     </Button>
                 )}
@@ -88,17 +96,38 @@ export function ParticipantsList({ transactionId, isReadOnly = false }: Particip
                                             </div>
                                         )}
                                     </div>
+                                    {participant.role === 'CO_BROKER' && participant.permissions && participant.permissions.length > 0 && (
+                                        <div className="mt-2 flex flex-wrap gap-1">
+                                            {participant.permissions.map((perm) => (
+                                                <Badge key={perm} variant="secondary" className="text-[10px] px-1 py-0 h-5">
+                                                    {t(`permissions.${perm}`) || perm.replace('MANAGE_', '').replace('_', ' ')}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                {!isReadOnly && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="text-muted-foreground hover:text-destructive"
-                                        onClick={() => setParticipantToDelete(participant.id)}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                        <span className="sr-only">{t('remove')}</span>
-                                    </Button>
+                                {/* Empêcher modification/suppression si participant système */}
+                                {!isReadOnly && canManageParticipants && !participant.isSystem && participant.role !== 'BUYER' && participant.role !== 'SELLER' && participant.role !== 'BROKER' && (
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-muted-foreground hover:text-primary"
+                                            onClick={() => setEditingParticipant(participant)}
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                            <span className="sr-only">{t('edit')}</span>
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-muted-foreground hover:text-destructive"
+                                            onClick={() => setParticipantToDelete(participant.id)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                            <span className="sr-only">{t('remove')}</span>
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
                         ))}
@@ -110,6 +139,13 @@ export function ParticipantsList({ transactionId, isReadOnly = false }: Particip
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
                 transactionId={transactionId}
+            />
+
+            <EditParticipantModal
+                isOpen={!!editingParticipant}
+                onClose={() => setEditingParticipant(null)}
+                transactionId={transactionId}
+                participant={editingParticipant}
             />
 
             <AlertDialog open={!!participantToDelete} onOpenChange={(open) => !open && setParticipantToDelete(null)}>
@@ -128,6 +164,6 @@ export function ParticipantsList({ transactionId, isReadOnly = false }: Particip
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </Card>
+        </Card >
     );
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PermissionDenied } from "@/shared/components/branded/PermissionDenied";
 import { Section } from "@/shared/components/branded/Section";
 import { StageBadge } from "@/shared/components/branded/StageBadge";
 import { Button } from "@/shared/components/ui/button";
@@ -8,6 +9,7 @@ import { type Transaction } from '@/features/transactions/api/queries';
 import { ChevronDown, ChevronUp, Lock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
 import { Badge } from "@/shared/components/ui/badge";
+import { useParticipantPermissions } from '@/features/transactions/hooks/useParticipantPermissions';
 
 interface TransactionStageTrackerProps {
     transaction: Transaction;
@@ -20,6 +22,17 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
     const [isExpanded, setIsExpanded] = useState(false);
     const stages = getStagesForSide(transaction.side);
     const currentStageIndex = resolveStageIndex(transaction.currentStage, stages);
+
+    const { checkPermission } = useParticipantPermissions(transaction.transactionId);
+    const canViewStage = checkPermission('VIEW_STAGE');
+
+    if (!canViewStage) {
+        return (
+            <Section title={t('progress')} className="p-4 md:p-6">
+                <PermissionDenied message={t('noPermissionViewStage')} />
+            </Section>
+        );
+    }
 
     return (
         <Section title={t('progress')} className="p-4 md:p-6"
@@ -119,7 +132,7 @@ export function TransactionStageTracker({ transaction, onUpdateStage, isReadOnly
                             <Lock className="w-4 h-4" />
                             {t('transactionTerminated') || "Transaction Terminated"}
                         </Badge>
-                    ) : (
+                    ) : checkPermission('EDIT_STAGE') && (
                         <Button onClick={onUpdateStage} className="w-full sm:w-auto">
                             {t('updateStage')}
                         </Button>

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/shared/api/axiosInstance';
 import { transactionKeys } from '@/features/transactions/api/queries';
 import { dashboardKeys } from '@/features/dashboard/api/queries';
-import type { TransactionRequestDTO, StageUpdateRequestDTO } from '@/shared/api/types';
+import type { TransactionRequestDTO, StageUpdateRequestDTO, AddParticipantRequestDTO, UpdateParticipantRequestDTO } from '@/shared/api/types';
 
 export function useUpdateTransactionStage() {
     const queryClient = useQueryClient();
@@ -122,7 +122,7 @@ export function useAddParticipant() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ transactionId, data }: { transactionId: string; data: { name: string; role: string; email?: string; phoneNumber?: string } }) => {
+        mutationFn: async ({ transactionId, data }: { transactionId: string; data: AddParticipantRequestDTO }) => {
             await axiosInstance.post(`/transactions/${transactionId}/participants`, data);
         },
         onSuccess: (_data, variables) => {
@@ -140,6 +140,38 @@ export function useRemoveParticipant() {
         },
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: transactionKeys.participants(variables.transactionId) });
+        },
+    });
+}
+
+export function useUpdateParticipant() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, participantId, data }: { transactionId: string; participantId: string; data: UpdateParticipantRequestDTO }) => {
+            await axiosInstance.put(`/transactions/${transactionId}/participants/${participantId}`, data);
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: transactionKeys.participants(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
+        },
+    });
+}
+
+export function useUpdateParticipantPermissions() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, participantId, permissions }: { transactionId: string; participantId: string; permissions: string[] }) => {
+            const res = await axiosInstance.put(
+                `/transactions/${transactionId}/participants/${participantId}/permissions`,
+                permissions
+            );
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: transactionKeys.participants(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
         },
     });
 }

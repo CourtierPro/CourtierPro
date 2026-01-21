@@ -1,0 +1,124 @@
+@startuml C4Level3Backend
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+scale 0.42
+!$ICONURL = "https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons"
+!include $ICONURL/common.puml
+!include $ICONURL/devicons2/spring_original.puml
+!include $ICONURL/devicons/react.puml
+!include $ICONURL/devicons/postgresql.puml
+
+AddElementTag("microService-java", $shape=EightSidedShape(), $bgColor="#FFDB33", $borderColor="Black", $fontColor="black", $legendText="Spring Boot Container")
+AddElementTag("framework-react", $shape=RoundedBoxShape(), $bgColor="#61DBFB", $borderColor="Black", $fontColor="white", $legendText="React SPA (Vite)")
+AddElementTag("storage-postgres", $shape=RoundedBoxShape(), $bgColor="#336791", $borderColor="Black", $fontColor="white", $legendText="PostgreSQL 15")
+
+AddRelTag("purple-line", $lineColor="purple", $legendText="API Calls (REST)")
+AddRelTag("green-line", $lineColor="green", $legendText="Documents (R2)")
+
+SHOW_PERSON_OUTLINE()
+
+title CourtierPro — C4 Level 3 (Backend API Components)
+
+System_Boundary(cp, "CourtierPro System") {
+
+  ' Context containers (lightweight re-declaration for consistency)
+  Container(web_spa, "CourtierPro Web App", "React 18 + Vite", "Role-based SPA (Client / Broker / Admin); i18n en/fr.", $sprite="react", $tags="framework-react")
+  ContainerDb(main_db, "courtierpro-db", "PostgreSQL 15", "Shared schema with bounded-context-owned tables.", $sprite="postgresql", $tags="storage-postgres")
+
+  Container_Boundary(backend_api, "CourtierPro Backend API (Spring Boot 3)", $tags="microService-java") {
+
+    ' ==== USER MANAGEMENT ====
+    Component(CurrentUserController, "CurrentUserController", "REST Controller", "/api/me – current user's view")
+    Component(AdminUserController, "AdminUserController", "REST Controller", "/api/admin/users/** – admin management APIs")
+    Component(UserProvisioningService, "UserProvisioningService", "Application Service", "Syncs Auth0 users to DB")
+    Component(UserAccountRepository, "UserAccountRepository", "Spring Data Repository", "CRUD for UserAccount aggregate")
+    Component(Auth0ManagementClient, "Auth0ManagementClient", "Infrastructure Adapter", "Delegates identity operations to Auth0")
+
+    ' ==== TRANSACTION MANAGEMENT ====
+    Component(TransactionController, "TransactionController", "REST Controller", "/api/v1/transactions/** – general transaction APIs")
+    Component(ClientTransactionController, "ClientTransactionController", "REST Controller", "/clients/{clientId}/transactions – client views")
+    Component(TransactionService, "TransactionService", "Application Service", "Transaction lifecycle and queries")
+    Component(TimelineService, "TimelineService", "Domain/Application Service", "Stage changes and timeline entries")
+    Component(TransactionRepository, "TransactionRepository", "Spring Data Repository", "CRUD for Transaction aggregate")
+
+    ' ==== DOCUMENT MANAGEMENT ====
+    Component(DocumentRequestController, "DocumentRequestController", "REST Controller", "/transactions/{id}/documents/** – broker & client")
+    Component(GlobalDocumentController, "GlobalDocumentController", "REST Controller", "/documents/** - download/view access")
+    Component(DocumentService, "DocumentService", "Application Service", "DocumentRequest & SubmittedDocument workflows")
+    Component(DocumentRequestRepository, "DocumentRequestRepository", "Spring Data Repository", "CRUD for DocumentRequest aggregate")
+    Component(S3StorageService, "S3StorageService", "Infrastructure Adapter", "Pre-signed URLs and Cloudflare R2 interactions (S3-compatible)")
+
+    ' ==== APPOINTMENTS ====
+    Component(AppointmentController, "AppointmentController", "REST Controller", "/api/v1/appointments/** – appointments")
+    Component(AppointmentService, "AppointmentService", "Application Service", "Appointment lifecycle & status transitions")
+    Component(AppointmentRepository, "AppointmentRepository", "Spring Data Repository", "CRUD for Appointment aggregate")
+
+    ' ==== ANALYTICS / DASHBOARD ====
+    Component(DashboardController, "DashboardController", "REST Controller", "/api/v1/dashboard/** – consolidated views")
+    Component(DashboardService, "DashboardService", "Application Service", "Computes broker/client KPIs")
+    Component(BrokerMetricsRepository, "BrokerMetricsRepository", "Spring Data Repository", "CRUD for BrokerMetricsSnapshot")
+
+    ' ==== NOTIFICATIONS ====
+    Component(NotificationController, "NotificationController", "REST Controller", "/api/v1/notifications/**")
+    Component(NotificationService, "NotificationService", "Application Service", "Composes and logs notifications")
+    Component(NotificationRepository, "NotificationRepository", "Spring Data Repository", "Notification aggregate persistence")
+    Component(JavaMailSender, "JavaMailSender", "Infrastructure Adapter", "Sends email via Amazon SES/SMTP")
+
+    ' ==== CROSS-CUTTING ====
+    Component(DomainEventPublisher, "DomainEventPublisher", "Infrastructure", "Publishes domain events in-process")
+  }
+}
+
+' Relationships (high-level, internal wiring)
+
+' Domain events
+Rel(TransactionService, DomainEventPublisher, "publishes TransactionStageChanged")
+Rel(DocumentService, DomainEventPublisher, "publishes DocumentStatusUpdated")
+Rel(AppointmentService, DomainEventPublisher, "publishes AppointmentStatusChanged")
+
+Rel(TransactionService, NotificationService, "publishes notifications on stage change")
+Rel(DocumentService, NotificationService, "notifies brokers/clients of document updates")
+Rel(AppointmentService, NotificationService, "notifies participants of appointment status")
+
+Rel(web_spa, CurrentUserController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, TransactionController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, DocumentRequestController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, AppointmentController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, DashboardController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, AdminUserController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, NotificationController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+
+Rel(CurrentUserController, UserProvisioningService, "calls")
+Rel(AdminUserController, UserProvisioningService, "calls")
+Rel(UserProvisioningService, UserAccountRepository, "uses")
+Rel(UserProvisioningService, Auth0ManagementClient, "syncs identities")
+
+Rel(TransactionController, TransactionService, "calls")
+Rel(ClientTransactionController, TransactionService, "calls")
+Rel(TransactionService, TransactionRepository, "uses")
+Rel(TransactionService, TimelineService, "delegates stage changes")
+
+Rel(DocumentRequestController, DocumentService, "calls")
+Rel(GlobalDocumentController, DocumentService, "calls")
+Rel(DocumentService, DocumentRequestRepository, "uses")
+Rel(DocumentService, S3StorageService, "uses")
+
+Rel(AppointmentController, AppointmentService, "calls")
+Rel(AppointmentService, AppointmentRepository, "uses")
+
+Rel(DashboardController, DashboardService, "calls")
+Rel(DashboardService, BrokerMetricsRepository, "reads")
+Rel(DashboardService, TransactionRepository, "reads")
+
+Rel(NotificationController, NotificationService, "calls")
+Rel(NotificationService, NotificationRepository, "persists")
+Rel(NotificationService, JavaMailSender, "uses")
+
+Rel(UserAccountRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
+Rel(TransactionRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
+Rel(DocumentRequestRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
+Rel(AppointmentRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
+Rel(NotificationRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
+Rel(BrokerMetricsRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
+
+SHOW_LEGEND()
+@enduml

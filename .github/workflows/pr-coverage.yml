@@ -58,9 +58,12 @@ jobs:
           path: backend/build/reports/tests/test/
 
       # Create or update a PR comment with overall + changed-files coverage
+      # continue-on-error prevents the action's internal threshold check from failing the workflow
+      # Our explicit check at the end handles failures with proper edge case handling
       - name: JaCoCo Report to PR
         id: jacoco
         uses: madrapps/jacoco-report@v1.7.2
+        continue-on-error: true
         with:
           # JaCoCo XML report produced by Gradle in your backend module
           paths: |
@@ -124,13 +127,29 @@ jobs:
               body: coverageComment.body + linksSection,
             });
 
-      # Explicitly fail the job if coverage is below thresholds
-      - name: Fail if coverage below thresholds
-        if: >
-          steps.jacoco.outputs.coverage-overall < env.MIN_COVERAGE_OVERALL ||
-          steps.jacoco.outputs.coverage-changed-files < env.MIN_COVERAGE_CHANGED
+      # Validate coverage thresholds using shell for proper numeric comparison
+      # GitHub Actions expressions don't handle floating-point comparison well
+      - name: Validate coverage thresholds
+        env:
+          COVERAGE_OVERALL: ${{ steps.jacoco.outputs.coverage-overall }}
+          COVERAGE_CHANGED: ${{ steps.jacoco.outputs.coverage-changed-files }}
         run: |
-          echo "Coverage below threshold:"
-          echo "  overall: ${{ steps.jacoco.outputs.coverage-overall }}% (min ${{ env.MIN_COVERAGE_OVERALL }}%)"
-          echo "  changed: ${{ steps.jacoco.outputs.coverage-changed-files }}% (min ${{ env.MIN_COVERAGE_CHANGED }}%)"
-          exit 1
+          # Default changed files coverage to 100 if empty (no Java files changed)
+          CHANGED="${COVERAGE_CHANGED:-100}"
+          
+          echo "Coverage Results:"
+          echo "  Overall:  ${COVERAGE_OVERALL}% (min: ${{ env.MIN_COVERAGE_OVERALL }}%)"
+          echo "  Changed:  ${CHANGED}% (min: ${{ env.MIN_COVERAGE_CHANGED }}%)"
+          
+          # Use bc for floating-point comparison
+          OVERALL_FAIL=$(echo "${COVERAGE_OVERALL} < ${{ env.MIN_COVERAGE_OVERALL }}" | bc -l)
+          CHANGED_FAIL=$(echo "${CHANGED} < ${{ env.MIN_COVERAGE_CHANGED }}" | bc -l)
+          
+          if [ "$OVERALL_FAIL" -eq 1 ] || [ "$CHANGED_FAIL" -eq 1 ]; then
+            echo ""
+            echo "::error::Coverage below threshold!"
+            exit 1
+          else
+            echo ""
+            echo "✅ Coverage thresholds met!"
+          fi

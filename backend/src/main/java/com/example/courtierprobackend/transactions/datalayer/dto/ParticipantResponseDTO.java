@@ -3,6 +3,8 @@ package com.example.courtierprobackend.transactions.datalayer.dto;
 import com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole;
 import lombok.Builder;
 import lombok.Data;
+import java.util.Set;
+import com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission;
 
 import java.util.UUID;
 
@@ -15,4 +17,5 @@ public class ParticipantResponseDTO {
     private ParticipantRole role;
     private String email;
     private String phoneNumber;
+    private Set<ParticipantPermission> permissions;
 }

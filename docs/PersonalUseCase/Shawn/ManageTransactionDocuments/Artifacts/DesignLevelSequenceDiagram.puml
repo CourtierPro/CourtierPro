@@ -1,0 +1,104 @@
+@startuml DesignLevelSequenceDiagram
+!pragma teoz true
+
+title Design Level Sequence Diagram: Submit Document Flow
+
+actor "Client" as Client
+participant "DocumentsCenter\n<<React Component>>" as UI
+participant "ApiClient\n<<Axios>>" as ApiClient
+participant "DocumentRequestController\n<<REST Controller>>" as Controller
+participant "DocumentService\n<<Application Service>>" as Service
+participant "TransactionRepository\n<<Repository>>" as TxnRepo
+participant "DocumentRequestRepository\n<<Repository>>" as DocRepo
+participant "S3StorageService\n<<Infrastructure>>" as S3
+participant "NotificationService\n<<Application Service>>" as Notif
+database "PostgreSQL" as DB
+database "Cloudflare R2" as R2Store
+
+== Client Uploads Document ==
+
+Client -> UI: selectFile(file)
+activate UI
+UI -> UI: validateFileClient(file)
+UI --> Client: showUploadPreview
+
+Client -> UI: confirmUpload()
+UI -> ApiClient: POST /transactions/{id}/documents/{reqId}/submit
+activate ApiClient
+ApiClient -> Controller: submitDocument(transactionId, requestId, file)
+activate Controller
+
+Controller -> Controller: resolveUserId(request)
+Controller -> Controller: determineUploaderType(jwt)
+Controller -> Service: submitDocument(transactionId, requestId, file, userId, uploaderType)
+activate Service
+
+' Validate Transaction Access
+Service -> TxnRepo: findById(transactionId)
+activate TxnRepo
+TxnRepo -> DB: SELECT * FROM transactions WHERE id = ?
+DB --> TxnRepo: Transaction
+TxnRepo --> Service: Transaction
+deactivate TxnRepo
+
+Service -> Service: validateUserAccess(transaction, userId)
+
+' Validate Document Request
+Service -> DocRepo: findByRequestId(requestId)
+activate DocRepo
+DocRepo -> DB: SELECT * FROM document_requests WHERE request_id = ?
+DB --> DocRepo: DocumentRequest
+DocRepo --> Service: DocumentRequest
+deactivate DocRepo
+
+Service -> Service: validateCanSubmit(documentRequest)
+
+' Validate File
+Service -> Service: validateFile(file)
+note right: Check file type, size constraints
+
+' Upload to Cloudflare R2
+Service -> S3: uploadFile(transactionId, requestId, file)
+activate S3
+S3 -> R2Store: PutObject(bucket, key, fileContent)
+R2Store --> S3: uploadResult
+S3 --> Service: StorageObjectRef(s3Key, fileName, mimeType)
+deactivate S3
+
+' Create SubmittedDocument
+Service -> Service: createSubmittedDocument(documentRequest, storageObject, uploadedBy)
+
+' Update DocumentRequest
+Service -> Service: updateStatus(SUBMITTED)
+Service -> DocRepo: save(documentRequest)
+activate DocRepo
+DocRepo -> DB: UPDATE document_requests SET status = 'SUBMITTED' ...
+DocRepo -> DB: INSERT INTO submitted_documents ...
+DB --> DocRepo: savedEntity
+DocRepo --> Service: updatedDocumentRequest
+deactivate DocRepo
+
+' Send Notification
+Service -> Notif: notifyDocumentSubmitted(documentRequest)
+activate Notif
+Notif -> Notif: createNotification(brokerId, DOCUMENT, message)
+Notif -> DB: INSERT INTO notifications ...
+Notif -> Notif: sendEmail(brokerEmail, template)
+Notif --> Service: void
+deactivate Notif
+
+' Map to DTO
+Service -> Service: mapToDTO(documentRequest)
+Service --> Controller: DocumentRequestResponseDTO
+deactivate Service
+
+Controller --> ApiClient: HTTP 200 + JSON body
+deactivate Controller
+ApiClient --> UI: response
+deactivate ApiClient
+
+UI -> UI: refreshDocumentsList()
+UI --> Client: showSuccessToast
+deactivate UI
+
+@enduml

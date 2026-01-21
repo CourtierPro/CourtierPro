@@ -22,7 +22,8 @@ public class CorsConfig {
                 "http://localhost:8081",
                 "http://localhost:5173",
                 "http://localhost:3000",
-                "https://courtierproapp.sraldon.work"));
+                "https://courtierproapp.sraldon.work",
+                "https://www.courtier-pro.ca"));
 
         config.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

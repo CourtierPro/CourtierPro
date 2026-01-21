@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { PermissionDenied } from "@/shared/components/branded/PermissionDenied";
 import { useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
 import { Section } from "@/shared/components/branded/Section";
@@ -8,6 +9,7 @@ import { EmptyState } from "@/shared/components/branded/EmptyState";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/components/ui/tabs";
 import { type Transaction, useTransactionConditions, useTransactionOffers } from '@/features/transactions/api/queries';
+import { type Condition, type PropertyOffer } from '@/shared/api/types';
 import { DocumentsPage } from '@/pages/documents/DocumentsPage';
 import { Calendar } from 'lucide-react';
 import { TransactionTimeline } from './TransactionTimeline';
@@ -17,7 +19,7 @@ import { ParticipantsList } from './ParticipantsList';
 import { ConditionList } from './ConditionList';
 import { AddConditionModal } from './AddConditionModal';
 import { ConditionDetailModal } from './ConditionDetailModal';
-import type { Condition, PropertyOffer } from '@/shared/api/types';
+import { useParticipantPermissions } from '@/features/transactions/hooks/useParticipantPermissions';
 
 interface TransactionTabsProps {
   transaction: Transaction;
@@ -42,6 +44,7 @@ export function TransactionTabs({
 }: TransactionTabsProps) {
   const { t } = useTranslation('transactions');
   const [searchParams, setSearchParams] = useSearchParams();
+  const { checkPermission } = useParticipantPermissions(transaction.transactionId);
 
   // Properties tab only for buyer-side transactions
   const isBuyerTransaction = transaction.side === 'BUY_SIDE';
@@ -182,20 +185,26 @@ export function TransactionTabs({
           {!isReadOnly && (
             <Section className="p-4 md:p-6">
               <SectionHeader title={t('notes')} />
-              <Textarea
-                value={notes}
-                onChange={(e) => onNotesChange(e.target.value)}
-                className="h-32 mb-4"
-                placeholder={t('addNotesPlaceholder')}
-              />
-              <Button
-                variant="secondary"
-                onClick={onSaveNotes}
-                disabled={isSavingNotes}
-                className="w-full"
-              >
-                {isSavingNotes ? t('saving') : t('saveNotes')}
-              </Button>
+              {checkPermission('VIEW_NOTES') ? (
+                <>
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => onNotesChange(e.target.value)}
+                    className="h-32 mb-4"
+                    placeholder={t('addNotesPlaceholder')}
+                  />
+                  <Button
+                    variant="secondary"
+                    onClick={onSaveNotes}
+                    disabled={isSavingNotes}
+                    className="w-full"
+                  >
+                    {isSavingNotes ? t('saving') : t('saveNotes')}
+                  </Button>
+                </>
+              ) : (
+                <PermissionDenied message={t('noPermissionViewNotes')} />
+              )}
             </Section>
           )}
         </div>
@@ -208,12 +217,17 @@ export function TransactionTabs({
       {/* Properties Tab Content - only for buyer-side transactions */}
       {isBuyerTransaction && (
         <TabsContent value="properties" className="py-4">
-          <PropertyList
-            transactionId={transaction.transactionId}
-            isReadOnly={isReadOnly}
-            onTransactionUpdate={onTransactionUpdate}
-            currentTransactionAddress={transaction.propertyAddress}
-          />
+          {checkPermission('VIEW_PROPERTIES') ? (
+            <PropertyList
+              transactionId={transaction.transactionId}
+              isReadOnly={isReadOnly}
+              onTransactionUpdate={onTransactionUpdate}
+              currentTransactionAddress={transaction.propertyAddress}
+              canEdit={checkPermission('EDIT_PROPERTIES')}
+            />
+          ) : (
+            <PermissionDenied message={t('noPermissionViewProperties')} />
+          )}
         </TabsContent>
       )}
 
@@ -229,13 +243,17 @@ export function TransactionTabs({
       )}
 
       <TabsContent value="documents" className="py-4">
-        <DocumentsPage
-          transactionId={transaction.transactionId}
-          focusDocumentId={focusDocumentId}
-          isReadOnly={isReadOnly}
-          transactionSide={transaction.side}
-          currentStage={typeof transaction.currentStage === 'string' ? transaction.currentStage : undefined}
-        />
+        {checkPermission('VIEW_DOCUMENTS') ? (
+          <DocumentsPage
+            transactionId={transaction.transactionId}
+            focusDocumentId={focusDocumentId}
+            isReadOnly={isReadOnly}
+            transactionSide={transaction.side}
+            currentStage={typeof transaction.currentStage === 'string' ? transaction.currentStage : undefined}
+          />
+        ) : (
+          <PermissionDenied message={t('noPermissionViewDocuments')} />
+        )}
       </TabsContent>
 
       {/* Participants Tab Content - only for brokers */}
@@ -260,14 +278,19 @@ export function TransactionTabs({
       </TabsContent>
 
       <TabsContent value="conditions" className="py-4">
-        <ConditionList
-          conditions={conditions}
-          onAddClick={handleAddCondition}
-          onConditionClick={handleConditionClick}
-          isLoading={isLoadingConditions}
-          isReadOnly={isReadOnly}
-          offers={offers}
-        />
+        {checkPermission('VIEW_CONDITIONS') ? (
+          <ConditionList
+            conditions={conditions}
+            onAddClick={handleAddCondition}
+            onConditionClick={handleConditionClick}
+            isReadOnly={isReadOnly}
+            isLoading={isLoadingConditions}
+            offers={offers}
+            canEdit={checkPermission('EDIT_CONDITIONS')}
+          />
+        ) : (
+          <PermissionDenied message={t('noPermissionViewConditions')} />
+        )}
 
         {/* Condition Detail Modal */}
         <ConditionDetailModal
@@ -280,7 +303,7 @@ export function TransactionTabs({
           onEdit={handleEditCondition}
           onOfferClick={handleLinkedOfferClick}
           onPropertyOfferClick={handleLinkedPropertyOfferClick}
-          isReadOnly={isReadOnly}
+          isReadOnly={isReadOnly || !checkPermission('EDIT_CONDITIONS')}
         />
 
         {/* Add/Edit Condition Modal */}

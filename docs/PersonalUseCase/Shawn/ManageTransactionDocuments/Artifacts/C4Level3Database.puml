@@ -1,0 +1,69 @@
+@startuml C4Level3Database
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+scale 0.42
+!$ICONURL = "https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons"
+!include $ICONURL/common.puml
+!include $ICONURL/devicons2/spring_original.puml
+!include $ICONURL/devicons/postgresql.puml
+
+AddElementTag("microService-java", $shape=EightSidedShape(), $bgColor="#FFDB33", $borderColor="Black", $fontColor="black", $legendText="Spring Boot Container")
+AddElementTag("storage-postgres", $shape=RoundedBoxShape(), $bgColor="#336791", $borderColor="Black", $fontColor="white", $legendText="PostgreSQL 15")
+
+LAYOUT_LEFT_RIGHT()
+SHOW_PERSON_OUTLINE()
+
+title CourtierPro — C4 Level 3 (Database Schema Components)
+
+System_Boundary(cp, "CourtierPro System") {
+
+  Container_Boundary(main_db, "courtierpro-db (PostgreSQL 15)", $tags="storage-postgres") {
+
+    ' User Management schema (Unified)
+    Component(UserAccountTables, "User Schema", "Tables", "user_accounts, organization_settings")
+
+    ' Transaction schema
+    Component(TransactionTables, "Transaction Schema", "Tables", "transactions, timeline_entries, transaction_participants")
+    Component(PinnedTransactionTable, "Pinned Transactions", "Table", "pinned_transactions")
+
+    ' Document schema
+    Component(DocumentTables, "Document Schema", "Tables", "document_requests, submitted_documents")
+
+    ' Appointment schema
+    Component(AppointmentTables, "Appointment Schema", "Tables", "appointments")
+
+    ' Notification schema
+    Component(NotificationTables, "Notification Schema", "Tables", "notifications")
+
+    ' Analytics schema
+    Component(AnalyticsTables, "Analytics Schema", "Tables", "broker_metrics_snapshots")
+    
+    ' Audit schema
+    Component(AuditTables, "Audit Schema", "Tables", "login_audit_events, logout_audit_events, broadcast_audit, admin_deletion_audit_logs, organization_settings_audit, password_reset_events")
+  }
+
+  ' Key repository-facing container for context
+  Container(backend_api, "CourtierPro Backend API", "Spring Boot 3", "Repositories & domain logic", $sprite="spring_original", $tags="microService-java")
+}
+
+' Logical FKs between schema components
+Rel(TransactionTables, UserAccountTables, "FK client_id/broker_id → user_accounts")
+Rel(DocumentTables, TransactionTables, "FK transaction_id → transactions")
+Rel(AppointmentTables, TransactionTables, "FK transaction_id → transactions")
+Rel(AppointmentTables, UserAccountTables, "FK participants → user_accounts")
+
+Rel(PinnedTransactionTable, TransactionTables, "FK transaction_id → transactions")
+Rel(PinnedTransactionTable, UserAccountTables, "FK broker_id → user_accounts")
+
+Rel(AnalyticsTables, UserAccountTables, "FK broker_id → user_accounts")
+
+' Backend API uses schemas via repositories (high level)
+Rel(backend_api, UserAccountTables, "Uses via UserAccountRepository", "JDBC/R2DBC")
+Rel(backend_api, TransactionTables, "Uses via TransactionRepository", "JDBC/R2DBC")
+Rel(backend_api, DocumentTables, "Uses via DocumentRequestRepository & SubmittedDocument access", "JDBC/R2DBC")
+Rel(backend_api, AppointmentTables, "Uses via AppointmentRepository", "JDBC/R2DBC")
+Rel(backend_api, NotificationTables, "Uses via NotificationRepository", "JDBC/R2DBC")
+Rel(backend_api, AnalyticsTables, "Uses via BrokerMetricsRepository", "JDBC/R2DBC")
+Rel(backend_api, AuditTables, "Uses via Audit Repositories", "JDBC/R2DBC")
+
+SHOW_LEGEND()
+@enduml

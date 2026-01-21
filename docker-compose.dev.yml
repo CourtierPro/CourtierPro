@@ -25,7 +25,7 @@ services:
       GITHUB_APP_ID: ${GITHUB_APP_ID:-}
       GITHUB_APP_INSTALLATION_ID: ${GITHUB_APP_INSTALLATION_ID:-}
       GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY:-}
-      GITHUB_REPO_OWNER: ${GITHUB_REPOSITORY_OWNER:-shawn-nabizada}
+      GITHUB_REPO_OWNER: ${GITHUB_REPO_OWNER:-CourtierPro}
       GITHUB_REPO_NAME: ${GITHUB_REPO_NAME:-courtierpro}
     depends_on:
       db:
@@ -37,6 +37,10 @@ services:
     container_name: courtierpro_frontend
     environment:
       - VITE_API_URL=http://localhost:8080
+      - VITE_AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - VITE_AUTH0_CLIENT_ID=${VITE_AUTH0_CLIENT_ID}
+      - VITE_AUTH0_AUDIENCE=${AUTH0_AUDIENCE}
+      - VITE_AUTH0_CALLBACK_URL=http://localhost:8081
     ports:
       - "8081:80"
 
