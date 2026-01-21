@@ -79,8 +79,8 @@ public class AppointmentController {
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request) {
 
-        // TODO: Add ownership verification in a future ticket
-        AppointmentResponseDTO appointment = appointmentService.getAppointmentById(appointmentId);
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        AppointmentResponseDTO appointment = appointmentService.getAppointmentById(appointmentId, userId);
         return ResponseEntity.ok(appointment);
     }
 
@@ -95,8 +95,8 @@ public class AppointmentController {
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request) {
 
-        // TODO: Add transaction ownership verification in a future ticket
-        List<AppointmentResponseDTO> appointments = appointmentService.getAppointmentsForTransaction(transactionId);
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        List<AppointmentResponseDTO> appointments = appointmentService.getAppointmentsForTransaction(transactionId, userId);
         return ResponseEntity.ok(appointments);
     }
 }

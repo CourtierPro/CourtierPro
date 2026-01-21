@@ -260,7 +260,7 @@ class AppointmentControllerTest {
         Jwt jwt = createJwt("auth0|broker");
         AppointmentResponseDTO dto = createTestAppointmentDTO();
         
-        when(appointmentService.getAppointmentById(appointmentId)).thenReturn(dto);
+        when(appointmentService.getAppointmentById(eq(appointmentId), any(UUID.class))).thenReturn(dto);
 
         // Act
         ResponseEntity<AppointmentResponseDTO> response = controller.getAppointmentById(
@@ -270,7 +270,7 @@ class AppointmentControllerTest {
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        verify(appointmentService).getAppointmentById(appointmentId);
+        verify(appointmentService).getAppointmentById(eq(appointmentId), any(UUID.class));
     }
 
     // ========== GET /appointments/transaction/{transactionId} Tests ==========
@@ -282,7 +282,7 @@ class AppointmentControllerTest {
         Jwt jwt = createJwt("auth0|broker");
         AppointmentResponseDTO dto = createTestAppointmentDTO();
         
-        when(appointmentService.getAppointmentsForTransaction(transactionId)).thenReturn(List.of(dto));
+        when(appointmentService.getAppointmentsForTransaction(eq(transactionId), any(UUID.class))).thenReturn(List.of(dto));
 
         // Act
         ResponseEntity<List<AppointmentResponseDTO>> response = controller.getAppointmentsForTransaction(
@@ -292,7 +292,7 @@ class AppointmentControllerTest {
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).hasSize(1);
-        verify(appointmentService).getAppointmentsForTransaction(transactionId);
+        verify(appointmentService).getAppointmentsForTransaction(eq(transactionId), any(UUID.class));
     }
 
     @Test
@@ -301,7 +301,7 @@ class AppointmentControllerTest {
         MockHttpServletRequest request = createBrokerRequest(brokerId);
         Jwt jwt = createJwt("auth0|broker");
         
-        when(appointmentService.getAppointmentsForTransaction(transactionId)).thenReturn(List.of());
+        when(appointmentService.getAppointmentsForTransaction(eq(transactionId), any(UUID.class))).thenReturn(List.of());
 
         // Act
         ResponseEntity<List<AppointmentResponseDTO>> response = controller.getAppointmentsForTransaction(

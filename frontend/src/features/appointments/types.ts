@@ -1,4 +1,5 @@
 import type { AppointmentStatus, InitiatorType } from './enums';
+import { format } from 'date-fns';
 
 /**
  * Appointment response from the backend API.
@@ -50,8 +51,7 @@ export function getAppointmentDate(appointment: Appointment): Date {
 export function getAppointmentTimeRange(appointment: Appointment): string {
     const start = new Date(appointment.fromDateTime);
     const end = new Date(appointment.toDateTime);
-    const formatTime = (d: Date) =>
-        d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const formatTime = (d: Date) => format(d, 'HH:mm');
     return `${formatTime(start)} - ${formatTime(end)}`;
 }
 

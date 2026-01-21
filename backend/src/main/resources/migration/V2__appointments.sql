@@ -25,7 +25,10 @@ CREATE TABLE IF NOT EXISTS appointments (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     version BIGINT DEFAULT 0,
     deleted_at TIMESTAMP,
-    deleted_by UUID
+    deleted_by UUID,
+    CONSTRAINT fk_appointments_broker FOREIGN KEY (broker_id) REFERENCES user_accounts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_appointments_client FOREIGN KEY (client_id) REFERENCES user_accounts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_appointments_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE SET NULL
 );
 
 -- Indexes for common queries

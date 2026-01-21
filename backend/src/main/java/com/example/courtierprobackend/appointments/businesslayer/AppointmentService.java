@@ -48,11 +48,13 @@ public interface AppointmentService {
 
     /**
      * Get appointments for a specific transaction.
+     * Includes transaction ownership verification.
      */
-    List<AppointmentResponseDTO> getAppointmentsForTransaction(UUID transactionId);
+    List<AppointmentResponseDTO> getAppointmentsForTransaction(UUID transactionId, UUID requesterId);
 
     /**
      * Get a single appointment by its public ID.
+     * Includes ownership verification.
      */
-    AppointmentResponseDTO getAppointmentById(UUID appointmentId);
+    AppointmentResponseDTO getAppointmentById(UUID appointmentId, UUID requesterId);
 }

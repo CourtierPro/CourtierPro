@@ -5,7 +5,10 @@ import com.example.courtierprobackend.appointments.datalayer.AppointmentReposito
 import com.example.courtierprobackend.appointments.datalayer.dto.AppointmentResponseDTO;
 import com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus;
 import com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType;
+import com.example.courtierprobackend.common.exceptions.ForbiddenException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
+import com.example.courtierprobackend.transactions.datalayer.Transaction;
+import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +43,9 @@ class AppointmentServiceImplTest {
     @Mock
     private UserAccountRepository userAccountRepository;
 
+    @Mock
+    private TransactionRepository transactionRepository;
+
     private AppointmentServiceImpl appointmentService;
 
     private UUID brokerId;
@@ -48,7 +54,7 @@ class AppointmentServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        appointmentService = new AppointmentServiceImpl(appointmentRepository, userAccountRepository);
+        appointmentService = new AppointmentServiceImpl(appointmentRepository, userAccountRepository, transactionRepository);
         brokerId = UUID.randomUUID();
         clientId = UUID.randomUUID();
         transactionId = UUID.randomUUID();
@@ -243,13 +249,20 @@ class AppointmentServiceImplTest {
     @Test
     void getAppointmentsForTransaction_returnsAppointments() {
         // Arrange
+        // Arrange
         Appointment apt = createTestAppointment();
+        Transaction transaction = new Transaction();
+        transaction.setTransactionId(transactionId);
+        transaction.setBrokerId(brokerId);
+        transaction.setClientId(clientId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
         when(appointmentRepository.findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(transactionId))
                 .thenReturn(List.of(apt));
         mockUserAccounts();
 
         // Act
-        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForTransaction(transactionId);
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForTransaction(transactionId, brokerId);
 
         // Assert
         assertThat(result).hasSize(1);
@@ -258,13 +271,36 @@ class AppointmentServiceImplTest {
     }
 
     @Test
+    void getAppointmentsForTransaction_forbidden_throwsForbiddenException() {
+        // Arrange
+        Transaction transaction = new Transaction();
+        transaction.setTransactionId(transactionId);
+        transaction.setBrokerId(brokerId);
+        transaction.setClientId(clientId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+
+        // Act & Assert
+        UUID otherUserId = UUID.randomUUID();
+        assertThatThrownBy(() -> appointmentService.getAppointmentsForTransaction(transactionId, otherUserId))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("You do not have permission");
+    }
+
+    @Test
     void getAppointmentsForTransaction_withNoAppointments_returnsEmptyList() {
         // Arrange
+        Transaction transaction = new Transaction();
+        transaction.setTransactionId(transactionId);
+        transaction.setBrokerId(brokerId);
+        transaction.setClientId(clientId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
         when(appointmentRepository.findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(transactionId))
                 .thenReturn(List.of());
 
         // Act
-        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForTransaction(transactionId);
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForTransaction(transactionId, brokerId);
 
         // Assert
         assertThat(result).isEmpty();
@@ -283,12 +319,28 @@ class AppointmentServiceImplTest {
         mockUserAccounts();
 
         // Act
-        AppointmentResponseDTO result = appointmentService.getAppointmentById(appointmentId);
+        AppointmentResponseDTO result = appointmentService.getAppointmentById(appointmentId, brokerId);
 
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.appointmentId()).isEqualTo(appointmentId);
         verify(appointmentRepository).findByAppointmentIdAndDeletedAtIsNull(appointmentId);
+    }
+
+    @Test
+    void getAppointmentById_forbidden_throwsForbiddenException() {
+        // Arrange
+        UUID appointmentId = UUID.randomUUID();
+        Appointment apt = createTestAppointment();
+        apt.setAppointmentId(appointmentId);
+        when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                .thenReturn(Optional.of(apt));
+
+        // Act & Assert
+        UUID otherUserId = UUID.randomUUID();
+        assertThatThrownBy(() -> appointmentService.getAppointmentById(appointmentId, otherUserId))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("You do not have permission");
     }
 
     @Test
@@ -299,7 +351,7 @@ class AppointmentServiceImplTest {
                 .thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> appointmentService.getAppointmentById(appointmentId))
+        assertThatThrownBy(() -> appointmentService.getAppointmentById(appointmentId, brokerId))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Appointment not found");
     }

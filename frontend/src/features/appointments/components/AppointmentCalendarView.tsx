@@ -85,7 +85,6 @@ export function AppointmentCalendarView({
                         selected={selectedDate}
                         onSelect={setSelectedDate}
                         month={currentDate}
-                        onMonthChange={() => { }}
                         locale={dateLocale}
                         hideNavigation
                         modifiers={{
@@ -144,7 +143,7 @@ export function AppointmentCalendarView({
                                     <div className="flex items-start justify-between">
                                         <h4 className="font-medium text-sm">{apt.title}</h4>
                                         <Badge variant={getStatusBadgeVariant(apt.status)} className="text-xs">
-                                            {apt.status}
+                                            {t(`status.${apt.status.toLowerCase()}`, apt.status)}
                                         </Badge>
                                     </div>
                                     <p className="text-xs text-muted-foreground">

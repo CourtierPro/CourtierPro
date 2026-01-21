@@ -4,7 +4,10 @@ import com.example.courtierprobackend.appointments.datalayer.Appointment;
 import com.example.courtierprobackend.appointments.datalayer.AppointmentRepository;
 import com.example.courtierprobackend.appointments.datalayer.dto.AppointmentResponseDTO;
 import com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus;
+import com.example.courtierprobackend.common.exceptions.ForbiddenException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
+import com.example.courtierprobackend.transactions.datalayer.Transaction;
+import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import org.springframework.stereotype.Service;
@@ -27,11 +30,14 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final UserAccountRepository userAccountRepository;
+    private final TransactionRepository transactionRepository;
 
     public AppointmentServiceImpl(AppointmentRepository appointmentRepository,
-                                  UserAccountRepository userAccountRepository) {
+                                  UserAccountRepository userAccountRepository,
+                                  TransactionRepository transactionRepository) {
         this.appointmentRepository = appointmentRepository;
         this.userAccountRepository = userAccountRepository;
+        this.transactionRepository = transactionRepository;
     }
 
     @Override
@@ -81,17 +87,29 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public List<AppointmentResponseDTO> getAppointmentsForTransaction(UUID transactionId) {
+    public List<AppointmentResponseDTO> getAppointmentsForTransaction(UUID transactionId, UUID requesterId) {
+        Transaction transaction = transactionRepository.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
+
+        if (!transaction.getBrokerId().equals(requesterId) && !transaction.getClientId().equals(requesterId)) {
+            throw new ForbiddenException("You do not have permission to view appointments for this transaction");
+        }
+
         List<Appointment> appointments = appointmentRepository
                 .findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(transactionId);
         return mapToDTOs(appointments);
     }
 
     @Override
-    public AppointmentResponseDTO getAppointmentById(UUID appointmentId) {
+    public AppointmentResponseDTO getAppointmentById(UUID appointmentId, UUID requesterId) {
         Appointment appointment = appointmentRepository
                 .findByAppointmentIdAndDeletedAtIsNull(appointmentId)
                 .orElseThrow(() -> new NotFoundException("Appointment not found: " + appointmentId));
+
+        if (!appointment.getBrokerId().equals(requesterId) && !appointment.getClientId().equals(requesterId)) {
+            throw new ForbiddenException("You do not have permission to view this appointment");
+        }
+
         return mapToDTO(appointment, getUserNamesMap(List.of(appointment)));
     }
 
