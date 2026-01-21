@@ -261,4 +261,3 @@ class CurrentUserTest {
         assertThat(result).isEqualTo("auth0|user123");
     }
 }
-

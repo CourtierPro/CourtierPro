@@ -33,11 +33,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     List<Appointment> findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(UUID clientId);
 
     /**
-     * Find appointments for a broker within a date range.
+     * Find appointments for a broker that overlap with a date range.
+     * An appointment overlaps if it starts before the range ends AND ends after the range starts.
      */
     @Query("SELECT a FROM Appointment a WHERE a.brokerId = :brokerId " +
            "AND a.deletedAt IS NULL " +
-           "AND a.fromDateTime >= :fromDate AND a.fromDateTime < :toDate " +
+           "AND a.fromDateTime < :toDate AND a.toDateTime > :fromDate " +
            "ORDER BY a.fromDateTime ASC")
     List<Appointment> findByBrokerIdAndDateRange(
             @Param("brokerId") UUID brokerId,
@@ -45,11 +46,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("toDate") LocalDateTime toDate);
 
     /**
-     * Find appointments for a client within a date range.
+     * Find appointments for a client that overlap with a date range.
+     * An appointment overlaps if it starts before the range ends AND ends after the range starts.
      */
     @Query("SELECT a FROM Appointment a WHERE a.clientId = :clientId " +
            "AND a.deletedAt IS NULL " +
-           "AND a.fromDateTime >= :fromDate AND a.fromDateTime < :toDate " +
+           "AND a.fromDateTime < :toDate AND a.toDateTime > :fromDate " +
            "ORDER BY a.fromDateTime ASC")
     List<Appointment> findByClientIdAndDateRange(
             @Param("clientId") UUID clientId,
@@ -69,12 +71,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             UUID clientId, AppointmentStatus status);
 
     /**
-     * Find appointments for a broker within a date range and with specific status.
+     * Find appointments for a broker that overlap with a date range and have specific status.
+     * An appointment overlaps if it starts before the range ends AND ends after the range starts.
      */
     @Query("SELECT a FROM Appointment a WHERE a.brokerId = :brokerId " +
            "AND a.deletedAt IS NULL " +
            "AND a.status = :status " +
-           "AND a.fromDateTime >= :fromDate AND a.fromDateTime < :toDate " +
+           "AND a.fromDateTime < :toDate AND a.toDateTime > :fromDate " +
            "ORDER BY a.fromDateTime ASC")
     List<Appointment> findByBrokerIdAndDateRangeAndStatus(
             @Param("brokerId") UUID brokerId,
@@ -83,12 +86,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("status") AppointmentStatus status);
 
     /**
-     * Find appointments for a client within a date range and with specific status.
+     * Find appointments for a client that overlap with a date range and have specific status.
+     * An appointment overlaps if it starts before the range ends AND ends after the range starts.
      */
     @Query("SELECT a FROM Appointment a WHERE a.clientId = :clientId " +
            "AND a.deletedAt IS NULL " +
            "AND a.status = :status " +
-           "AND a.fromDateTime >= :fromDate AND a.fromDateTime < :toDate " +
+           "AND a.fromDateTime < :toDate AND a.toDateTime > :fromDate " +
            "ORDER BY a.fromDateTime ASC")
     List<Appointment> findByClientIdAndDateRangeAndStatus(
             @Param("clientId") UUID clientId,

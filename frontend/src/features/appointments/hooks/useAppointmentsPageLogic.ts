@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAppointmentsForMonth } from '../api/queries';
 import { type AppointmentViewMode, groupAppointmentsByDate } from '../types';
-import { useMemo } from 'react';
 
 export function useAppointmentsPageLogic() {
     // View state

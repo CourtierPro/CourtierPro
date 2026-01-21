@@ -197,4 +197,3 @@ class UserContextFilterTest {
         verify(filterChain, never()).doFilter(request, response);
     }
 }
-
