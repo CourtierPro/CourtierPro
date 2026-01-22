@@ -33,7 +33,7 @@ export function getStatusColorClass(status: AppointmentStatus): string {
         case 'CONFIRMED':
             return 'bg-green-500';
         case 'PROPOSED':
-            return 'bg-yellow-500';
+            return 'bg-gray-500';
         case 'DECLINED':
             return 'bg-red-500';
         case 'CANCELLED':

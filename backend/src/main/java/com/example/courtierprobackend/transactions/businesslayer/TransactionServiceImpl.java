@@ -238,26 +238,27 @@ public class TransactionServiceImpl implements TransactionService {
         Optional<UserAccount> brokerOpt = userAccountRepository.findById(saved.getBrokerId());
         if (clientOpt.isPresent()) {
             TransactionParticipant clientParticipant = TransactionParticipant.builder()
-                .transactionId(saved.getTransactionId())
-                .name(clientOpt.get().getFirstName() + " " + clientOpt.get().getLastName())
-                .role(ParticipantRole.BUYER) // ou un rôle spécifique si besoin
-                .email(clientOpt.get().getEmail())
-                .phoneNumber(null)
-                .permissions(Set.of(ParticipantPermission.VIEW_DOCUMENTS, ParticipantPermission.VIEW_STAGE, ParticipantPermission.VIEW_CONDITIONS, ParticipantPermission.VIEW_NOTES))
-                .isSystem(true)
-                .build();
+                    .transactionId(saved.getTransactionId())
+                    .name(clientOpt.get().getFirstName() + " " + clientOpt.get().getLastName())
+                    .role(ParticipantRole.BUYER) // ou un rôle spécifique si besoin
+                    .email(clientOpt.get().getEmail())
+                    .phoneNumber(null)
+                    .permissions(Set.of(ParticipantPermission.VIEW_DOCUMENTS, ParticipantPermission.VIEW_STAGE,
+                            ParticipantPermission.VIEW_CONDITIONS, ParticipantPermission.VIEW_NOTES))
+                    .isSystem(true)
+                    .build();
             participantRepository.save(clientParticipant);
         }
         if (brokerOpt.isPresent()) {
             TransactionParticipant brokerParticipant = TransactionParticipant.builder()
-                .transactionId(saved.getTransactionId())
-                .name(brokerOpt.get().getFirstName() + " " + brokerOpt.get().getLastName())
-                .role(ParticipantRole.BROKER)
-                .email(brokerOpt.get().getEmail())
-                .phoneNumber(null)
-                .permissions(Set.of(ParticipantPermission.values())) // tous les droits
-                .isSystem(true)
-                .build();
+                    .transactionId(saved.getTransactionId())
+                    .name(brokerOpt.get().getFirstName() + " " + brokerOpt.get().getLastName())
+                    .role(ParticipantRole.BROKER)
+                    .email(brokerOpt.get().getEmail())
+                    .phoneNumber(null)
+                    .permissions(Set.of(ParticipantPermission.values())) // tous les droits
+                    .isSystem(true)
+                    .build();
             participantRepository.save(brokerParticipant);
         }
 
@@ -266,34 +267,34 @@ public class TransactionServiceImpl implements TransactionService {
         String property = saved.getPropertyAddress() != null ? saved.getPropertyAddress().getStreet() : "";
         String actorName = lookupUserName(saved.getBrokerId());
         TransactionInfo info = TransactionInfo.builder()
-            .clientName(clientName)
-            .address(property)
-            .actorName(actorName)
-            .build();
+                .clientName(clientName)
+                .address(property)
+                .actorName(actorName)
+                .build();
         timelineService.addEntry(
-            saved.getTransactionId(),
-            brokerId,
-            TimelineEntryType.CREATED,
-            null,
-            null,
-            info);
+                saved.getTransactionId(),
+                brokerId,
+                TimelineEntryType.CREATED,
+                null,
+                null,
+                info);
 
         // CP-48: Send Transaction Created Notification to Client
         try {
             notificationService.createNotification(
-                clientId.toString(),
-                "notifications.transactionCreated.title",
-                "notifications.transactionCreated.message",
-                java.util.Map.of("brokerName", actorName),
-                saved.getTransactionId().toString(),
-                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
+                    clientId.toString(),
+                    "notifications.transactionCreated.title",
+                    "notifications.transactionCreated.message",
+                    java.util.Map.of("brokerName", actorName),
+                    saved.getTransactionId().toString(),
+                    com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.GENERAL);
         } catch (Exception e) {
             log.error("Failed to send transaction created notification for transaction {}", saved.getTransactionId(),
-                e);
+                    e);
         }
 
         return EntityDtoUtil.toResponse(saved, lookupUserName(saved.getClientId()));
-        }
+    }
 
     @Override
     public List<TimelineEntryDTO> getNotes(UUID transactionId, UUID brokerId) {
@@ -405,7 +406,12 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         return txMap.values().stream()
-                .map(tx -> EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId())))
+                .map(tx -> EntityDtoUtil.toResponse(
+                        tx,
+                        lookupUserName(tx.getClientId()),
+                        tx.getCentrisNumber(),
+                        lookupUserName(tx.getBrokerId()) // Use the 4-arg method to include brokerName
+                ))
                 .toList();
     }
 
@@ -415,7 +421,12 @@ public class TransactionServiceImpl implements TransactionService {
         List<Transaction> transactions = repo.findAllByClientId(clientId);
 
         return transactions.stream()
-                .map(tx -> EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId())))
+                .map(tx -> EntityDtoUtil.toResponse(
+                        tx,
+                        lookupUserName(tx.getClientId()),
+                        tx.getCentrisNumber(),
+                        lookupUserName(tx.getBrokerId()) // Use the 4-arg method to include brokerName
+                ))
                 .toList();
     }
 
@@ -427,7 +438,12 @@ public class TransactionServiceImpl implements TransactionService {
                 .toList();
 
         return transactions.stream()
-                .map(tx -> EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId())))
+                .map(tx -> EntityDtoUtil.toResponse(
+                        tx,
+                        lookupUserName(tx.getClientId()),
+                        tx.getCentrisNumber(),
+                        lookupUserName(tx.getBrokerId()) // Use the 4-arg method to include brokerName
+                ))
                 .toList();
     }
 
@@ -687,58 +703,59 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public ParticipantResponseDTO addParticipant(UUID transactionId, AddParticipantRequestDTO dto, UUID brokerId) {
         Transaction tx = repo.findByTransactionId(transactionId)
-            .orElseThrow(() -> new NotFoundException("Transaction not found"));
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
         TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
 
         // Vérifier doublon d'email (y compris participants système)
         var existingParticipants = participantRepository.findByTransactionId(transactionId);
-        if (existingParticipants.stream().anyMatch(p -> p.getEmail() != null && p.getEmail().equalsIgnoreCase(dto.getEmail()))) {
+        if (existingParticipants.stream()
+                .anyMatch(p -> p.getEmail() != null && p.getEmail().equalsIgnoreCase(dto.getEmail()))) {
             throw new BadRequestException("Un participant avec cet email existe déjà dans la transaction.");
         }
 
         // Validate Broker Email
         if (dto.getRole() == ParticipantRole.BROKER || dto.getRole() == ParticipantRole.CO_BROKER) {
             if (userAccountRepository.findByEmail(dto.getEmail()).isEmpty()) {
-            throw new BadRequestException("The broker/co-broker email must be registered in the system.");
+                throw new BadRequestException("The broker/co-broker email must be registered in the system.");
             }
         }
 
         TransactionParticipant participant = TransactionParticipant.builder()
-            .transactionId(transactionId)
-            .name(dto.getName())
-            .role(dto.getRole())
-            .email(dto.getEmail())
-            .phoneNumber(dto.getPhoneNumber())
-            .permissions(dto.getPermissions())
-            .isSystem(false)
-            .build();
+                .transactionId(transactionId)
+                .name(dto.getName())
+                .role(dto.getRole())
+                .email(dto.getEmail())
+                .phoneNumber(dto.getPhoneNumber())
+                .permissions(dto.getPermissions())
+                .isSystem(false)
+                .build();
 
         TransactionParticipant saved = participantRepository.save(participant);
 
         // Timeline
         String actorName = lookupUserName(brokerId);
         TransactionInfo info = TransactionInfo.builder()
-            .actorName(actorName)
-            .build();
+                .actorName(actorName)
+                .build();
 
         timelineService.addEntry(
-            transactionId,
-            brokerId,
-            TimelineEntryType.PARTICIPANT_ADDED,
-            "Participant added: " + saved.getName() + " (" + saved.getRole() + ")",
-            null,
-            info);
+                transactionId,
+                brokerId,
+                TimelineEntryType.PARTICIPANT_ADDED,
+                "Participant added: " + saved.getName() + " (" + saved.getRole() + ")",
+                null,
+                info);
 
         return ParticipantResponseDTO.builder()
-            .id(saved.getId())
-            .transactionId(saved.getTransactionId())
-            .name(saved.getName())
-            .role(saved.getRole())
-            .email(saved.getEmail())
-            .phoneNumber(saved.getPhoneNumber())
-            .permissions(saved.getPermissions())
-            .build();
+                .id(saved.getId())
+                .transactionId(saved.getTransactionId())
+                .name(saved.getName())
+                .role(saved.getRole())
+                .email(saved.getEmail())
+                .phoneNumber(saved.getPhoneNumber())
+                .permissions(saved.getPermissions())
+                .build();
     }
 
     @Override
@@ -763,7 +780,8 @@ public class TransactionServiceImpl implements TransactionService {
 
         // Vérifier doublon d'email (hors ce participant)
         var existingParticipants = participantRepository.findByTransactionId(transactionId);
-        if (dto.getEmail() != null && existingParticipants.stream().anyMatch(p -> !p.getId().equals(participantId) && p.getEmail() != null && p.getEmail().equalsIgnoreCase(dto.getEmail()))) {
+        if (dto.getEmail() != null && existingParticipants.stream().anyMatch(p -> !p.getId().equals(participantId)
+                && p.getEmail() != null && p.getEmail().equalsIgnoreCase(dto.getEmail()))) {
             throw new BadRequestException("Un participant avec cet email existe déjà dans la transaction.");
         }
 
@@ -822,12 +840,12 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public void removeParticipant(UUID transactionId, UUID participantId, UUID brokerId) {
         Transaction tx = repo.findByTransactionId(transactionId)
-            .orElseThrow(() -> new NotFoundException("Transaction not found"));
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
         TransactionAccessUtils.verifyBrokerAccess(tx, brokerId);
 
         TransactionParticipant participant = participantRepository.findById(participantId)
-            .orElseThrow(() -> new NotFoundException("Participant not found"));
+                .orElseThrow(() -> new NotFoundException("Participant not found"));
 
         if (!participant.getTransactionId().equals(transactionId)) {
             throw new BadRequestException("Participant does not belong to this transaction");
@@ -843,16 +861,16 @@ public class TransactionServiceImpl implements TransactionService {
         // Timeline
         String actorName = lookupUserName(brokerId);
         TransactionInfo info = TransactionInfo.builder()
-            .actorName(actorName)
-            .build();
+                .actorName(actorName)
+                .build();
 
         timelineService.addEntry(
-            transactionId,
-            brokerId,
-            TimelineEntryType.PARTICIPANT_REMOVED,
-            "Participant removed: " + participant.getName(),
-            null,
-            info);
+                transactionId,
+                brokerId,
+                TimelineEntryType.PARTICIPANT_REMOVED,
+                "Participant removed: " + participant.getName(),
+                null,
+                info);
     }
 
     @Override

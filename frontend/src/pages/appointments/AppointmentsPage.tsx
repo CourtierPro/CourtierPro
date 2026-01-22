@@ -10,9 +10,13 @@ import { useAppointmentsPageLogic } from "@/features/appointments/hooks/useAppoi
 import { AppointmentList } from "@/features/appointments/components/AppointmentList";
 import { AppointmentCalendarView } from "@/features/appointments/components/AppointmentCalendarView";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
+import { CreateAppointmentModal } from "@/features/appointments/components/CreateAppointmentModal";
 
 export function AppointmentsPage() {
   const { t } = useTranslation('appointments');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
   const {
     appointments,
     groupedAppointments,
@@ -39,7 +43,7 @@ export function AppointmentsPage() {
         title={t('title', 'Appointments')}
         subtitle={t('subtitle', 'View and manage your upcoming appointments.')}
         actions={
-          <Button disabled title="Coming soon">
+          <Button onClick={() => setIsCreateModalOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             {t('scheduleAppointment', 'Schedule Appointment')}
           </Button>
@@ -88,7 +92,7 @@ export function AppointmentsPage() {
                 title={t('noAppointmentsTitle', 'No appointments scheduled')}
                 description={t('noAppointmentsDesc', "You don't have any upcoming appointments. Schedule one now.")}
                 action={
-                  <Button disabled title="Coming soon">
+                  <Button onClick={() => setIsCreateModalOpen(true)}>
                     {t('scheduleAppointment', 'Schedule Appointment')}
                   </Button>
                 }
@@ -99,6 +103,16 @@ export function AppointmentsPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      <CreateAppointmentModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={() => {
+          refetch();
+          setIsCreateModalOpen(false);
+        }}
+        existingAppointments={appointments}
+      />
     </div>
   );
 }

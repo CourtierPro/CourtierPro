@@ -132,16 +132,23 @@ public class TransactionController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('BROKER')")
-    public ResponseEntity<List<TransactionResponseDTO>> getBrokerTransactions(
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<List<TransactionResponseDTO>> getTransactions(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String stage,
             @RequestParam(required = false) String side,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request) {
-        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
-        return ResponseEntity.ok(service.getBrokerTransactions(brokerId, status, stage, side));
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        boolean isBroker = UserContextUtils.isBroker(request);
+
+        if (isBroker) {
+            return ResponseEntity.ok(service.getBrokerTransactions(userId, status, stage, side));
+        } else {
+            // New service method for clients
+            return ResponseEntity.ok(service.getClientTransactions(userId));
+        }
     }
 
     @GetMapping("/{transactionId}")

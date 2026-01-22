@@ -5,13 +5,11 @@ import { useState } from 'react';
 import { Section } from "@/shared/components/branded/Section";
 import { SectionHeader } from "@/shared/components/branded/SectionHeader";
 import { Button } from "@/shared/components/ui/button";
-import { EmptyState } from "@/shared/components/branded/EmptyState";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/components/ui/tabs";
 import { type Transaction, useTransactionConditions, useTransactionOffers } from '@/features/transactions/api/queries';
 import { type Condition, type PropertyOffer } from '@/shared/api/types';
 import { DocumentsPage } from '@/pages/documents/DocumentsPage';
-import { Calendar } from 'lucide-react';
 import { TransactionTimeline } from './TransactionTimeline';
 import { PropertyList } from './PropertyList';
 import { OfferList } from './OfferList';
@@ -20,6 +18,7 @@ import { ConditionList } from './ConditionList';
 import { AddConditionModal } from './AddConditionModal';
 import { ConditionDetailModal } from './ConditionDetailModal';
 import { useParticipantPermissions } from '@/features/transactions/hooks/useParticipantPermissions';
+import { TransactionAppointments } from './TransactionAppointments';
 
 interface TransactionTabsProps {
   transaction: Transaction;
@@ -267,14 +266,12 @@ export function TransactionTabs({
       )}
 
       <TabsContent value="appointments" className="py-4">
-        <Section>
-          <EmptyState
-            icon={<Calendar />}
-            title={t('noAppointments')}
-            description={t('appointmentsPlaceholder')}
-            action={<Button variant="outline">{t('scheduleAppointment')}</Button>}
-          />
-        </Section>
+        <TransactionAppointments
+          transactionId={transaction.transactionId}
+          transactionAddress={transaction.propertyAddress.street}
+          clientId={transaction.clientId}
+          isReadOnly={transaction.archived ?? false}
+        />
       </TabsContent>
 
       <TabsContent value="conditions" className="py-4">
