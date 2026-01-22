@@ -646,4 +646,94 @@ class PropertyServiceUnitTest {
                         assertThat(captor.getValue().getPropertyAddress()).isNull();
                 }
         }
+
+        // ==================== updatePropertyStatus Tests ====================
+
+        @Nested
+        @DisplayName("updatePropertyStatus")
+        class UpdatePropertyStatusTests {
+
+                @Test
+                @DisplayName("should allow client to accept suggested property")
+                void updatePropertyStatus_clientAcceptsSuggestion_success() {
+                        testProperty.setStatus(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.SUGGESTED);
+                        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(buySideTransaction));
+                        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(testProperty));
+                        when(propertyRepository.save(any(Property.class))).thenAnswer(i -> i.getArgument(0));
+
+                        PropertyResponseDTO result = service.updatePropertyStatus(transactionId, propertyId,
+                                com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.ACCEPTED, null, clientId);
+
+                        assertThat(result.getStatus()).isEqualTo(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.ACCEPTED);
+                        verify(timelineService).addEntry(any(), any(), any(), any(), any(), any());
+                }
+
+                @Test
+                @DisplayName("should allow client to reject suggested property")
+                void updatePropertyStatus_clientRejectsSuggestion_success() {
+                        testProperty.setStatus(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.SUGGESTED);
+                        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(buySideTransaction));
+                        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(testProperty));
+                        when(propertyRepository.save(any(Property.class))).thenAnswer(i -> i.getArgument(0));
+
+                        PropertyResponseDTO result = service.updatePropertyStatus(transactionId, propertyId,
+                                com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.REJECTED, "Not interested", clientId);
+
+                        assertThat(result.getStatus()).isEqualTo(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.REJECTED);
+                        verify(timelineService).addEntry(any(), any(), any(), any(), any(), any());
+                }
+
+                @Test
+                @DisplayName("should allow client to request info on suggested property")
+                void updatePropertyStatus_clientRequestsInfo_success() {
+                        testProperty.setStatus(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.SUGGESTED);
+                        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(buySideTransaction));
+                        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(testProperty));
+                        when(propertyRepository.save(any(Property.class))).thenAnswer(i -> i.getArgument(0));
+
+                        PropertyResponseDTO result = service.updatePropertyStatus(transactionId, propertyId,
+                                com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NEEDS_INFO, "More info please", clientId);
+
+                        assertThat(result.getStatus()).isEqualTo(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NEEDS_INFO);
+                        verify(timelineService).addEntry(any(), any(), any(), any(), any(), any());
+                }
+
+                @Test
+                @DisplayName("should throw BadRequest when client tries to transition from non-SUGGESTED")
+                void updatePropertyStatus_clientInvalidStartStatus_throwsBadRequest() {
+                        testProperty.setStatus(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.ACCEPTED);
+                        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(buySideTransaction));
+                        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(testProperty));
+
+                        assertThatThrownBy(() -> service.updatePropertyStatus(transactionId, propertyId,
+                                com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.REJECTED, null, clientId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("Clients can only review Suggested properties");
+                }
+
+                @Test
+                @DisplayName("should allow broker to revert NEEDS_INFO to SUGGESTED")
+                void updatePropertyStatus_brokerResolvesInfo_success() {
+                        testProperty.setStatus(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NEEDS_INFO);
+                        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(buySideTransaction));
+                        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(testProperty));
+                        when(propertyRepository.save(any(Property.class))).thenAnswer(i -> i.getArgument(0));
+
+                        PropertyResponseDTO result = service.updatePropertyStatus(transactionId, propertyId,
+                                com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.SUGGESTED, "Info provided", brokerId);
+
+                        assertThat(result.getStatus()).isEqualTo(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.SUGGESTED);
+                }
+
+                @Test
+                @DisplayName("should throw Forbidden for unauthorized user")
+                void updatePropertyStatus_unauthorizedUser_throwsForbidden() {
+                        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(buySideTransaction));
+                        when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(testProperty));
+
+                        assertThatThrownBy(() -> service.updatePropertyStatus(transactionId, propertyId,
+                                com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.ACCEPTED, null, UUID.randomUUID()))
+                                .isInstanceOf(ForbiddenException.class);
+                }
+        }
 }

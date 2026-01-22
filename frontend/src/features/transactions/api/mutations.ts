@@ -256,6 +256,24 @@ export function useClearActiveProperty() {
     });
 }
 
+export function useUpdatePropertyStatus() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, propertyId, status, notes }: { transactionId: string; propertyId: string; status: string; notes?: string }) => {
+            const res = await axiosInstance.patch<Property>(`/transactions/${transactionId}/properties/${propertyId}/status`, notes, {
+                params: { status }
+            });
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: propertyKeys.all(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: propertyKeys.detail(variables.transactionId, variables.propertyId) });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
 // ==================== OFFER MUTATIONS ====================
 
 import { offerKeys } from '@/features/transactions/api/queries';

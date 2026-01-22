@@ -4,6 +4,7 @@ import { useSearchContext } from "@/features/search/context/useSearchContext";
 import { useTranslation } from "react-i18next";
 import { NotificationPopover } from '@/features/notifications/components/NotificationPopover';
 import { Button } from "@/shared/components/ui/button";
+import { Badge } from "@/shared/components/ui/badge";
 import { ModeToggle } from "@/shared/components/ui/mode-toggle";
 import { ProfileModal } from "@/features/profile";
 import { useUserProfile } from "@/features/profile";
@@ -152,6 +153,19 @@ export function TopNav({
 
         {/* Notifications */}
         <NotificationPopover />
+
+        {/* User Role Badge (Desktop) */}
+        {user && (
+          <Badge
+            variant={
+              user.role === 'ADMIN' ? 'destructive' :
+                user.role === 'CLIENT' ? 'secondary' : 'default'
+            }
+            className="hidden md:inline-flex"
+          >
+            {user.role}
+          </Badge>
+        )}
 
         {/* User avatar + menu */}
         <div className="relative" ref={userMenuRef}>

@@ -21,6 +21,7 @@ public class PropertyResponseDTO {
     private BigDecimal offerAmount;
     private String centrisNumber;
     private String notes;
+    private com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -43,9 +43,19 @@ export function PropertyCard({ property, onClick, isActive }: PropertyCardProps)
 
     const statusConfig = offerStatusConfig[property.offerStatus] || offerStatusConfig.OFFER_TO_BE_MADE;
 
+    // Determine badge for property status if not ACCEPTED (which is default state for active properties list)
+    let statusBadge = null;
+    if (property.status === 'SUGGESTED') {
+        statusBadge = <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{t(`propertyStatus.SUGGESTED`)}</Badge>;
+    } else if (property.status === 'NEEDS_INFO') {
+        statusBadge = <Badge variant="warning">{t(`propertyStatus.NEEDS_INFO`)}</Badge>;
+    } else if (property.status === 'REJECTED') {
+        statusBadge = <Badge variant="destructive">{t(`propertyStatus.REJECTED`)}</Badge>;
+    }
+
     return (
         <Section
-            className={`p-4 transition-all ${onClick ? 'cursor-pointer hover:border-primary/50 hover:shadow-md' : ''}`}
+            className={`p-4 transition-all relative ${onClick ? 'cursor-pointer hover:border-primary/50 hover:shadow-md' : ''} ${isActive ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-card' : ''}`}
             onClick={onClick}
             tabIndex={onClick ? 0 : undefined}
             onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
@@ -53,40 +63,56 @@ export function PropertyCard({ property, onClick, isActive }: PropertyCardProps)
             aria-label={onClick ? t('viewPropertyDetails') : undefined}
         >
             <div className="flex flex-col gap-3">
+                {/* Header Row: Status Badge & Active Indicator */}
+                <div className="flex items-center justify-between">
+                    <div className="flex gap-2">
+                        {statusBadge}
+                    </div>
+                    {isActive && (
+                        <Badge variant="default" className="bg-primary text-primary-foreground h-6 shrink-0 ml-auto">
+                            {t('active')}
+                        </Badge>
+                    )}
+                </div>
+
                 {/* Address */}
                 <div className="flex items-start gap-2">
                     <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
                     <div className="flex flex-col">
                         <span className="font-medium text-foreground line-clamp-2">
                             {formatAddress(property)}
-                            {property.address?.postalCode && <span className="ml-1">{property.address.postalCode}</span>}
+                            {property.address?.postalCode && <span className="ml-1 text-muted-foreground font-normal">{property.address.postalCode}</span>}
                         </span>
-                        {property.centrisNumber && (
-                            <span className="text-xs text-muted-foreground">Centris: {property.centrisNumber}</span>
-                        )}
+                        <div className="flex gap-2 text-xs text-muted-foreground mt-1">
+                            {property.centrisNumber && (
+                                <span>Centris: {property.centrisNumber}</span>
+                            )}
+                        </div>
                     </div>
-                    {isActive && (
-                        <Badge variant="success" className="ml-auto h-6 shrink-0">
-                            {t('active')}
-                        </Badge>
+                </div>
+
+                {/* Price and Offer Status Row */}
+                <div className="flex items-center justify-between gap-2 flex-wrap pt-2 border-t border-border/50">
+                    <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('askingPrice')}</span>
+                        <span className="text-foreground font-semibold">{formatCurrency(property.askingPrice)}</span>
+                    </div>
+
+                    {property.status === 'ACCEPTED' && (
+                        <div className="flex items-center gap-2">
+                            {property.offerAmount && (
+                                <div className="flex flex-col items-end mr-2">
+                                    <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('offerAmount')}</span>
+                                    <span className="text-foreground font-medium">{formatCurrency(property.offerAmount)}</span>
+                                </div>
+                            )}
+                            <Badge variant={statusConfig.variant} className={statusConfig.className}>
+                                <Tag className="w-3 h-3 mr-1" />
+                                {t(`propertyOfferStatuses.${property.offerStatus}`)}
+                            </Badge>
+                        </div>
                     )}
                 </div>
-                {/* Price and Status Row */}
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2 text-sm">
-                        <span className="text-foreground font-semibold">{formatCurrency(property.askingPrice)}</span>
-                        <span className="text-muted-foreground">
-                            {property.offerAmount ? formatCurrency(property.offerAmount) : 0}
-                        </span>
-                    </div>
-
-                    <Badge variant={statusConfig.variant} className={statusConfig.className}>
-                        <Tag className="w-3 h-3 mr-1" />
-                        {t(`propertyOfferStatuses.${property.offerStatus}`)}
-                    </Badge>
-                </div>
-
-                {/* Postal Code moved to address line */}
             </div>
         </Section>
     );

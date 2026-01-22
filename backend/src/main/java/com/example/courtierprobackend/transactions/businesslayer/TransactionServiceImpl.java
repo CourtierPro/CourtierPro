@@ -36,6 +36,9 @@ import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository
 import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
 
+import com.example.courtierprobackend.common.exceptions.ForbiddenException;
+import com.example.courtierprobackend.security.UserContextUtils;
+
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1110,6 +1113,109 @@ public class TransactionServiceImpl implements TransactionService {
         return toPropertyResponseDTO(property, isBroker);
     }
 
+    @Override
+    @Transactional
+    public PropertyResponseDTO updatePropertyStatus(UUID transactionId, UUID propertyId,
+                                                    com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus status,
+                                                    String notes, UUID userId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        Property property = propertyRepository.findByPropertyId(propertyId)
+                .orElseThrow(() -> new NotFoundException("Property not found"));
+
+        if (!property.getTransactionId().equals(transactionId)) {
+            throw new BadRequestException("Property does not belong to this transaction");
+        }
+
+        // Determine permissions
+        boolean isPrimaryBroker = tx.getBrokerId() != null && tx.getBrokerId().equals(userId);
+        boolean isCoBroker = false;
+        if (!isPrimaryBroker) {
+            String userEmail = userAccountRepository.findById(userId).map(UserAccount::getEmail).orElse(null);
+            if (userEmail != null) {
+                isCoBroker = participantRepository.findByTransactionId(transactionId).stream()
+                    .anyMatch(p -> p.getRole() == com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER 
+                        && p.getEmail() != null && p.getEmail().equalsIgnoreCase(userEmail));
+            }
+        }
+        boolean isBroker = isPrimaryBroker || isCoBroker;
+        boolean isClient = tx.getClientId() != null && tx.getClientId().equals(userId);
+
+        if (!isBroker && !isClient) {
+            throw new ForbiddenException("Not authorized to update property status");
+        }
+
+        var currentStatus = property.getStatus();
+        if (currentStatus == null) {
+            currentStatus = com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.ACCEPTED; // Default for legacy
+        }
+
+        // State Machine Validation
+        if (isClient) {
+            // Client can only transition from SUGGESTED to ACCEPTED, REJECTED, or NEEDS_INFO
+            if (currentStatus != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.SUGGESTED) {
+                 throw new BadRequestException("Clients can only review Suggested properties.");
+            }
+            if (status != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.ACCEPTED &&
+                status != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.REJECTED &&
+                status != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NEEDS_INFO) {
+                 throw new BadRequestException("Invalid status transition for Client.");
+            }
+        } else {
+            // Broker can transition from NEEDS_INFO to SUGGESTED (resolve info)
+            // Or typically manages other states. We allow broker to reset to SUGGESTED from NEEDS_INFO.
+            if (currentStatus == com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NEEDS_INFO &&
+                status == com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.SUGGESTED) {
+                // Allowed: Broker resolving info request
+            } else if (currentStatus == com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.REJECTED) {
+                 // Broker might want to delete instead, but maybe re-suggest?
+                 // For now let's allow broker full control if needed, but primary flow is resolving NEEDS_INFO
+            }
+            // For now, we trust the broker, but could enforce stricter rules if needed.
+        }
+
+        // Update Status
+        property.setStatus(status);
+        if (notes != null && !notes.isBlank()) {
+             // Append note or set note?
+             // If NEEDS_INFO, we probably want to save the question.
+             // If Resolving, we might want to save the answer?
+             // For simplicity, let's append to existing notes with a timestamp/author
+             String existing = property.getNotes() == null ? "" : property.getNotes();
+             String newNote = "\n[" + LocalDateTime.now() + " " + (isBroker ? "Broker" : "Client") + "]: " + notes;
+             property.setNotes(existing + newNote);
+        }
+        property.setUpdatedAt(LocalDateTime.now());
+        Property saved = propertyRepository.save(property);
+
+        // Timeline
+        String address = saved.getAddress() != null ? saved.getAddress().getStreet() : "Unknown";
+        // String actorName = lookupUserName(userId); // lookupUserName takes UUID, might need check
+        // Using generic actor name check
+        String actorName = "User";
+        try {
+            actorName = lookupUserName(userId);
+        } catch (Exception e) {
+             // fallback
+        }
+        
+        TransactionInfo info = TransactionInfo.builder()
+                .actorName(actorName)
+                .address(address)
+                .build();
+        
+        timelineService.addEntry(
+                transactionId,
+                userId,
+                TimelineEntryType.PROPERTY_UPDATED,
+                "Property " + address + " status changed to " + status,
+                null,
+                info);
+
+        return toPropertyResponseDTO(saved, isBroker);
+    }
+
     private PropertyResponseDTO toPropertyResponseDTO(Property property, boolean includeBrokerNotes) {
         return PropertyResponseDTO.builder()
                 .propertyId(property.getPropertyId())
@@ -1120,6 +1226,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .offerAmount(property.getOfferAmount())
                 .centrisNumber(property.getCentrisNumber())
                 .notes(property.getNotes())
+                .status(property.getStatus())
                 .createdAt(property.getCreatedAt())
                 .updatedAt(property.getUpdatedAt())
                 .build();

@@ -116,8 +116,8 @@ export function AdminDashboardPage() {
         >
           {t("admin.inviteUser", "Invite User")}
         </Button>
-          {/* Invite User Modal */}
-          <InviteUserModal open={showInviteModal} onClose={() => setShowInviteModal(false)} />
+        {/* Invite User Modal */}
+        <InviteUserModal open={showInviteModal} onClose={() => setShowInviteModal(false)} />
         <Button
           type="button"
           aria-label="Create Broadcast"
@@ -136,7 +136,7 @@ export function AdminDashboardPage() {
         ) : (
           <div className="space-y-2">
             <div>
-              <h4 className="font-semibold">Login Audits</h4>
+              <h4 className="font-semibold">{t("admin.loginAudits")}</h4>
               {recentActions?.recentLogins?.length ? (
                 <ul className="text-xs text-muted-foreground">
                   {recentActions.recentLogins.map((log, idx) => {
@@ -155,11 +155,11 @@ export function AdminDashboardPage() {
                   })}
                 </ul>
               ) : (
-                <div className="text-xs text-muted-foreground">No recent login audits.</div>
+                <div className="text-xs text-muted-foreground">{t("admin.noLoginAudits")}</div>
               )}
             </div>
             <div>
-              <h4 className="font-semibold">Deletion Audits</h4>
+              <h4 className="font-semibold">{t("admin.deletionAudits")}</h4>
               {recentActions?.recentDeletions?.length ? (
                 <ul className="text-xs text-muted-foreground">
                   {recentActions.recentDeletions.map((del, idx) => {
@@ -178,7 +178,7 @@ export function AdminDashboardPage() {
                   })}
                 </ul>
               ) : (
-                <div className="text-xs text-muted-foreground">No recent deletion audits.</div>
+                <div className="text-xs text-muted-foreground">{t("admin.noDeletionAudits")}</div>
               )}
             </div>
           </div>
@@ -192,12 +192,12 @@ export function AdminDashboardPage() {
           onClick={sendTestAlert}
           disabled={isSendingAlert}
         >
-          {isSendingAlert ? "Sending..." : "Trigger Test Alert"}
+          {isSendingAlert ? t("admin.sendingAlert") : t("admin.triggerTestAlert")}
         </Button>
         {isAlertsLoading ? (
-          <div className="text-sm text-muted-foreground">Loading alerts...</div>
+          <div className="text-sm text-muted-foreground">{t("loading")}</div>
         ) : alertsError ? (
-          <div className="text-sm text-destructive">Failed to load alerts.</div>
+          <div className="text-sm text-destructive">{t("settings.errors.loadFailed")}</div>
         ) : systemAlerts && systemAlerts.length > 0 ? (
           <ul className="space-y-2">
             {systemAlerts.map(alert => (
@@ -211,13 +211,13 @@ export function AdminDashboardPage() {
         ) : (
           <div className="flex items-center gap-2 text-red-600">
             <AlertTriangle className="w-5 h-5" />
-            <span>No critical alerts.</span>
+            <span>{t("admin.noSystemAlerts")}</span>
           </div>
         )}
       </Section>
       {/* System logs (read-only, monitoring) */}
       <Section title={t("admin.systemLogs")} description={t("admin.systemLogsDesc")}
-        >
+      >
         {isLogsLoading ? (
           <div className="text-sm text-muted-foreground">{t("loading")}</div>
         ) : logsError ? (

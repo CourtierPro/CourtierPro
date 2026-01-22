@@ -101,8 +101,8 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     const handleEmailChange = () => {
         if (emailInput && emailInput !== user?.email) {
             updateProfile.mutate(
-                { 
-                    email: emailInput, 
+                {
+                    email: emailInput,
                     preferredLanguage: user?.preferredLanguage || 'en' // Always include preferredLanguage
                 },
                 {
@@ -116,8 +116,9 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                             // Clear auth tokens (adjust if you use a different storage or context)
                             localStorage.removeItem('accessToken');
                             localStorage.removeItem('refreshToken');
-                            window.location.replace('/login');
-                        }, 4000); // Increased delay for better visibility
+                            // Force a hard reload to login to clear all in-memory state
+                            window.location.href = '/login';
+                        }, 2000);
                     },
                 }
             );
@@ -128,13 +129,13 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         if (!user) return;
         if (type === 'email') {
             setEmailNotifications(value);
-            updateProfile.mutate({ 
+            updateProfile.mutate({
                 emailNotificationsEnabled: value,
                 preferredLanguage: user.preferredLanguage || 'en'
             });
         } else {
             setInAppNotifications(value);
-            updateProfile.mutate({ 
+            updateProfile.mutate({
                 inAppNotificationsEnabled: value,
                 preferredLanguage: user.preferredLanguage || 'en'
             });
