@@ -13,12 +13,13 @@ export function useClients() {
     });
 }
 
-export function useClientsForDisplay() {
+export function useClientsForDisplay(options?: { enabled?: boolean }) {
     return useQuery({
         queryKey: clientKeys.list(),
         queryFn: async (): Promise<ClientDisplay[]> => {
             const clients = await fetchClients();
             return clients.map(toClientDisplay);
         },
+        enabled: options?.enabled,
     });
 }

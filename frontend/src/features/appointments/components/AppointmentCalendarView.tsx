@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Calendar } from '@/shared/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
-import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
-import { type Appointment, getAppointmentTimeRange } from '../types';
-import { getStatusBadgeVariant } from '../enums';
+import { type Appointment } from '../types';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
+import { useAuth0 } from "@auth0/auth0-react";
+import { AppointmentItem } from './AppointmentItem';
+import { AppointmentDetailModal } from './AppointmentDetailModal';
 
 interface AppointmentCalendarViewProps {
     appointments: Appointment[];
@@ -28,7 +29,13 @@ export function AppointmentCalendarView({
     isLoading = false,
 }: AppointmentCalendarViewProps) {
     const { t, i18n } = useTranslation('appointments');
+    const { user } = useAuth0();
+
+    const userRoles = (user?.['https://courtierpro.dev/roles'] as string[]) || [];
+    const isBroker = userRoles.includes('BROKER');
+
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
     // Get the appropriate locale for date formatting
     const dateLocale = useMemo(() => {
@@ -51,7 +58,10 @@ export function AppointmentCalendarView({
 
     // Get dates that have appointments
     const datesWithAppointments = useMemo(() => {
-        return Array.from(appointmentsByDate.keys()).map(dateStr => new Date(dateStr));
+        return Array.from(appointmentsByDate.keys()).map(dateStr => {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        });
     }, [appointmentsByDate]);
 
     // Get appointments for selected date
@@ -144,35 +154,26 @@ export function AppointmentCalendarView({
                             {t('noAppointmentsDate', 'No appointments on this date')}
                         </p>
                     ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                             {selectedDateAppointments.map((apt) => (
-                                <div
+                                <AppointmentItem
                                     key={apt.appointmentId}
-                                    className="p-3 border rounded-lg space-y-2"
-                                >
-                                    <div className="flex items-start justify-between">
-                                        <h4 className="font-medium text-sm">{apt.title}</h4>
-                                        <Badge variant={getStatusBadgeVariant(apt.status)} className="text-xs">
-                                            {t(`status.${apt.status.toLowerCase()}`, apt.status)}
-                                        </Badge>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        {getAppointmentTimeRange(apt)}
-                                    </p>
-                                    <p className="text-xs">
-                                        {apt.clientName}
-                                    </p>
-                                    {apt.location && (
-                                        <p className="text-xs text-muted-foreground truncate">
-                                            📍 {apt.location}
-                                        </p>
-                                    )}
-                                </div>
+                                    appointment={apt}
+                                    onClick={setSelectedAppointment}
+                                    compact={true}
+                                    isBroker={isBroker}
+                                />
                             ))}
                         </div>
                     )}
                 </CardContent>
             </Card>
+
+            <AppointmentDetailModal
+                isOpen={!!selectedAppointment}
+                onClose={() => setSelectedAppointment(null)}
+                appointment={selectedAppointment}
+            />
         </div>
     );
 }

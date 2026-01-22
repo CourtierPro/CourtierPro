@@ -60,7 +60,7 @@ export function useArchivedTransactions() {
     });
 }
 
-export function useTransactions(filters?: { status?: string; stage?: string; side?: string }) {
+export function useTransactions(filters?: { status?: string; stage?: string; side?: string }, options?: { enabled?: boolean }) {
     return useQuery({
         queryKey: [...transactionKeys.lists(), filters],
         queryFn: async () => {
@@ -72,6 +72,7 @@ export function useTransactions(filters?: { status?: string; stage?: string; sid
             const res = await axiosInstance.get<Transaction[]>(`/transactions?${params.toString()}`);
             return res.data;
         },
+        enabled: options?.enabled,
     });
 }
 

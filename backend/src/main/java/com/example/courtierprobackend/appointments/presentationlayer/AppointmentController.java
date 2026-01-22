@@ -106,7 +106,26 @@ public class AppointmentController {
             HttpServletRequest request) {
 
         UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
-        List<AppointmentResponseDTO> appointments = appointmentService.getAppointmentsForTransaction(transactionId, userId);
+        List<AppointmentResponseDTO> appointments = appointmentService.getAppointmentsForTransaction(transactionId,
+                userId);
         return ResponseEntity.ok(appointments);
+    }
+
+    /**
+     * Request a new appointment.
+     */
+    @PostMapping
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<AppointmentResponseDTO> requestAppointment(
+            @RequestBody com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO appointmentRequest,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request) {
+
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        AppointmentResponseDTO createdAppointment = appointmentService.requestAppointment(appointmentRequest, userId);
+
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(createdAppointment);
     }
 }

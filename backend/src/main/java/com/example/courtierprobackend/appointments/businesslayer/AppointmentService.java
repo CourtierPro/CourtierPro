@@ -12,61 +12,69 @@ import java.util.UUID;
  */
 public interface AppointmentService {
 
-    /**
-     * Get all appointments for a broker.
-     */
-    List<AppointmentResponseDTO> getAppointmentsForBroker(UUID brokerId);
+        /**
+         * Get all appointments for a broker.
+         */
+        List<AppointmentResponseDTO> getAppointmentsForBroker(UUID brokerId);
 
-    /**
-     * Get all appointments for a client.
-     */
-    List<AppointmentResponseDTO> getAppointmentsForClient(UUID clientId);
+        /**
+         * Get all appointments for a client.
+         */
+        List<AppointmentResponseDTO> getAppointmentsForClient(UUID clientId);
 
-    /**
-     * Get appointments for a broker within a date range.
-     */
-    List<AppointmentResponseDTO> getAppointmentsForBrokerByDateRange(
-            UUID brokerId, LocalDateTime from, LocalDateTime to);
+        /**
+         * Get appointments for a broker within a date range.
+         */
+        List<AppointmentResponseDTO> getAppointmentsForBrokerByDateRange(
+                        UUID brokerId, LocalDateTime from, LocalDateTime to);
 
-    /**
-     * Get appointments for a client within a date range.
-     */
-    List<AppointmentResponseDTO> getAppointmentsForClientByDateRange(
-            UUID clientId, LocalDateTime from, LocalDateTime to);
+        /**
+         * Get appointments for a client within a date range.
+         */
+        List<AppointmentResponseDTO> getAppointmentsForClientByDateRange(
+                        UUID clientId, LocalDateTime from, LocalDateTime to);
 
-    /**
-     * Get appointments for a broker with specific status.
-     */
-    List<AppointmentResponseDTO> getAppointmentsForBrokerByStatus(
-            UUID brokerId, AppointmentStatus status);
+        /**
+         * Get appointments for a broker with specific status.
+         */
+        List<AppointmentResponseDTO> getAppointmentsForBrokerByStatus(
+                        UUID brokerId, AppointmentStatus status);
 
-    /**
-     * Get appointments for a client with specific status.
-     */
-    List<AppointmentResponseDTO> getAppointmentsForClientByStatus(
-            UUID clientId, AppointmentStatus status);
+        /**
+         * Get appointments for a client with specific status.
+         */
+        List<AppointmentResponseDTO> getAppointmentsForClientByStatus(
+                        UUID clientId, AppointmentStatus status);
 
-    /**
-     * Get appointments for a broker within a date range and with specific status.
-     */
-    List<AppointmentResponseDTO> getAppointmentsForBrokerByDateRangeAndStatus(
-            UUID brokerId, LocalDateTime from, LocalDateTime to, AppointmentStatus status);
+        /**
+         * Get appointments for a broker within a date range and with specific status.
+         */
+        List<AppointmentResponseDTO> getAppointmentsForBrokerByDateRangeAndStatus(
+                        UUID brokerId, LocalDateTime from, LocalDateTime to, AppointmentStatus status);
 
-    /**
-     * Get appointments for a client within a date range and with specific status.
-     */
-    List<AppointmentResponseDTO> getAppointmentsForClientByDateRangeAndStatus(
-            UUID clientId, LocalDateTime from, LocalDateTime to, AppointmentStatus status);
+        /**
+         * Get appointments for a client within a date range and with specific status.
+         */
+        List<AppointmentResponseDTO> getAppointmentsForClientByDateRangeAndStatus(
+                        UUID clientId, LocalDateTime from, LocalDateTime to, AppointmentStatus status);
 
-    /**
-     * Get appointments for a specific transaction.
-     * Includes transaction ownership verification.
-     */
-    List<AppointmentResponseDTO> getAppointmentsForTransaction(UUID transactionId, UUID requesterId);
+        /**
+         * Get appointments for a specific transaction.
+         * Includes transaction ownership verification.
+         */
+        List<AppointmentResponseDTO> getAppointmentsForTransaction(UUID transactionId, UUID requesterId);
 
-    /**
-     * Get a single appointment by its public ID.
-     * Includes ownership verification.
-     */
-    AppointmentResponseDTO getAppointmentById(UUID appointmentId, UUID requesterId);
+        /**
+         * Get a single appointment by its public ID.
+         * Includes ownership verification.
+         */
+        AppointmentResponseDTO getAppointmentById(UUID appointmentId, UUID requesterId);
+
+        /**
+         * Request a new appointment.
+         */
+        AppointmentResponseDTO requestAppointment(
+                        com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request,
+                        UUID requesterId);
+
 }

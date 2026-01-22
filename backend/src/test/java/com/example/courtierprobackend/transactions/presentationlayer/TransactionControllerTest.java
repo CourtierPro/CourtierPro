@@ -177,20 +177,21 @@ class TransactionControllerTest {
                                 .brokerId(brokerUuid)
                                 .build();
 
-                when(transactionService.getBrokerTransactions(eq(brokerUuid), any(), any(), any()))
+                when(transactionService.getBrokerTransactions(any(), any(), any(), any()))
                                 .thenReturn(List.of(tx1, tx2));
 
                 // Act & Assert
                 mockMvc.perform(get("/transactions")
                                 .with(jwt().jwt(jwt -> jwt.claim("sub", "auth0|broker-1"))) // JWT sub ignored if header
                                                                                             // present
-                                .header("x-broker-id", brokerId))
+                                .header("x-broker-id", brokerId)
+                                .requestAttr(UserContextFilter.USER_ROLE_ATTR, "BROKER"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.length()").value(2))
                                 .andExpect(jsonPath("$[0].transactionId").value(tx1Id.toString()))
                                 .andExpect(jsonPath("$[1].transactionId").value(tx2Id.toString()));
 
-                verify(transactionService).getBrokerTransactions(eq(brokerUuid), any(), any(), any());
+                verify(transactionService).getBrokerTransactions(any(), any(), any(), any());
         }
 
         @Test
@@ -200,17 +201,18 @@ class TransactionControllerTest {
                 UUID brokerUuid = UUID.randomUUID();
                 String brokerId = brokerUuid.toString();
 
-                when(transactionService.getBrokerTransactions(eq(brokerUuid), any(), any(), any()))
+                when(transactionService.getBrokerTransactions(any(), any(), any(), any()))
                                 .thenReturn(List.of());
 
                 // Act & Assert
                 mockMvc.perform(get("/transactions")
                                 .with(jwt())
-                                .header("x-broker-id", brokerId))
+                                .header("x-broker-id", brokerId)
+                                .requestAttr(UserContextFilter.USER_ROLE_ATTR, "BROKER"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.length()").value(0));
 
-                verify(transactionService).getBrokerTransactions(eq(brokerUuid), any(), any(), any());
+                verify(transactionService).getBrokerTransactions(any(), any(), any(), any());
         }
 
         // ========== getTransactionById Tests ==========

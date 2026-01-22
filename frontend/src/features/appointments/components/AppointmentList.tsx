@@ -6,7 +6,15 @@ interface AppointmentListProps {
     groupedAppointments: Map<string, Appointment[]>;
 }
 
+import { useState } from "react";
+import { AppointmentDetailModal } from "./AppointmentDetailModal";
+
+import { useAuth0 } from "@auth0/auth0-react";
+
 export function AppointmentList({ groupedAppointments }: AppointmentListProps) {
+    const { user } = useAuth0();
+    const isBroker = user?.['https://courtierpro.dev/roles']?.includes('BROKER') ?? false;
+    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
     // Sort dates chronologically
     const sortedDates = Array.from(groupedAppointments.keys()).sort();
@@ -28,12 +36,23 @@ export function AppointmentList({ groupedAppointments }: AppointmentListProps) {
                         </h3>
                         <div className="grid gap-3">
                             {appointments.map((apt) => (
-                                <AppointmentItem key={apt.appointmentId} appointment={apt} />
+                                <AppointmentItem
+                                    key={apt.appointmentId}
+                                    appointment={apt}
+                                    onClick={setSelectedAppointment}
+                                    isBroker={isBroker}
+                                />
                             ))}
                         </div>
                     </div>
                 );
             })}
+
+            <AppointmentDetailModal
+                isOpen={!!selectedAppointment}
+                onClose={() => setSelectedAppointment(null)}
+                appointment={selectedAppointment}
+            />
         </div>
     );
 }

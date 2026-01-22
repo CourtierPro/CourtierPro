@@ -23,8 +23,14 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
 import { useClientsForDisplay, type ClientDisplay } from '@/features/clients';
 import { useTransactions, type Transaction } from '@/features/transactions/api/queries';
+import { useAuth0 } from "@auth0/auth0-react";
+import { toast } from "sonner";
+import { useRequestAppointment } from "../api/mutations";
 
-type AppointmentType = 'inspection' | 'notary' | 'showing' | 'consultation' | 'walkthrough' | 'meeting';
+import { AlertTriangle } from "lucide-react";
+import { type Appointment } from "../types";
+
+type AppointmentType = 'inspection' | 'notary' | 'showing' | 'consultation' | 'walkthrough' | 'meeting' | 'other';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -36,6 +42,7 @@ interface CreateAppointmentModalProps {
   prefilledClientName?: string;
   prefilledTransactionId?: string;
   prefilledTransactionAddress?: string;
+  existingAppointments?: Appointment[];
 }
 
 export interface AppointmentFormData {
@@ -57,11 +64,57 @@ export function CreateAppointmentModal({
   prefilledClientId = '',
   prefilledTransactionId = '',
   prefilledTransactionAddress = '',
+  existingAppointments = [],
 }: CreateAppointmentModalProps) {
   const { t, i18n } = useTranslation('appointments');
+  const { user } = useAuth0();
+  const { mutate: requestAppointment, isPending } = useRequestAppointment();
+
+  // Determine user role (naive check, prefer robust role hook if available)
+  // Assuming roles are in a specific claim or just checking if user is broker based on metadata isn't easy without a helper.
+  // Ideally, we have a useUserRole hook. For now, we can check the namespace if available or rely on backend.
+  // Actually, let's use a simpler heuristic or just default text if we can't easily determine.
+  // But wait, the previous code didn't have user info.
+  // Let's import useUserContext if it exists, otherwise just generic text or check user.
+
+  // Checking typical Auth0 namespace for roles
+  // Determine user role
+  const userRoles = (user?.['https://courtierpro.dev/roles'] as string[]) || [];
+  const isBroker = userRoles.includes('BROKER');
+
+  // Mock user id retrieval - in real app, we should have this from auth context
+  // For now, we rely on the fact that for clients, the backend endpoints resolve "me" or we need to pass it.
+  // Actually, we need the current user's client ID if we are a client.
+  // Since we don't have a global "user profile" context easily accessible here yet, 
+  // we might need to rely on the backend filtering for /transactions/my-transactions or similar?
+  // Previous code used useClientTransactions(clientId).
+  // Let's assume for now we can't easily get the ID without a query. 
+  // However, `useTransactions` might be failing because it calls `/transactions`.
+  // `useTransactions` takes filters. maybe we can pass a filter?
+
+  // Correction: client viewing this modal needs to see THEIR transactions.
+  // There is `useClientTransactions(clientId)` but we need the clientId.
+  // If we can't get it easily, maybe we can use a new endpoint or the existing one with a query param?
+  // Wait, `useTransactions` calls `/transactions`. If that endpoint is broker-only, `useTransactions` is broker-only.
+  // We need `useClientTransactions` hook which calls `/clients/{id}/transactions`.
+  // BUT we need the ID. 
+  // Alternative: The backend might have a `/transactions` endpoint that works for clients too (returning their own)? 
+  // The user says "403". So likely `/transactions` is broker only.
+
+  // Let's assume we can get the client ID from the user object if it was mapped, but Auth0 user.sub 
+  // might not match our DB UUID.
+  // Let's try to disable the queries for now if !isBroker to verify at least the modal renders.
+
+  // Actually, if I am a client, I need to pick a transaction.
+  // I need to fetch MY transactions.
+  // Does `useTransactions` support filtering by "me"?
+  // Let's simply disable `useClientsForDisplay` for non-brokers.
+
   const [appointmentType, setAppointmentType] = useState<AppointmentType | ''>('');
+  const [customTitle, setCustomTitle] = useState('');
   const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [message, setMessage] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedTransactionId, setSelectedTransactionId] = useState('');
@@ -72,8 +125,16 @@ export function CreateAppointmentModal({
   const clientDropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch real client and transaction data
-  const { data: clients = [] } = useClientsForDisplay();
-  const { data: transactions = [] } = useTransactions();
+  const { data: clients = [] } = useClientsForDisplay({ enabled: isBroker });
+  const { data: allTransactions = [] } = useTransactions({}, { enabled: true });
+  // We will need a way to fetch client transactions later, for now empty array if not broker to avoid 403
+  // Actually, without modifying the hooks to accept 'enabled', we can't stop the query from running this way.
+  // We MUST render useClientsForDisplay conditionally or update the hook.
+  // Since we can't conditionally call hooks, we MUST update the hook signature.
+
+  // For brokers, allTransactions contains all their transactions.
+  // For clients, allTransactions contains only their own transactions (backend filtered).
+  const transactions = allTransactions;
 
   const getMinDate = () => {
     const today = new Date();
@@ -94,31 +155,69 @@ export function CreateAppointmentModal({
 
   const timeSlots = getTimeSlots();
 
-  const filteredClients = useMemo(() =>
-    clients.filter(client => {
+  const filteredClients = useMemo(() => {
+    // Get Set of client IDs from transactions
+    const transactionClientIds = new Set(transactions.map(t => t.clientId));
+
+    return clients.filter(client => {
+      // Must allow search, but restrict to those in transactions
+      if (!transactionClientIds.has(client.id)) return false;
+
       const name = client.name ? client.name.toLowerCase() : '';
       const email = client.email ? client.email.toLowerCase() : '';
       const search = clientSearchTerm ? clientSearchTerm.toLowerCase() : '';
       return name.includes(search) || email.includes(search);
-    }), [clients, clientSearchTerm]);
+    });
+  }, [clients, clientSearchTerm, transactions]);
 
   const getClientDetails = (clientId: string): ClientDisplay | undefined => {
     return clients.find(c => c.id === clientId);
   };
 
   const getTransactionDetails = (transactionId: string): Transaction | undefined => {
+    // If client, we might not have it in `transactions` list if we disabled fetching.
+    // However, if `fromTransaction` is true, we assume the parent passed valid IDs.
+    // If purely from calendar, client needs to select.
     return transactions.find(t => t.transactionId === transactionId);
   };
 
-  const getClientTransactions = (clientId: string): Transaction[] => {
-    return transactions.filter(t => t.clientId === clientId);
+  const availableTransactions = useMemo(() => {
+    if (isBroker && selectedClientId) {
+      return transactions.filter(t => t.clientId === selectedClientId);
+    }
+    // If client, return their transactions (which might be empty for now if we don't fetch)
+    return transactions;
+  }, [selectedClientId, transactions, isBroker]);
+
+  const handleTransactionSelect = (txId: string) => {
+    setSelectedTransactionId(txId);
+
+    const tx = transactions.find(t => t.transactionId === txId);
+
+    if (tx && tx.clientId && tx.clientId !== selectedClientId) {
+      const client = getClientDetails(tx.clientId);
+      if (client) {
+        handleClientSelect(client);
+      }
+    }
+    // Update broker info if present
+    if (tx && tx.brokerName) {
+      setSelectedBrokerName(tx.brokerName);
+      setSelectedBrokerId(tx.brokerId || '');
+      // Use the single search term state for the input
+      if (!isBroker) {
+        setClientSearchTerm(tx.brokerName);
+      }
+    }
   };
 
   useEffect(() => {
     if (isOpen) {
       setAppointmentType('');
+      setCustomTitle('');
       setDate('');
-      setTime('');
+      setStartTime('');
+      setEndTime('');
       setMessage('');
       setClientSearchTerm('');
       setShowClientDropdown(false);
@@ -126,13 +225,23 @@ export function CreateAppointmentModal({
       if (fromTransaction) {
         setSelectedClientId(prefilledClientId);
         setSelectedTransactionId(prefilledTransactionId);
+        // Try to pre-fill broker info if available in the transaction list
+        if (allTransactions.length > 0) {
+          const tx = allTransactions.find(t => t.transactionId === prefilledTransactionId);
+          if (tx && tx.brokerName) {
+            setSelectedBrokerName(tx.brokerName);
+            setSelectedBrokerId(tx.brokerId || '');
+          }
+        }
       } else {
         setSelectedClientId('');
         setSelectedTransactionId('');
+        setSelectedBrokerId('');
+        setSelectedBrokerName('');
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, allTransactions]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -199,42 +308,131 @@ export function CreateAppointmentModal({
     }
   }, [showClientDropdown]);
 
+  // Logic for Clients (Broker selection)
+  const [selectedBrokerId, setSelectedBrokerId] = useState('');
+  const [selectedBrokerName, setSelectedBrokerName] = useState('');
+
+  const uniqueBrokers = useMemo(() => {
+    if (isBroker) return [];
+    const brokerMap = new Map<string, { id: string, name: string }>();
+    transactions.forEach(t => {
+      // Transaction object has brokerName, but maybe not brokerId explicitly in the top level? 
+      // Checking Transaction type in queries.ts: brokerId?: string;
+      if (t.brokerId && t.brokerName) {
+        brokerMap.set(t.brokerId, { id: t.brokerId, name: t.brokerName });
+      }
+    });
+    return Array.from(brokerMap.values());
+  }, [transactions, isBroker]);
+
+  const filteredBrokers = useMemo(() => {
+    if (isBroker) return [];
+    return uniqueBrokers.filter(b =>
+      b.name.toLowerCase().includes(clientSearchTerm.toLowerCase())
+    );
+  }, [uniqueBrokers, clientSearchTerm, isBroker]);
+
+  const handleBrokerSelect = (broker: { id: string, name: string }) => {
+    setSelectedBrokerId(broker.id);
+    setSelectedBrokerName(broker.name);
+    setClientSearchTerm(broker.name);
+    setShowClientDropdown(false);
+
+    // Check if current transaction belongs to this broker
+    const currentTx = transactions.find(t => t.transactionId === selectedTransactionId);
+    if (currentTx && currentTx.brokerId !== broker.id) {
+      setSelectedTransactionId('');
+    }
+  };
+
   const handleClientSelect = (client: ClientDisplay) => {
     setSelectedClientId(client.id);
     setClientSearchTerm(client.name);
     setShowClientDropdown(false);
-    // Transaction will be selected separately
-    setSelectedTransactionId('');
+
+    // Check if current transaction belongs to new client
+    const currentTx = transactions.find(t => t.transactionId === selectedTransactionId);
+    if (currentTx && currentTx.clientId !== client.id) {
+      setSelectedTransactionId('');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!appointmentType || !date || !time || !selectedClientId || !selectedTransactionId) {
-      alert(t('allFieldsRequired'));
-      return;
-    }
+    // Validation:
+    // If broker: needs selectedClientId.
+    // If client: needs selectedTransactionId (which implies me + broker).
 
-    const clientDetails = getClientDetails(selectedClientId);
+    // Determine effective client ID
+    // If isBroker, we selected a client.
+    // If isClient, we fetch client ID from the selected transaction.
     const transactionDetails = getTransactionDetails(selectedTransactionId);
+    const effectiveClientId = isBroker ? selectedClientId : transactionDetails?.clientId;
 
-    if (!clientDetails || !transactionDetails) {
+
+
+    if (!appointmentType || !date || !startTime || !endTime || !selectedTransactionId || !effectiveClientId) {
+      toast.error(t('allFieldsRequired'));
       return;
     }
+
+    if (appointmentType === 'other' && !customTitle.trim()) {
+      toast.error(t('titleRequired', 'Title is required for custom appointment type'));
+      return;
+    }
+
+    // Validation for time
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [endHour, endMin] = endTime.split(':').map(Number);
+    const startVal = startHour * 60 + startMin;
+    const endVal = endHour * 60 + endMin;
+
+    if (endVal <= startVal) {
+      toast.error(t('endTimeMustBeAfterStart', 'End time must be after start time'));
+      return;
+    }
+
+    // Resolve client name
+    const effectiveClientName = isBroker
+      ? getClientDetails(selectedClientId)?.name
+      : transactionDetails?.clientName; // fallback if needed
+
+    if (!transactionDetails) return;
 
     const appointmentData: AppointmentFormData = {
       type: appointmentType as AppointmentType,
       date,
-      time: formatTimeDisplay(time),
+      time: formatTimeDisplay(startTime), // keeping 'time' for formData compat if needed, or update interface? The generic form data might strictly typically just show start.
+      // Actually AppointmentFormData interface strictly has 'time'. Let's just pass start time string there for now or update the interface too.
+      // Ideally update interface, but for now let's just use startTime.
       message,
-      clientId: selectedClientId,
-      clientName: clientDetails.name,
+      clientId: effectiveClientId,
+      clientName: effectiveClientName || '',
       transactionId: selectedTransactionId,
       transactionAddress: transactionDetails.propertyAddress?.street || '',
     };
 
-    onSubmit(appointmentData);
-    onClose();
+    // Call the mutation
+    requestAppointment({
+      transactionId: selectedTransactionId,
+      type: appointmentType,
+      title: appointmentType === 'other' ? customTitle : undefined,
+      date: date,
+      startTime: startTime,
+      endTime: endTime,
+      message: message
+    }, {
+      onSuccess: () => {
+        toast.success(t('appointmentSent'));
+        onSubmit(appointmentData);
+        onClose();
+      },
+      onError: (error) => {
+        console.error(error);
+        toast.error(t('appointmentRequestFailed'));
+      }
+    });
   };
 
   const formatTimeDisplay = (time: string) => {
@@ -247,13 +445,36 @@ export function CreateAppointmentModal({
   };
 
   const selectedClient = getClientDetails(selectedClientId);
-  const clientTransactions = selectedClientId ? getClientTransactions(selectedClientId) : [];
+  // availableTransactions calculation moved up
+
+  // Check for conflicts
+  // Check for conflicts (naive)
+  // Check for conflicts
+  const hasTimeConflict = useMemo(() => {
+    if (!date || !startTime || !endTime) return false;
+
+    // Create Date objects for selected range
+    const selectedStart = new Date(`${date}T${startTime}`);
+    const selectedEnd = new Date(`${date}T${endTime}`);
+
+    return existingAppointments.some(apt => {
+      // Skip cancelled or declined appointments if necessary, but visually maybe we still care?
+      // Assuming we check against all active appointments.
+      if (apt.status === 'CANCELLED' || apt.status === 'DECLINED') return false;
+
+      const aptStart = new Date(apt.fromDateTime);
+      const aptEnd = new Date(apt.toDateTime);
+
+      // Check for overlap: (StartA < EndB) && (EndA > StartB)
+      return selectedStart < aptEnd && selectedEnd > aptStart;
+    });
+  }, [date, startTime, endTime, existingAppointments]);
 
   if (!isOpen) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto p-0 gap-0">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
         <DialogHeader className="p-6 border-b border-border sticky top-0 bg-card z-10 flex-row items-center justify-between space-y-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
@@ -261,27 +482,21 @@ export function CreateAppointmentModal({
             </div>
             <DialogTitle>{t('title')}</DialogTitle>
           </div>
-          {/* Default X close button is provided by DialogContent, but we need to ensure it's visible. 
-              Actually, DialogContent adds an absolute X button. 
-              The original design had a flex header. 
-              Let's hide the default X by passing a prop or just let it overlay? 
-              The default X is absolute right-4 top-4. 
-              Our header is p-6. Top-4 is inside the header. 
-              So standard Close button should work fine. 
-              I will NOT add a custom button. */}
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Client Selector - Only visible from calendar */}
-          {!fromTransaction && (
+
+
+          {/* Party Selector (Client for Broker) - Only visible from calendar and if User is Broker */}
+          {!fromTransaction && isBroker && (
             <div ref={clientDropdownRef}>
               <label
-                htmlFor="client-select"
+                htmlFor="party-select"
                 className="block mb-2 flex items-center justify-between text-foreground"
               >
                 <span className="flex items-center gap-2">
                   <User className="w-4 h-4" />
-                  {t('client')}
+                  {isBroker ? t('client') : t('broker', 'Broker')}
                 </span>
                 <span
                   className="text-destructive text-sm"
@@ -293,14 +508,19 @@ export function CreateAppointmentModal({
               <div className="relative">
                 <Input
                   type="text"
-                  id="client-select"
+                  id="party-select"
                   value={clientSearchTerm}
                   onChange={(e) => {
-                    setClientSearchTerm(e.target.value);
+                    const value = e.target.value;
+                    setClientSearchTerm(value);
                     setShowClientDropdown(true);
+
+                    if (value === '' && selectedClientId) {
+                      setSelectedClientId('');
+                    }
                   }}
                   onFocus={() => setShowClientDropdown(true)}
-                  placeholder={t('searchClient')}
+                  placeholder={isBroker ? t('searchClient') : t('searchBroker', 'Search brokers...')}
                   className="pr-10"
                   aria-required="true"
                   autoComplete="off"
@@ -313,38 +533,73 @@ export function CreateAppointmentModal({
                   <div
                     className="absolute top-full left-0 right-0 mt-2 rounded-lg border-2 border-border shadow-lg max-h-60 overflow-y-auto z-20 bg-background"
                   >
-                    {filteredClients.length > 0 ? (
-                      filteredClients.map((client) => (
-                        <Button
-                          key={client.id}
-                          type="button"
-                          variant="ghost"
-                          onClick={() => handleClientSelect(client)}
-                          className="w-full h-auto text-left justify-start p-3 hover:bg-muted focus:bg-muted border-b border-border last:border-b-0 rounded-none"
-                        >
-                          <div className="flex flex-col items-start">
-                            <p className="text-foreground mb-1">
-                              {client.name}
-                            </p>
-                            <p className="text-muted-foreground text-sm">
-                              {client.email}
-                            </p>
-                          </div>
-                        </Button>
-                      ))
+                    {isBroker ? (
+                      filteredClients.length > 0 ? (
+                        filteredClients.map((client) => (
+                          <Button
+                            key={client.id}
+                            type="button"
+                            variant="ghost"
+                            onClick={() => handleClientSelect(client)}
+                            className="w-full h-auto text-left justify-start p-3 hover:bg-muted focus:bg-muted border-b border-border last:border-b-0 rounded-none"
+                          >
+                            <div className="flex flex-col items-start">
+                              <p className="text-foreground mb-1">
+                                {client.name}
+                              </p>
+                              <p className="text-muted-foreground text-sm">
+                                {client.email}
+                              </p>
+                            </div>
+                          </Button>
+                        ))
+                      ) : (
+                        <div className="p-4 text-center">
+                          <p className="text-foreground/60 text-sm">
+                            {t('noClientsAvailable')}
+                          </p>
+                        </div>
+                      )
                     ) : (
-                      <div className="p-4 text-center">
-                        <p className="text-foreground/60 text-sm">
-                          {t('noClientsAvailable')}
-                        </p>
-                      </div>
+                      // Render Brokers list (derived from transactions)
+                      // Note: We need to derive this list in the component body first
+                      // See 'filteredBrokers' below
+                      filteredBrokers.length > 0 ? (
+                        filteredBrokers.map((broker) => (
+                          <Button
+                            key={broker.id}
+                            type="button"
+                            variant="ghost"
+                            onClick={() => handleBrokerSelect(broker)}
+                            className="w-full h-auto text-left justify-start p-3 hover:bg-muted focus:bg-muted border-b border-border last:border-b-0 rounded-none"
+                          >
+                            <div className="flex flex-col items-start">
+                              <p className="text-foreground mb-1">
+                                {broker.name}
+                              </p>
+                            </div>
+                          </Button>
+                        ))
+                      ) : (
+                        <div className="p-4 text-center">
+                          <p className="text-foreground/60 text-sm">
+                            {t('noBrokersAvailable', 'No brokers available')}
+                          </p>
+                        </div>
+                      )
                     )}
                   </div>
                 )}
               </div>
-              {selectedClient && (
+              {/* Display selected party */}
+              {isBroker && selectedClient && (
                 <p className="mt-2 text-xs text-emerald-500">
                   ✓ {selectedClient.name} ({selectedClient.email})
+                </p>
+              )}
+              {!isBroker && selectedBrokerName && (
+                <p className="mt-2 text-xs text-emerald-500">
+                  ✓ {selectedBrokerName}
                 </p>
               )}
             </div>
@@ -369,47 +624,65 @@ export function CreateAppointmentModal({
                   {prefilledTransactionId}
                 </p>
               </div>
+
+              {/* Show selected broker info prominently for Client users */}
+              {!isBroker && selectedBrokerName && (
+                <div className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20" data-broker-id={selectedBrokerId}>
+                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    {t('broker')}: {selectedBrokerName}
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
-            selectedClientId && (
-              <div>
-                <label
-                  htmlFor="transaction-select"
-                  className="block mb-2 flex items-center justify-between text-foreground"
+            <div>
+              <label
+                htmlFor="transaction-select"
+                className="block mb-2 flex items-center justify-between text-foreground"
+              >
+                <span className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  {t('transaction')}
+                </span>
+                <span
+                  className="text-destructive text-sm"
+                  aria-label="required"
                 >
-                  <span className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    {t('transaction')}
-                  </span>
-                  <span
-                    className="text-destructive text-sm"
-                    aria-label="required"
-                  >
-                    {t('required')}
-                  </span>
-                </label>
-                <Select
-                  value={selectedTransactionId}
-                  onValueChange={setSelectedTransactionId}
-                >
-                  <SelectTrigger id="transaction-select" className="w-full" aria-required="true">
-                    <SelectValue placeholder={t('selectTransaction')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientTransactions.map((transaction) => (
-                      <SelectItem key={transaction.transactionId} value={transaction.transactionId}>
-                        {transaction.propertyAddress?.street || 'Unknown'} ({transaction.transactionId})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {clientTransactions.length === 0 && (
-                  <p className="mt-2 text-xs text-destructive">
-                    {t('noTransactionsAvailable')}
+                  {t('required')}
+                </span>
+              </label>
+              <Select
+                value={selectedTransactionId}
+                onValueChange={handleTransactionSelect}
+              >
+                <SelectTrigger id="transaction-select" className="w-full" aria-required="true">
+                  <SelectValue placeholder={t('selectTransaction')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTransactions.map((transaction) => (
+                    <SelectItem key={transaction.transactionId} value={transaction.transactionId}>
+                      {transaction.propertyAddress?.street || t('buyerSideNoAddress', 'No Address (Buyer Side)')} ({transaction.transactionId})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {availableTransactions.length === 0 && (
+                <p className="mt-2 text-xs text-destructive">
+                  {selectedClientId ? t('noTransactionsAvailable') : t('noTransactionsFound')}
+                </p>
+              )}
+
+              {/* Show selected broker info prominently for Client users */}
+              {!isBroker && selectedBrokerName && (
+                <div className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20" data-broker-id={selectedBrokerId}>
+                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    {t('broker')}: {selectedBrokerName}
                   </p>
-                )}
-              </div>
-            )
+                </div>
+              )}
+            </div>
           )}
 
           <div>
@@ -442,9 +715,37 @@ export function CreateAppointmentModal({
                 <SelectItem value="consultation">{t('consultation')}</SelectItem>
                 <SelectItem value="walkthrough">{t('walkthrough')}</SelectItem>
                 <SelectItem value="meeting">{t('meeting')}</SelectItem>
+                <SelectItem value="other">{t('other', 'Other')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {appointmentType === 'other' && (
+            <div>
+              <label
+                htmlFor="custom-title"
+                className="block mb-2 flex items-center justify-between text-foreground"
+              >
+                <span className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  {t('customTitle', 'Title')}
+                </span>
+                <span
+                  className="text-destructive text-sm"
+                  aria-label="required"
+                >
+                  {t('required')}
+                </span>
+              </label>
+              <Input
+                id="custom-title"
+                value={customTitle}
+                onChange={(e) => setCustomTitle(e.target.value)}
+                placeholder={t('enterCustomTitle', 'Enter appointment title')}
+                aria-required="true"
+              />
+            </div>
+          )}
 
           <div>
             <label
@@ -473,36 +774,86 @@ export function CreateAppointmentModal({
           </div>
 
           <div>
-            <label
-              htmlFor="appointment-time"
-              className="block mb-2 flex items-center justify-between text-foreground"
-            >
-              <span className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                {t('time')}
-              </span>
-              <span
-                className="text-destructive text-sm"
-                aria-label="required"
-              >
-                {t('required')}
-              </span>
-            </label>
-            <Select
-              value={time}
-              onValueChange={setTime}
-            >
-              <SelectTrigger id="appointment-time" className="w-full" aria-required="true">
-                <SelectValue placeholder={t('selectTime')} />
-              </SelectTrigger>
-              <SelectContent>
-                {timeSlots.map((timeSlot) => (
-                  <SelectItem key={timeSlot} value={timeSlot}>
-                    {formatTimeDisplay(timeSlot)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {hasTimeConflict && (
+              <div className="mb-4 bg-destructive/15 text-destructive border border-destructive/30 rounded-lg p-3 flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-semibold">{t('conflictWarningTitle', 'Scheduling Conflict')}</p>
+                  <p>{t('conflictWarningDesc', 'You already have an appointment scheduled at this time.')}</p>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="appointment-start-time"
+                  className="block mb-2 flex items-center justify-between text-foreground"
+                >
+                  <span className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    {t('startTime', 'Start Time')}
+                  </span>
+                  <span
+                    className="text-destructive text-sm"
+                    aria-label="required"
+                  >
+                    {t('required')}
+                  </span>
+                </label>
+                <Select
+                  value={startTime}
+                  onValueChange={setStartTime}
+                >
+                  <SelectTrigger id="appointment-start-time" className="w-full" aria-required="true">
+                    <SelectValue placeholder={t('selectTime')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map((timeSlot) => (
+                      <SelectItem key={timeSlot} value={timeSlot}>
+                        {formatTimeDisplay(timeSlot)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label
+                  htmlFor="appointment-end-time"
+                  className="block mb-2 flex items-center justify-between text-foreground"
+                >
+                  <span className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    {t('endTime', 'End Time')}
+                  </span>
+                  <span
+                    className="text-destructive text-sm"
+                    aria-label="required"
+                  >
+                    {t('required')}
+                  </span>
+                </label>
+                <Select
+                  value={endTime}
+                  onValueChange={setEndTime}
+                  disabled={!startTime}
+                >
+                  <SelectTrigger id="appointment-end-time" className="w-full" aria-required="true">
+                    <SelectValue placeholder={t('selectTime')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map((timeSlot) => {
+                      if (!startTime) return null;
+                      if (timeSlot <= startTime) return null;
+                      return (
+                        <SelectItem key={timeSlot} value={timeSlot}>
+                          {formatTimeDisplay(timeSlot)}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           <div>
@@ -512,7 +863,7 @@ export function CreateAppointmentModal({
             >
               <span className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
-                {t('messageToClient')}
+                {isBroker ? t('messageToClient') : t('messageToBroker')}
               </span>
               <span
                 className="text-muted-foreground text-sm"
@@ -545,11 +896,11 @@ export function CreateAppointmentModal({
             <Button
               type="button"
               onClick={handleSubmit}
-              disabled={!appointmentType || !date || !time || !selectedClientId || !selectedTransactionId}
+              disabled={!appointmentType || !date || !startTime || !endTime || (isBroker && !selectedClientId) || !selectedTransactionId || isPending || hasTimeConflict}
               className="flex-1 gap-2"
             >
               <Send className="w-5 h-5" />
-              {t('sendRequest')}
+              {isPending ? t('sending') : t('sendRequest')}
             </Button>
           </div>
         </div>
