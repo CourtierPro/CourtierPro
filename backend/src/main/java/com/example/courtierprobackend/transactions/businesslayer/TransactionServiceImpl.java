@@ -241,27 +241,28 @@ public class TransactionServiceImpl implements TransactionService {
         Optional<UserAccount> brokerOpt = userAccountRepository.findById(saved.getBrokerId());
         if (clientOpt.isPresent()) {
             TransactionParticipant clientParticipant = TransactionParticipant.builder()
-                    .transactionId(saved.getTransactionId())
-                    .name(clientOpt.get().getFirstName() + " " + clientOpt.get().getLastName())
-                    .role(ParticipantRole.BUYER) // ou un rôle spécifique si besoin
-                    .email(clientOpt.get().getEmail())
-                    .phoneNumber(null)
-                    .permissions(Set.of(ParticipantPermission.VIEW_DOCUMENTS, ParticipantPermission.VIEW_STAGE,
-                            ParticipantPermission.VIEW_CONDITIONS, ParticipantPermission.VIEW_NOTES))
-                    .isSystem(true)
-                    .build();
+                .transactionId(saved.getTransactionId())
+                .name(clientOpt.get().getFirstName() + " " + clientOpt.get().getLastName())
+                .role(ParticipantRole.BUYER) // ou un rôle spécifique si besoin
+                .email(clientOpt.get().getEmail())
+                .userId(clientOpt.get().getId())
+                .phoneNumber(null)
+                .permissions(Set.of(ParticipantPermission.VIEW_DOCUMENTS, ParticipantPermission.VIEW_STAGE, ParticipantPermission.VIEW_CONDITIONS, ParticipantPermission.VIEW_NOTES))
+                .isSystem(true)
+                .build();
             participantRepository.save(clientParticipant);
         }
         if (brokerOpt.isPresent()) {
             TransactionParticipant brokerParticipant = TransactionParticipant.builder()
-                    .transactionId(saved.getTransactionId())
-                    .name(brokerOpt.get().getFirstName() + " " + brokerOpt.get().getLastName())
-                    .role(ParticipantRole.BROKER)
-                    .email(brokerOpt.get().getEmail())
-                    .phoneNumber(null)
-                    .permissions(Set.of(ParticipantPermission.values())) // tous les droits
-                    .isSystem(true)
-                    .build();
+                .transactionId(saved.getTransactionId())
+                .name(brokerOpt.get().getFirstName() + " " + brokerOpt.get().getLastName())
+                .role(ParticipantRole.BROKER)
+                .email(brokerOpt.get().getEmail())
+                .userId(brokerOpt.get().getId())
+                .phoneNumber(null)
+                .permissions(Set.of(ParticipantPermission.values())) // tous les droits
+                .isSystem(true)
+                .build();
             participantRepository.save(brokerParticipant);
         }
 
@@ -724,15 +725,24 @@ public class TransactionServiceImpl implements TransactionService {
             }
         }
 
+        // Lookup userId if email is registered
+        UUID participantUserId = null;
+        if (dto.getEmail() != null) {
+            participantUserId = userAccountRepository.findByEmail(dto.getEmail())
+                .map(UserAccount::getId)
+                .orElse(null);
+        }
+
         TransactionParticipant participant = TransactionParticipant.builder()
-                .transactionId(transactionId)
-                .name(dto.getName())
-                .role(dto.getRole())
-                .email(dto.getEmail())
-                .phoneNumber(dto.getPhoneNumber())
-                .permissions(dto.getPermissions())
-                .isSystem(false)
-                .build();
+            .transactionId(transactionId)
+            .name(dto.getName())
+            .role(dto.getRole())
+            .email(dto.getEmail())
+            .userId(participantUserId)
+            .phoneNumber(dto.getPhoneNumber())
+            .permissions(dto.getPermissions())
+            .isSystem(false)
+            .build();
 
         TransactionParticipant saved = participantRepository.save(participant);
 
@@ -793,8 +803,14 @@ public class TransactionServiceImpl implements TransactionService {
             participant.setName(dto.getName());
         if (dto.getRole() != null)
             participant.setRole(dto.getRole());
-        if (dto.getEmail() != null)
+        if (dto.getEmail() != null) {
             participant.setEmail(dto.getEmail());
+            // Update userId linkage
+            UUID newUserId = userAccountRepository.findByEmail(dto.getEmail())
+                    .map(UserAccount::getId)
+                    .orElse(null);
+            participant.setUserId(newUserId);
+        }
         if (dto.getPhoneNumber() != null)
             participant.setPhoneNumber(dto.getPhoneNumber());
         if (dto.getPermissions() != null)
@@ -1148,17 +1164,17 @@ public class TransactionServiceImpl implements TransactionService {
 
         var currentStatus = property.getStatus();
         if (currentStatus == null) {
-            currentStatus = com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.ACCEPTED; // Default for legacy
+            currentStatus = com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.INTERESTED; // Default for legacy
         }
 
         // State Machine Validation
         if (isClient) {
-            // Client can only transition from SUGGESTED to ACCEPTED, REJECTED, or NEEDS_INFO
+            // Client can only transition from SUGGESTED to INTERESTED, NOT_INTERESTED, or NEEDS_INFO
             if (currentStatus != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.SUGGESTED) {
                  throw new BadRequestException("Clients can only review Suggested properties.");
             }
-            if (status != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.ACCEPTED &&
-                status != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.REJECTED &&
+            if (status != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.INTERESTED &&
+                status != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NOT_INTERESTED &&
                 status != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NEEDS_INFO) {
                  throw new BadRequestException("Invalid status transition for Client.");
             }
@@ -1168,7 +1184,7 @@ public class TransactionServiceImpl implements TransactionService {
             if (currentStatus == com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NEEDS_INFO &&
                 status == com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.SUGGESTED) {
                 // Allowed: Broker resolving info request
-            } else if (currentStatus == com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.REJECTED) {
+            } else if (currentStatus == com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NOT_INTERESTED) {
                  // Broker might want to delete instead, but maybe re-suggest?
                  // For now let's allow broker full control if needed, but primary flow is resolving NEEDS_INFO
             }

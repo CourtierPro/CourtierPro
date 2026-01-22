@@ -84,7 +84,7 @@ export function AdminDashboardPage() {
         />
         <KpiCard
           title={t("admin.systemHealth", "System Health")}
-          value={stats?.systemHealth || "Unknown"}
+          value={t(`admin.healthStatus.${stats?.systemHealth || "Unknown"}`, stats?.systemHealth || "Unknown")}
           icon={<Activity className="w-4 h-4" />}
         />
       </div>

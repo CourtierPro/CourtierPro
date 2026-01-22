@@ -123,52 +123,63 @@ export function TopNav({
       </div>
 
       {/* Right section */}
-      <div className="flex items-center gap-2 md:gap-4">
-        {/* Search Trigger */}
-        <Button
-          variant="outline"
-          className="relative h-9 w-9 p-0 md:h-9 md:w-60 md:justify-start md:px-3 md:text-muted-foreground"
-          onClick={() => setIsOpen(true)}
-        >
-          <Search className="h-4 w-4 md:mr-2" />
-          <span className="hidden md:inline-flex">{t("searchPlaceholder", "Search...")}</span>
-          <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-6 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 md:flex">
-            <span className="text-xs">⌘</span>K
-          </kbd>
-        </Button>
-
-        <ModeToggle />
-        {/* Language selector toggle */}
-        <Button
-          variant="ghost"
-          onClick={toggleLanguage}
-          className="flex items-center gap-2 px-3 py-2 text-foreground"
-          aria-label={t("language")}
-        >
-          <Globe className="w-5 h-5" />
-          <span className="hidden sm:inline">
-            {language.toUpperCase()}
-          </span>
-        </Button>
-
-        {/* Notifications */}
-        <NotificationPopover />
-
-        {/* User Role Badge (Desktop) */}
+      <div className="flex items-center">
+        {/* User Role Badge (Desktop) - Fixed width to prevent shifting "Broker" vs "Courtier" */}
         {user && (
-          <Badge
-            variant={
-              user.role === 'ADMIN' ? 'destructive' :
-                user.role === 'CLIENT' ? 'secondary' : 'default'
-            }
-            className="hidden md:inline-flex"
-          >
-            {user.role}
-          </Badge>
+          <div className="hidden md:flex items-center justify-end w-36">
+            <Badge
+              variant={
+                user.role === 'ADMIN' ? 'destructive' :
+                  user.role === 'CLIENT' ? 'secondary' : 'default'
+              }
+            >
+              {t(`role${user.role}`)}
+            </Badge>
+          </div>
         )}
 
+        {/* Search Trigger (Fixed width container) */}
+        <div className="flex items-center justify-center w-10 md:w-72">
+          <Button
+            variant="outline"
+            className="relative h-9 w-9 p-0 md:h-9 md:w-60 md:justify-start md:px-3 md:text-muted-foreground"
+            onClick={() => setIsOpen(true)}
+          >
+            <Search className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline-flex">{t("searchPlaceholder", "Search...")}</span>
+            <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-6 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 md:flex">
+              <span className="text-xs">⌘</span>K
+            </kbd>
+          </Button>
+        </div>
+
+        {/* Mode Toggle */}
+        <div className="flex items-center justify-center w-10 md:w-20">
+          <ModeToggle />
+        </div>
+
+        {/* Language selector toggle */}
+        <div className="flex items-center justify-center w-12 md:w-20">
+          <Button
+            variant="ghost"
+            onClick={toggleLanguage}
+            className="flex items-center gap-2 px-2 py-2 text-foreground"
+            aria-label={t("language")}
+          >
+            <Globe className="w-5 h-5" />
+            <span className="hidden sm:inline-block w-6 text-center">
+              {language.toUpperCase()}
+            </span>
+          </Button>
+        </div>
+
+        {/* Notifications */}
+        <div className="flex items-center justify-center w-10 md:w-12">
+          <NotificationPopover />
+        </div>
+
         {/* User avatar + menu */}
-        <div className="relative" ref={userMenuRef}>
+        <div className="flex items-center justify-center w-12 md:w-24 relative" ref={userMenuRef}>
           <Button
             variant="ghost"
             onClick={toggleUserMenu}
@@ -193,7 +204,7 @@ export function TopNav({
           </Button>
           {isUserMenuOpen && (
             <div
-              className="absolute right-0 mt-2 w-48 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg"
+              className="absolute top-full right-0 mt-2 w-48 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg"
               role="menu"
               aria-label={t("userMenu")}
             >

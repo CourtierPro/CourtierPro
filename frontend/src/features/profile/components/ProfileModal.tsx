@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Toast } from '@/shared/components/ui/Toast';
+import { useAuth0 } from '@auth0/auth0-react';
 import { useTranslation } from 'react-i18next';
 import { Mail, Globe, User, Shield, Loader2, Bell, BellOff, KeyRound } from 'lucide-react';
 import {
@@ -98,6 +99,8 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         );
     };
 
+    const { logout } = useAuth0();
+
     const handleEmailChange = () => {
         if (emailInput && emailInput !== user?.email) {
             updateProfile.mutate(
@@ -113,11 +116,9 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                         refetch(); // Refetch user profile to update UI
                         setTimeout(() => {
                             setShowToast(false);
-                            // Clear auth tokens (adjust if you use a different storage or context)
-                            localStorage.removeItem('accessToken');
-                            localStorage.removeItem('refreshToken');
-                            // Force a hard reload to login to clear all in-memory state
-                            window.location.href = '/login';
+                            logout({
+                                logoutParams: { returnTo: window.location.origin + '/login' }
+                            });
                         }, 2000);
                     },
                 }

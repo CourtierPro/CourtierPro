@@ -541,23 +541,23 @@ class PropertyControllerIntegrationTest {
             UUID userId = UUID.randomUUID();
 
             PropertyResponseDTO response = createSamplePropertyResponse();
-            response.setStatus(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.ACCEPTED);
+            response.setStatus(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.INTERESTED);
 
             when(service.updatePropertyStatus(eq(transactionId), eq(propertyId),
-                    eq(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.ACCEPTED),
+                    eq(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.INTERESTED),
                     anyString(), eq(userId)))
                     .thenReturn(response);
 
             mockMvc.perform(
                     patch("/transactions/{transactionId}/properties/{propertyId}/status", transactionId, propertyId)
-                            .param("status", "ACCEPTED")
+                            .param("status", "INTERESTED")
                             .content("Great property")
                             .contentType(MediaType.TEXT_PLAIN)
                             .requestAttr("internalUserId", userId)
                             .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CLIENT")).jwt(jwt -> jwt.claim("sub", userId.toString())))
             )
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("ACCEPTED"));
+                    .andExpect(jsonPath("$.status").value("INTERESTED"));
         }
 
         @Test
@@ -572,7 +572,7 @@ class PropertyControllerIntegrationTest {
 
             mockMvc.perform(
                     patch("/transactions/{transactionId}/properties/{propertyId}/status", transactionId, propertyId)
-                            .param("status", "REJECTED")
+                            .param("status", "NOT_INTERESTED")
                             .requestAttr("internalUserId", userId)
                             .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CLIENT")).jwt(jwt -> jwt.claim("sub", userId.toString())))
             )
@@ -591,7 +591,7 @@ class PropertyControllerIntegrationTest {
 
             mockMvc.perform(
                     patch("/transactions/{transactionId}/properties/{propertyId}/status", transactionId, propertyId)
-                            .param("status", "ACCEPTED")
+                            .param("status", "INTERESTED")
                             .requestAttr("internalUserId", userId)
                             .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CLIENT")).jwt(jwt -> jwt.claim("sub", userId.toString())))
             )

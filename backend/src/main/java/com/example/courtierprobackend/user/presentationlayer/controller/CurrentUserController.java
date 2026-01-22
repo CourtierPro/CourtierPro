@@ -32,7 +32,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CurrentUserController {
 
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CurrentUserController.class);
 
     private static final Set<String> ALLOWED_LANGUAGES = Set.of("en", "fr");
 

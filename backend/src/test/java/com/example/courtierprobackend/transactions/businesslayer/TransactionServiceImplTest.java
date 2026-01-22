@@ -6668,9 +6668,9 @@ class TransactionServiceImplTest {
                 when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(createUserAccount(clientId, "Client Name")));
 
                 PropertyResponseDTO result = transactionService.updatePropertyStatus(
-                        transactionId, propertyId, PropertyStatus.ACCEPTED, "Looks good", clientId);
+                        transactionId, propertyId, PropertyStatus.INTERESTED, "Looks good", clientId);
 
-                assertThat(result.getStatus()).isEqualTo(PropertyStatus.ACCEPTED);
+                assertThat(result.getStatus()).isEqualTo(PropertyStatus.INTERESTED);
                 verify(timelineService).addEntry(eq(transactionId), eq(clientId), eq(TimelineEntryType.PROPERTY_UPDATED), anyString(), isNull(), any());
         }
 
@@ -6688,13 +6688,13 @@ class TransactionServiceImplTest {
                 Property property = new Property();
                 property.setPropertyId(propertyId);
                 property.setTransactionId(transactionId);
-                property.setStatus(PropertyStatus.ACCEPTED); // Already accepted
+                property.setStatus(PropertyStatus.INTERESTED); // Already accepted
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
                 when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
 
                 assertThatThrownBy(() -> transactionService.updatePropertyStatus(
-                        transactionId, propertyId, PropertyStatus.REJECTED, null, clientId))
+                        transactionId, propertyId, PropertyStatus.NOT_INTERESTED, null, clientId))
                         .isInstanceOf(BadRequestException.class)
                         .hasMessageContaining("Clients can only review Suggested properties");
         }
@@ -6743,7 +6743,7 @@ class TransactionServiceImplTest {
                 when(propertyRepository.findByPropertyId(any())).thenReturn(Optional.of(property));
 
                 assertThatThrownBy(() -> transactionService.updatePropertyStatus(
-                        transactionId, property.getPropertyId(), PropertyStatus.ACCEPTED, null, userId))
+                        transactionId, property.getPropertyId(), PropertyStatus.INTERESTED, null, userId))
                         .isInstanceOf(ForbiddenException.class);
         }
 

@@ -22,6 +22,7 @@ export function PropertyReviewModal({ isOpen, onClose, properties, onAccept, onR
     const [currentIndex, setCurrentIndex] = useState(0);
     const [infoNote, setInfoNote] = useState('');
     const [showInfoInput, setShowInfoInput] = useState(false);
+    const [isSwiping, setIsSwiping] = useState(false);
 
     // Sort so first card is at the end (top) of visual stack
     const activeProperties = properties.slice(currentIndex);
@@ -35,14 +36,20 @@ export function PropertyReviewModal({ isOpen, onClose, properties, onAccept, onR
     if (!isOpen || !currentProperty) return null;
 
     const handleSwipe = async (direction: 'left' | 'right') => {
-        if (direction === 'right') {
-            await onAccept(currentProperty.propertyId);
-            toast.success(t('propertyAccepted'));
-        } else {
-            await onReject(currentProperty.propertyId);
-            toast.success(t('propertyRejected'));
+        if (isSwiping) return;
+        setIsSwiping(true);
+        try {
+            if (direction === 'right') {
+                await onAccept(currentProperty.propertyId);
+                toast.success(t('propertyAccepted'));
+            } else {
+                await onReject(currentProperty.propertyId);
+                toast.success(t('propertyRejected'));
+            }
+            advanceCard();
+        } finally {
+            setIsSwiping(false);
         }
-        advanceCard();
     };
 
     const handleRequestInfo = async () => {
@@ -112,12 +119,12 @@ export function PropertyReviewModal({ isOpen, onClose, properties, onAccept, onR
                                         <>
                                             <motion.div style={{ opacity: opacityAccept }} className="absolute top-8 left-8 z-20 pointer-events-none">
                                                 <div className="border-4 border-emerald-500 text-emerald-500 font-bold text-2xl px-4 py-2 rounded -rotate-12 uppercase tracking-widest bg-emerald-500/10 backdrop-blur-sm">
-                                                    {t('clientOfferDecisions.ACCEPT')}
+                                                    {t('propertyStatus.INTERESTED')}
                                                 </div>
                                             </motion.div>
                                             <motion.div style={{ opacity: opacityReject }} className="absolute top-8 right-8 z-20 pointer-events-none">
                                                 <div className="border-4 border-red-500 text-red-500 font-bold text-2xl px-4 py-2 rounded rotate-12 uppercase tracking-widest bg-red-500/10 backdrop-blur-sm">
-                                                    {t('clientOfferDecisions.DECLINE')}
+                                                    {t('propertyStatus.NOT_INTERESTED')}
                                                 </div>
                                             </motion.div>
                                         </>

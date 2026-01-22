@@ -49,8 +49,8 @@ export function PropertyCard({ property, onClick, isActive }: PropertyCardProps)
         statusBadge = <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{t(`propertyStatus.SUGGESTED`)}</Badge>;
     } else if (property.status === 'NEEDS_INFO') {
         statusBadge = <Badge variant="warning">{t(`propertyStatus.NEEDS_INFO`)}</Badge>;
-    } else if (property.status === 'REJECTED') {
-        statusBadge = <Badge variant="destructive">{t(`propertyStatus.REJECTED`)}</Badge>;
+    } else if (property.status === 'NOT_INTERESTED') {
+        statusBadge = <Badge variant="destructive">{t(`propertyStatus.NOT_INTERESTED`)}</Badge>;
     }
 
     return (
@@ -63,10 +63,21 @@ export function PropertyCard({ property, onClick, isActive }: PropertyCardProps)
             aria-label={onClick ? t('viewPropertyDetails') : undefined}
         >
             <div className="flex flex-col gap-3">
-                {/* Header Row: Status Badge & Active Indicator */}
-                <div className="flex items-center justify-between">
-                    <div className="flex gap-2">
-                        {statusBadge}
+                {/* Header Row: Active Indicator & Address */}
+                <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2 max-w-[85%]">
+                        <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+                        <div className="flex flex-col">
+                            <span className="font-medium text-foreground line-clamp-2">
+                                {formatAddress(property)}
+                                {property.address?.postalCode && <span className="ml-1 text-muted-foreground font-normal">{property.address.postalCode}</span>}
+                            </span>
+                            <div className="flex gap-2 text-xs text-muted-foreground mt-1">
+                                {property.centrisNumber && (
+                                    <span>Centris: {property.centrisNumber}</span>
+                                )}
+                            </div>
+                        </div>
                     </div>
                     {isActive && (
                         <Badge variant="default" className="bg-primary text-primary-foreground h-6 shrink-0 ml-auto">
@@ -75,43 +86,33 @@ export function PropertyCard({ property, onClick, isActive }: PropertyCardProps)
                     )}
                 </div>
 
-                {/* Address */}
-                <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
-                    <div className="flex flex-col">
-                        <span className="font-medium text-foreground line-clamp-2">
-                            {formatAddress(property)}
-                            {property.address?.postalCode && <span className="ml-1 text-muted-foreground font-normal">{property.address.postalCode}</span>}
-                        </span>
-                        <div className="flex gap-2 text-xs text-muted-foreground mt-1">
-                            {property.centrisNumber && (
-                                <span>Centris: {property.centrisNumber}</span>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Price and Offer Status Row */}
-                <div className="flex items-center justify-between gap-2 flex-wrap pt-2 border-t border-border/50">
+                {/* Price and Status Row */}
+                <div className="flex items-end justify-between gap-2 pt-2 border-t border-border/50">
                     <div className="flex flex-col">
                         <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('askingPrice')}</span>
                         <span className="text-foreground font-semibold">{formatCurrency(property.askingPrice)}</span>
                     </div>
 
-                    {property.status === 'ACCEPTED' && (
-                        <div className="flex items-center gap-2">
-                            {property.offerAmount && (
-                                <div className="flex flex-col items-end mr-2">
-                                    <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('offerAmount')}</span>
-                                    <span className="text-foreground font-medium">{formatCurrency(property.offerAmount)}</span>
-                                </div>
-                            )}
-                            <Badge variant={statusConfig.variant} className={statusConfig.className}>
-                                <Tag className="w-3 h-3 mr-1" />
-                                {t(`propertyOfferStatuses.${property.offerStatus}`)}
-                            </Badge>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {/* Show Status Badge here (Suggested, Rejected, Needs Info) */}
+                        {statusBadge}
+
+                        {/* Show Offer Status if Accepted/Active */}
+                        {property.status === 'INTERESTED' && (
+                            <>
+                                {property.offerAmount && (
+                                    <div className="flex flex-col items-end mr-2 text-right">
+                                        <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('offerAmount')}</span>
+                                        <span className="text-foreground font-medium">{formatCurrency(property.offerAmount)}</span>
+                                    </div>
+                                )}
+                                <Badge variant={statusConfig.variant} className={statusConfig.className}>
+                                    <Tag className="w-3 h-3 mr-1" />
+                                    {t(`propertyOfferStatuses.${property.offerStatus}`)}
+                                </Badge>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
         </Section>

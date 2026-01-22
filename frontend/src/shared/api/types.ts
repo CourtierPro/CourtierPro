@@ -159,8 +159,8 @@ export interface StageUpdateRequestDTO {
 
 export type PropertyStatus =
   | 'SUGGESTED'
-  | 'ACCEPTED'
-  | 'REJECTED'
+  | 'INTERESTED'
+  | 'NOT_INTERESTED'
   | 'NEEDS_INFO';
 
 export type PropertyOfferStatus =

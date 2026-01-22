@@ -109,10 +109,23 @@ public class TransactionAccessUtils {
         }
 
         // 2. Check Participants
-        if (participants != null && userEmail != null) {
-            String normalizedUserEmail = userEmail.trim();
+        if (participants != null) {
             for (com.example.courtierprobackend.transactions.datalayer.TransactionParticipant p : participants) {
-                if (p.getEmail() != null && normalizedUserEmail.equalsIgnoreCase(p.getEmail().trim())) {
+                boolean match = false;
+                // Check by ID first (robust)
+                if (p.getUserId() != null) {
+                    if (p.getUserId().equals(userId)) {
+                        match = true;
+                    }
+                } 
+                // Fallback to email if ID not set (legacy or partial record)
+                else if (p.getEmail() != null && userEmail != null) {
+                   if (userEmail.trim().equalsIgnoreCase(p.getEmail().trim())) {
+                       match = true;
+                   }
+                }
+
+                if (match) {
                     // For Co-Brokers, enforce granular permission
                     if (p.getRole() == com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER) {
                         if (p.getPermissions() != null && p.getPermissions().contains(requiredPermission)) {
