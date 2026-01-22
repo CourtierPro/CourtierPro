@@ -30,7 +30,7 @@ import { useRequestAppointment } from "../api/mutations";
 import { AlertTriangle } from "lucide-react";
 import { type Appointment } from "../types";
 
-type AppointmentType = 'inspection' | 'notary' | 'showing' | 'consultation' | 'walkthrough' | 'meeting';
+type AppointmentType = 'inspection' | 'notary' | 'showing' | 'consultation' | 'walkthrough' | 'meeting' | 'other';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -111,8 +111,10 @@ export function CreateAppointmentModal({
   // Let's simply disable `useClientsForDisplay` for non-brokers.
 
   const [appointmentType, setAppointmentType] = useState<AppointmentType | ''>('');
+  const [customTitle, setCustomTitle] = useState('');
   const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [message, setMessage] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedTransactionId, setSelectedTransactionId] = useState('');
@@ -212,8 +214,10 @@ export function CreateAppointmentModal({
   useEffect(() => {
     if (isOpen) {
       setAppointmentType('');
+      setCustomTitle('');
       setDate('');
-      setTime('');
+      setStartTime('');
+      setEndTime('');
       setMessage('');
       setClientSearchTerm('');
       setShowClientDropdown(false);
@@ -366,8 +370,26 @@ export function CreateAppointmentModal({
     const transactionDetails = getTransactionDetails(selectedTransactionId);
     const effectiveClientId = isBroker ? selectedClientId : transactionDetails?.clientId;
 
-    if (!appointmentType || !date || !time || !selectedTransactionId || !effectiveClientId) {
+
+
+    if (!appointmentType || !date || !startTime || !endTime || !selectedTransactionId || !effectiveClientId) {
       toast.error(t('allFieldsRequired'));
+      return;
+    }
+
+    if (appointmentType === 'other' && !customTitle.trim()) {
+      toast.error(t('titleRequired', 'Title is required for custom appointment type'));
+      return;
+    }
+
+    // Validation for time
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [endHour, endMin] = endTime.split(':').map(Number);
+    const startVal = startHour * 60 + startMin;
+    const endVal = endHour * 60 + endMin;
+
+    if (endVal <= startVal) {
+      toast.error(t('endTimeMustBeAfterStart', 'End time must be after start time'));
       return;
     }
 
@@ -381,7 +403,9 @@ export function CreateAppointmentModal({
     const appointmentData: AppointmentFormData = {
       type: appointmentType as AppointmentType,
       date,
-      time: formatTimeDisplay(time),
+      time: formatTimeDisplay(startTime), // keeping 'time' for formData compat if needed, or update interface? The generic form data might strictly typically just show start.
+      // Actually AppointmentFormData interface strictly has 'time'. Let's just pass start time string there for now or update the interface too.
+      // Ideally update interface, but for now let's just use startTime.
       message,
       clientId: effectiveClientId,
       clientName: effectiveClientName || '',
@@ -393,8 +417,10 @@ export function CreateAppointmentModal({
     requestAppointment({
       transactionId: selectedTransactionId,
       type: appointmentType,
+      title: appointmentType === 'other' ? customTitle : undefined,
       date: date,
-      time: time,
+      startTime: startTime,
+      endTime: endTime,
       message: message
     }, {
       onSuccess: () => {
@@ -422,20 +448,27 @@ export function CreateAppointmentModal({
   // availableTransactions calculation moved up
 
   // Check for conflicts
+  // Check for conflicts (naive)
+  // Check for conflicts
   const hasTimeConflict = useMemo(() => {
-    if (!date || !time) return false;
+    if (!date || !startTime || !endTime) return false;
+
+    // Create Date objects for selected range
+    const selectedStart = new Date(`${date}T${startTime}`);
+    const selectedEnd = new Date(`${date}T${endTime}`);
 
     return existingAppointments.some(apt => {
-      const aptDate = new Date(apt.fromDateTime);
-      const selectedDateObj = new Date(date + 'T' + time);
+      // Skip cancelled or declined appointments if necessary, but visually maybe we still care?
+      // Assuming we check against all active appointments.
+      if (apt.status === 'CANCELLED' || apt.status === 'DECLINED') return false;
 
-      return aptDate.getFullYear() === selectedDateObj.getFullYear() &&
-        aptDate.getMonth() === selectedDateObj.getMonth() &&
-        aptDate.getDate() === selectedDateObj.getDate() &&
-        aptDate.getHours() === selectedDateObj.getHours() &&
-        aptDate.getMinutes() === selectedDateObj.getMinutes();
+      const aptStart = new Date(apt.fromDateTime);
+      const aptEnd = new Date(apt.toDateTime);
+
+      // Check for overlap: (StartA < EndB) && (EndA > StartB)
+      return selectedStart < aptEnd && selectedEnd > aptStart;
     });
-  }, [date, time, existingAppointments]);
+  }, [date, startTime, endTime, existingAppointments]);
 
   if (!isOpen) return null;
 
@@ -454,8 +487,8 @@ export function CreateAppointmentModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
 
 
-          {/* Party Selector (Client for Broker, Broker for Client) - Only visible from calendar */}
-          {!fromTransaction && (
+          {/* Party Selector (Client for Broker) - Only visible from calendar and if User is Broker */}
+          {!fromTransaction && isBroker && (
             <div ref={clientDropdownRef}>
               <label
                 htmlFor="party-select"
@@ -682,9 +715,37 @@ export function CreateAppointmentModal({
                 <SelectItem value="consultation">{t('consultation')}</SelectItem>
                 <SelectItem value="walkthrough">{t('walkthrough')}</SelectItem>
                 <SelectItem value="meeting">{t('meeting')}</SelectItem>
+                <SelectItem value="other">{t('other', 'Other')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {appointmentType === 'other' && (
+            <div>
+              <label
+                htmlFor="custom-title"
+                className="block mb-2 flex items-center justify-between text-foreground"
+              >
+                <span className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  {t('customTitle', 'Title')}
+                </span>
+                <span
+                  className="text-destructive text-sm"
+                  aria-label="required"
+                >
+                  {t('required')}
+                </span>
+              </label>
+              <Input
+                id="custom-title"
+                value={customTitle}
+                onChange={(e) => setCustomTitle(e.target.value)}
+                placeholder={t('enterCustomTitle', 'Enter appointment title')}
+                aria-required="true"
+              />
+            </div>
+          )}
 
           <div>
             <label
@@ -714,7 +775,7 @@ export function CreateAppointmentModal({
 
           <div>
             {hasTimeConflict && (
-              <div className="mb-4 bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border border-yellow-500/30 rounded-lg p-3 flex items-start gap-3">
+              <div className="mb-4 bg-destructive/15 text-destructive border border-destructive/30 rounded-lg p-3 flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-semibold">{t('conflictWarningTitle', 'Scheduling Conflict')}</p>
@@ -722,36 +783,77 @@ export function CreateAppointmentModal({
                 </div>
               </div>
             )}
-            <label
-              htmlFor="appointment-time"
-              className="block mb-2 flex items-center justify-between text-foreground"
-            >
-              <span className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                {t('time')}
-              </span>
-              <span
-                className="text-destructive text-sm"
-                aria-label="required"
-              >
-                {t('required')}
-              </span>
-            </label>
-            <Select
-              value={time}
-              onValueChange={setTime}
-            >
-              <SelectTrigger id="appointment-time" className="w-full" aria-required="true">
-                <SelectValue placeholder={t('selectTime')} />
-              </SelectTrigger>
-              <SelectContent>
-                {timeSlots.map((timeSlot) => (
-                  <SelectItem key={timeSlot} value={timeSlot}>
-                    {formatTimeDisplay(timeSlot)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="appointment-start-time"
+                  className="block mb-2 flex items-center justify-between text-foreground"
+                >
+                  <span className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    {t('startTime', 'Start Time')}
+                  </span>
+                  <span
+                    className="text-destructive text-sm"
+                    aria-label="required"
+                  >
+                    {t('required')}
+                  </span>
+                </label>
+                <Select
+                  value={startTime}
+                  onValueChange={setStartTime}
+                >
+                  <SelectTrigger id="appointment-start-time" className="w-full" aria-required="true">
+                    <SelectValue placeholder={t('selectTime')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map((timeSlot) => (
+                      <SelectItem key={timeSlot} value={timeSlot}>
+                        {formatTimeDisplay(timeSlot)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label
+                  htmlFor="appointment-end-time"
+                  className="block mb-2 flex items-center justify-between text-foreground"
+                >
+                  <span className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    {t('endTime', 'End Time')}
+                  </span>
+                  <span
+                    className="text-destructive text-sm"
+                    aria-label="required"
+                  >
+                    {t('required')}
+                  </span>
+                </label>
+                <Select
+                  value={endTime}
+                  onValueChange={setEndTime}
+                  disabled={!startTime}
+                >
+                  <SelectTrigger id="appointment-end-time" className="w-full" aria-required="true">
+                    <SelectValue placeholder={t('selectTime')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map((timeSlot) => {
+                      if (!startTime) return null;
+                      if (timeSlot <= startTime) return null;
+                      return (
+                        <SelectItem key={timeSlot} value={timeSlot}>
+                          {formatTimeDisplay(timeSlot)}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           <div>
@@ -794,7 +896,7 @@ export function CreateAppointmentModal({
             <Button
               type="button"
               onClick={handleSubmit}
-              disabled={!appointmentType || !date || !time || (isBroker && !selectedClientId) || !selectedTransactionId || isPending}
+              disabled={!appointmentType || !date || !startTime || !endTime || (isBroker && !selectedClientId) || !selectedTransactionId || isPending || hasTimeConflict}
               className="flex-1 gap-2"
             >
               <Send className="w-5 h-5" />

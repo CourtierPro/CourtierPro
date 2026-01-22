@@ -5,8 +5,10 @@ import { appointmentKeys } from './queries';
 export interface AppointmentRequestDTO {
     transactionId: string;
     type: string;
+    title?: string; // Custom title for 'other' type
     date: string; // ISO date YYYY-MM-DD
-    time: string; // ISO time HH:mm
+    startTime: string; // ISO time HH:mm
+    endTime: string; // ISO time HH:mm
     message: string;
 }
 

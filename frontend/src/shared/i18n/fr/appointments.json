@@ -48,11 +48,22 @@
         "proposed": "Proposé",
         "confirmed": "Confirmé",
         "declined": "Refusé",
-        "cancelled": "Annulé"
+        "cancelled": "Annulé",
+        "completed": "Terminé"
     },
     "conflictWarningTitle": "Conflit d'horaire",
     "conflictWarningDesc": "Vous avez déjà un rendez-vous prévu à cette heure. Vous pouvez tout de même continuer si nécessaire.",
     "proposedByYou": "Proposé par vous",
     "proposedByClient": "Proposé par {{name}}",
-    "proposedByBroker": "Proposé par {{name}}"
+    "proposedByBroker": "Proposé par {{name}}",
+    "other": "Autre",
+    "customTitle": "Titre",
+    "enterCustomTitle": "Saisir le titre",
+    "titleRequired": "Le titre est requis pour ce type de rendez-vous",
+    "startTime": "Heure de début",
+    "endTime": "Heure de fin",
+    "endTimeMustBeAfterStart": "L'heure de fin doit être après l'heure de début",
+    "statusLabel": "Statut",
+    "location": "Lieu",
+    "notes": "Notes"
 }

@@ -58,7 +58,10 @@ export function AppointmentCalendarView({
 
     // Get dates that have appointments
     const datesWithAppointments = useMemo(() => {
-        return Array.from(appointmentsByDate.keys()).map(dateStr => new Date(dateStr));
+        return Array.from(appointmentsByDate.keys()).map(dateStr => {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        });
     }, [appointmentsByDate]);
 
     // Get appointments for selected date

@@ -7,7 +7,9 @@ import java.util.UUID;
 public record AppointmentRequestDTO(
         UUID transactionId,
         String type,
+        String title,
         LocalDate date,
-        LocalTime time,
+        LocalTime startTime,
+        LocalTime endTime,
         String message) {
 }

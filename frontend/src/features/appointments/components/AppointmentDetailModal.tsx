@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/compo
 import { useTranslation } from "react-i18next";
 import { type Appointment, getAppointmentTimeRange, getAppointmentDate } from "../types";
 import { format } from "date-fns";
+import { fr, enUS } from 'date-fns/locale';
 import { Calendar, Clock, MapPin, User, FileText } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
 import { getStatusBadgeVariant } from "../enums";
@@ -15,7 +16,7 @@ interface AppointmentDetailModalProps {
 }
 
 export function AppointmentDetailModal({ isOpen, onClose, appointment }: AppointmentDetailModalProps) {
-    const { t } = useTranslation('appointments');
+    const { t, i18n } = useTranslation('appointments');
     const { user } = useAuth0();
 
     if (!appointment) return null;
@@ -54,7 +55,7 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment }: Appoint
                         <div className="flex items-center gap-3">
                             <Calendar className="w-4 h-4 text-muted-foreground" />
                             <span className="font-medium">
-                                {format(getAppointmentDate(appointment), 'EEEE, MMMM d, yyyy')}
+                                {format(getAppointmentDate(appointment), 'EEEE, d MMMM yyyy', { locale: i18n.language === 'fr' ? fr : enUS })}
                             </span>
                         </div>
                         <div className="flex items-center gap-3">

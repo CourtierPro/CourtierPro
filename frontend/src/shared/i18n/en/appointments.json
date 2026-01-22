@@ -48,11 +48,22 @@
         "proposed": "Proposed",
         "confirmed": "Confirmed",
         "declined": "Declined",
-        "cancelled": "Cancelled"
+        "cancelled": "Cancelled",
+        "completed": "Completed"
     },
     "conflictWarningTitle": "Scheduling Conflict",
     "conflictWarningDesc": "You already have an appointment scheduled at this time. You can still proceed if needed.",
     "proposedByYou": "Proposed by you",
     "proposedByClient": "Proposed by {{name}}",
-    "proposedByBroker": "Proposed by {{name}}"
+    "proposedByBroker": "Proposed by {{name}}",
+    "other": "Other",
+    "customTitle": "Title",
+    "enterCustomTitle": "Enter appointment title",
+    "titleRequired": "Title is required for custom appointment type",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "endTimeMustBeAfterStart": "End time must be after start time",
+    "statusLabel": "Status",
+    "location": "Location",
+    "notes": "Notes"
 }

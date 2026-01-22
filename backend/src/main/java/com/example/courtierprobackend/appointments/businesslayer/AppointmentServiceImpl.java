@@ -186,12 +186,22 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointment.setBrokerId(transaction.getBrokerId());
                 appointment.setClientId(transaction.getClientId());
 
-                // Map type to title for now (as per current entity structure)
-                appointment.setTitle(request.type());
+                // Handle custom title for "other" type, otherwise use the type as title
+                if ("other".equalsIgnoreCase(request.type()) && request.title() != null && !request.title().isBlank()) {
+                        appointment.setTitle(request.title());
+                } else {
+                        appointment.setTitle(request.type());
+                }
 
-                LocalDateTime start = LocalDateTime.of(request.date(), request.time());
+                LocalDateTime start = LocalDateTime.of(request.date(), request.startTime());
+                LocalDateTime end = LocalDateTime.of(request.date(), request.endTime());
+
+                if (!end.isAfter(start)) {
+                        throw new IllegalArgumentException("End time must be after start time");
+                }
+
                 appointment.setFromDateTime(start);
-                appointment.setToDateTime(start.plusHours(1)); // Default duration 1 hour
+                appointment.setToDateTime(end);
 
                 appointment.setNotes(request.message());
                 appointment.setStatus(AppointmentStatus.PROPOSED);

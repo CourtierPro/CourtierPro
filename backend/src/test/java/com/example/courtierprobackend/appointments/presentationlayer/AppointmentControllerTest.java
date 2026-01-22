@@ -378,8 +378,10 @@ class AppointmentControllerTest {
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO requestDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId,
                                 "inspection",
+                                "Inspection Title",
                                 java.time.LocalDate.now().plusDays(1),
                                 java.time.LocalTime.of(10, 0),
+                                java.time.LocalTime.of(11, 0),
                                 "Test message");
 
                 AppointmentResponseDTO responseDTO = createTestAppointmentDTO();
