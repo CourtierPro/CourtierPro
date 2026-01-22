@@ -9,8 +9,12 @@ export function useLoginRedirect() {
     const navigate = useNavigate();
     const { data: currentUser, isLoading: isUserLoading, error: userError } = useCurrentUser();
 
-    // Derive deactivation status instead of using useEffect/useState
-    const isDeactivated = isAuthenticated && !isUserLoading && !!(userError || (currentUser && !currentUser.active));
+    // Derive deactivation status: only true if we have a user object that is inactive,
+    // OR if we have a specific 403 error from the backend. General network errors should not trigger this.
+    const isDeactivated = isAuthenticated && !isUserLoading && (
+        (currentUser && !currentUser.active) ||
+        (userError && (userError as { response?: { status: number } })?.response?.status === 403)
+    );
 
     useEffect(() => {
         if (isAuthenticated && user && !isUserLoading) {

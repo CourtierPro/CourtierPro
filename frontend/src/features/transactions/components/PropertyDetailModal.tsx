@@ -241,7 +241,7 @@ export function PropertyDetailModal({
                                         await updateStatus({
                                             transactionId,
                                             propertyId: property.propertyId,
-                                            status: 'REJECTED'
+                                            status: 'NOT_INTERESTED'
                                         });
                                         toast.success(t('propertyRejected'));
                                         onClose();
@@ -275,7 +275,7 @@ export function PropertyDetailModal({
                                         await updateStatus({
                                             transactionId,
                                             propertyId: property.propertyId,
-                                            status: 'ACCEPTED'
+                                            status: 'INTERESTED'
                                         });
                                         toast.success(t('propertyAccepted'));
                                         onClose();

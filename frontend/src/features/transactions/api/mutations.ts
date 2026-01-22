@@ -262,7 +262,8 @@ export function useUpdatePropertyStatus() {
     return useMutation({
         mutationFn: async ({ transactionId, propertyId, status, notes }: { transactionId: string; propertyId: string; status: string; notes?: string }) => {
             const res = await axiosInstance.patch<Property>(`/transactions/${transactionId}/properties/${propertyId}/status`, notes, {
-                params: { status }
+                params: { status },
+                headers: { 'Content-Type': 'text/plain' }
             });
             return res.data;
         },

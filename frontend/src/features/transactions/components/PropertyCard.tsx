@@ -98,7 +98,7 @@ export function PropertyCard({ property, onClick, isActive }: PropertyCardProps)
                         {statusBadge}
 
                         {/* Show Offer Status if Accepted/Active */}
-                        {property.status === 'INTERESTED' && (
+                        {(property.status === 'INTERESTED' || !property.status) && (
                             <>
                                 {property.offerAmount && (
                                     <div className="flex flex-col items-end mr-2 text-right">

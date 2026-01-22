@@ -553,4 +553,186 @@ class AppointmentServiceImplTest {
         assertThat(result.get(0).title()).isEqualTo("Appointment 1");
         assertThat(result.get(1).title()).isEqualTo("Appointment 2");
     }
+
+    // ========== requestAppointment Tests ==========
+
+    @Test
+    void requestAppointment_asBroker_createsAppointment() {
+        // Arrange
+        UUID requesterId = brokerId;
+        com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request =
+                new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                        transactionId, "Property Viewing", null, java.time.LocalDate.now(),
+                        java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Let's view this");
+
+        Transaction transaction = new Transaction();
+        transaction.setTransactionId(transactionId);
+        transaction.setBrokerId(brokerId);
+        transaction.setClientId(clientId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> {
+            Appointment apt = invocation.getArgument(0);
+            apt.setAppointmentId(UUID.randomUUID());
+            return apt;
+        });
+        mockUserAccounts();
+
+        // Act
+        AppointmentResponseDTO result = appointmentService.requestAppointment(request, requesterId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.title()).isEqualTo("Property Viewing");
+        assertThat(result.initiatedBy()).isEqualTo(InitiatorType.BROKER);
+        assertThat(result.transactionId()).isEqualTo(transactionId);
+        verify(appointmentRepository).save(any(Appointment.class));
+    }
+
+    @Test
+    void requestAppointment_asClient_createsAppointment() {
+        // Arrange
+        UUID requesterId = clientId;
+        com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request =
+                new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                        transactionId, "Property Viewing", null, java.time.LocalDate.now(),
+                        java.time.LocalTime.of(14, 0), java.time.LocalTime.of(15, 0), "Can we meet?");
+
+        Transaction transaction = new Transaction();
+        transaction.setTransactionId(transactionId);
+        transaction.setBrokerId(brokerId);
+        transaction.setClientId(clientId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> {
+            Appointment apt = invocation.getArgument(0);
+            apt.setAppointmentId(UUID.randomUUID());
+            return apt;
+        });
+        mockUserAccounts();
+
+        // Act
+        AppointmentResponseDTO result = appointmentService.requestAppointment(request, requesterId);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.initiatedBy()).isEqualTo(InitiatorType.CLIENT);
+        verify(appointmentRepository).save(any(Appointment.class));
+    }
+
+    @Test
+    void requestAppointment_withOtherType_usesCustomTitle() {
+        // Arrange
+        com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request =
+                new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                        transactionId, "Other", "Custom Title", java.time.LocalDate.now(),
+                        java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Details");
+
+        Transaction transaction = new Transaction();
+        transaction.setTransactionId(transactionId);
+        transaction.setBrokerId(brokerId);
+        transaction.setClientId(clientId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> {
+            Appointment apt = invocation.getArgument(0);
+            apt.setAppointmentId(UUID.randomUUID());
+            return apt;
+        });
+        mockUserAccounts();
+
+        // Act
+        AppointmentResponseDTO result = appointmentService.requestAppointment(request, brokerId);
+
+        // Assert
+        assertThat(result.title()).isEqualTo("Custom Title");
+    }
+
+    @Test
+    void requestAppointment_withOtherTypeButNoTitle_usesTypeAsTitle() {
+        // Arrange
+        com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request =
+                new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                        transactionId, "Other", "", java.time.LocalDate.now(), // empty title
+                        java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Details");
+
+        Transaction transaction = new Transaction();
+        transaction.setTransactionId(transactionId);
+        transaction.setBrokerId(brokerId);
+        transaction.setClientId(clientId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> {
+            Appointment apt = invocation.getArgument(0);
+            apt.setAppointmentId(UUID.randomUUID());
+            return apt;
+        });
+        mockUserAccounts();
+
+        // Act
+        AppointmentResponseDTO result = appointmentService.requestAppointment(request, brokerId);
+
+        // Assert
+        assertThat(result.title()).isEqualTo("Other");
+    }
+
+    @Test
+    void requestAppointment_transactionNotFound_throwsNotFoundException() {
+        // Arrange
+        com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request =
+                new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                        transactionId, "Type", "Title", java.time.LocalDate.now(),
+                        java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg");
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> appointmentService.requestAppointment(request, brokerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Transaction not found");
+    }
+
+    @Test
+    void requestAppointment_forbiddenUser_throwsForbiddenException() {
+        // Arrange
+        com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request =
+                new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                        transactionId, "Type", "Title", java.time.LocalDate.now(),
+                        java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg");
+
+        Transaction transaction = new Transaction();
+        transaction.setTransactionId(transactionId);
+        transaction.setBrokerId(brokerId);
+        transaction.setClientId(clientId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+
+        // Act & Assert
+        UUID otherUser = UUID.randomUUID();
+        assertThatThrownBy(() -> appointmentService.requestAppointment(request, otherUser))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("You do not have permission");
+    }
+
+    @Test
+    void requestAppointment_invalidTimeRange_throwsIllegalArgumentException() {
+        // Arrange
+        com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request =
+                new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                        transactionId, "Type", "Title", java.time.LocalDate.now(),
+                        java.time.LocalTime.of(12, 0), java.time.LocalTime.of(11, 0), "End before start");
+
+        Transaction transaction = new Transaction();
+        transaction.setTransactionId(transactionId);
+        transaction.setBrokerId(brokerId);
+        transaction.setClientId(clientId);
+
+        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+
+        // Act & Assert
+        assertThatThrownBy(() -> appointmentService.requestAppointment(request, brokerId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("End time must be after start time");
+    }
 }
+

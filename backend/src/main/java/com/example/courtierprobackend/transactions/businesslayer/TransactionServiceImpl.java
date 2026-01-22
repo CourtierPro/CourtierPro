@@ -1145,22 +1145,17 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // Determine permissions
-        boolean isPrimaryBroker = tx.getBrokerId() != null && tx.getBrokerId().equals(userId);
-        boolean isCoBroker = false;
-        if (!isPrimaryBroker) {
-            String userEmail = userAccountRepository.findById(userId).map(UserAccount::getEmail).orElse(null);
-            if (userEmail != null) {
-                isCoBroker = participantRepository.findByTransactionId(transactionId).stream()
-                    .anyMatch(p -> p.getRole() == com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER 
-                        && p.getEmail() != null && p.getEmail().equalsIgnoreCase(userEmail));
-            }
-        }
-        boolean isBroker = isPrimaryBroker || isCoBroker;
         boolean isClient = tx.getClientId() != null && tx.getClientId().equals(userId);
-
-        if (!isBroker && !isClient) {
-            throw new ForbiddenException("Not authorized to update property status");
+        
+        // Ensure either client or authorized broker/co-manager
+        if (!isClient) {
+             // Will throw ForbiddenException if not authorized
+             String userEmail = userAccountRepository.findById(userId).map(UserAccount::getEmail).orElse(null);
+             java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants = participantRepository.findByTransactionId(transactionId);
+             TransactionAccessUtils.verifyBrokerOrCoManagerAccess(tx, userId, userEmail, participants, com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_PROPERTIES);
         }
+        boolean isBroker = !isClient;
+
 
         var currentStatus = property.getStatus();
         if (currentStatus == null) {

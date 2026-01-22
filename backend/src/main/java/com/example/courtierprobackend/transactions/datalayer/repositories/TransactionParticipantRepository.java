@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface TransactionParticipantRepository extends JpaRepository<TransactionParticipant, UUID> {
     List<TransactionParticipant> findByTransactionId(UUID transactionId);
     List<TransactionParticipant> findByEmail(String email);
+    List<TransactionParticipant> findByEmailIgnoreCase(String email);
 }

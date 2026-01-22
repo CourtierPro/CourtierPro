@@ -67,7 +67,7 @@ public class EmailChangeService {
         // Update all transaction participants that match the old email
         String oldEmail = user.getEmail();
         if (oldEmail != null && !oldEmail.isBlank()) {
-           java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants = transactionParticipantRepository.findByEmail(oldEmail);
+           java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants = transactionParticipantRepository.findByEmailIgnoreCase(oldEmail);
            for (com.example.courtierprobackend.transactions.datalayer.TransactionParticipant p : participants) {
                p.setEmail(changeToken.getNewEmail());
            }
