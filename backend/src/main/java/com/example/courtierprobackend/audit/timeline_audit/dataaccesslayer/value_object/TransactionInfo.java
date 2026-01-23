@@ -22,6 +22,7 @@ public class TransactionInfo {
 
     private String previousStage;
     private String newStage;
+    private String reason;
 
     // Offer-related fields
     private String buyerName;

@@ -3,6 +3,7 @@ package com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum
 public enum TimelineEntryType {
     CREATED,
     STAGE_CHANGE,
+    STAGE_ROLLBACK,
     NOTE,
     TRANSACTION_NOTE,
     DOCUMENT_REQUESTED,

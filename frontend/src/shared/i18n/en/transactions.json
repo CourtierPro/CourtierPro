@@ -134,6 +134,11 @@
   "progressNotePlaceholder": "Add a note about this stage change (optional)...",
   "visibleToClient": "Visible to Client",
   "visibleToClientHelp": "When checked, this note will be visible to the client in their timeline",
+  "rollbackReason": "Reason for Rollback",
+  "rollbackReasonPlaceholder": "Please explain why you are reverting to a previous stage...",
+  "rollbackWarningTitle": "Stage Rollback",
+  "rollbackWarningMessage": "You are moving the transaction to a previous stage. A reason is required.",
+  "reasonRequired": "Reason is required",
   "selectStageFirst": "Please select a stage to continue",
   "stageDescriptions": [
     "Your offer has been submitted to the seller. Awaiting response.",

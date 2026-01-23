@@ -18,7 +18,7 @@ group Monitor Progress [FDUC Step 3]
 end
 
 group Update Stage [FDUC Steps 4-7]
-    Broker -> System: updateTransactionStage(transactionId, newStage, note)
+    Broker -> System: updateTransactionStage(transactionId, newStage, note, [reason])
     activate System
     System --> Broker: updatedStage, successMessage
     deactivate System

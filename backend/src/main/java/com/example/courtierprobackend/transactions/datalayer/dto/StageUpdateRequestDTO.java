@@ -10,4 +10,6 @@ public class StageUpdateRequestDTO {
     private String stage;
 
     private String note;
+
+    private String reason;
 }

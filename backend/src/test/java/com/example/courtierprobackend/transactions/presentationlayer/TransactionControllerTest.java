@@ -308,6 +308,37 @@ class TransactionControllerTest {
                 verify(transactionService).updateTransactionStage(eq(txId), any(), eq(brokerUuid));
         }
 
+        @Test
+        @WithMockUser(roles = "BROKER")
+        void updateTransactionStage_withReason_passesReasonToService() throws Exception {
+                UUID txId = UUID.randomUUID();
+                UUID brokerUuid = UUID.randomUUID();
+                String brokerId = brokerUuid.toString();
+
+                com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO requestDto = new com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO();
+                requestDto.setStage("BUYER_SHOP_FOR_PROPERTY");
+                requestDto.setReason("Back tracking for checking");
+
+                TransactionResponseDTO responseDto = TransactionResponseDTO.builder()
+                                .transactionId(txId)
+                                .brokerId(brokerUuid)
+                                .currentStage("BUYER_SHOP_FOR_PROPERTY")
+                                .build();
+
+                when(transactionService.updateTransactionStage(eq(txId), any(), eq(brokerUuid)))
+                                .thenReturn(responseDto);
+
+                mockMvc.perform(patch("/transactions/" + txId + "/stage")
+                                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(requestDto))
+                                .with(jwt())
+                                .header("x-broker-id", brokerId))
+                                .andExpect(status().isOk());
+
+                verify(transactionService).updateTransactionStage(eq(txId),
+                                argThat(dto -> "Back tracking for checking".equals(dto.getReason())), eq(brokerUuid));
+        }
+
         // ========== pin/unpin/getPinned Tests ==========
 
         @Test

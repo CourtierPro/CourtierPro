@@ -11,43 +11,61 @@ participant ":TimelineService" as Timeline
 participant ":EmailService" as Email
 participant ":NotificationService" as Notify
 
-Broker -> Controller: updateTransactionStage(id, requestDTO)
+Broker -> Controller: updateTransactionStage(transactionId, requestDTO)
 activate Controller
 
-Controller -> Service: updateTransactionStage(id, requestDTO)
+Controller -> Service: updateTransactionStage(transactionId, requestDTO, brokerId)
 activate Service
 
-Service -> Repo: findByTransactionId(id)
+Service -> Repo: findByTransactionId(transactionId)
 activate Repo
 Repo --> Service: transaction
 deactivate Repo
 
+
 Service -> Service: validate and map stage
+Service -> Service: check isRollback (new < current)
 
-Service -> Entity: setBuyerStage/setSellerStage(newStage)
-activate Entity
-Entity --> Service
-deactivate Entity
+alt isRollback
+    Service -> Service: validate reason provided
+    Service -> Entity: setBuyerStage/setSellerStage(newStage)
+    activate Entity
+    Entity --> Service
+    deactivate Entity
+    
+    Service -> Timeline: addEntry(..., "STAGE_ROLLBACK", reason)
+    activate Timeline
+    Timeline --> Service
+    deactivate Timeline
 
-Service -> Timeline: addEntry(id, "STAGE_CHANGE", ...)
-activate Timeline
-Timeline --> Service
-deactivate Timeline
+else isForward
+    Service -> Entity: setBuyerStage/setSellerStage(newStage)
+    activate Entity
+    Entity --> Service
+    deactivate Entity
+
+    Service -> Timeline: addEntry(..., "STAGE_CHANGE", ...)
+    activate Timeline
+    Timeline --> Service
+    deactivate Timeline
+end
 
 Service -> Repo: save(transaction)
 activate Repo
 Repo --> Service: savedTransaction
 deactivate Repo
 
-Service -> Email: sendStageUpdateEmail(...)
-activate Email
-Email --> Service
-deactivate Email
+alt !isRollback
+    Service -> Email: sendStageUpdateEmail(...)
+    activate Email
+    Email --> Service
+    deactivate Email
 
-Service -> Notify: createNotification(...)
-activate Notify
-Notify --> Service
-deactivate Notify
+    Service -> Notify: createNotification(...)
+    activate Notify
+    Notify --> Service
+    deactivate Notify
+end
 
 Service --> Controller: responseDTO
 deactivate Service

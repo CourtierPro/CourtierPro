@@ -55,9 +55,9 @@ function TransactionDetailContent({
   } : null;
 
   // stage updates are handled by the StageUpdateModal which calls this onSubmit
-  const handleStageUpdate = async (stage: string, note: string) => {
+  const handleStageUpdate = async (stage: string, note: string, reason?: string) => {
     try {
-      await updateStage.mutateAsync({ transactionId: transaction.transactionId, data: { stage, note } });
+      await updateStage.mutateAsync({ transactionId: transaction.transactionId, data: { stage, note, reason } });
       toast.success(t('stageUpdatedSuccess'));
       // modal will be closed by the modal component after onSubmit resolves
     } catch (err) {

@@ -101,8 +101,17 @@ rectangle "CourtierPro Domain" as Domain {
       note: String
       timestamp: Instant
       addedByUserId: UUID
-      buyerStage: BuyerTransactionStageEnum?
-      sellerStage: SellerTransactionStageEnum?
+      visibleToClient: Boolean
+      transactionInfo: TransactionInfo
+    }
+
+    VALUE_OBJECT(TransactionInfo) #Bisque {
+      clientName: String
+      actorName: String
+      address: String
+      previousStage: String
+      newStage: String
+      reason: String
     }
     
     ENTITY(TransactionParticipant) #lightpink {
@@ -171,6 +180,7 @@ rectangle "CourtierPro Domain" as Domain {
 
     ENUM(TimelineEntryTypeEnum) {
       STAGE_CHANGE
+      STAGE_ROLLBACK
       NOTE
     }
 
@@ -188,8 +198,7 @@ rectangle "CourtierPro Domain" as Domain {
     PinnedTransaction --> UserRef
 
     TimelineEntry --> TimelineEntryTypeEnum
-    TimelineEntry --> BuyerTransactionStageEnum
-    TimelineEntry --> SellerTransactionStageEnum
+    TimelineEntry *-- TransactionInfo
 
     note bottom of Transaction
       Invariants:

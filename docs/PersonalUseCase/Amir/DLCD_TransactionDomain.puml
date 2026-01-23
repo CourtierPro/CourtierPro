@@ -5,17 +5,19 @@ package "Transaction Domain" {
     
     class TransactionController {
         + createTransaction(request: TransactionRequestDTO): ResponseEntity
-        + getTransaction(id: UUID): ResponseEntity
-        + updateTransactionStage(id: UUID, request: StageUpdateRequestDTO): ResponseEntity
+        + getTransaction(transactionId: UUID): ResponseEntity
+        + updateTransactionStage(transactionId: UUID, request: StageUpdateRequestDTO): ResponseEntity
     }
 
     interface TransactionService {
         + createTransaction(dto: TransactionRequestDTO): TransactionResponseDTO
-        + updateTransactionStage(id: UUID, dto: StageUpdateRequestDTO): TransactionResponseDTO
+        + updateTransactionStage(transactionId: UUID, dto: StageUpdateRequestDTO, brokerId: UUID): TransactionResponseDTO
     }
 
     class TransactionServiceImpl {
         - transactionRepository: TransactionRepository
+        - pinnedTransactionRepository: PinnedTransactionRepository
+        - participantRepository: TransactionParticipantRepository
         - timelineService: TimelineService
         - notificationService: NotificationService
         - emailService: EmailService

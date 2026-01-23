@@ -95,6 +95,12 @@ export function TransactionTimeline({ transactionId }: TransactionTimelineProps)
                                                                 {t('timeline.by', { name: entry.transactionInfo.actorName })}
                                                             </span>
                                                         );
+                                                    } else if (entry.type === 'STAGE_ROLLBACK' && entry.transactionInfo?.actorName) {
+                                                        return (
+                                                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground ml-2">
+                                                                {t('timeline.by', { name: entry.transactionInfo.actorName })}
+                                                            </span>
+                                                        );
                                                     } else if (entry.type.startsWith('PROPERTY_') && entry.transactionInfo?.actorName) {
                                                         return (
                                                             <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground ml-2">
@@ -170,6 +176,27 @@ export function TransactionTimeline({ transactionId }: TransactionTimelineProps)
                                                             newStage: translateStage(entry.transactionInfo.newStage)
                                                         })}
                                                     </p>
+                                                );
+                                            })()}
+                                            {/* Show info for STAGE_ROLLBACK */}
+                                            {entry.type === 'STAGE_ROLLBACK' && entry.transactionInfo && (() => {
+                                                const translateStage = (stage: string | undefined) => {
+                                                    if (!stage) return '';
+                                                    const lowerStage = stage.toLowerCase();
+                                                    const sideKey = lowerStage.startsWith('seller') ? 'sell' : 'buy';
+                                                    return t(`stages.${sideKey}.${lowerStage}`, { defaultValue: stage });
+                                                };
+                                                return (
+                                                    <div className="mt-1">
+                                                        <p className="text-sm text-foreground font-medium mb-1">
+                                                            {t('timeline.stageRollbackNote', { stage: translateStage(entry.transactionInfo.newStage) })}
+                                                        </p>
+                                                        {entry.transactionInfo.reason && (
+                                                            <div className="bg-orange-50 p-2 rounded text-sm text-orange-800 border border-orange-100">
+                                                                <span className="font-semibold">{t('rollbackReason')}:</span> {entry.transactionInfo.reason}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 );
                                             })()}
                                             {/* Show info for PROPERTY events */}

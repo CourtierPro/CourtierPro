@@ -31,5 +31,9 @@ TERMINATED_EARLY --> [*]
 note right of Active
   Transitions enforced by
   TransactionService logic
+  
+  [NOTE] Rollback to any previous
+  state is allowed from any Active state
+  (requires 'reason')
 end note
 @enduml

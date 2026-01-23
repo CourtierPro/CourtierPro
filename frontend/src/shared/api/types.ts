@@ -85,6 +85,7 @@ export interface TransactionResponseDTO {
 export type TimelineEventType =
   | 'CREATED'
   | 'STAGE_CHANGE'
+  | 'STAGE_ROLLBACK'
   | 'NOTE'
   | 'TRANSACTION_NOTE'
   | 'DOCUMENT_REQUESTED'
@@ -114,6 +115,7 @@ export interface TransactionInfo {
   stage?: string;
   previousStage?: string;
   newStage?: string;
+  reason?: string;
   // Offer-related fields
   buyerName?: string;
   offerAmount?: number;
@@ -153,6 +155,7 @@ export interface NoteCreateRequest {
 export interface StageUpdateRequestDTO {
   stage: string;
   note?: string;
+  reason?: string;
 }
 
 // ==================== PROPERTY TYPES ====================

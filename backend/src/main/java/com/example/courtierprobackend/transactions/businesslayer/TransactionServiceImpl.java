@@ -142,6 +142,18 @@ public class TransactionServiceImpl implements TransactionService {
         return "Unknown User";
     }
 
+    private boolean isRollback(Transaction tx, Enum<?> newStage) {
+        if (tx.getSide() == TransactionSide.BUY_SIDE) {
+            if (tx.getBuyerStage() == null)
+                return false;
+            return ((BuyerStage) newStage).ordinal() < tx.getBuyerStage().ordinal();
+        } else {
+            if (tx.getSellerStage() == null)
+                return false;
+            return ((SellerStage) newStage).ordinal() < tx.getSellerStage().ordinal();
+        }
+    }
+
     private void verifyBrokerOrCoManager(Transaction tx, UUID userId, ParticipantPermission requiredPermission) {
         String userEmail = userAccountRepository.findById(userId)
                 .map(UserAccount::getEmail)
@@ -531,10 +543,19 @@ public class TransactionServiceImpl implements TransactionService {
             previousStage = tx.getSellerStage().name();
         }
 
+        // CP-81: Determine if this is a rollback and validate reason
+        boolean isRollback = false;
+
         // Validate and apply based on side
         if (tx.getSide() == TransactionSide.BUY_SIDE) {
             try {
                 BuyerStage buyerStage = BuyerStage.valueOf(stageStr);
+                isRollback = isRollback(tx, buyerStage);
+                if (isRollback) {
+                    if (dto.getReason() == null || dto.getReason().isBlank()) {
+                        throw new BadRequestException("Reason is required for stage rollback.");
+                    }
+                }
                 EntityDtoUtil.updateBuyerStage(tx, buyerStage);
             } catch (IllegalArgumentException ex) {
                 throw new BadRequestException("stage '" + stageStr + "' is not a valid buyer stage. Allowed values: "
@@ -543,6 +564,12 @@ public class TransactionServiceImpl implements TransactionService {
         } else if (tx.getSide() == TransactionSide.SELL_SIDE) {
             try {
                 SellerStage sellerStage = SellerStage.valueOf(stageStr);
+                isRollback = isRollback(tx, sellerStage);
+                if (isRollback) {
+                    if (dto.getReason() == null || dto.getReason().isBlank()) {
+                        throw new BadRequestException("Reason is required for stage rollback.");
+                    }
+                }
                 EntityDtoUtil.updateSellerStage(tx, sellerStage);
             } catch (IllegalArgumentException ex) {
                 throw new BadRequestException("stage '" + stageStr + "' is not a valid seller stage. Allowed values: "
@@ -587,12 +614,16 @@ public class TransactionServiceImpl implements TransactionService {
                 .previousStage(previousStage)
                 .newStage(stageStr)
                 .stage(stageStr) // pour compatibilité
+                .reason(isRollback ? dto.getReason() : null)
                 .actorName(stageChangeActorName)
                 .build();
+
+        TimelineEntryType entryType = isRollback ? TimelineEntryType.STAGE_ROLLBACK : TimelineEntryType.STAGE_CHANGE;
+
         timelineService.addEntry(
                 transactionId,
                 brokerId,
-                TimelineEntryType.STAGE_CHANGE,
+                entryType,
                 null,
                 null,
                 stageChangeInfo);
@@ -606,55 +637,58 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // CP-48: Send Notifications and Emails
-        try {
-            // Fetch Client details
-            Optional<UserAccount> clientOpt = userAccountRepository.findById(saved.getClientId());
-            Optional<UserAccount> brokerOpt = userAccountRepository.findById(brokerId);
+        // CP-81: Suppress notifications for rollbacks
+        if (!isRollback) {
+            try {
+                // Fetch Client details
+                Optional<UserAccount> clientOpt = userAccountRepository.findById(saved.getClientId());
+                Optional<UserAccount> brokerOpt = userAccountRepository.findById(brokerId);
 
-            if (clientOpt.isPresent() && brokerOpt.isPresent()) {
-                UserAccount client = clientOpt.get();
-                UserAccount broker = brokerOpt.get();
+                if (clientOpt.isPresent() && brokerOpt.isPresent()) {
+                    UserAccount client = clientOpt.get();
+                    UserAccount broker = brokerOpt.get();
 
-                String clientName = (client.getFirstName() + " " + client.getLastName()).trim();
-                String brokerName = (broker.getFirstName() + " " + broker.getLastName()).trim();
+                    String clientName = (client.getFirstName() + " " + client.getLastName()).trim();
+                    String brokerName = (broker.getFirstName() + " " + broker.getLastName()).trim();
 
-                String address = "Unknown Address";
-                if (saved.getPropertyAddress() != null && saved.getPropertyAddress().getStreet() != null) {
-                    address = saved.getPropertyAddress().getStreet();
+                    String address = "Unknown Address";
+                    if (saved.getPropertyAddress() != null && saved.getPropertyAddress().getStreet() != null) {
+                        address = saved.getPropertyAddress().getStreet();
+                    }
+
+                    // 1. Email
+                    emailService.sendStageUpdateEmail(
+                            client.getEmail(),
+                            clientName,
+                            brokerName,
+                            address,
+                            stageStr,
+                            client.getPreferredLanguage());
+
+                    // 2. In-App Notification
+                    String notifTitle = "Stage Update";
+                    String notifMessage = StageTranslationUtil.constructNotificationMessage(
+                            stageStr,
+                            brokerName,
+                            address,
+                            client.getPreferredLanguage());
+
+                    notificationService.createNotification(
+                            client.getId().toString(), // Internal UUID
+                            notifTitle,
+                            notifMessage,
+                            saved.getTransactionId().toString(),
+                            com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE);
+
+                } else {
+                    log.warn("Could not send notifications for transaction {}: Client or Broker not found",
+                            saved.getTransactionId());
                 }
 
-                // 1. Email
-                emailService.sendStageUpdateEmail(
-                        client.getEmail(),
-                        clientName,
-                        brokerName,
-                        address,
-                        stageStr,
-                        client.getPreferredLanguage());
-
-                // 2. In-App Notification
-                String notifTitle = "Stage Update";
-                String notifMessage = StageTranslationUtil.constructNotificationMessage(
-                        stageStr,
-                        brokerName,
-                        address,
-                        client.getPreferredLanguage());
-
-                notificationService.createNotification(
-                        client.getId().toString(), // Internal UUID
-                        notifTitle,
-                        notifMessage,
-                        saved.getTransactionId().toString(),
-                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE);
-
-            } else {
-                log.warn("Could not send notifications for transaction {}: Client or Broker not found",
-                        saved.getTransactionId());
+            } catch (Exception e) {
+                log.error("Failed to send notifications/emails for transaction {}", saved.getTransactionId(), e);
+                // Do not rethrow, transaction is already saved
             }
-
-        } catch (Exception e) {
-            log.error("Failed to send notifications/emails for transaction {}", saved.getTransactionId(), e);
-            // Do not rethrow, transaction is already saved
         }
 
         return EntityDtoUtil.toResponse(saved, lookupUserName(saved.getClientId()));

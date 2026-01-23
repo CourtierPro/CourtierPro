@@ -34,7 +34,7 @@ interface StageUpdateModalProps {
   transactionId: string;
   currentStage?: string;
   isLoading?: boolean;
-  onSubmit?: (stage: string, note: string) => Promise<void> | void;
+  onSubmit?: (stage: string, note: string, reason?: string) => Promise<void> | void;
 }
 
 export function StageUpdateModal(props: StageUpdateModalProps) {
@@ -83,24 +83,43 @@ function StageUpdateForm({
       stage: defaultNextStage,
       note: '',
       visibleToClient: true,
+      reason: '',
     },
   });
 
-  const { control, reset } = form;
+  const { control, reset, watch } = form; // watch is needed for detecting stage change
   const selectedStage = useWatch({ control, name: 'stage' });
+  const reasonValue = useWatch({ control, name: 'reason' });
 
+  // Reset form when defaultNextStage changes
   useEffect(() => {
     reset({
       stage: defaultNextStage,
       note: '',
       visibleToClient: true,
+      reason: '',
     });
   }, [reset, defaultNextStage]);
+
+  // Determine if it is a rollback
+  const isRollback = () => {
+    if (!currentStage || !selectedStage) return false;
+    const currentIndex = stageEnums.indexOf(currentStage);
+    const selectedIndex = stageEnums.indexOf(selectedStage);
+    return selectedIndex < currentIndex;
+  };
+
+  const rollback = isRollback();
 
   const handleSubmit = async (data: StageUpdateFormValues) => {
     try {
       if (onSubmit) {
-        await onSubmit(data.stage, data.note || '');
+        // If rollback, ensure reason is provided (validation handled by schema/form state ideally but let's be safe)
+        if (rollback && !data.reason?.trim()) {
+          form.setError("reason", { type: "manual", message: "reasonRequired" });
+          return;
+        }
+        await onSubmit(data.stage, data.note || '', data.reason);
       }
       onClose();
     } catch (err) {
@@ -116,6 +135,7 @@ function StageUpdateForm({
       'SELLER_TERMINATED'
     ].includes(stage);
   };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)}>
@@ -172,7 +192,27 @@ function StageUpdateForm({
             )}
           />
 
-          {selectedStage && isFinalStage(selectedStage) && (
+          {rollback && (
+            <div className="rounded-md bg-orange-50 p-4 border border-orange-200 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-orange-400" aria-hidden="true" />
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-orange-800">
+                    {t('rollbackWarningTitle')}
+                  </h3>
+                  <div className="mt-2 text-sm text-orange-700">
+                    <p>
+                      {t('rollbackWarningMessage')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {selectedStage && isFinalStage(selectedStage) && !rollback && (
             <div className="rounded-md bg-yellow-50 p-4 border border-yellow-200">
               <div className="flex">
                 <div className="flex-shrink-0">
@@ -213,6 +253,31 @@ function StageUpdateForm({
             </div>
           )}
 
+          {rollback && (
+            <FormField
+              control={form.control}
+              name="reason"
+              rules={{ required: true }}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    {t('rollbackReason')} <span className="text-destructive">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      rows={3}
+                      placeholder={t('rollbackReasonPlaceholder')}
+                      disabled={isLoading}
+                      className="border-orange-200 focus:border-orange-400 focus:ring-orange-200"
+                    />
+                  </FormControl>
+                  <FormMessage>{form.formState.errors.reason?.message && t(form.formState.errors.reason?.message)}</FormMessage>
+                </FormItem>
+              )}
+            />
+          )}
+
           <FormField
             control={form.control}
             name="note"
@@ -232,29 +297,31 @@ function StageUpdateForm({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="visibleToClient"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-0">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>
-                    {t('visibleToClient')}
-                  </FormLabel>
-                  <p className="text-sm text-muted-foreground">
-                    {t('visibleToClientHelp')}
-                  </p>
-                </div>
-              </FormItem>
-            )}
-          />
+          {!rollback && (
+            <FormField
+              control={form.control}
+              name="visibleToClient"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      {t('visibleToClient')}
+                    </FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      {t('visibleToClientHelp')}
+                    </p>
+                  </div>
+                </FormItem>
+              )}
+            />
+          )}
 
         </div>
 
@@ -270,7 +337,7 @@ function StageUpdateForm({
           </Button>
           <Button
             type="submit"
-            disabled={!form.formState.isValid || isLoading}
+            disabled={(!rollback && !form.formState.isValid) || (rollback && !reasonValue?.trim()) || isLoading}
             className="flex-1"
           >
             {isLoading ? t('updating') ?? 'Updating...' : t('updateTransactionStage')}

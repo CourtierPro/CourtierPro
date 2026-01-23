@@ -1516,6 +1516,135 @@ class TransactionServiceImplTest {
                                 .hasMessageContaining("The transaction was updated by another user");
         }
 
+        @Test
+        void updateTransactionStage_withBackwardTransition_andReason_updatesStageAndCreatesRollbackEntry() {
+                // Arrange
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(clientId);
+                tx.setSide(TransactionSide.BUY_SIDE);
+                tx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED); // Previous stage (Ordinal > 0)
+                tx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
+
+                Transaction savedTx = new Transaction();
+                savedTx.setTransactionId(transactionId);
+                savedTx.setBrokerId(brokerId);
+                savedTx.setSide(TransactionSide.BUY_SIDE);
+                savedTx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY); // New Stage (Ordinal 0)
+                savedTx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+                when(userAccountRepository.findById(any())).thenReturn(
+                                Optional.of(new com.example.courtierprobackend.user.dataaccesslayer.UserAccount()));
+
+                StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+                dto.setStage("BUYER_PREQUALIFY_FINANCIALLY");
+                dto.setReason("Back to start");
+
+                // Act
+                transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+                // Assert
+                // 1. Verify Timeline Entry is STAGE_ROLLBACK and has reason
+                verify(timelineService).addEntry(
+                                eq(transactionId),
+                                eq(brokerId),
+                                eq(TimelineEntryType.STAGE_ROLLBACK),
+                                isNull(),
+                                isNull(),
+                                argThat(info -> "Back to start".equals(info.getReason()) &&
+                                                "BUYER_PREQUALIFY_FINANCIALLY".equals(info.getNewStage())));
+
+                // 2. Verify Notifications were SUPPRESSED (never called)
+                verify(notificationService, never()).createNotification(anyString(), anyString(), anyString(),
+                                anyString(), any());
+                verify(emailService, never()).sendStageUpdateEmail(anyString(), anyString(), anyString(), anyString(),
+                                anyString(), anyString());
+        }
+
+        @Test
+        void updateTransactionStage_withBackwardTransition_withoutReason_throwsBadRequest() {
+                // Arrange
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setSide(TransactionSide.SELL_SIDE);
+                tx.setSellerStage(SellerStage.SELLER_HANDOVER_KEYS); // Late stage
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+                StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+                dto.setStage("SELLER_INITIAL_CONSULTATION"); // Early stage
+                dto.setReason(""); // Missing reason
+
+                // Act & Assert
+                assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("Reason is required");
+        }
+
+        @Test
+        void updateTransactionStage_withForwardTransition_withoutReason_updatesStageAndCreatesChangeEntry() {
+                // Arrange
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(clientId);
+                tx.setSide(TransactionSide.BUY_SIDE);
+                tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+                tx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
+
+                Transaction savedTx = new Transaction();
+                savedTx.setTransactionId(transactionId);
+                savedTx.setBrokerId(brokerId);
+                savedTx.setSide(TransactionSide.BUY_SIDE);
+                savedTx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+                savedTx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
+
+                com.example.courtierprobackend.user.dataaccesslayer.UserAccount mockUser = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+                mockUser.setId(UUID.randomUUID());
+                mockUser.setFirstName("Test");
+                mockUser.setLastName("User");
+                mockUser.setEmail("test@example.com");
+                mockUser.setPreferredLanguage("en");
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+                when(userAccountRepository.findById(any())).thenReturn(Optional.of(mockUser));
+
+                StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+                dto.setStage("BUYER_SHOP_FOR_PROPERTY");
+                // No reason provided
+
+                // Act
+                transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+                // Assert
+                verify(timelineService).addEntry(
+                                eq(transactionId),
+                                eq(brokerId),
+                                eq(TimelineEntryType.STAGE_CHANGE), // STAGE_CHANGE not ROLLBACK
+                                isNull(),
+                                isNull(),
+                                argThat(info -> info.getReason() == null));
+
+                // Verify Notifications SENT
+                verify(notificationService).createNotification(any(), any(), any(), any(), any());
+        }
+
         // ========== pinTransaction Tests ==========
 
         @Test
