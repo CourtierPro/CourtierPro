@@ -253,28 +253,29 @@ public class TransactionServiceImpl implements TransactionService {
         Optional<UserAccount> brokerOpt = userAccountRepository.findById(saved.getBrokerId());
         if (clientOpt.isPresent()) {
             TransactionParticipant clientParticipant = TransactionParticipant.builder()
-                .transactionId(saved.getTransactionId())
-                .name(clientOpt.get().getFirstName() + " " + clientOpt.get().getLastName())
-                .role(ParticipantRole.BUYER) // ou un rôle spécifique si besoin
-                .email(clientOpt.get().getEmail())
-                .userId(clientOpt.get().getId())
-                .phoneNumber(null)
-                .permissions(Set.of(ParticipantPermission.VIEW_DOCUMENTS, ParticipantPermission.VIEW_STAGE, ParticipantPermission.VIEW_CONDITIONS, ParticipantPermission.VIEW_NOTES))
-                .isSystem(true)
-                .build();
+                    .transactionId(saved.getTransactionId())
+                    .name(clientOpt.get().getFirstName() + " " + clientOpt.get().getLastName())
+                    .role(ParticipantRole.BUYER) // ou un rôle spécifique si besoin
+                    .email(clientOpt.get().getEmail())
+                    .userId(clientOpt.get().getId())
+                    .phoneNumber(null)
+                    .permissions(Set.of(ParticipantPermission.VIEW_DOCUMENTS, ParticipantPermission.VIEW_STAGE,
+                            ParticipantPermission.VIEW_CONDITIONS, ParticipantPermission.VIEW_NOTES))
+                    .isSystem(true)
+                    .build();
             participantRepository.save(clientParticipant);
         }
         if (brokerOpt.isPresent()) {
             TransactionParticipant brokerParticipant = TransactionParticipant.builder()
-                .transactionId(saved.getTransactionId())
-                .name(brokerOpt.get().getFirstName() + " " + brokerOpt.get().getLastName())
-                .role(ParticipantRole.BROKER)
-                .email(brokerOpt.get().getEmail())
-                .userId(brokerOpt.get().getId())
-                .phoneNumber(null)
-                .permissions(Set.of(ParticipantPermission.values())) // tous les droits
-                .isSystem(true)
-                .build();
+                    .transactionId(saved.getTransactionId())
+                    .name(brokerOpt.get().getFirstName() + " " + brokerOpt.get().getLastName())
+                    .role(ParticipantRole.BROKER)
+                    .email(brokerOpt.get().getEmail())
+                    .userId(brokerOpt.get().getId())
+                    .phoneNumber(null)
+                    .permissions(Set.of(ParticipantPermission.values())) // tous les droits
+                    .isSystem(true)
+                    .build();
             participantRepository.save(brokerParticipant);
         }
 
@@ -547,6 +548,9 @@ public class TransactionServiceImpl implements TransactionService {
             previousStage = tx.getSellerStage().name();
         }
 
+        log.info("Updating transaction {} stage from {} to {} (side: {})", transactionId, previousStage, stageStr,
+                tx.getSide());
+
         // CP-81: Determine if this is a rollback and validate reason
         boolean isRollback = false;
 
@@ -557,11 +561,16 @@ public class TransactionServiceImpl implements TransactionService {
                 isRollback = isRollback(tx, buyerStage);
                 if (isRollback) {
                     if (dto.getReason() == null || dto.getReason().isBlank()) {
+                        log.warn("Rollback requested for transaction {} but no reason provided", transactionId);
                         throw new BadRequestException("Reason is required for stage rollback.");
+                    }
+                    if (dto.getReason().trim().length() < 10 || dto.getReason().trim().length() > 500) {
+                        throw new BadRequestException("Reason must be between 10 and 500 characters.");
                     }
                 }
                 EntityDtoUtil.updateBuyerStage(tx, buyerStage);
             } catch (IllegalArgumentException ex) {
+                log.warn("Invalid buyer stage {} for transaction {}", stageStr, transactionId);
                 throw new BadRequestException("stage '" + stageStr + "' is not a valid buyer stage. Allowed values: "
                         + Arrays.toString(BuyerStage.values()));
             }
@@ -571,11 +580,16 @@ public class TransactionServiceImpl implements TransactionService {
                 isRollback = isRollback(tx, sellerStage);
                 if (isRollback) {
                     if (dto.getReason() == null || dto.getReason().isBlank()) {
+                        log.warn("Rollback requested for transaction {} but no reason provided", transactionId);
                         throw new BadRequestException("Reason is required for stage rollback.");
+                    }
+                    if (dto.getReason().trim().length() < 10 || dto.getReason().trim().length() > 500) {
+                        throw new BadRequestException("Reason must be between 10 and 500 characters.");
                     }
                 }
                 EntityDtoUtil.updateSellerStage(tx, sellerStage);
             } catch (IllegalArgumentException ex) {
+                log.warn("Invalid seller stage {} for transaction {}", stageStr, transactionId);
                 throw new BadRequestException("stage '" + stageStr + "' is not a valid seller stage. Allowed values: "
                         + Arrays.toString(SellerStage.values()));
             }
@@ -768,20 +782,20 @@ public class TransactionServiceImpl implements TransactionService {
         UUID participantUserId = null;
         if (dto.getEmail() != null) {
             participantUserId = userAccountRepository.findByEmail(dto.getEmail())
-                .map(UserAccount::getId)
-                .orElse(null);
+                    .map(UserAccount::getId)
+                    .orElse(null);
         }
 
         TransactionParticipant participant = TransactionParticipant.builder()
-            .transactionId(transactionId)
-            .name(dto.getName())
-            .role(dto.getRole())
-            .email(dto.getEmail())
-            .userId(participantUserId)
-            .phoneNumber(dto.getPhoneNumber())
-            .permissions(dto.getPermissions())
-            .isSystem(false)
-            .build();
+                .transactionId(transactionId)
+                .name(dto.getName())
+                .role(dto.getRole())
+                .email(dto.getEmail())
+                .userId(participantUserId)
+                .phoneNumber(dto.getPhoneNumber())
+                .permissions(dto.getPermissions())
+                .isSystem(false)
+                .build();
 
         TransactionParticipant saved = participantRepository.save(participant);
 
@@ -1171,8 +1185,8 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     @Transactional
     public PropertyResponseDTO updatePropertyStatus(UUID transactionId, UUID propertyId,
-                                                    com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus status,
-                                                    String notes, UUID userId) {
+            com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus status,
+            String notes, UUID userId) {
         Transaction tx = repo.findByTransactionId(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
@@ -1185,42 +1199,50 @@ public class TransactionServiceImpl implements TransactionService {
 
         // Determine permissions
         boolean isClient = tx.getClientId() != null && tx.getClientId().equals(userId);
-        
+
         // Ensure either client or authorized broker/co-manager
         if (!isClient) {
-             // Will throw ForbiddenException if not authorized
-             String userEmail = userAccountRepository.findById(userId).map(UserAccount::getEmail).orElse(null);
-             java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants = participantRepository.findByTransactionId(transactionId);
-             TransactionAccessUtils.verifyBrokerOrCoManagerAccess(tx, userId, userEmail, participants, com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_PROPERTIES);
+            // Will throw ForbiddenException if not authorized
+            String userEmail = userAccountRepository.findById(userId).map(UserAccount::getEmail).orElse(null);
+            java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants = participantRepository
+                    .findByTransactionId(transactionId);
+            TransactionAccessUtils.verifyBrokerOrCoManagerAccess(tx, userId, userEmail, participants,
+                    com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_PROPERTIES);
         }
         boolean isBroker = !isClient;
 
-
         var currentStatus = property.getStatus();
         if (currentStatus == null) {
-            currentStatus = com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.INTERESTED; // Default for legacy
+            currentStatus = com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.INTERESTED; // Default
+                                                                                                                   // for
+                                                                                                                   // legacy
         }
 
         // State Machine Validation
         if (isClient) {
-            // Client can only transition from SUGGESTED to INTERESTED, NOT_INTERESTED, or NEEDS_INFO
+            // Client can only transition from SUGGESTED to INTERESTED, NOT_INTERESTED, or
+            // NEEDS_INFO
             if (currentStatus != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.SUGGESTED) {
-                 throw new BadRequestException("Clients can only review Suggested properties.");
+                throw new BadRequestException("Clients can only review Suggested properties.");
             }
             if (status != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.INTERESTED &&
-                status != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NOT_INTERESTED &&
-                status != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NEEDS_INFO) {
-                 throw new BadRequestException("Invalid status transition for Client.");
+                    status != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NOT_INTERESTED
+                    &&
+                    status != com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NEEDS_INFO) {
+                throw new BadRequestException("Invalid status transition for Client.");
             }
         } else {
             // Broker can transition from NEEDS_INFO to SUGGESTED (resolve info)
-            // Or typically manages other states. We allow broker to reset to SUGGESTED from NEEDS_INFO.
-            if (currentStatus == com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NEEDS_INFO &&
-                status == com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.SUGGESTED) {
+            // Or typically manages other states. We allow broker to reset to SUGGESTED from
+            // NEEDS_INFO.
+            if (currentStatus == com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NEEDS_INFO
+                    &&
+                    status == com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.SUGGESTED) {
                 // Allowed: Broker resolving info request
             } else if (currentStatus == com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.NOT_INTERESTED) {
-                 // Broker might want to delete instead, but maybe re-suggest?
-                 // For now let's allow broker full control if needed, but primary flow is resolving NEEDS_INFO
+                // Broker might want to delete instead, but maybe re-suggest?
+                // For now let's allow broker full control if needed, but primary flow is
+                // resolving NEEDS_INFO
             }
             // For now, we trust the broker, but could enforce stricter rules if needed.
         }
@@ -1228,33 +1250,34 @@ public class TransactionServiceImpl implements TransactionService {
         // Update Status
         property.setStatus(status);
         if (notes != null && !notes.isBlank()) {
-             // Append note or set note?
-             // If NEEDS_INFO, we probably want to save the question.
-             // If Resolving, we might want to save the answer?
-             // For simplicity, let's append to existing notes with a timestamp/author
-             String existing = property.getNotes() == null ? "" : property.getNotes();
-             String newNote = "\n[" + LocalDateTime.now() + " " + (isBroker ? "Broker" : "Client") + "]: " + notes;
-             property.setNotes(existing + newNote);
+            // Append note or set note?
+            // If NEEDS_INFO, we probably want to save the question.
+            // If Resolving, we might want to save the answer?
+            // For simplicity, let's append to existing notes with a timestamp/author
+            String existing = property.getNotes() == null ? "" : property.getNotes();
+            String newNote = "\n[" + LocalDateTime.now() + " " + (isBroker ? "Broker" : "Client") + "]: " + notes;
+            property.setNotes(existing + newNote);
         }
         property.setUpdatedAt(LocalDateTime.now());
         Property saved = propertyRepository.save(property);
 
         // Timeline
         String address = saved.getAddress() != null ? saved.getAddress().getStreet() : "Unknown";
-        // String actorName = lookupUserName(userId); // lookupUserName takes UUID, might need check
+        // String actorName = lookupUserName(userId); // lookupUserName takes UUID,
+        // might need check
         // Using generic actor name check
         String actorName = "User";
         try {
             actorName = lookupUserName(userId);
         } catch (Exception e) {
-             // fallback
+            // fallback
         }
-        
+
         TransactionInfo info = TransactionInfo.builder()
                 .actorName(actorName)
                 .address(address)
                 .build();
-        
+
         timelineService.addEntry(
                 transactionId,
                 userId,

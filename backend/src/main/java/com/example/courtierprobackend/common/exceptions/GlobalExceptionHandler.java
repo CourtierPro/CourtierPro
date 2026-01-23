@@ -24,6 +24,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex, HttpServletRequest request) {
+        log.warn("Bad request to {}: {}", request.getRequestURI(), ex.getMessage());
         String message = ex.getMessage() != null ? ex.getMessage() : "Invalid input";
         ErrorResponse error = ErrorResponse.of(message, "BAD_REQUEST", request.getRequestURI());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);

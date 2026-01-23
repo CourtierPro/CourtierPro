@@ -151,6 +151,8 @@
   "rollbackWarningTitle": "Retour d'étape",
   "rollbackWarningMessage": "Vous déplacez la transaction vers une étape précédente. Une raison est requise.",
   "reasonRequired": "La raison est requise",
+  "reasonTooShort": "La raison doit comporter au moins 10 caractères",
+  "reasonTooLong": "La raison ne peut pas dépasser 500 caractères",
   "selectStageFirst": "Veuillez sélectionner une étape pour continuer",
   "currentStageSelectedTitle": "Étape actuelle sélectionnée",
   "currentStageSelectedMessage": "Vous avez sélectionné l'étape actuelle de la transaction. Veuillez sélectionner une étape différente pour la mise à jour.",

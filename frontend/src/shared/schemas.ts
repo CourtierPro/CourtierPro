@@ -46,8 +46,27 @@ export function normalizeTransactionFormData(data: TransactionCreateFormValues) 
 export const stageUpdateSchema = z.object({
     stage: z.string().min(1, "selectStageFirst"),
     note: z.string().trim().optional(),
-    reason: z.string().trim().optional(),
+    reason: z.string().trim().min(10, "reasonTooShort").max(500, "reasonTooLong").optional().or(z.literal("")),
     visibleToClient: z.boolean(),
+    // These are for validation context, not sent to backend
+    currentStage: z.string().optional(),
+    stages: z.array(z.string()).optional(),
+}).superRefine((data, ctx) => {
+    if (data.currentStage && data.stages && data.stage) {
+        const currentIndex = data.stages.indexOf(data.currentStage);
+        const selectedIndex = data.stages.indexOf(data.stage);
+
+        if (selectedIndex < currentIndex) {
+            // It's a rollback
+            if (!data.reason || data.reason.trim().length < 10) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "reasonRequired",
+                    path: ["reason"],
+                });
+            }
+        }
+    }
 });
 
 export type StageUpdateFormValues = z.infer<typeof stageUpdateSchema>;

@@ -84,12 +84,13 @@ function StageUpdateForm({
       note: '',
       visibleToClient: true,
       reason: '',
+      currentStage: currentStage || '',
+      stages: stageEnums,
     },
   });
 
   const { control, reset } = form; // watch is needed for detecting stage change
   const selectedStage = useWatch({ control, name: 'stage' });
-  const reasonValue = useWatch({ control, name: 'reason' });
 
   // Reset form when defaultNextStage changes
   useEffect(() => {
@@ -98,8 +99,10 @@ function StageUpdateForm({
       note: '',
       visibleToClient: true,
       reason: '',
+      currentStage: currentStage || '',
+      stages: stageEnums,
     });
-  }, [reset, defaultNextStage]);
+  }, [reset, defaultNextStage, currentStage, stageEnums]);
 
   // Determine if it is a rollback
   const isRollback = () => {
@@ -122,11 +125,7 @@ function StageUpdateForm({
           return;
         }
 
-        // If rollback, ensure reason is provided (validation handled by schema/form state ideally but let's be safe)
-        if (rollback && !data.reason?.trim()) {
-          form.setError("reason", { type: "manual", message: "reasonRequired" });
-          return;
-        }
+        // If rollback, validation is now handled by the Zod schema resolver
         await onSubmit(data.stage, data.note || '', data.reason);
       }
       onClose();
@@ -365,7 +364,7 @@ function StageUpdateForm({
           </Button>
           <Button
             type="submit"
-            disabled={(!rollback && !form.formState.isValid) || (rollback && !reasonValue?.trim()) || isSameStage || isLoading}
+            disabled={!form.formState.isValid || isSameStage || isLoading}
             className="flex-1"
           >
             {isLoading ? t('updating') ?? 'Updating...' : t('updateTransactionStage')}

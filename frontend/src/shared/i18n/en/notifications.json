@@ -30,5 +30,13 @@
     "notifications.offerCountered.title": "Counter-Offer Received",
     "notifications.offerCountered.message": "A counter-offer has been received for your offer on {{address}}.",
     "transactionDeletedMessage": "This transaction has been cancelled or deleted.",
-    "inAppNotificationsDisabled": "In-app notifications are disabled in your profile settings."
+    "inAppNotificationsDisabled": "In-app notifications are disabled in your profile settings.",
+    "notifications.stageUpdate.title": "Stage Updated",
+    "notifications.stageUpdate.message": "{{brokerName}} updated the stage to {{stage}} for the property at {{propertyAddress}}.",
+    "notifications.stageRollback.title": "Stage Rollback",
+    "notifications.stageRollback.message": "{{brokerName}} rolled back the stage to {{stage}} for the property at {{propertyAddress}}.",
+    "notifications.propertyOfferStatusChanged.title": "Offer Status Updated",
+    "notifications.propertyOfferStatusChanged.message": "The status for the offer on {{address}} has been updated to {{status}}.",
+    "notifications.clientOfferDecision.title": "Client Decision Received",
+    "notifications.clientOfferDecision.message": "{{clientName}} has indicated a decision of {{decision}} for the offer from {{buyerName}}."
 }

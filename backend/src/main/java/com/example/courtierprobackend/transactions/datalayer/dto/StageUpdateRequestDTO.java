@@ -11,5 +11,7 @@ public class StageUpdateRequestDTO {
 
     private String note;
 
+    // reason is validated in service layer - only required for rollbacks with min
+    // 10 chars
     private String reason;
 }

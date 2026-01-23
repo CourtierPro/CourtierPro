@@ -1,6 +1,5 @@
 package com.example.courtierprobackend.audit.timeline_audit.businesslayer;
 
-
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntry;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntryRepository;
@@ -35,24 +34,28 @@ public class TimelineServiceImpl implements TimelineService {
     }
 
     @Override
-    public void addEntry(UUID transactionId, UUID actorId, TimelineEntryType type, String note, String docType, TransactionInfo transactionInfo) {
+    public void addEntry(UUID transactionId, UUID actorId, TimelineEntryType type, String note, String docType,
+            TransactionInfo transactionInfo) {
         boolean visibleToClient = switch (type) {
-            case CREATED, DOCUMENT_REQUESTED, DOCUMENT_SUBMITTED, DOCUMENT_APPROVED, DOCUMENT_NEEDS_REVISION, STAGE_CHANGE,
-                 PROPERTY_ADDED, PROPERTY_UPDATED, PROPERTY_REMOVED,
-                 OFFER_RECEIVED, OFFER_UPDATED, OFFER_REMOVED, PROPERTY_OFFER_MADE, PROPERTY_OFFER_UPDATED, OFFER_DOCUMENT_UPLOADED,
-                 CONDITION_ADDED, CONDITION_UPDATED, CONDITION_REMOVED, CONDITION_SATISFIED, CONDITION_FAILED -> true;
+            case CREATED, DOCUMENT_REQUESTED, DOCUMENT_SUBMITTED, DOCUMENT_APPROVED, DOCUMENT_NEEDS_REVISION,
+                    STAGE_CHANGE, STAGE_ROLLBACK,
+                    PROPERTY_ADDED, PROPERTY_UPDATED, PROPERTY_REMOVED,
+                    OFFER_RECEIVED, OFFER_UPDATED, OFFER_REMOVED, PROPERTY_OFFER_MADE, PROPERTY_OFFER_UPDATED,
+                    OFFER_DOCUMENT_UPLOADED,
+                    CONDITION_ADDED, CONDITION_UPDATED, CONDITION_REMOVED, CONDITION_SATISFIED, CONDITION_FAILED ->
+                true;
             default -> false;
         };
         TimelineEntry entry = TimelineEntry.builder()
-            .transactionId(transactionId)
-            .actorId(actorId)
-            .type(type)
-            .note(note)
-            .docType(docType)
-            .timestamp(Instant.now())
-            .visibleToClient(visibleToClient)
-            .transactionInfo(transactionInfo)
-            .build();
+                .transactionId(transactionId)
+                .actorId(actorId)
+                .type(type)
+                .note(note)
+                .docType(docType)
+                .timestamp(Instant.now())
+                .visibleToClient(visibleToClient)
+                .transactionInfo(transactionInfo)
+                .build();
         repository.save(entry);
     }
 
@@ -65,11 +68,13 @@ public class TimelineServiceImpl implements TimelineService {
     @Override
     public List<TimelineEntryDTO> getTimelineForClient(UUID transactionId) {
         log.info("[Timeline] Fetching client-visible timeline for transaction {}", transactionId);
-        List<TimelineEntry> entries = repository.findByTransactionIdAndVisibleToClientTrueOrderByTimestampAsc(transactionId);
+        List<TimelineEntry> entries = repository
+                .findByTransactionIdAndVisibleToClientTrueOrderByTimestampAsc(transactionId);
         log.info("[Timeline] Found {} client-visible entries for transaction {}", entries.size(), transactionId);
         for (TimelineEntry entry : entries) {
             log.info("[Timeline] Entry: id={}, type={}, docType={}, visibleToClient={}, timestamp={}",
-                entry.getId(), entry.getType(), entry.getDocType(), entry.isVisibleToClient(), entry.getTimestamp());
+                    entry.getId(), entry.getType(), entry.getDocType(), entry.isVisibleToClient(),
+                    entry.getTimestamp());
         }
         return entries.stream().map(timelineEntryMapper::toDTO).toList();
     }
@@ -79,7 +84,7 @@ public class TimelineServiceImpl implements TimelineService {
         if (transactionIds == null || transactionIds.isEmpty()) {
             return List.of();
         }
-        
+
         return transactionIds.stream()
                 .flatMap(txId -> repository.findByTransactionIdOrderByTimestampAsc(txId).stream())
                 .sorted(Comparator.comparing(TimelineEntry::getTimestamp).reversed())
@@ -87,15 +92,15 @@ public class TimelineServiceImpl implements TimelineService {
                 .map(timelineEntryMapper::toDTO)
                 .toList();
     }
-    
+
     @Override
     public Page<TimelineEntryDTO> getRecentEntriesForTransactionsPaged(Set<UUID> transactionIds, Pageable pageable) {
         if (transactionIds == null || transactionIds.isEmpty()) {
             return Page.empty(pageable);
         }
-        
-        Page<TimelineEntry> entriesPage = repository.findByTransactionIdInOrderByTimestampDesc(transactionIds, pageable);
+
+        Page<TimelineEntry> entriesPage = repository.findByTransactionIdInOrderByTimestampDesc(transactionIds,
+                pageable);
         return entriesPage.map(timelineEntryMapper::toDTO);
     }
 }
-

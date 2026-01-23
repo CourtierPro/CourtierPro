@@ -30,5 +30,13 @@
     "notifications.offerCountered.title": "Contre-offre reçue",
     "notifications.offerCountered.message": "Une contre-offre a été reçue pour votre offre sur {{address}}.",
     "transactionDeletedMessage": "Cette transaction a été annulée ou supprimée.",
-    "inAppNotificationsDisabled": "Les notifications dans l'application sont désactivées dans les paramètres de votre profil."
+    "inAppNotificationsDisabled": "Les notifications dans l'application sont désactivées dans les paramètres de votre profil.",
+    "notifications.stageUpdate.title": "Étape mise à jour",
+    "notifications.stageUpdate.message": "{{brokerName}} a mis à jour l'étape à {{stage}} pour la propriété au {{propertyAddress}}.",
+    "notifications.stageRollback.title": "Retour en arrière de l'étape",
+    "notifications.stageRollback.message": "{{brokerName}} a effectué un retour en arrière de l'étape à {{stage}} pour la propriété au {{propertyAddress}}.",
+    "notifications.propertyOfferStatusChanged.title": "Statut de l'offre mis à jour",
+    "notifications.propertyOfferStatusChanged.message": "Le statut de l'offre pour la propriété au {{address}} a été mis à jour à {{status}}.",
+    "notifications.clientOfferDecision.title": "Décision du client reçue",
+    "notifications.clientOfferDecision.message": "{{clientName}} a indiqué une décision de {{decision}} pour l'offre de {{buyerName}}."
 }
