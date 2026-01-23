@@ -245,11 +245,25 @@ CREATE TABLE IF NOT EXISTS transaction_participants (
     role VARCHAR(50) NOT NULL,
     email VARCHAR(255),
     phone_number VARCHAR(50),
+    user_id UUID,
     is_system BOOLEAN NOT NULL DEFAULT FALSE,
-    CONSTRAINT fk_participant_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE
+    CONSTRAINT fk_participant_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE,
+    CONSTRAINT fk_transaction_participants_user_id FOREIGN KEY (user_id) REFERENCES user_accounts(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_transaction_participants_transaction_id ON transaction_participants(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_transaction_participants_user_id ON transaction_participants(user_id);
+
+-- =============================================================================
+-- PARTICIPANT PERMISSIONS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS participant_permissions (
+    participant_id UUID NOT NULL,
+    permission VARCHAR(50) NOT NULL,
+    CONSTRAINT fk_participant_permissions_participant FOREIGN KEY (participant_id) REFERENCES transaction_participants(id)
+);
+
+CREATE INDEX idx_participant_permissions_participant_id ON participant_permissions(participant_id);
 
 -- =============================================================================
 -- ORGANIZATION SETTINGS
@@ -408,6 +422,7 @@ CREATE TABLE IF NOT EXISTS properties (
     offer_amount DECIMAL(15,2),
     centris_number VARCHAR(50),
     -- Status tracking
+    status VARCHAR(50) NOT NULL DEFAULT 'SUGGESTED',
     offer_status VARCHAR(50) NOT NULL DEFAULT 'OFFER_TO_BE_MADE',
     -- Broker notes (not visible to clients)
     notes TEXT,
@@ -667,19 +682,9 @@ CREATE INDEX IF NOT EXISTS idx_email_change_tokens_user_id ON email_change_token
 CREATE INDEX IF NOT EXISTS idx_email_change_tokens_token ON email_change_tokens(token);
 
 -- =============================================================================
--- PARTICIPANT PERMISSIONS
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS participant_permissions (
-    participant_id UUID NOT NULL,
-    permission VARCHAR(50) NOT NULL,
-    CONSTRAINT fk_participant_permissions_participant FOREIGN KEY (participant_id) REFERENCES transaction_participants(id)
-);
-
-CREATE INDEX idx_participant_permissions_participant_id ON participant_permissions(participant_id);
-
--- ============================================================================
 -- APPOINTMENTS
--- ============================================================================
+-- =============================================================================
 CREATE TABLE IF NOT EXISTS appointments (
     id BIGSERIAL PRIMARY KEY,
     appointment_id UUID NOT NULL UNIQUE,

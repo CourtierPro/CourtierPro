@@ -3,10 +3,9 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
 import { SectionHeader } from "@/shared/components/branded/SectionHeader";
-import { EmptyState } from "@/shared/components/branded/EmptyState";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
-import { Plus, FolderOpen, FileText, Download, Eye, Tag } from "lucide-react";
+import { Plus, FileText, Download, Eye, Tag } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { toast } from "sonner";
@@ -216,97 +215,74 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
         onSelectStage={setSelectedStage}
       />
 
-      {/* Client-submitted documents */}
-      {filteredDocuments.length === 0 && offerDocuments.length === 0 ? (
-        <Section>
-          <EmptyState
-            icon={<FolderOpen className="w-12 h-12 text-muted-foreground" />}
-            title={tDocuments('noDocumentsTitle', 'No documents found')}
-            description={tDocuments('noDocumentsForStage', 'No documents for this transaction yet.')}
-            action={
-              !isReadOnly && !hideRequestButton && canReview && canEditDocuments ? (
-                <Button onClick={() => setIsModalOpen(true)} className="mt-4">
-                  <Plus className="w-4 h-4 mr-2" />
-                  {tDocuments('requestDocument', 'Request Document')}
-                </Button>
-              ) : undefined
-            }
-          />
-        </Section>
-      ) : (
-        <>
-          {filteredDocuments.length > 0 && (
-            <DocumentList
-              documents={filteredDocuments}
-              onUpload={canUpload ? handleUploadClick : undefined}
-              onReview={canReview ? handleReviewClick : undefined}
-              onEdit={canReview && canEditDocuments ? handleEditClick : undefined}
-              focusDocumentId={focusDocumentId}
-            />
-          )}
+      <DocumentList
+        documents={filteredDocuments}
+        onUpload={canUpload ? handleUploadClick : undefined}
+        onReview={canReview ? handleReviewClick : undefined}
+        onEdit={canReview && canEditDocuments ? handleEditClick : undefined}
+        focusDocumentId={focusDocumentId}
+      />
 
-          {/* Offer Documents Section */}
-          {offerDocuments.length > 0 && (
-            <Section>
-              <SectionHeader
-                title={tTransactions('offerDocuments', 'Offer Documents')}
-                description={tTransactions('offerDocumentsDescription', 'Documents attached to offers and property offers')}
-              />
-              <div className="space-y-2 mt-4">
-                {isLoadingAllDocs ? (
-                  <LoadingState />
-                ) : (
-                  offerDocuments.map((doc) => (
-                    <div
-                      key={doc.documentId}
-                      className="flex items-center justify-between p-3 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{doc.fileName}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{doc.sourceName}</span>
-                            {doc.uploadedAt && (
-                              <>
-                                <span>•</span>
-                                <span>{format(new Date(doc.uploadedAt), 'MMM d, yyyy')}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <Badge variant={getSourceBadgeVariant(doc.source)} className="flex-shrink-0">
-                          <Tag className="w-3 h-3 mr-1" />
-                          {getSourceLabel(doc.source)}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-1 ml-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleDownloadOfferDoc(doc)}
-                          title={tTransactions('view')}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleDownloadOfferDoc(doc)}
-                          title={tTransactions('download')}
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
+      {/* Offer Documents Section */}
+      {offerDocuments.length > 0 && (
+        <Section>
+          <SectionHeader
+            title={tTransactions('offerDocuments', 'Offer Documents')}
+            description={tTransactions('offerDocumentsDescription', 'Documents attached to offers and property offers')}
+          />
+          <div className="space-y-2 mt-4">
+            {isLoadingAllDocs ? (
+              <LoadingState />
+            ) : (
+              offerDocuments.map((doc) => (
+                <div
+                  key={doc.documentId}
+                  className="flex items-center justify-between p-3 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{doc.fileName}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{doc.sourceName}</span>
+                        {doc.uploadedAt && (
+                          <>
+                            <span>•</span>
+                            <span>{format(new Date(doc.uploadedAt), 'MMM d, yyyy')}</span>
+                          </>
+                        )}
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            </Section>
-          )}
-        </>
+                    <Badge variant={getSourceBadgeVariant(doc.source)} className="flex-shrink-0">
+                      <Tag className="w-3 h-3 mr-1" />
+                      {getSourceLabel(doc.source)}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-1 ml-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleDownloadOfferDoc(doc)}
+                      title={tTransactions('view')}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleDownloadOfferDoc(doc)}
+                      title={tTransactions('download')}
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Section>
       )}
       {editingDocument && (
         <EditDocumentRequestModal

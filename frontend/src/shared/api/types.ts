@@ -160,6 +160,12 @@ export interface StageUpdateRequestDTO {
 
 // ==================== PROPERTY TYPES ====================
 
+export type PropertyStatus =
+  | 'SUGGESTED'
+  | 'INTERESTED'
+  | 'NOT_INTERESTED'
+  | 'NEEDS_INFO';
+
 export type PropertyOfferStatus =
   | 'OFFER_TO_BE_MADE'
   | 'OFFER_MADE'
@@ -173,6 +179,7 @@ export interface Property {
   address: PropertyAddress;
   askingPrice?: number;
   offerStatus: PropertyOfferStatus;
+  status?: PropertyStatus; // Optional for legacy compatibility, but usually present
   offerAmount?: number;
   centrisNumber?: string;
   notes?: string; // Only present for brokers
@@ -184,6 +191,7 @@ export interface PropertyRequestDTO {
   address: PropertyAddress;
   askingPrice?: number;
   offerStatus: PropertyOfferStatus;
+  status?: PropertyStatus;
   offerAmount?: number;
   centrisNumber?: string;
   notes?: string;

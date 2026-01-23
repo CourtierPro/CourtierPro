@@ -97,6 +97,10 @@ public class SecurityConfig {
                         .hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers(HttpMethod.GET, "/transactions/properties/*/offers/*/documents")
                         .hasAnyRole("BROKER", "CLIENT")
+                        
+                        // Allow Client and Broker to update property status
+                        .requestMatchers(HttpMethod.PATCH, "/transactions/*/properties/*/status").hasAnyRole("BROKER", "CLIENT")
+
                         // Unified documents endpoint - aggregates all document sources
                         .requestMatchers(HttpMethod.GET, "/transactions/*/all-documents").hasAnyRole("BROKER", "CLIENT")
                         // Allow GET /transactions for both brokers and clients

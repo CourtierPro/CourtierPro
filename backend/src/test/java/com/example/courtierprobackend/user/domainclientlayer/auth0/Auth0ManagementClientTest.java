@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -353,6 +354,128 @@ class Auth0ManagementClientTest {
         doReturn("test-token").when(spyClient).getManagementToken();
         boolean result = spyClient.isMfaEnabled("auth0|user4");
         assertThat(result).isFalse();
+    }
+
+    @Test
+    void getManagementToken_UsesCachedToken_WhenValid() {
+        // Arrange
+        // First call to populate cache
+        String token1 = client.getManagementToken();
+        
+        // Act
+        // Second call should return cached token without making another request
+        String token2 = client.getManagementToken();
+
+        // Assert
+        assertThat(token1).isEqualTo("mock-token");
+        assertThat(token2).isEqualTo("mock-token");
+        // Verify postForEntity was called only once (for the initial token)
+        verify(restTemplate, times(1)).postForEntity(eq("https://example.auth0.com/oauth/token"), any(), eq(TokenResponse.class), any(Object[].class));
+    }
+
+    @Test
+    void createUser_ThrowsIllegalArgument_OnConflict() {
+        // Arrange
+        when(restTemplate.postForEntity(eq("https://example.auth0.com/api/v2/users"), any(HttpEntity.class), eq(Auth0UserResponse.class), any(Object[].class)))
+                .thenThrow(org.springframework.web.client.HttpClientErrorException.create(HttpStatus.CONFLICT, "Conflict", org.springframework.http.HttpHeaders.EMPTY, null, null));
+
+        // Act & Assert
+        assertThatThrownBy(() -> client.createUser("exist@example.com", "F", "L", UserRole.CLIENT, "en"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("already exists");
+    }
+
+    @Test
+    void createUser_ThrowsIllegalState_OnOtherHttpError() {
+        // Arrange
+        when(restTemplate.postForEntity(eq("https://example.auth0.com/api/v2/users"), any(HttpEntity.class), eq(Auth0UserResponse.class), any(Object[].class)))
+                .thenThrow(new org.springframework.web.client.HttpClientErrorException(HttpStatus.BAD_REQUEST, "Bad Request"));
+
+        // Act & Assert
+        assertThatThrownBy(() -> client.createUser("bad@example.com", "F", "L", UserRole.CLIENT, "en"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Auth0 error");
+    }
+    
+    @Test
+    void createUser_ThrowsIllegalState_OnNullBody() {
+         // Arrange
+        when(restTemplate.postForEntity(eq("https://example.auth0.com/api/v2/users"), any(HttpEntity.class), eq(Auth0UserResponse.class), any(Object[].class)))
+                .thenReturn(ResponseEntity.ok(null));
+
+        // Act & Assert
+        assertThatThrownBy(() -> client.createUser("null@example.com", "F", "L", UserRole.CLIENT, "en"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Failed to create Auth0 user");
+    }
+
+    @Test
+    void setBlocked_ThrowsIllegalState_OnFailure() {
+        // Arrange
+        when(restTemplate.exchange(
+                contains("/users/"),
+                eq(HttpMethod.PATCH),
+                any(HttpEntity.class),
+                eq(Void.class),
+                any(Object[].class)))
+            .thenReturn(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build());
+
+        // Act & Assert
+        assertThatThrownBy(() -> client.setBlocked("id", true))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Failed to set blocked");
+    }
+
+    @Test
+    void updateUserLanguage_LogsWarning_OnFailure() {
+        // Arrange
+        when(restTemplate.exchange(
+                contains("/users/"),
+                eq(HttpMethod.PATCH),
+                any(HttpEntity.class),
+                eq(Void.class),
+                any(Object[].class)))
+            .thenReturn(ResponseEntity.badRequest().build());
+
+        // Act
+        client.updateUserLanguage("id", "en");
+
+        // Assert - verify interaction happened, logs aren't easily verifiable without Log helper, but code path is covered
+        verify(restTemplate).exchange(contains("/users/"), eq(HttpMethod.PATCH), any(), eq(Void.class), any(Object[].class));
+    }
+
+    @Test
+    void createPasswordChangeTicket_ThrowsIllegalState_OnFailure() {
+        // Arrange
+        when(restTemplate.postForEntity(
+                contains("/tickets/password-change"), 
+                any(HttpEntity.class), 
+                eq(PasswordChangeTicketResponse.class),
+                any(Object[].class)))
+            .thenReturn(ResponseEntity.badRequest().build());
+
+        // Act & Assert
+        assertThatThrownBy(() -> client.createPasswordChangeTicket("id"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Failed to create password change ticket");
+    }
+    
+    @Test
+    void getUserRoles_ReturnsEmpty_OnNon2xx() {
+         // Arrange
+        when(restTemplate.exchange(
+                contains("/roles"), 
+                eq(HttpMethod.GET), 
+                any(HttpEntity.class), 
+                eq(Auth0Role[].class),
+                any(Object[].class)))
+            .thenReturn(ResponseEntity.badRequest().build());
+
+        // Act
+        List<Auth0Role> roles = client.getUserRoles("id");
+
+        // Assert
+        assertThat(roles).isEmpty();
     }
 }
 

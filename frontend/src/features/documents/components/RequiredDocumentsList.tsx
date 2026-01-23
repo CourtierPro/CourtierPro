@@ -9,7 +9,6 @@ import { DocumentList } from './DocumentList';
 import { UploadDocumentModal } from './UploadDocumentModal';
 import { DocumentReviewModal } from './DocumentReviewModal';
 import { DocumentListSkeleton } from './DocumentListSkeleton';
-import { EmptyDocumentsState } from './EmptyDocumentsState';
 import { StatusFilterBar, type FilterStatus } from './StatusFilterBar';
 import { formatDocumentTitle } from '../utils/formatDocumentTitle';
 import { getRoleFromUser } from "@/features/auth/roleUtils";
@@ -97,13 +96,8 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
                 />
             )}
 
-            {filteredDocuments && filteredDocuments.length > 0 ? (
-                <>
-                    
-                    <DocumentList documents={filteredDocuments} onUpload={handleUploadClick} onReview={canReview ? handleReviewClick : undefined} />
-                </>
-            ) : (
-                <EmptyDocumentsState />
+            {documents && (
+                <DocumentList documents={filteredDocuments || []} onUpload={handleUploadClick} onReview={canReview ? handleReviewClick : undefined} />
             )}
 
             {selectedRequest && (

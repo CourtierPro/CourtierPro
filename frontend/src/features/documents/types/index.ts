@@ -3,6 +3,7 @@ export const DocumentStatusEnum = {
     SUBMITTED: 'SUBMITTED',
     APPROVED: 'APPROVED',
     NEEDS_REVISION: 'NEEDS_REVISION',
+    REJECTED: 'REJECTED',
 } as const;
 export type DocumentStatusEnum = typeof DocumentStatusEnum[keyof typeof DocumentStatusEnum];
 
