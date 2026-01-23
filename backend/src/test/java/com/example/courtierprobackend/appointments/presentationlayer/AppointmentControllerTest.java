@@ -426,5 +426,4 @@ class AppointmentControllerTest {
                 assertThat(response.getBody()).isNotNull();
                 verify(appointmentService).reviewAppointment(eq(appointmentId), eq(reviewDTO), eq(brokerId));
         }
-
 }

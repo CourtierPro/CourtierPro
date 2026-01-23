@@ -27,7 +27,6 @@ export function useRequestAppointment() {
         },
     });
 }
-
 export interface AppointmentReviewDTO {
     action: 'CONFIRM' | 'DECLINE' | 'RESCHEDULE';
     refusalReason?: string;

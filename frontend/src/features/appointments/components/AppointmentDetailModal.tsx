@@ -227,7 +227,7 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
             }
         }
         return null; // No special banner for Confirmed/Declined/etc for now
-    }, [appointment, canReview, t]);
+    }, [appointment, canReview, t, otherPartyLabel]);
 
     if (!appointment) return null;
 

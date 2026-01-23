@@ -21,7 +21,6 @@ export function AppointmentItem({ appointment, onClick, compact = false, isBroke
     // Determine if the current user is a broker, if the prop 'isBroker' is not provided.
     const userRoles = (user?.['https://courtierpro.dev/roles'] as string[]) || [];
     const isCurrentUserBroker = userRoles.includes('BROKER');
-
     // Use the 'isBroker' prop if provided, otherwise fall back to the Auth0 user role check.
     const isBrokerEffective = isBroker !== undefined ? isBroker : isCurrentUserBroker;
 
@@ -77,30 +76,30 @@ export function AppointmentItem({ appointment, onClick, compact = false, isBroke
                         )}
                     </div>
                 </div>
+            </div>
 
-                <div className={`flex flex-wrap items-center ${compact ? 'gap-x-3 gap-y-1 text-xs' : 'gap-x-4 gap-y-1 text-sm'} text-muted-foreground`}>
-                    <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" />
-                        {getAppointmentTimeRange(appointment)}
+            <div className={`flex flex-wrap items-center ${compact ? 'gap-x-3 gap-y-1 text-xs' : 'gap-x-4 gap-y-1 text-sm'} text-muted-foreground`}>
+                <span className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    {getAppointmentTimeRange(appointment)}
+                </span>
+
+                <span className="flex items-center gap-1">
+                    <User className="h-3.5 w-3.5" />
+                    {isBrokerEffective ? appointment.clientName : appointment.brokerName}
+                </span>
+
+                {appointment.location && (
+                    <span className="flex items-center gap-1 truncate max-w-[200px]">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{appointment.location}</span>
                     </span>
+                )}
 
-                    <span className="flex items-center gap-1">
-                        <User className="h-3.5 w-3.5" />
-                        {isBrokerEffective ? appointment.clientName : appointment.brokerName}
-                    </span>
-
-                    {appointment.location && (
-                        <span className="flex items-center gap-1 truncate max-w-[200px]">
-                            <MapPin className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">{appointment.location}</span>
-                        </span>
-                    )}
-
-                    <span className={`flex items-center gap-1 font-medium text-primary`}>
-                        {isMe ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownLeft className="h-3.5 w-3.5" />}
-                        {label}
-                    </span>
-                </div>
+                <span className={`flex items-center gap-1 font-medium text-primary`}>
+                    {isMe ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownLeft className="h-3.5 w-3.5" />}
+                    {label}
+                </span>
             </div>
         </div>
     );
