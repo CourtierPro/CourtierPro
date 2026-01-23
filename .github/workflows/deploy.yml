@@ -267,9 +267,10 @@ jobs:
         env:
           DEPLOY_RESULT: ${{ steps.fetch_result.outputs.stdout }}
         run: |
-          # Trim whitespace and get the result
-          RESULT=$(echo "$DEPLOY_RESULT" | tr -d '[:space:]')
-          echo "Raw result: '$RESULT'"
+          # Extract only the first line and trim whitespace
+          # The ssh-action includes extra banner text in stdout that we need to ignore
+          RESULT=$(echo "$DEPLOY_RESULT" | head -n 1 | tr -d '[:space:]')
+          echo "Raw result (first line only): '$RESULT'"
           
           if [ "$RESULT" == "success" ]; then
             echo "deploy_status=success" >> $GITHUB_OUTPUT
