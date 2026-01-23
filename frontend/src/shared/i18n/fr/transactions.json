@@ -274,6 +274,7 @@
   "timelineType": {
     "CREATED": "Transaction créée",
     "STAGE_CHANGE": "Changement d'étape",
+    "STAGE_ROLLBACK": "Étape annulée",
     "STATUS_CHANGE": "Changement de statut",
     "NOTE": "Note",
     "TRANSACTION_NOTE": "Note",

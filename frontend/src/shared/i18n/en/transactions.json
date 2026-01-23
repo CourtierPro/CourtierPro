@@ -290,6 +290,7 @@
   "timelineType": {
     "CREATED": "Transaction Created",
     "STAGE_CHANGE": "Stage Updated",
+    "STAGE_ROLLBACK": "Stage Rolled Back",
     "STATUS_CHANGE": "Status Updated",
     "NOTE": "Note",
     "TRANSACTION_NOTE": "Note",
