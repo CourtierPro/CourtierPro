@@ -1,8 +1,9 @@
 import { Section } from "@/shared/components/branded/Section";
 import { Badge } from "@/shared/components/ui/badge";
+import { Button } from "@/shared/components/ui/button";
 import { type Appointment, getAppointmentTimeRange } from "../types";
 import { getStatusColorClass } from "../enums";
-import { Clock, MapPin, User, ArrowUpRight, ArrowDownLeft, StickyNote } from "lucide-react";
+import { Clock, MapPin, User, ArrowUpRight, ArrowDownLeft, StickyNote, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth0 } from "@auth0/auth0-react";
 
@@ -36,27 +37,44 @@ export function AppointmentItem({ appointment, onClick, compact = false, isBroke
             ? t('proposedByClient', { name: appointment.clientName })
             : t('proposedByBroker', { name: appointment.brokerName });
 
+    const canReview = appointment.status === 'PROPOSED' && !isMe;
+
     const content = (
         <div className={`flex ${compact ? 'flex-col gap-2' : 'flex-col sm:flex-row sm:items-center justify-between gap-3'}`}>
             <div className="space-y-1.5 flex-1 min-w-0">
                 <div className="flex items-center gap-2 justify-between w-full">
                     <h3 className="font-semibold truncate">{t(appointment.title.toLowerCase(), appointment.title)}</h3>
-                    <div className="flex items-center gap-2 shrink-0">
-                        {appointment.notes && (
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                        <div className="flex items-center gap-2">
+                            {appointment.notes && (
+                                <Badge
+                                    variant="outline"
+                                    className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 px-1.5 py-0 h-5 gap-1"
+                                >
+                                    <StickyNote className="h-3 w-3" />
+                                    {t('note', 'Note')}
+                                </Badge>
+                            )}
                             <Badge
                                 variant="outline"
-                                className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 px-1.5 py-0 h-5 gap-1"
+                                className={`text-xs border-0 text-white ${getStatusColorClass(appointment.status)}`}
                             >
-                                <StickyNote className="h-3 w-3" />
-                                {t('note', 'Note')}
+                                {t(`status.${appointment.status.toLowerCase()}`, appointment.status)}
                             </Badge>
+                        </div>
+                        {canReview && (
+                            <Button
+                                size="sm"
+                                className="h-7 text-xs bg-primary text-primary-foreground border border-transparent hover:bg-white hover:text-primary hover:border-primary gap-1.5 px-3 rounded-full transition-all duration-200"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onClick?.(appointment);
+                                }}
+                            >
+                                <Check className="w-3.5 h-3.5" />
+                                {t('review', 'Review Request')}
+                            </Button>
                         )}
-                        <Badge
-                            variant="outline"
-                            className={`text-xs border-0 text-white ${getStatusColorClass(appointment.status)}`}
-                        >
-                            {t(`status.${appointment.status.toLowerCase()}`, appointment.status)}
-                        </Badge>
                     </div>
                 </div>
 
@@ -78,8 +96,6 @@ export function AppointmentItem({ appointment, onClick, compact = false, isBroke
                         </span>
                     )}
 
-
-
                     <span className={`flex items-center gap-1 font-medium text-primary`}>
                         {isMe ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownLeft className="h-3.5 w-3.5" />}
                         {label}
@@ -89,10 +105,12 @@ export function AppointmentItem({ appointment, onClick, compact = false, isBroke
         </div>
     );
 
+    const bgClass = !isMe ? "bg-orange-50/50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/20" : "bg-card hover:bg-accent/50";
+
     if (compact) {
         return (
             <div
-                className="p-3 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer bg-card text-card-foreground"
+                className={`p-3 border rounded-lg transition-colors cursor-pointer text-card-foreground ${bgClass} ${!isMe ? 'hover:bg-orange-100/50 dark:hover:bg-orange-900/20' : ''}`}
                 onClick={() => onClick?.(appointment)}
             >
                 {content}
@@ -102,7 +120,7 @@ export function AppointmentItem({ appointment, onClick, compact = false, isBroke
 
     return (
         <Section
-            className="hover:bg-accent/50 transition-colors cursor-pointer"
+            className={`transition-colors cursor-pointer ${bgClass} ${!isMe ? 'hover:bg-orange-100/50 dark:hover:bg-orange-900/20' : ''}`}
             onClick={() => onClick?.(appointment)}
         >
             {content}

@@ -4,6 +4,7 @@ import { format, parseISO } from "date-fns";
 
 interface AppointmentListProps {
     groupedAppointments: Map<string, Appointment[]>;
+    allAppointments?: Appointment[]; // Optional: for global conflict checking
 }
 
 import { useState } from "react";
@@ -11,13 +12,16 @@ import { AppointmentDetailModal } from "./AppointmentDetailModal";
 
 import { useAuth0 } from "@auth0/auth0-react";
 
-export function AppointmentList({ groupedAppointments }: AppointmentListProps) {
+export function AppointmentList({ groupedAppointments, allAppointments }: AppointmentListProps) {
     const { user } = useAuth0();
     const isBroker = user?.['https://courtierpro.dev/roles']?.includes('BROKER') ?? false;
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
     // Sort dates chronologically
     const sortedDates = Array.from(groupedAppointments.keys()).sort();
+
+    // Use passed allAppointments (global) or derive from current view (local) if not provided
+    const conflictCheckAppointments = allAppointments || Array.from(groupedAppointments.values()).flat();
 
     if (sortedDates.length === 0) {
         return null;
@@ -52,6 +56,7 @@ export function AppointmentList({ groupedAppointments }: AppointmentListProps) {
                 isOpen={!!selectedAppointment}
                 onClose={() => setSelectedAppointment(null)}
                 appointment={selectedAppointment}
+                existingAppointments={conflictCheckAppointments}
             />
         </div>
     );

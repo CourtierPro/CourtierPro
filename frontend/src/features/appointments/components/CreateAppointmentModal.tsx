@@ -424,7 +424,8 @@ export function CreateAppointmentModal({
       message: message
     }, {
       onSuccess: () => {
-        toast.success(t('appointmentSent'));
+        const successMessageKey = isBroker ? 'appointmentSentToClient' : 'appointmentSentToBroker';
+        toast.success(t(successMessageKey, 'Appointment sent'));
         onSubmit(appointmentData);
         onClose();
       },

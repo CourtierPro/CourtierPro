@@ -7,7 +7,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Appointment entity representing a scheduled meeting between broker and client.
+ * Appointment entity representing a scheduled meeting between broker and
+ * client.
  */
 @Entity
 @Table(name = "appointments")
@@ -61,6 +62,9 @@ public class Appointment {
 
     @Column(columnDefinition = "TEXT")
     private String notes;
+
+    @Column(name = "refusal_reason", columnDefinition = "TEXT")
+    private String refusalReason;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -232,6 +236,14 @@ public class Appointment {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getRefusalReason() {
+        return refusalReason;
+    }
+
+    public void setRefusalReason(String refusalReason) {
+        this.refusalReason = refusalReason;
     }
 
     public LocalDateTime getCreatedAt() {

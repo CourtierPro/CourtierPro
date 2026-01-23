@@ -20,6 +20,7 @@ export interface Appointment {
     latitude: number | null;
     longitude: number | null;
     notes: string | null;
+    refusalReason?: string | null;
     createdAt: string;
     updatedAt: string;
 }

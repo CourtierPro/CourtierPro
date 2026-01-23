@@ -27,3 +27,25 @@ export function useRequestAppointment() {
         },
     });
 }
+
+export interface AppointmentReviewDTO {
+    action: 'CONFIRM' | 'DECLINE' | 'RESCHEDULE';
+    refusalReason?: string;
+    newDate?: string; // YYYY-MM-DD
+    newStartTime?: string; // HH:mm
+    newEndTime?: string; // HH:mm
+}
+
+export function useReviewAppointment() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ id, data }: { id: string; data: AppointmentReviewDTO }) => {
+            const res = await axiosInstance.patch(`/appointments/${id}/review`, data);
+            return res.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+        },
+    });
+}
