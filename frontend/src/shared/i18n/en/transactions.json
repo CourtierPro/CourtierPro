@@ -140,6 +140,8 @@
   "rollbackWarningMessage": "You are moving the transaction to a previous stage. A reason is required.",
   "reasonRequired": "Reason is required",
   "selectStageFirst": "Please select a stage to continue",
+  "currentStageSelectedTitle": "Current Stage Selected",
+  "currentStageSelectedMessage": "You have selected the stage the transaction is currently in. Please select a different stage to update.",
   "stageDescriptions": [
     "Your offer has been submitted to the seller. Awaiting response.",
     "Congratulations! Your offer has been accepted. Moving to the next steps.",
@@ -587,5 +589,15 @@
   "noPermissionViewConditions": "You do not have permission to view the conditions.",
   "noPermissionViewDocuments": "You do not have permission to view the documents.",
   "noPermissionViewProperties": "You do not have permission to view the properties.",
-  "noPermissionViewNotes": "You do not have permission to view the notes."
+  "noPermissionViewNotes": "You do not have permission to view the notes.",
+  "notifications": {
+    "stageUpdate": {
+      "title": "Stage Update",
+      "message": "Stage updated to {{stage}} by {{brokerName}} for {{propertyAddress}}"
+    },
+    "stageRollback": {
+      "title": "Stage Rollback",
+      "message": "Stage rolled back to {{stage}} by {{brokerName}} for {{propertyAddress}}"
+    }
+  }
 }

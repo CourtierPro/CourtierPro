@@ -1029,12 +1029,14 @@ class TransactionServiceImplTest {
                                 eq("BUYER_OFFER_ACCEPTED"),
                                 eq("en"));
 
-                // 2. Verify In-App Notification created with localized message
-                // Stage: BUYER_OFFER_ACCEPTED -> Buyer Offer Accepted
+                // 2. Verify In-App Notification created with i18n keys and params
                 verify(notificationService, times(1)).createNotification(
-                                eq(clientId.toString()), // Internal UUID
-                                eq("Stage Update"),
-                                eq("Stage updated to Buyer Offer Accepted by Broker Agent for 123 Test St"),
+                                eq(clientId.toString()),
+                                eq("notifications.stageUpdate.title"),
+                                eq("notifications.stageUpdate.message"),
+                                argThat(params -> "Buyer Offer Accepted".equals(params.get("stage")) &&
+                                                "Broker Agent".equals(params.get("brokerName")) &&
+                                                "123 Test St".equals(params.get("propertyAddress"))),
                                 eq(transactionId.toString()),
                                 eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE));
         }
@@ -1097,12 +1099,14 @@ class TransactionServiceImplTest {
                                 eq("BUYER_OFFER_ACCEPTED"),
                                 eq("fr"));
 
-                // Verify French message: "Le stade a été mis à jour à Offre Acceptée par
-                // Courtier Pro pour 123 Rue Test"
+                // 2. Verify In-App Notification created with i18n keys and params (French)
                 verify(notificationService, times(1)).createNotification(
                                 eq(clientId.toString()),
-                                eq("Stage Update"),
-                                eq("Le stade a été mis à jour à Offre Acceptée par Courtier Pro pour 123 Rue Test"),
+                                eq("notifications.stageUpdate.title"),
+                                eq("notifications.stageUpdate.message"),
+                                argThat(params -> "Offre Acceptée".equals(params.get("stage")) &&
+                                                "Courtier Pro".equals(params.get("brokerName")) &&
+                                                "123 Rue Test".equals(params.get("propertyAddress"))),
                                 eq(transactionId.toString()),
                                 eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE));
         }
@@ -1154,11 +1158,12 @@ class TransactionServiceImplTest {
                 transactionService.updateTransactionStage(transactionId, dto, brokerId);
 
                 // Assert
-                // Should use "Unknown Address" default
+                // Should use "Unknown Address" default and i18n keys
                 verify(notificationService, times(1)).createNotification(
                                 eq(clientId.toString()),
-                                eq("Stage Update"),
-                                contains("for Unknown Address"),
+                                eq("notifications.stageUpdate.title"),
+                                eq("notifications.stageUpdate.message"),
+                                argThat(params -> "Unknown Address".equals(params.get("propertyAddress"))),
                                 eq(transactionId.toString()),
                                 eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE));
         }
@@ -1642,7 +1647,7 @@ class TransactionServiceImplTest {
                                 argThat(info -> info.getReason() == null));
 
                 // Verify Notifications SENT
-                verify(notificationService).createNotification(any(), any(), any(), any(), any());
+                verify(notificationService).createNotification(any(), any(), any(), any(), any(), any());
         }
 
         // ========== pinTransaction Tests ==========

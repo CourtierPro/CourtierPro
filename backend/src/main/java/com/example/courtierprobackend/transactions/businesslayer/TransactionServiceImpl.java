@@ -637,26 +637,26 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // CP-48: Send Notifications and Emails
-        // CP-81: Suppress notifications for rollbacks
-        if (!isRollback) {
-            try {
-                // Fetch Client details
-                Optional<UserAccount> clientOpt = userAccountRepository.findById(saved.getClientId());
-                Optional<UserAccount> brokerOpt = userAccountRepository.findById(brokerId);
+        try {
+            // Fetch Client details
+            Optional<UserAccount> clientOpt = userAccountRepository.findById(saved.getClientId());
+            Optional<UserAccount> brokerOpt = userAccountRepository.findById(brokerId);
 
-                if (clientOpt.isPresent() && brokerOpt.isPresent()) {
-                    UserAccount client = clientOpt.get();
-                    UserAccount broker = brokerOpt.get();
+            if (clientOpt.isPresent() && brokerOpt.isPresent()) {
+                UserAccount client = clientOpt.get();
+                UserAccount broker = brokerOpt.get();
 
-                    String clientName = (client.getFirstName() + " " + client.getLastName()).trim();
-                    String brokerName = (broker.getFirstName() + " " + broker.getLastName()).trim();
+                String clientName = (client.getFirstName() + " " + client.getLastName()).trim();
+                String brokerName = (broker.getFirstName() + " " + broker.getLastName()).trim();
 
-                    String address = "Unknown Address";
-                    if (saved.getPropertyAddress() != null && saved.getPropertyAddress().getStreet() != null) {
-                        address = saved.getPropertyAddress().getStreet();
-                    }
+                String address = "Unknown Address";
+                if (saved.getPropertyAddress() != null && saved.getPropertyAddress().getStreet() != null) {
+                    address = saved.getPropertyAddress().getStreet();
+                }
 
-                    // 1. Email
+                // 1. Email (only for non-rollbacks for now as per current business logic, or
+                // update if needed)
+                if (!isRollback) {
                     emailService.sendStageUpdateEmail(
                             client.getEmail(),
                             clientName,
@@ -664,31 +664,36 @@ public class TransactionServiceImpl implements TransactionService {
                             address,
                             stageStr,
                             client.getPreferredLanguage());
-
-                    // 2. In-App Notification
-                    String notifTitle = "Stage Update";
-                    String notifMessage = StageTranslationUtil.constructNotificationMessage(
-                            stageStr,
-                            brokerName,
-                            address,
-                            client.getPreferredLanguage());
-
-                    notificationService.createNotification(
-                            client.getId().toString(), // Internal UUID
-                            notifTitle,
-                            notifMessage,
-                            saved.getTransactionId().toString(),
-                            com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE);
-
-                } else {
-                    log.warn("Could not send notifications for transaction {}: Client or Broker not found",
-                            saved.getTransactionId());
                 }
 
-            } catch (Exception e) {
-                log.error("Failed to send notifications/emails for transaction {}", saved.getTransactionId(), e);
-                // Do not rethrow, transaction is already saved
+                // 2. In-App Notification (Dynamic keys based on rollback status)
+                String notifTitleKey = isRollback ? "notifications.stageRollback.title"
+                        : "notifications.stageUpdate.title";
+                String notifMessageKey = isRollback ? "notifications.stageRollback.message"
+                        : "notifications.stageUpdate.message";
+
+                // Construct params for frontend translation (must match {{keys}} in JSON)
+                Map<String, Object> params = new HashMap<>();
+                params.put("stage", StageTranslationUtil.getTranslatedStage(stageStr, client.getPreferredLanguage()));
+                params.put("brokerName", brokerName);
+                params.put("propertyAddress", address);
+
+                notificationService.createNotification(
+                        client.getId().toString(),
+                        notifTitleKey,
+                        notifMessageKey,
+                        params,
+                        saved.getTransactionId().toString(),
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE);
+
+            } else {
+                log.warn("Could not send notifications for transaction {}: Client or Broker not found",
+                        saved.getTransactionId());
             }
+
+        } catch (Exception e) {
+            log.error("Failed to send notifications/emails for transaction {}", saved.getTransactionId(), e);
+            // Do not rethrow, transaction is already saved
         }
 
         return EntityDtoUtil.toResponse(saved, lookupUserName(saved.getClientId()));

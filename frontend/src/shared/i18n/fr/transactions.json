@@ -134,7 +134,14 @@
   "progressNotePlaceholder": "Ajouter une note sur ce changement d'étape (optionnel)...",
   "visibleToClient": "Visible pour le client",
   "visibleToClientHelp": "Si coché, cette note sera visible pour le client dans sa chronologie",
+  "rollbackReason": "Raison du retour",
+  "rollbackReasonPlaceholder": "Veuillez expliquer pourquoi vous revenez à une étape précédente...",
+  "rollbackWarningTitle": "Retour d'étape",
+  "rollbackWarningMessage": "Vous déplacez la transaction vers une étape précédente. Une raison est requise.",
+  "reasonRequired": "La raison est requise",
   "selectStageFirst": "Veuillez sélectionner une étape pour continuer",
+  "currentStageSelectedTitle": "Étape actuelle sélectionnée",
+  "currentStageSelectedMessage": "Vous avez sélectionné l'étape actuelle de la transaction. Veuillez sélectionner une étape différente pour la mise à jour.",
   "stageDescriptions": [
     "Votre offre a été soumise au vendeur. En attente de réponse.",
     "Félicitations! Votre offre a été acceptée. Passons aux prochaines étapes.",
@@ -574,5 +581,15 @@
   "noPermissionViewConditions": "Vous n'avez pas la permission de voir les conditions.",
   "noPermissionViewDocuments": "Vous n'avez pas la permission de voir les documents.",
   "noPermissionViewProperties": "Vous n'avez pas la permission de voir les propriétés.",
-  "noPermissionViewNotes": "Vous n'avez pas la permission de voir les notes."
+  "noPermissionViewNotes": "Vous n'avez pas la permission de voir les notes.",
+  "notifications": {
+    "stageUpdate": {
+      "title": "Mise à jour d'étape",
+      "message": "L'étape a été mise à jour à {{stage}} par {{brokerName}} pour {{propertyAddress}}"
+    },
+    "stageRollback": {
+      "title": "Retour d'étape",
+      "message": "L'étape a été retournée à {{stage}} par {{brokerName}} pour {{propertyAddress}}"
+    }
+  }
 }

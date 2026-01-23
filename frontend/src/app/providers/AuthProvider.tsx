@@ -24,16 +24,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     },
                 });
                 return token;
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error("Error getting access token", error);
+                const err = error as { error?: string; message?: string };
                 // Auth0 errors can have different structures - check all possible formats
                 const errorString = String(error);
                 const isConsentOrLoginRequired =
-                    error?.error === "consent_required" ||
-                    error?.error === "login_required" ||
-                    error?.message?.includes("Consent required") ||
-                    error?.message?.includes("consent_required") ||
-                    error?.message?.includes("login_required") ||
+                    err?.error === "consent_required" ||
+                    err?.error === "login_required" ||
+                    err?.message?.includes("Consent required") ||
+                    err?.message?.includes("consent_required") ||
+                    err?.message?.includes("login_required") ||
                     errorString.includes("Consent required") ||
                     errorString.includes("consent_required");
 
@@ -48,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 throw error;
             }
         });
-    }, [getAccessTokenSilently, isAuthenticated, loginWithRedirect]);
+    }, [getAccessTokenSilently, isAuthenticated, loginWithRedirect, audience]);
 
     return <>{children}</>;
 }

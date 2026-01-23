@@ -111,9 +111,17 @@ function StageUpdateForm({
 
   const rollback = isRollback();
 
+  // Determine if same stage
+  const isSameStage = currentStage === selectedStage;
+
   const handleSubmit = async (data: StageUpdateFormValues) => {
     try {
       if (onSubmit) {
+        // Prevent update if same stage
+        if (isSameStage) {
+          return;
+        }
+
         // If rollback, ensure reason is provided (validation handled by schema/form state ideally but let's be safe)
         if (rollback && !data.reason?.trim()) {
           form.setError("reason", { type: "manual", message: "reasonRequired" });
@@ -192,6 +200,26 @@ function StageUpdateForm({
             )}
           />
 
+          {isSameStage && (
+            <div className="rounded-md bg-blue-50 p-4 border border-blue-200 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-blue-400" aria-hidden="true" />
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-blue-800">
+                    {t('currentStageSelectedTitle') || (i18n.language === 'en' ? 'Current Stage Selected' : 'Étape actuelle sélectionnée')}
+                  </h3>
+                  <div className="mt-2 text-sm text-blue-700">
+                    <p>
+                      {t('currentStageSelectedMessage') || (i18n.language === 'en' ? 'You have selected the stage the transaction is currently in. Please select a different stage to update.' : 'Vous avez sélectionné l\'étape actuelle de la transaction. Veuillez sélectionner une étape différente pour la mise à jour.')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {rollback && (
             <div className="rounded-md bg-orange-50 p-4 border border-orange-200 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex">
@@ -212,7 +240,7 @@ function StageUpdateForm({
             </div>
           )}
 
-          {selectedStage && isFinalStage(selectedStage) && !rollback && (
+          {selectedStage && isFinalStage(selectedStage) && !rollback && !isSameStage && (
             <div className="rounded-md bg-yellow-50 p-4 border border-yellow-200">
               <div className="flex">
                 <div className="flex-shrink-0">
@@ -337,7 +365,7 @@ function StageUpdateForm({
           </Button>
           <Button
             type="submit"
-            disabled={(!rollback && !form.formState.isValid) || (rollback && !reasonValue?.trim()) || isLoading}
+            disabled={(!rollback && !form.formState.isValid) || (rollback && !reasonValue?.trim()) || isSameStage || isLoading}
             className="flex-1"
           >
             {isLoading ? t('updating') ?? 'Updating...' : t('updateTransactionStage')}

@@ -160,6 +160,27 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                                     </p>
                                                 );
                                             })()}
+                                            {/* Show info for STAGE_ROLLBACK */}
+                                            {entry.type === 'STAGE_ROLLBACK' && entry.transactionInfo && (() => {
+                                                const translateStage = (stage: string | undefined) => {
+                                                    if (!stage) return '';
+                                                    const lowerStage = stage.toLowerCase();
+                                                    const sideKey = lowerStage.startsWith('seller') ? 'sell' : 'buy';
+                                                    return t(`stages.${sideKey}.${lowerStage}`, { defaultValue: stage });
+                                                };
+                                                return (
+                                                    <div className="mt-1">
+                                                        <p className="text-sm text-foreground font-medium mb-1">
+                                                            {t('timeline.stageRollbackNote', { stage: translateStage(entry.transactionInfo.newStage) })}
+                                                        </p>
+                                                        {entry.transactionInfo.reason && (
+                                                            <div className="bg-orange-50 p-2 rounded text-sm text-orange-800 border border-orange-100">
+                                                                <span className="font-semibold">{t('rollbackReason')}:</span> {entry.transactionInfo.reason}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
                                             {/* Show info for PROPERTY events */}
                                             {entry.type.startsWith('PROPERTY_') && entry.transactionInfo && (
                                                 <p className="text-sm text-muted-foreground mt-1">
