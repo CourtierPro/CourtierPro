@@ -47,7 +47,6 @@ export const stageUpdateSchema = z.object({
     stage: z.string().min(1, "selectStageFirst"),
     note: z.string().trim().optional(),
     reason: z.string().trim().optional(),
-    visibleToClient: z.boolean(),
 });
 
 export type StageUpdateFormValues = z.infer<typeof stageUpdateSchema>;
