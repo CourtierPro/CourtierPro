@@ -87,7 +87,7 @@ function StageUpdateForm({
     },
   });
 
-  const { control, reset, watch } = form; // watch is needed for detecting stage change
+  const { control, reset } = form; // watch is needed for detecting stage change
   const selectedStage = useWatch({ control, name: 'stage' });
   const reasonValue = useWatch({ control, name: 'reason' });
 
