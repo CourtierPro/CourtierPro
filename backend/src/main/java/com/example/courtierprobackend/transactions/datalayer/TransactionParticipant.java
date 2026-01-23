@@ -18,6 +18,9 @@ public class TransactionParticipant {
     @Builder.Default
     private UUID id = UUID.randomUUID();
 
+    @Column(name = "user_id")
+    private UUID userId;
+
     @Column(name = "transaction_id", nullable = false)
     private UUID transactionId;
 

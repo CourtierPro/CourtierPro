@@ -64,6 +64,10 @@ public interface TransactionService {
 
     void removeProperty(UUID transactionId, UUID propertyId, UUID brokerId);
 
+    PropertyResponseDTO updatePropertyStatus(UUID transactionId, UUID propertyId,
+                                             com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus status,
+                                             String notes, UUID userId);
+
     PropertyResponseDTO getPropertyById(UUID propertyId, UUID userId, boolean isBroker);
 
     void setActiveProperty(UUID transactionId, UUID propertyId, UUID brokerId);

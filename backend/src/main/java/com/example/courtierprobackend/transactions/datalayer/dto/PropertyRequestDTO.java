@@ -34,4 +34,6 @@ public class PropertyRequestDTO {
     private String centrisNumber;
 
     private String notes;
+
+    private com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus status;
 }

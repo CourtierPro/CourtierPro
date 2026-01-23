@@ -18,6 +18,7 @@ public class EmailChangeService {
     private final EmailChangeTokenRepository tokenRepository;
     private final UserAccountRepository userAccountRepository;
     private final EmailService emailService;
+    private final com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository;
     private final com.example.courtierprobackend.user.domainclientlayer.auth0.Auth0ManagementClient auth0ManagementClient;
 
     @Value("${app.emailChangeTokenExpiryMinutes:30}")
@@ -26,11 +27,13 @@ public class EmailChangeService {
     public EmailChangeService(EmailChangeTokenRepository tokenRepository,
                               UserAccountRepository userAccountRepository,
                               EmailService emailService,
-                              com.example.courtierprobackend.user.domainclientlayer.auth0.Auth0ManagementClient auth0ManagementClient) {
+                              com.example.courtierprobackend.user.domainclientlayer.auth0.Auth0ManagementClient auth0ManagementClient,
+                              com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository) {
         this.tokenRepository = tokenRepository;
         this.userAccountRepository = userAccountRepository;
         this.emailService = emailService;
         this.auth0ManagementClient = auth0ManagementClient;
+        this.transactionParticipantRepository = transactionParticipantRepository;
     }
 
     @Transactional
@@ -60,6 +63,17 @@ public class EmailChangeService {
         if (user.getAuth0UserId() != null && !user.getAuth0UserId().isBlank()) {
             auth0ManagementClient.updateUserEmail(user.getAuth0UserId(), changeToken.getNewEmail());
         }
+        
+        // Update all transaction participants that match the old email
+        String oldEmail = user.getEmail();
+        if (oldEmail != null && !oldEmail.isBlank()) {
+           java.util.List<com.example.courtierprobackend.transactions.datalayer.TransactionParticipant> participants = transactionParticipantRepository.findByEmailIgnoreCase(oldEmail);
+           for (com.example.courtierprobackend.transactions.datalayer.TransactionParticipant p : participants) {
+               p.setEmail(changeToken.getNewEmail());
+           }
+           transactionParticipantRepository.saveAll(participants);
+        }
+
         user.setEmail(changeToken.getNewEmail());
         user.setActive(true);
         userAccountRepository.save(user);

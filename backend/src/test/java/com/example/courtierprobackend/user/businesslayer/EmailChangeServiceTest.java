@@ -19,6 +19,8 @@ class EmailChangeServiceTest {
     private com.example.courtierprobackend.email.EmailService emailService;
     @Mock
     private com.example.courtierprobackend.user.domainclientlayer.auth0.Auth0ManagementClient auth0ManagementClient;
+    @Mock
+    private com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository;
 
     @InjectMocks
     private EmailChangeService emailChangeService;

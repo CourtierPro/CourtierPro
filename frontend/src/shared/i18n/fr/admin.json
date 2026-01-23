@@ -186,5 +186,27 @@
     "systemLogs_inviteTemplateFr": "Modèle d’invitation (FR)",
     "systemLogs_changed": "Modifié",
     "systemLogs_notChanged": "Non modifié"
-  }
+  },
+  "totalUsers": "Utilisateurs totaux",
+  "activeBrokers": "Courtiers actifs",
+  "clientCount": "Clients totaux",
+  "activeTransactions": "Transactions actives",
+  "newUsers": "Nouveaux utilisateurs (24h)",
+  "failedLogins": "Échecs de connexion (24h)",
+  "systemHealth": "Santé du système",
+  "recentActions": "Actions récentes",
+  "recentActionsDesc": "Dernières actions effectuées par les administrateurs.",
+  "systemAlerts": "Alertes système",
+  "systemAlertsDesc": "Alertes système critiques et avertissements.",
+  "resourceRemoval": "Suppression de ressources",
+  "auditLogs": "Journaux d'audit",
+  "createBroadcast": "Créer une diffusion",
+  "loginAudits": "Audits de connexion",
+  "deletionAudits": "Audits de suppression",
+  "viewAllSystemLogs": "Voir tous les journaux système",
+  "noLoginAudits": "Aucun audit de connexion récent.",
+  "noDeletionAudits": "Aucun audit de suppression récent.",
+  "noSystemAlerts": "Aucune alerte critique.",
+  "triggerTestAlert": "Déclencher l'alerte de test",
+  "sendingAlert": "Envoi..."
 }

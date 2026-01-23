@@ -2,13 +2,27 @@ import { useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useNavigate } from 'react-router-dom';
 import { getRoleFromUser } from '../roleUtils';
+import { useCurrentUser } from '../api/useCurrentUser';
 
 export function useLoginRedirect() {
-    const { loginWithRedirect, isAuthenticated, isLoading, user } = useAuth0();
+    const { loginWithRedirect, isAuthenticated, isLoading: isAuth0Loading, user } = useAuth0();
     const navigate = useNavigate();
+    const { data: currentUser, isLoading: isUserLoading, error: userError } = useCurrentUser();
+
+    // Derive deactivation status: only true if we have a user object that is inactive,
+    // OR if we have a specific 403 error from the backend. General network errors should not trigger this.
+    const isDeactivated = isAuthenticated && !isUserLoading && (
+        (currentUser && !currentUser.active) ||
+        (userError && (userError as { response?: { status: number } })?.response?.status === 403)
+    );
 
     useEffect(() => {
-        if (isAuthenticated && user) {
+        if (isAuthenticated && user && !isUserLoading) {
+            // If deactivated, do not redirect
+            if (isDeactivated) {
+                return;
+            }
+
             const role = getRoleFromUser(user);
             if (role) {
                 const dashboards = {
@@ -19,15 +33,15 @@ export function useLoginRedirect() {
                 navigate(dashboards[role as keyof typeof dashboards], { replace: true });
             }
         }
-    }, [isAuthenticated, user, navigate]);
+    }, [isAuthenticated, user, navigate, currentUser, isUserLoading, userError, isDeactivated]);
 
     useEffect(() => {
-        if (!isAuthenticated && !isLoading) {
+        if (!isAuthenticated && !isAuth0Loading) {
             loginWithRedirect({
                 appState: { returnTo: window.location.pathname },
             });
         }
-    }, [isAuthenticated, isLoading, loginWithRedirect]);
+    }, [isAuthenticated, isAuth0Loading, loginWithRedirect]);
 
-    return { isLoading };
+    return { isLoading: isAuth0Loading || (isAuthenticated && isUserLoading), isDeactivated };
 }

@@ -43,7 +43,9 @@
     "sessionExpired": "Your session has expired due to inactivity.",
     "sessionExpiredTitle": "Session Expired",
     "loggedOut": "You have been logged out successfully.",
-    "loggingOut": "Logging out..."
+    "loggingOut": "Logging out...",
+    "accountDeactivated": "Account Deactivated",
+    "contactSupport": "Please contact support for assistance."
   },
   "general": {
     "language": "Language",

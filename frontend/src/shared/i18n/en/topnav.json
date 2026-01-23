@@ -7,5 +7,9 @@
   "userMenu": "User menu",
   "viewAll": "View All",
   "noNotifications": "No new notifications",
-  "markAsRead": "Mark as read"
+  "markAsRead": "Mark as read",
+  "searchPlaceholder": "Search...",
+  "roleADMIN": "Administrator",
+  "roleBROKER": "Broker",
+  "roleCLIENT": "Client"
 }

@@ -54,6 +54,10 @@ public class Property {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus status;
+
     @PrePersist
     protected void onCreate() {
         if (propertyId == null) {
@@ -67,6 +71,9 @@ public class Property {
         }
         if (offerStatus == null) {
             offerStatus = PropertyOfferStatus.OFFER_TO_BE_MADE;
+        }
+        if (status == null) {
+            status = com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.SUGGESTED;
         }
     }
 

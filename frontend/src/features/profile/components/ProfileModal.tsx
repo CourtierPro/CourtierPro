@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Toast } from '@/shared/components/ui/Toast';
+import { useAuth0 } from '@auth0/auth0-react';
 import { useTranslation } from 'react-i18next';
 import { Mail, Globe, User, Shield, Loader2, Bell, BellOff, KeyRound } from 'lucide-react';
 import {
@@ -98,11 +99,13 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         );
     };
 
+    const { logout } = useAuth0();
+
     const handleEmailChange = () => {
         if (emailInput && emailInput !== user?.email) {
             updateProfile.mutate(
-                { 
-                    email: emailInput, 
+                {
+                    email: emailInput,
                     preferredLanguage: user?.preferredLanguage || 'en' // Always include preferredLanguage
                 },
                 {
@@ -113,11 +116,10 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                         refetch(); // Refetch user profile to update UI
                         setTimeout(() => {
                             setShowToast(false);
-                            // Clear auth tokens (adjust if you use a different storage or context)
-                            localStorage.removeItem('accessToken');
-                            localStorage.removeItem('refreshToken');
-                            window.location.replace('/login');
-                        }, 4000); // Increased delay for better visibility
+                            logout({
+                                logoutParams: { returnTo: window.location.origin + '/login' }
+                            });
+                        }, 2000);
                     },
                 }
             );
@@ -128,13 +130,13 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         if (!user) return;
         if (type === 'email') {
             setEmailNotifications(value);
-            updateProfile.mutate({ 
+            updateProfile.mutate({
                 emailNotificationsEnabled: value,
                 preferredLanguage: user.preferredLanguage || 'en'
             });
         } else {
             setInAppNotifications(value);
-            updateProfile.mutate({ 
+            updateProfile.mutate({
                 inAppNotificationsEnabled: value,
                 preferredLanguage: user.preferredLanguage || 'en'
             });

@@ -186,5 +186,27 @@
     "systemLogs_inviteTemplateFr": "Invitation template (FR)",
     "systemLogs_changed": "Changed",
     "systemLogs_notChanged": "Not changed"
-  }
+  },
+  "totalUsers": "Total Users",
+  "activeBrokers": "Active Brokers",
+  "clientCount": "Total Clients",
+  "activeTransactions": "Active Transactions",
+  "newUsers": "New Users (24h)",
+  "failedLogins": "Failed Logins (24h)",
+  "systemHealth": "System Health",
+  "recentActions": "Recent Admin Actions",
+  "recentActionsDesc": "Latest actions performed by admins.",
+  "systemAlerts": "System Alerts",
+  "systemAlertsDesc": "Critical system alerts and warnings.",
+  "resourceRemoval": "Resource Removal",
+  "auditLogs": "Audit Logs",
+  "createBroadcast": "Create Broadcast",
+  "loginAudits": "Login Audits",
+  "deletionAudits": "Deletion Audits",
+  "viewAllSystemLogs": "View all system logs",
+  "noLoginAudits": "No recent login audits.",
+  "noDeletionAudits": "No recent deletion audits.",
+  "noSystemAlerts": "No critical alerts.",
+  "triggerTestAlert": "Trigger Test Alert",
+  "sendingAlert": "Sending..."
 }

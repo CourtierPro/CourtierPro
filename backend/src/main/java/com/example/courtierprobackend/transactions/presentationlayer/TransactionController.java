@@ -333,6 +333,19 @@ public class TransactionController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{transactionId}/properties/{propertyId}/status")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<PropertyResponseDTO> updatePropertyStatus(
+            @PathVariable UUID transactionId,
+            @PathVariable UUID propertyId,
+            @RequestParam com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus status,
+            @RequestBody(required = false) String notes,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.updatePropertyStatus(transactionId, propertyId, status, notes, userId));
+    }
+
     @GetMapping("/{transactionId}/properties/{propertyId}")
     @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
     public ResponseEntity<PropertyResponseDTO> getPropertyById(
