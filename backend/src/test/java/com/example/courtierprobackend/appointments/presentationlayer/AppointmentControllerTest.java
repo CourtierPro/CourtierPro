@@ -67,6 +67,7 @@ class AppointmentControllerTest {
                                 45.5,
                                 -73.5,
                                 "Test notes",
+                                null,
                                 LocalDateTime.now(),
                                 LocalDateTime.now());
         }
@@ -398,4 +399,31 @@ class AppointmentControllerTest {
                 verify(appointmentService).requestAppointment(eq(requestDTO), any(UUID.class));
         }
 
+        // ========== PATCH /appointments/{appointmentId}/review Tests ==========
+
+        @Test
+        void reviewAppointment_updatesAndReturnsAppointment() {
+                // Arrange
+                UUID appointmentId = UUID.randomUUID();
+                MockHttpServletRequest request = createBrokerRequest(brokerId);
+                Jwt jwt = createJwt("auth0|broker");
+
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO reviewDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO(
+                                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO.ReviewAction.CONFIRM,
+                                null, null, null, null);
+
+                AppointmentResponseDTO responseDTO = createTestAppointmentDTO();
+
+                when(appointmentService.reviewAppointment(eq(appointmentId), eq(reviewDTO), eq(brokerId)))
+                                .thenReturn(responseDTO);
+
+                // Act
+                ResponseEntity<AppointmentResponseDTO> response = controller.reviewAppointment(
+                                appointmentId, reviewDTO, null, jwt, request);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isNotNull();
+                verify(appointmentService).reviewAppointment(eq(appointmentId), eq(reviewDTO), eq(brokerId));
+        }
 }

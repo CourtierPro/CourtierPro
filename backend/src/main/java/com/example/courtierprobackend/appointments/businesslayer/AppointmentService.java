@@ -77,4 +77,12 @@ public interface AppointmentService {
                         com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request,
                         UUID requesterId);
 
+        /**
+         * Review an appointment (Confirm, Decline, or Reschedule).
+         */
+        AppointmentResponseDTO reviewAppointment(
+                        UUID appointmentId,
+                        com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO reviewDTO,
+                        UUID reviewerId);
+
 }

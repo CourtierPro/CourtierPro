@@ -173,6 +173,7 @@ export function AppointmentCalendarView({
                 isOpen={!!selectedAppointment}
                 onClose={() => setSelectedAppointment(null)}
                 appointment={selectedAppointment}
+                existingAppointments={appointments}
             />
         </div>
     );

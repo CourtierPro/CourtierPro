@@ -6,7 +6,7 @@ import { Section } from "@/shared/components/branded/Section";
 import { EmptyState } from "@/shared/components/branded/EmptyState";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
-import { useTransactionAppointments } from '@/features/appointments/api/queries';
+import { useTransactionAppointments, useAppointments } from '@/features/appointments/api/queries';
 import { AppointmentList } from '@/features/appointments/components/AppointmentList';
 import { CreateAppointmentModal } from '@/features/appointments/components/CreateAppointmentModal';
 import { type Appointment } from '@/features/appointments/types';
@@ -28,12 +28,16 @@ export function TransactionAppointments({
     const { t } = useTranslation('appointments');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+    // Fetch transaction-specific appointments for display
     const {
         data: appointments = [],
         isLoading,
         error,
         refetch
     } = useTransactionAppointments(transactionId);
+
+    // Fetch ALL appointments for accurate conflict checking
+    const { data: allAppointments = [] } = useAppointments();
 
     // Group appointments by date
     const groupedAppointments = useMemo(() => {
@@ -82,7 +86,10 @@ export function TransactionAppointments({
                     }
                 />
             ) : (
-                <AppointmentList groupedAppointments={groupedAppointments} />
+                <AppointmentList
+                    groupedAppointments={groupedAppointments}
+                    allAppointments={allAppointments}
+                />
             )}
 
             <CreateAppointmentModal
@@ -96,7 +103,7 @@ export function TransactionAppointments({
                 prefilledTransactionId={transactionId}
                 prefilledTransactionAddress={transactionAddress}
                 prefilledClientId={clientId}
-                existingAppointments={appointments}
+                existingAppointments={allAppointments} // Use ALL appointments for conflict check here too
             />
         </Section>
     );

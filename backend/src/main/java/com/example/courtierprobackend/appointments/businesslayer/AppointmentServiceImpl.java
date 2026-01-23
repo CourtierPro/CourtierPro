@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
+
 import java.util.stream.Collectors;
 
 /**
@@ -31,13 +31,16 @@ public class AppointmentServiceImpl implements AppointmentService {
         private final AppointmentRepository appointmentRepository;
         private final UserAccountRepository userAccountRepository;
         private final TransactionRepository transactionRepository;
+        private final com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService;
 
         public AppointmentServiceImpl(AppointmentRepository appointmentRepository,
                         UserAccountRepository userAccountRepository,
-                        TransactionRepository transactionRepository) {
+                        TransactionRepository transactionRepository,
+                        com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService) {
                 this.appointmentRepository = appointmentRepository;
                 this.userAccountRepository = userAccountRepository;
                 this.transactionRepository = transactionRepository;
+                this.appointmentAuditService = appointmentAuditService;
         }
 
         @Override
@@ -200,6 +203,10 @@ public class AppointmentServiceImpl implements AppointmentService {
                         throw new IllegalArgumentException("End time must be after start time");
                 }
 
+                if (start.isBefore(LocalDateTime.now())) {
+                        throw new IllegalArgumentException("Appointment start time must be in the future");
+                }
+
                 appointment.setFromDateTime(start);
                 appointment.setToDateTime(end);
 
@@ -210,6 +217,107 @@ public class AppointmentServiceImpl implements AppointmentService {
                                 : com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType.CLIENT);
 
                 Appointment saved = appointmentRepository.save(appointment);
+
+                // Audit
+                appointmentAuditService.logAction(saved.getAppointmentId(), "CREATED", requesterId,
+                                "Appointment requested");
+
+                return mapToDTO(saved, getUserNamesMap(List.of(saved)));
+        }
+
+        @Override
+        @Transactional
+        public AppointmentResponseDTO reviewAppointment(
+                        UUID appointmentId,
+                        com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO reviewDTO,
+                        UUID reviewerId) {
+                Appointment appointment = appointmentRepository
+                                .findByAppointmentIdAndDeletedAtIsNull(appointmentId)
+                                .orElseThrow(() -> new NotFoundException("Appointment not found: " + appointmentId));
+
+                boolean isBroker = appointment.getBrokerId().equals(reviewerId);
+                boolean isClient = appointment.getClientId().equals(reviewerId);
+
+                if (!isBroker && !isClient) {
+                        throw new ForbiddenException("You do not have permission to review this appointment");
+                }
+
+                // Prevent the initiator of the current proposal from reviewing it
+                boolean isInitiator = (appointment
+                                .getInitiatedBy() == com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType.BROKER
+                                && isBroker)
+                                || (appointment.getInitiatedBy() == com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType.CLIENT
+                                                && isClient);
+
+                if (isInitiator) {
+                        throw new ForbiddenException("You cannot review an appointment proposal you initiated");
+                }
+
+                if (appointment.getStatus() != AppointmentStatus.PROPOSED) {
+                        throw new ForbiddenException("Appointment can only be reviewed while in PROPOSED status");
+                }
+
+                switch (reviewDTO.action()) {
+                        case CONFIRM:
+                                appointment.setStatus(AppointmentStatus.CONFIRMED);
+                                break;
+                        case DECLINE:
+                                String refusalReason = reviewDTO.refusalReason();
+                                if (refusalReason == null || refusalReason.trim().isEmpty()) {
+                                        throw new IllegalArgumentException(
+                                                        "Refusal reason is required when declining an appointment");
+                                }
+                                appointment.setStatus(AppointmentStatus.DECLINED);
+                                appointment.setRefusalReason(refusalReason.trim());
+                                break;
+                        case RESCHEDULE:
+                                if (reviewDTO.newDate() == null || reviewDTO.newStartTime() == null
+                                                || reviewDTO.newEndTime() == null) {
+                                        throw new IllegalArgumentException(
+                                                        "New date, start time, and end time must be provided for rescheduling");
+                                }
+                                LocalDateTime start = LocalDateTime.of(reviewDTO.newDate(), reviewDTO.newStartTime());
+                                LocalDateTime end = LocalDateTime.of(reviewDTO.newDate(), reviewDTO.newEndTime());
+
+                                if (!end.isAfter(start)) {
+                                        throw new IllegalArgumentException("New end time must be after start time");
+                                }
+
+                                appointment.setFromDateTime(start);
+                                appointment.setToDateTime(end);
+                                appointment.setStatus(AppointmentStatus.PROPOSED);
+                                appointment.setInitiatedBy(isBroker
+                                                ? com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType.BROKER
+                                                : com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType.CLIENT);
+
+                                // Reset response fields since it's a new proposal
+                                appointment.setRespondedBy(null);
+                                appointment.setRespondedAt(null);
+                                break;
+                }
+
+                // Only set response metadata if it's NOT a reschedule (which is a new proposal)
+                if (reviewDTO.action() != com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO.ReviewAction.RESCHEDULE) {
+                        appointment.setRespondedBy(reviewerId);
+                        appointment.setRespondedAt(LocalDateTime.now());
+                }
+
+                Appointment saved = appointmentRepository.save(appointment);
+
+                // Audit
+                String details = "";
+                if (reviewDTO.action() == com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO.ReviewAction.DECLINE) {
+                        details = "Refusal reason: " + reviewDTO.refusalReason();
+                } else if (reviewDTO
+                                .action() == com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO.ReviewAction.RESCHEDULE) {
+                        details = "Rescheduled to: " + reviewDTO.newDate() + " " + reviewDTO.newStartTime() + " - "
+                                        + reviewDTO.newEndTime();
+                } else {
+                        details = "Appointment confirmed";
+                }
+
+                appointmentAuditService.logAction(saved.getAppointmentId(), reviewDTO.action().name(), reviewerId,
+                                details);
 
                 return mapToDTO(saved, getUserNamesMap(List.of(saved)));
         }
@@ -231,6 +339,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                                 apt.getLatitude(),
                                 apt.getLongitude(),
                                 apt.getNotes(),
+                                apt.getRefusalReason(),
                                 apt.getCreatedAt(),
                                 apt.getUpdatedAt());
         }

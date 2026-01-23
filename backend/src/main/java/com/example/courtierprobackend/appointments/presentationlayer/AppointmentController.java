@@ -128,4 +128,23 @@ public class AppointmentController {
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
                 .body(createdAppointment);
     }
+
+    /**
+     * Review an appointment (Confirm, Decline, or Reschedule).
+     */
+    @PatchMapping("/{appointmentId}/review")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<AppointmentResponseDTO> reviewAppointment(
+            @PathVariable UUID appointmentId,
+            @RequestBody com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO reviewDTO,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request) {
+
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        AppointmentResponseDTO updatedAppointment = appointmentService.reviewAppointment(appointmentId, reviewDTO,
+                userId);
+
+        return ResponseEntity.ok(updatedAppointment);
+    }
 }
