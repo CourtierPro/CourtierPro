@@ -105,7 +105,6 @@ CREATE TABLE IF NOT EXISTS timeline_entries (
     actor_id UUID NOT NULL,
     type VARCHAR(50) NOT NULL,
     note TEXT,
-    reason TEXT,
     doc_type VARCHAR(100),
     visible_to_client BOOLEAN DEFAULT false,
     client_name VARCHAR(255),
@@ -245,25 +244,10 @@ CREATE TABLE IF NOT EXISTS transaction_participants (
     role VARCHAR(50) NOT NULL,
     email VARCHAR(255),
     phone_number VARCHAR(50),
-    user_id UUID,
-    is_system BOOLEAN NOT NULL DEFAULT FALSE,
-    CONSTRAINT fk_participant_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE,
-    CONSTRAINT fk_transaction_participants_user_id FOREIGN KEY (user_id) REFERENCES user_accounts(id)
+    CONSTRAINT fk_participant_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_transaction_participants_transaction_id ON transaction_participants(transaction_id);
-CREATE INDEX IF NOT EXISTS idx_transaction_participants_user_id ON transaction_participants(user_id);
-
--- =============================================================================
--- PARTICIPANT PERMISSIONS
--- =============================================================================
-CREATE TABLE IF NOT EXISTS participant_permissions (
-    participant_id UUID NOT NULL,
-    permission VARCHAR(50) NOT NULL,
-    CONSTRAINT fk_participant_permissions_participant FOREIGN KEY (participant_id) REFERENCES transaction_participants(id)
-);
-
-CREATE INDEX idx_participant_permissions_participant_id ON participant_permissions(participant_id);
 
 -- =============================================================================
 -- ORGANIZATION SETTINGS
@@ -422,7 +406,6 @@ CREATE TABLE IF NOT EXISTS properties (
     offer_amount DECIMAL(15,2),
     centris_number VARCHAR(50),
     -- Status tracking
-    status VARCHAR(50) NOT NULL DEFAULT 'SUGGESTED',
     offer_status VARCHAR(50) NOT NULL DEFAULT 'OFFER_TO_BE_MADE',
     -- Broker notes (not visible to clients)
     notes TEXT,
@@ -680,48 +663,3 @@ CREATE TABLE IF NOT EXISTS email_change_tokens (
 );
 CREATE INDEX IF NOT EXISTS idx_email_change_tokens_user_id ON email_change_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_email_change_tokens_token ON email_change_tokens(token);
-
--- =============================================================================
--- =============================================================================
--- APPOINTMENTS
--- =============================================================================
-CREATE TABLE IF NOT EXISTS appointments (
-    id BIGSERIAL PRIMARY KEY,
-    appointment_id UUID NOT NULL UNIQUE,
-    title VARCHAR(255) NOT NULL,
-    transaction_id UUID,
-    broker_id UUID NOT NULL,
-    client_id UUID NOT NULL,
-    from_date_time TIMESTAMP NOT NULL,
-    to_date_time TIMESTAMP NOT NULL,
-    status VARCHAR(50) NOT NULL,
-    initiated_by VARCHAR(50) NOT NULL,
-    responded_by UUID,
-    responded_at TIMESTAMP,
-    location VARCHAR(500),
-    latitude DOUBLE PRECISION,
-    longitude DOUBLE PRECISION,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    version BIGINT DEFAULT 0,
-    deleted_at TIMESTAMP,
-    deleted_by UUID,
-    CONSTRAINT fk_appointments_broker FOREIGN KEY (broker_id) REFERENCES user_accounts(id) ON DELETE CASCADE,
-    CONSTRAINT fk_appointments_client FOREIGN KEY (client_id) REFERENCES user_accounts(id) ON DELETE CASCADE,
-    CONSTRAINT fk_appointments_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE SET NULL
-);
-
--- Indexes for common queries
-CREATE INDEX idx_appointments_broker_id ON appointments(broker_id);
-CREATE INDEX idx_appointments_client_id ON appointments(client_id);
-CREATE INDEX idx_appointments_transaction_id ON appointments(transaction_id);
-CREATE INDEX idx_appointments_status ON appointments(status);
-CREATE INDEX idx_appointments_from_date_time ON appointments(from_date_time);
-CREATE INDEX idx_appointments_deleted_at ON appointments(deleted_at);
-
--- Composite index for common broker date range queries
-CREATE INDEX idx_appointments_broker_date ON appointments(broker_id, from_date_time);
-
--- Composite index for common client date range queries
-CREATE INDEX idx_appointments_client_date ON appointments(client_id, from_date_time);
