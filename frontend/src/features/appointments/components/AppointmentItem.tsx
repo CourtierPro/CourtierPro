@@ -39,67 +39,82 @@ export function AppointmentItem({ appointment, onClick, compact = false, isBroke
     const canReview = appointment.status === 'PROPOSED' && !isMe;
 
     const content = (
-        <div className={`flex ${compact ? 'flex-col gap-2' : 'flex-col sm:flex-row sm:items-center justify-between gap-3'}`}>
-            <div className="space-y-1.5 flex-1 min-w-0">
-                <div className="flex items-center gap-2 justify-between w-full">
-                    <h3 className="font-semibold truncate">{t(appointment.title.toLowerCase(), appointment.title)}</h3>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                        <div className="flex items-center gap-2">
-                            {appointment.notes && (
-                                <Badge
-                                    variant="outline"
-                                    className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 px-1.5 py-0 h-5 gap-1"
-                                >
-                                    <StickyNote className="h-3 w-3" />
-                                    {t('note', 'Note')}
-                                </Badge>
-                            )}
-                            <Badge
-                                variant="outline"
-                                className={`text-xs border-0 text-white ${getStatusColorClass(appointment.status)}`}
-                            >
-                                {t(`status.${appointment.status.toLowerCase()}`, appointment.status)}
-                            </Badge>
-                        </div>
-                        {canReview && (
-                            <Button
-                                size="sm"
-                                className="h-7 text-xs bg-primary text-primary-foreground border border-transparent hover:bg-white hover:text-primary hover:border-primary gap-1.5 px-3 rounded-full transition-all duration-200"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onClick?.(appointment);
-                                }}
-                            >
-                                <Check className="w-3.5 h-3.5" />
-                                {t('review', 'Review Request')}
-                            </Button>
-                        )}
+        <div className={`flex justify-between ${compact ? 'gap-2' : 'gap-3'}`}>
+            {/* Left Content: Title, Details */}
+            <div className="flex flex-col gap-1 overflow-hidden min-w-0 flex-1">
+                {/* Title */}
+                <h3 className={`font-semibold text-foreground truncate ${compact ? 'text-sm' : 'text-base'}`}>
+                    {t(appointment.title.toLowerCase(), appointment.title)}
+                </h3>
+
+                {/* Line 1: Time | Proposed By */}
+                <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground ${compact ? 'text-[10px]' : 'text-sm'}`}>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        <Clock className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{getAppointmentTimeRange(appointment)}</span>
                     </div>
+
+                    <div className="hidden sm:inline-block w-px h-3 bg-border/60"></div>
+
+                    <div className={`flex items-center gap-1.5 truncate ${isMe ? "" : "text-primary font-medium"}`}>
+                        {isMe ? <ArrowUpRight className="h-3.5 w-3.5 shrink-0" /> : <ArrowDownLeft className="h-3.5 w-3.5 shrink-0" />}
+                        <span className="truncate">{label}</span>
+                    </div>
+                </div>
+
+                {/* Line 2: Name | Location */}
+                <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground ${compact ? 'text-[10px]' : 'text-sm'}`}>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        <User className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{isBrokerEffective ? appointment.clientName : appointment.brokerName}</span>
+                    </div>
+
+                    {appointment.location && (
+                        <>
+                            <div className="hidden sm:inline-block w-px h-3 bg-border/60"></div>
+                            <div className="flex items-center gap-1.5 shrink-0 max-w-[150px]">
+                                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate">{appointment.location}</span>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
 
-            <div className={`flex flex-wrap items-center ${compact ? 'gap-x-3 gap-y-1 text-xs' : 'gap-x-4 gap-y-1 text-sm'} text-muted-foreground`}>
-                <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {getAppointmentTimeRange(appointment)}
-                </span>
+            {/* Right Content: Status, Notes, Actions */}
+            <div className="flex flex-col items-end gap-1 shrink-0">
+                <div className="flex items-center gap-2">
+                    {appointment.notes && (
+                        <Badge
+                            variant="outline"
+                            className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 px-1.5 py-0 h-5 gap-1"
+                        >
+                            <StickyNote className="h-3 w-3" />
+                            {!compact && t('note', 'Note')}
+                        </Badge>
+                    )}
 
-                <span className="flex items-center gap-1">
-                    <User className="h-3.5 w-3.5" />
-                    {isBrokerEffective ? appointment.clientName : appointment.brokerName}
-                </span>
+                    <Badge
+                        variant="outline"
+                        className={`border-0 text-white ${getStatusColorClass(appointment.status)} ${compact ? 'text-[10px] px-1.5 py-0 h-5' : 'text-xs px-2.5 py-0.5'}`}
+                    >
+                        {t(`status.${appointment.status.toLowerCase()}`, appointment.status)}
+                    </Badge>
+                </div>
 
-                {appointment.location && (
-                    <span className="flex items-center gap-1 truncate max-w-[200px]">
-                        <MapPin className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{appointment.location}</span>
-                    </span>
+                {canReview && (
+                    <Button
+                        size="sm"
+                        className={`h-6 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full ${compact ? 'text-[10px] px-2 h-5' : 'text-xs px-3'}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onClick?.(appointment);
+                        }}
+                    >
+                        <Check className="w-3 h-3 mr-1" />
+                        {t('review', 'Review')}
+                    </Button>
                 )}
-
-                <span className={`flex items-center gap-1 font-medium text-primary`}>
-                    {isMe ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownLeft className="h-3.5 w-3.5" />}
-                    {label}
-                </span>
             </div>
         </div>
     );

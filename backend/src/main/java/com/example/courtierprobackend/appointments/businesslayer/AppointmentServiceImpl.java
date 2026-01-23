@@ -203,6 +203,10 @@ public class AppointmentServiceImpl implements AppointmentService {
                         throw new IllegalArgumentException("End time must be after start time");
                 }
 
+                if (start.isBefore(LocalDateTime.now())) {
+                        throw new IllegalArgumentException("Appointment start time must be in the future");
+                }
+
                 appointment.setFromDateTime(start);
                 appointment.setToDateTime(end);
 
@@ -238,15 +242,40 @@ public class AppointmentServiceImpl implements AppointmentService {
                         throw new ForbiddenException("You do not have permission to review this appointment");
                 }
 
+                // Prevent the initiator of the current proposal from reviewing it
+                boolean isInitiator = (appointment
+                                .getInitiatedBy() == com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType.BROKER
+                                && isBroker)
+                                || (appointment.getInitiatedBy() == com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType.CLIENT
+                                                && isClient);
+
+                if (isInitiator) {
+                        throw new ForbiddenException("You cannot review an appointment proposal you initiated");
+                }
+
+                if (appointment.getStatus() != AppointmentStatus.PROPOSED) {
+                        throw new ForbiddenException("Appointment can only be reviewed while in PROPOSED status");
+                }
+
                 switch (reviewDTO.action()) {
                         case CONFIRM:
                                 appointment.setStatus(AppointmentStatus.CONFIRMED);
                                 break;
                         case DECLINE:
+                                String refusalReason = reviewDTO.refusalReason();
+                                if (refusalReason == null || refusalReason.trim().isEmpty()) {
+                                        throw new IllegalArgumentException(
+                                                        "Refusal reason is required when declining an appointment");
+                                }
                                 appointment.setStatus(AppointmentStatus.DECLINED);
-                                appointment.setRefusalReason(reviewDTO.refusalReason());
+                                appointment.setRefusalReason(refusalReason.trim());
                                 break;
                         case RESCHEDULE:
+                                if (reviewDTO.newDate() == null || reviewDTO.newStartTime() == null
+                                                || reviewDTO.newEndTime() == null) {
+                                        throw new IllegalArgumentException(
+                                                        "New date, start time, and end time must be provided for rescheduling");
+                                }
                                 LocalDateTime start = LocalDateTime.of(reviewDTO.newDate(), reviewDTO.newStartTime());
                                 LocalDateTime end = LocalDateTime.of(reviewDTO.newDate(), reviewDTO.newEndTime());
 
@@ -260,11 +289,18 @@ public class AppointmentServiceImpl implements AppointmentService {
                                 appointment.setInitiatedBy(isBroker
                                                 ? com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType.BROKER
                                                 : com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType.CLIENT);
+
+                                // Reset response fields since it's a new proposal
+                                appointment.setRespondedBy(null);
+                                appointment.setRespondedAt(null);
                                 break;
                 }
 
-                appointment.setRespondedBy(reviewerId);
-                appointment.setRespondedAt(LocalDateTime.now());
+                // Only set response metadata if it's NOT a reschedule (which is a new proposal)
+                if (reviewDTO.action() != com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO.ReviewAction.RESCHEDULE) {
+                        appointment.setRespondedBy(reviewerId);
+                        appointment.setRespondedAt(LocalDateTime.now());
+                }
 
                 Appointment saved = appointmentRepository.save(appointment);
 

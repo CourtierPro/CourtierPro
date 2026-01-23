@@ -527,6 +527,78 @@ class PropertyControllerIntegrationTest {
         }
     }
 
+    // ==================== PATCH /transactions/{id}/properties/{propertyId}/status Tests ====================
+
+    @Nested
+    @DisplayName("PATCH /transactions/{transactionId}/properties/{propertyId}/status")
+    class UpdatePropertyStatusTests {
+
+        @Test
+        @DisplayName("should update status - 200")
+        void updatePropertyStatus_validRequest_returns200() throws Exception {
+            UUID transactionId = UUID.randomUUID();
+            UUID propertyId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            PropertyResponseDTO response = createSamplePropertyResponse();
+            response.setStatus(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.INTERESTED);
+
+            when(service.updatePropertyStatus(eq(transactionId), eq(propertyId),
+                    eq(com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus.INTERESTED),
+                    anyString(), eq(userId)))
+                    .thenReturn(response);
+
+            mockMvc.perform(
+                    patch("/transactions/{transactionId}/properties/{propertyId}/status", transactionId, propertyId)
+                            .param("status", "INTERESTED")
+                            .content("Great property")
+                            .contentType(MediaType.TEXT_PLAIN)
+                            .requestAttr("internalUserId", userId)
+                            .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CLIENT")).jwt(jwt -> jwt.claim("sub", userId.toString())))
+            )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("INTERESTED"));
+        }
+
+        @Test
+        @DisplayName("should return 400 for invalid transition")
+        void updatePropertyStatus_invalidTransition_returns400() throws Exception {
+            UUID transactionId = UUID.randomUUID();
+            UUID propertyId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            when(service.updatePropertyStatus(any(), any(), any(), any(), any()))
+                    .thenThrow(new BadRequestException("Invalid status transition"));
+
+            mockMvc.perform(
+                    patch("/transactions/{transactionId}/properties/{propertyId}/status", transactionId, propertyId)
+                            .param("status", "NOT_INTERESTED")
+                            .requestAttr("internalUserId", userId)
+                            .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CLIENT")).jwt(jwt -> jwt.claim("sub", userId.toString())))
+            )
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("should return 403 when unauthorized")
+        void updatePropertyStatus_unauthorized_returns403() throws Exception {
+            UUID transactionId = UUID.randomUUID();
+            UUID propertyId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            when(service.updatePropertyStatus(any(), any(), any(), any(), any()))
+                    .thenThrow(new ForbiddenException("Not authorized"));
+
+            mockMvc.perform(
+                    patch("/transactions/{transactionId}/properties/{propertyId}/status", transactionId, propertyId)
+                            .param("status", "INTERESTED")
+                            .requestAttr("internalUserId", userId)
+                            .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CLIENT")).jwt(jwt -> jwt.claim("sub", userId.toString())))
+            )
+                    .andExpect(status().isForbidden());
+        }
+    }
+
     // ==================== Helper Methods ====================
 
     private PropertyRequestDTO createSamplePropertyRequest() {

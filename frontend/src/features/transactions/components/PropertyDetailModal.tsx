@@ -15,7 +15,7 @@ import { Separator } from '@/shared/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { AddPropertyModal } from './AddPropertyModal';
 import { PropertyOfferList } from './PropertyOfferList';
-import { useRemoveProperty } from '@/features/transactions/api/mutations';
+import { useRemoveProperty, useUpdatePropertyStatus } from '@/features/transactions/api/mutations';
 import type { Property, PropertyOfferStatus } from '@/shared/api/types';
 
 interface PropertyDetailModalProps {
@@ -55,6 +55,7 @@ export function PropertyDetailModal({
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
     const removeProperty = useRemoveProperty();
+    const { mutateAsync: updateStatus } = useUpdatePropertyStatus();
 
     if (!property) return null;
 
@@ -177,6 +178,8 @@ export function PropertyDetailModal({
                     {/* For now keeping it at bottom, but it applies mostly to "details" context. 
                         Wait, deleting property deletes offers too. 
                     */}
+
+
                     {!isReadOnly && (
                         <div className="flex justify-end gap-2 pt-4 border-t border-border">
                             {isConfirmingDelete ? (
@@ -221,6 +224,66 @@ export function PropertyDetailModal({
                                     </Button>
                                 </>
                             )}
+                        </div>
+                    )}
+                    {/* Client Actions for Suggested Properties */}
+                    {isReadOnly && property.offerStatus === 'OFFER_TO_BE_MADE' && property.status === 'SUGGESTED' && (
+                        <div className="flex justify-between items-center pt-4 border-t border-border">
+                            <div className="text-sm text-muted-foreground">
+                                {t('clientDecision')}
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-destructive hover:text-destructive"
+                                    onClick={async () => {
+                                        await updateStatus({
+                                            transactionId,
+                                            propertyId: property.propertyId,
+                                            status: 'NOT_INTERESTED'
+                                        });
+                                        toast.success(t('propertyRejected'));
+                                        onClose();
+                                    }}
+                                >
+                                    {t('clientOfferDecisions.DECLINE')}
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={async () => {
+                                        const note = window.prompt(t('noteRequired'));
+                                        if (note) {
+                                            await updateStatus({
+                                                transactionId,
+                                                propertyId: property.propertyId,
+                                                status: 'NEEDS_INFO',
+                                                notes: note
+                                            });
+                                            toast.success(t('infoRequested'));
+                                            onClose();
+                                        }
+                                    }}
+                                >
+                                    {t('requestInfo')}
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    className="bg-emerald-600 hover:bg-emerald-700"
+                                    onClick={async () => {
+                                        await updateStatus({
+                                            transactionId,
+                                            propertyId: property.propertyId,
+                                            status: 'INTERESTED'
+                                        });
+                                        toast.success(t('propertyAccepted'));
+                                        onClose();
+                                    }}
+                                >
+                                    {t('clientOfferDecisions.ACCEPT')}
+                                </Button>
+                            </div>
                         </div>
                     )}
                 </DialogContent>

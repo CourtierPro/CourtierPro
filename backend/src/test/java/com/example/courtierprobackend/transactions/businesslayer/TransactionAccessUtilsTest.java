@@ -156,4 +156,206 @@ class TransactionAccessUtilsTest {
                     .hasMessageContaining("do not have access");
         }
     }
+
+    @Nested
+    @DisplayName("verifyBrokerOrCoManagerAccess")
+    class VerifyBrokerOrCoManagerAccessTests {
+        
+        @Test
+        @DisplayName("should allow access for primary broker")
+        void verifyBrokerOrCoManagerAccess_asPrimaryBroker_succeeds() {
+            assertThatNoException().isThrownBy(() -> 
+                TransactionAccessUtils.verifyBrokerOrCoManagerAccess(transaction, brokerId, "broker@example.com", null, null));
+        }
+
+        @Test
+        @DisplayName("should allow access for co-broker with permission")
+        void verifyBrokerOrCoManagerAccess_asCoBrokerWithPermission_succeeds() {
+            UUID coBrokerId = UUID.randomUUID();
+            String email = "cobroker@example.com";
+            var permission = com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS;
+            
+            var participant = new com.example.courtierprobackend.transactions.datalayer.TransactionParticipant();
+            participant.setUserId(coBrokerId);
+            participant.setEmail(email);
+            participant.setRole(com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER);
+            participant.setPermissions(java.util.Set.of(permission));
+
+            assertThatNoException().isThrownBy(() -> 
+                TransactionAccessUtils.verifyBrokerOrCoManagerAccess(transaction, coBrokerId, email, java.util.List.of(participant), permission));
+        }
+
+        @Test
+        @DisplayName("should deny access for co-broker without permission")
+        void verifyBrokerOrCoManagerAccess_asCoBrokerWithoutPermission_throws() {
+            UUID coBrokerId = UUID.randomUUID();
+            String email = "cobroker@example.com";
+            var permission = com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS;
+            
+            var participant = new com.example.courtierprobackend.transactions.datalayer.TransactionParticipant();
+            participant.setUserId(coBrokerId);
+            participant.setEmail(email);
+            participant.setRole(com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER);
+            participant.setPermissions(java.util.Collections.emptySet()); // No permissions
+
+            assertThatThrownBy(() -> 
+                TransactionAccessUtils.verifyBrokerOrCoManagerAccess(transaction, coBrokerId, email, java.util.List.of(participant), permission))
+                .isInstanceOf(ForbiddenException.class);
+        }
+
+        @Test
+        @DisplayName("should deny access for non-participant")
+        void verifyBrokerOrCoManagerAccess_asNonParticipant_throws() {
+             var permission = com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS;
+             assertThatThrownBy(() -> 
+                TransactionAccessUtils.verifyBrokerOrCoManagerAccess(transaction, UUID.randomUUID(), "random@example.com", java.util.Collections.emptyList(), permission))
+                .isInstanceOf(ForbiddenException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("verifyViewAccess")
+    class VerifyViewAccessTests {
+
+        @Test
+        @DisplayName("should allow view access for primary broker")
+        void verifyViewAccess_primaryBroker_succeeds() {
+             assertThatNoException().isThrownBy(() -> 
+                TransactionAccessUtils.verifyViewAccess(transaction, brokerId, "broker@example.com", null, null));
+        }
+
+        @Test
+        @DisplayName("should allow view access for client")
+        void verifyViewAccess_client_succeeds() {
+             assertThatNoException().isThrownBy(() -> 
+                TransactionAccessUtils.verifyViewAccess(transaction, clientId, "client@example.com", null, null));
+        }
+
+        @Test
+        @DisplayName("should allow view access for co-broker with permission")
+        void verifyViewAccess_coBrokerWithPermission_succeeds() {
+            UUID coBrokerId = UUID.randomUUID();
+            String email = "cobroker@example.com";
+            var permission = com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.VIEW_DOCUMENTS;
+
+            var participant = new com.example.courtierprobackend.transactions.datalayer.TransactionParticipant();
+            participant.setUserId(coBrokerId);
+            participant.setEmail(email);
+            participant.setRole(com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER);
+            participant.setPermissions(java.util.Set.of(permission));
+
+             assertThatNoException().isThrownBy(() -> 
+                TransactionAccessUtils.verifyViewAccess(transaction, coBrokerId, email, java.util.List.of(participant), permission));
+        }
+        
+        @Test
+        @DisplayName("should deny view access for co-broker without permission")
+        void verifyViewAccess_coBrokerWithoutPermission_throws() {
+            UUID coBrokerId = UUID.randomUUID();
+            String email = "cobroker@example.com";
+            var permission = com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.VIEW_DOCUMENTS;
+
+            var participant = new com.example.courtierprobackend.transactions.datalayer.TransactionParticipant();
+            participant.setUserId(coBrokerId);
+            participant.setEmail(email);
+            participant.setRole(com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER);
+            participant.setPermissions(java.util.Collections.emptySet());
+
+             assertThatThrownBy(() -> 
+                TransactionAccessUtils.verifyViewAccess(transaction, coBrokerId, email, java.util.List.of(participant), permission))
+                .isInstanceOf(ForbiddenException.class);
+        }
+
+        @Test
+        @DisplayName("should allow view access for other participants (Notary)")
+        void verifyViewAccess_otherParticipant_succeeds() {
+            UUID notaryId = UUID.randomUUID();
+            String email = "notary@example.com";
+
+            var participant = new com.example.courtierprobackend.transactions.datalayer.TransactionParticipant();
+            participant.setUserId(notaryId);
+            participant.setEmail(email);
+            participant.setRole(com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.NOTARY); // Not CO_BROKER
+
+             assertThatNoException().isThrownBy(() -> 
+                TransactionAccessUtils.verifyViewAccess(transaction, notaryId, email, java.util.List.of(participant), null));
+        }
+        
+         @Test
+        @DisplayName("should verify participant by email if ID is missing")
+        void verifyViewAccess_participantByEmail_succeeds() {
+            String email = "notary@example.com";
+            UUID userId = UUID.randomUUID(); // User exploring access
+
+            var participant = new com.example.courtierprobackend.transactions.datalayer.TransactionParticipant();
+            participant.setUserId(null); // ID missing in participant record
+            participant.setEmail(email);
+            participant.setRole(com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.NOTARY);
+
+             assertThatNoException().isThrownBy(() -> 
+                TransactionAccessUtils.verifyViewAccess(transaction, userId, email, java.util.List.of(participant), null));
+        }
+
+        @Test
+        @DisplayName("should deny view access for null user ID")
+        void verifyViewAccess_nullUserId_throws() {
+            assertThatThrownBy(() -> 
+                TransactionAccessUtils.verifyViewAccess(transaction, null, "email", null, null))
+                .isInstanceOf(ForbiddenException.class);
+        }
+        
+        @Test
+        @DisplayName("should deny view access for non-participant")
+        void verifyViewAccess_nonParticipant_throws() {
+             assertThatThrownBy(() -> 
+                TransactionAccessUtils.verifyViewAccess(transaction, UUID.randomUUID(), "random@example.com", java.util.Collections.emptyList(), null))
+                .isInstanceOf(ForbiddenException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("verifyTransactionAccess (Participants)")
+    class VerifyTransactionAccessParticipantsTests {
+
+        @Test
+        @DisplayName("should allow access for broker")
+        void verifyTransactionAccess_broker_succeeds() {
+             assertThatNoException().isThrownBy(() -> 
+                TransactionAccessUtils.verifyTransactionAccess(transaction, brokerId, "broker@example.com", null));
+        }
+        
+        @Test
+        @DisplayName("should allow access for client")
+        void verifyTransactionAccess_client_succeeds() {
+             assertThatNoException().isThrownBy(() -> 
+                TransactionAccessUtils.verifyTransactionAccess(transaction, clientId, "client@example.com", null));
+        }
+
+        @Test
+        @DisplayName("should allow access for participant by email")
+        void verifyTransactionAccess_participant_succeeds() {
+             String email = "participant@example.com";
+             var participant = new com.example.courtierprobackend.transactions.datalayer.TransactionParticipant();
+             participant.setEmail(email);
+
+             assertThatNoException().isThrownBy(() -> 
+                TransactionAccessUtils.verifyTransactionAccess(transaction, UUID.randomUUID(), email, java.util.List.of(participant)));
+        }
+
+        @Test
+        @DisplayName("should deny access for non-participant")
+        void verifyTransactionAccess_nonParticipant_throws() {
+             assertThatThrownBy(() -> 
+                TransactionAccessUtils.verifyTransactionAccess(transaction, UUID.randomUUID(), "random@example.com", java.util.Collections.emptyList()))
+                .isInstanceOf(ForbiddenException.class);
+        }
+
+        @Test
+        @DisplayName("should deny access for null user ID")
+        void verifyTransactionAccess_nullUserId_throws() {
+             assertThatThrownBy(() -> 
+                TransactionAccessUtils.verifyTransactionAccess(transaction, null, "email", null))
+                .isInstanceOf(ForbiddenException.class);
+        }
+    }
 }

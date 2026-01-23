@@ -26,6 +26,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository;
 import com.example.courtierprobackend.transactions.datalayer.Offer;
+import com.example.courtierprobackend.transactions.datalayer.Property;
+import com.example.courtierprobackend.transactions.datalayer.dto.PropertyResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.UpdateParticipantRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus;
+
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
@@ -6634,5 +6639,257 @@ class TransactionServiceImplTest {
                 // Assert
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).getSourceName()).isEqualTo("ID_VERIFICATION");
+        }
+
+        // ==================== updatePropertyStatus Tests ====================
+
+        @Test
+        void updatePropertyStatus_asClient_validTransition_success() {
+                UUID transactionId = UUID.randomUUID();
+                UUID propertyId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setClientId(clientId);
+                tx.setBrokerId(brokerId);
+                tx.setSide(TransactionSide.BUY_SIDE);
+
+                Property property = new Property();
+                property.setPropertyId(propertyId);
+                property.setTransactionId(transactionId);
+                property.setStatus(PropertyStatus.SUGGESTED);
+                property.setAddress(new PropertyAddress("123 Main", "City", "QC", "H1H 1H1"));
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+                when(propertyRepository.save(any(Property.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(createUserAccount(clientId, "Client Name")));
+
+                PropertyResponseDTO result = transactionService.updatePropertyStatus(
+                        transactionId, propertyId, PropertyStatus.INTERESTED, "Looks good", clientId);
+
+                assertThat(result.getStatus()).isEqualTo(PropertyStatus.INTERESTED);
+                verify(timelineService).addEntry(eq(transactionId), eq(clientId), eq(TimelineEntryType.PROPERTY_UPDATED), anyString(), isNull(), any());
+        }
+
+        @Test
+        void updatePropertyStatus_asClient_invalidTransition_throwsBadRequest() {
+                UUID transactionId = UUID.randomUUID();
+                UUID propertyId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setClientId(clientId);
+                tx.setBrokerId(UUID.randomUUID());
+
+                Property property = new Property();
+                property.setPropertyId(propertyId);
+                property.setTransactionId(transactionId);
+                property.setStatus(PropertyStatus.INTERESTED); // Already accepted
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+
+                assertThatThrownBy(() -> transactionService.updatePropertyStatus(
+                        transactionId, propertyId, PropertyStatus.NOT_INTERESTED, null, clientId))
+                        .isInstanceOf(BadRequestException.class)
+                        .hasMessageContaining("Clients can only review Suggested properties");
+        }
+
+        @Test
+        void updatePropertyStatus_asBroker_success() {
+                UUID transactionId = UUID.randomUUID();
+                UUID propertyId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(UUID.randomUUID());
+
+                Property property = new Property();
+                property.setPropertyId(propertyId);
+                property.setTransactionId(transactionId);
+                property.setStatus(PropertyStatus.NEEDS_INFO);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+                when(propertyRepository.save(any(Property.class))).thenAnswer(i -> i.getArguments()[0]);
+
+                PropertyResponseDTO result = transactionService.updatePropertyStatus(
+                        transactionId, propertyId, PropertyStatus.SUGGESTED, "Info provided", brokerId);
+
+                assertThat(result.getStatus()).isEqualTo(PropertyStatus.SUGGESTED);
+        }
+
+        @Test
+        void updatePropertyStatus_unauthorizedUser_throwsForbidden() {
+                UUID transactionId = UUID.randomUUID();
+                UUID userId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(UUID.randomUUID());
+                tx.setClientId(UUID.randomUUID());
+
+                Property property = new Property();
+                property.setPropertyId(UUID.randomUUID());
+                property.setTransactionId(transactionId);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(propertyRepository.findByPropertyId(any())).thenReturn(Optional.of(property));
+
+                assertThatThrownBy(() -> transactionService.updatePropertyStatus(
+                        transactionId, property.getPropertyId(), PropertyStatus.INTERESTED, null, userId))
+                        .isInstanceOf(ForbiddenException.class);
+        }
+
+        // ==================== Participant Coverage Tests ====================
+
+        @Test
+        void addParticipant_duplicateEmail_throwsBadRequest() {
+            UUID transactionId = UUID.randomUUID();
+            UUID brokerId = UUID.randomUUID();
+            String email = "duplicate@example.com";
+
+            Transaction tx = new Transaction();
+            tx.setTransactionId(transactionId);
+            tx.setBrokerId(brokerId);
+
+            AddParticipantRequestDTO dto = new AddParticipantRequestDTO();
+            dto.setEmail(email);
+            dto.setName("New Participant");
+            dto.setRole(ParticipantRole.OTHER);
+
+            TransactionParticipant existing = new TransactionParticipant();
+            existing.setEmail(email);
+
+            when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+            when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of(existing));
+
+            assertThatThrownBy(() -> transactionService.addParticipant(transactionId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Un participant avec cet email existe déjà");
+        }
+
+        @Test
+        void updateParticipant_fullUpdate_success() {
+            UUID transactionId = UUID.randomUUID();
+            UUID brokerId = UUID.randomUUID();
+            UUID participantId = UUID.randomUUID();
+
+            Transaction tx = new Transaction();
+            tx.setTransactionId(transactionId);
+            tx.setBrokerId(brokerId);
+
+            TransactionParticipant participant = new TransactionParticipant();
+            participant.setId(participantId);
+            participant.setTransactionId(transactionId);
+            participant.setRole(ParticipantRole.OTHER);
+            participant.setSystem(false);
+
+            UpdateParticipantRequestDTO dto = new UpdateParticipantRequestDTO();
+            dto.setName("Updated Name");
+            dto.setEmail("new@example.com");
+            dto.setRole(ParticipantRole.CO_BROKER);
+            dto.setPhoneNumber("555-1234");
+            dto.setPermissions(java.util.Set.of(ParticipantPermission.VIEW_DOCUMENTS));
+
+            when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+            when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
+            when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of(participant));
+            // Simulate that new email is valid user for CO_BROKER role
+            when(userAccountRepository.findByEmail("new@example.com")).thenReturn(Optional.of(new UserAccount()));
+            when(participantRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+
+            ParticipantResponseDTO result = transactionService.updateParticipant(transactionId, participantId, dto, brokerId);
+
+            assertThat(result.getName()).isEqualTo("Updated Name");
+            assertThat(result.getRole()).isEqualTo(ParticipantRole.CO_BROKER);
+            assertThat(result.getPermissions()).contains(ParticipantPermission.VIEW_DOCUMENTS);
+        }
+
+        @Test
+        void updateParticipant_systemParticipant_throwsBadRequest() {
+            UUID transactionId = UUID.randomUUID();
+            UUID brokerId = UUID.randomUUID();
+            UUID participantId = UUID.randomUUID();
+
+            Transaction tx = new Transaction();
+            tx.setTransactionId(transactionId);
+            tx.setBrokerId(brokerId);
+
+            TransactionParticipant participant = new TransactionParticipant();
+            participant.setId(participantId);
+            participant.setTransactionId(transactionId);
+            participant.setSystem(true); // Is System
+
+            when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+            when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
+
+            UpdateParticipantRequestDTO dto = new UpdateParticipantRequestDTO();
+            dto.setName("New Name");
+
+            assertThatThrownBy(() -> transactionService.updateParticipant(transactionId, participantId, dto, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Impossible de modifier ce participant système");
+        }
+
+        @Test
+        void removeParticipant_systemParticipant_throwsBadRequest() {
+            UUID transactionId = UUID.randomUUID();
+            UUID brokerId = UUID.randomUUID();
+            UUID participantId = UUID.randomUUID();
+
+            Transaction tx = new Transaction();
+            tx.setTransactionId(transactionId);
+            tx.setBrokerId(brokerId);
+
+            TransactionParticipant participant = new TransactionParticipant();
+            participant.setId(participantId);
+            participant.setTransactionId(transactionId);
+            participant.setSystem(true);
+
+            when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+            when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
+
+            assertThatThrownBy(() -> transactionService.removeParticipant(transactionId, participantId, brokerId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Impossible de supprimer ce participant système");
+        }
+
+        // ==================== Broker Transaction Coverage ====================
+
+        @Test
+        void getBrokerTransactions_includesCoBrokerTransactions() {
+            UUID brokerId = UUID.randomUUID();
+            String brokerEmail = "broker@example.com";
+
+            // Broker is Primary on Tx1
+            Transaction tx1 = new Transaction();
+            tx1.setTransactionId(UUID.randomUUID());
+            tx1.setBrokerId(brokerId);
+
+            // Broker is Co-Broker on Tx2
+            Transaction tx2 = new Transaction();
+            tx2.setTransactionId(UUID.randomUUID());
+            tx2.setBrokerId(UUID.randomUUID()); // Different primary broker
+
+            UserAccount brokerAccount = new UserAccount();
+            brokerAccount.setEmail(brokerEmail);
+            
+            when(transactionRepository.findAllByFilters(eq(brokerId), any(), any(), any(), anyBoolean()))
+                .thenReturn(List.of(tx1));
+            when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(brokerAccount));
+            when(transactionRepository.findAllByParticipantEmail(brokerEmail)).thenReturn(List.of(tx2));
+
+            List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(brokerId, null, null, null);
+
+            assertThat(result).hasSize(2);
+            assertThat(result.stream().map(TransactionResponseDTO::getTransactionId))
+                .containsExactlyInAnyOrder(tx1.getTransactionId(), tx2.getTransactionId());
         }
 }

@@ -22,7 +22,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.http.MediaType;
 
@@ -42,16 +42,16 @@ class TransactionControllerUnitTest {
     @Autowired
     private MockMvc mockMvc;
 
-        @MockBean
+        @MockitoBean
     private TransactionService service;
 
-        @MockBean
+        @MockitoBean
     private UserContextFilter userContextFilter;
 
-        @MockBean
+        @MockitoBean
     private UserAccountRepository userAccountRepository;
 
-        @MockBean
+        @MockitoBean
         private com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService;
 
     @Autowired
