@@ -67,9 +67,12 @@ CREATE TABLE IF NOT EXISTS transactions (
     status VARCHAR(50),
     opened_at TIMESTAMP,
     closed_at TIMESTAMP,
-    -- Optimistic locking version column to prevent concurrent updates.
-    -- Existing rows created before this column was added will start at 0, which is intentional.
+    -- Optimistic locking version column
     version BIGINT DEFAULT 0,
+    -- Archive columns
+    archived BOOLEAN NOT NULL DEFAULT FALSE,
+    archived_at TIMESTAMP,
+    archived_by UUID,
     -- Soft Delete Columns
     deleted_at TIMESTAMP,
     deleted_by UUID
@@ -80,15 +83,8 @@ CREATE INDEX IF NOT EXISTS idx_transactions_client_id ON transactions(client_id)
 CREATE INDEX IF NOT EXISTS idx_transactions_broker_id ON transactions(broker_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
 CREATE INDEX IF NOT EXISTS idx_transactions_deleted_at ON transactions(deleted_at);
-
--- Add archived columns and indexes (moved from V2__add_archived_column.sql)
-ALTER TABLE transactions ADD COLUMN archived BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE transactions ADD COLUMN archived_at TIMESTAMP;
-ALTER TABLE transactions ADD COLUMN archived_by UUID;
-
--- Create index for faster filtering on archived status
-CREATE INDEX idx_transactions_archived ON transactions(archived);
-CREATE INDEX idx_transactions_broker_archived ON transactions(broker_id, archived);
+CREATE INDEX IF NOT EXISTS idx_transactions_archived ON transactions(archived);
+CREATE INDEX IF NOT EXISTS idx_transactions_broker_archived ON transactions(broker_id, archived);
 
 -- CREATE INDEX IF NOT EXISTS idx_transactions_street_trgm 
 --     ON transactions USING GIN (street gin_trgm_ops);
@@ -105,6 +101,7 @@ CREATE TABLE IF NOT EXISTS timeline_entries (
     actor_id UUID NOT NULL,
     type VARCHAR(50) NOT NULL,
     note TEXT,
+    reason TEXT,
     doc_type VARCHAR(100),
     visible_to_client BOOLEAN DEFAULT false,
     client_name VARCHAR(255),
@@ -240,14 +237,18 @@ CREATE INDEX idx_pinned_transactions_broker_id ON pinned_transactions(broker_id)
 CREATE TABLE IF NOT EXISTS transaction_participants (
     id UUID PRIMARY KEY,
     transaction_id UUID NOT NULL,
+    user_id UUID,
     name VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL,
     email VARCHAR(255),
     phone_number VARCHAR(50),
-    CONSTRAINT fk_participant_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE
+    is_system BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT fk_participant_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE,
+    CONSTRAINT fk_transaction_participants_user_id FOREIGN KEY (user_id) REFERENCES user_accounts(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_transaction_participants_transaction_id ON transaction_participants(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_transaction_participants_user_id ON transaction_participants(user_id);
 
 -- =============================================================================
 -- ORGANIZATION SETTINGS
@@ -406,6 +407,7 @@ CREATE TABLE IF NOT EXISTS properties (
     offer_amount DECIMAL(15,2),
     centris_number VARCHAR(50),
     -- Status tracking
+    status VARCHAR(50) NOT NULL DEFAULT 'SUGGESTED',
     offer_status VARCHAR(50) NOT NULL DEFAULT 'OFFER_TO_BE_MADE',
     -- Broker notes (not visible to clients)
     notes TEXT,
@@ -418,13 +420,16 @@ CREATE TABLE IF NOT EXISTS properties (
         REFERENCES transactions(transaction_id)
         ON DELETE CASCADE,
     CONSTRAINT chk_offer_status 
-        CHECK (offer_status IN ('OFFER_TO_BE_MADE', 'OFFER_MADE', 'COUNTERED', 'ACCEPTED', 'DECLINED'))
+        CHECK (offer_status IN ('OFFER_TO_BE_MADE', 'OFFER_MADE', 'COUNTERED', 'ACCEPTED', 'DECLINED')),
+    CONSTRAINT chk_property_status
+        CHECK (status IN ('SUGGESTED', 'ACCEPTED', 'DECLINED'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_properties_transaction_id ON properties(transaction_id);
 CREATE INDEX IF NOT EXISTS idx_properties_property_id ON properties(property_id);
 CREATE INDEX IF NOT EXISTS idx_properties_offer_status ON properties(offer_status);
 CREATE INDEX IF NOT EXISTS idx_properties_centris_number ON properties(centris_number);
+CREATE INDEX IF NOT EXISTS idx_properties_status ON properties(status);
 
 -- =============================================================================
 -- OFFERS (for seller transactions - tracking offers from potential buyers)
@@ -663,3 +668,70 @@ CREATE TABLE IF NOT EXISTS email_change_tokens (
 );
 CREATE INDEX IF NOT EXISTS idx_email_change_tokens_user_id ON email_change_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_email_change_tokens_token ON email_change_tokens(token);
+
+-- =============================================================================
+-- PARTICIPANT PERMISSIONS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS participant_permissions (
+    participant_id UUID NOT NULL,
+    permission VARCHAR(50) NOT NULL,
+    CONSTRAINT fk_participant_permissions_participant FOREIGN KEY (participant_id) REFERENCES transaction_participants(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_participant_permissions_participant_id ON participant_permissions(participant_id);
+
+-- =============================================================================
+-- APPOINTMENTS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS appointments (
+    id BIGSERIAL PRIMARY KEY,
+    appointment_id UUID NOT NULL UNIQUE,
+    title VARCHAR(255) NOT NULL,
+    transaction_id UUID,
+    broker_id UUID NOT NULL,
+    client_id UUID NOT NULL,
+    from_date_time TIMESTAMP NOT NULL,
+    to_date_time TIMESTAMP NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    initiated_by VARCHAR(50) NOT NULL,
+    responded_by UUID,
+    responded_at TIMESTAMP,
+    location VARCHAR(500),
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    notes TEXT,
+    refusal_reason TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    version BIGINT DEFAULT 0,
+    deleted_at TIMESTAMP,
+    deleted_by UUID,
+    CONSTRAINT fk_appointments_broker FOREIGN KEY (broker_id) REFERENCES user_accounts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_appointments_client FOREIGN KEY (client_id) REFERENCES user_accounts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_appointments_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE SET NULL
+);
+
+-- Indexes for appointments
+CREATE INDEX IF NOT EXISTS idx_appointments_broker_id ON appointments(broker_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_client_id ON appointments(client_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_transaction_id ON appointments(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
+CREATE INDEX IF NOT EXISTS idx_appointments_from_date_time ON appointments(from_date_time);
+CREATE INDEX IF NOT EXISTS idx_appointments_deleted_at ON appointments(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_appointments_broker_date ON appointments(broker_id, from_date_time);
+CREATE INDEX IF NOT EXISTS idx_appointments_client_date ON appointments(client_id, from_date_time);
+
+-- =============================================================================
+-- APPOINTMENT AUDITS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS appointment_audits (
+    id UUID PRIMARY KEY,
+    appointment_id UUID NOT NULL,
+    action VARCHAR(255) NOT NULL,
+    performed_by UUID NOT NULL,
+    performed_at TIMESTAMP NOT NULL,
+    details TEXT,
+    CONSTRAINT fk_audit_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_appointment_audits_appointment_id ON appointment_audits(appointment_id);

@@ -83,13 +83,11 @@ jobs:
       - name: Deploy on EC2
         id: deploy
         uses: appleboy/ssh-action@master
+        continue-on-error: true
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
-          # Ensure you are using the NEW Ed25519 Private Key here
           key: ${{ secrets.EC2_SSH_KEY }}
-          # Capture stdout so we can parse the deployment result markers
-          capture_stdout: true
           script: |
             cd /home/${{ secrets.EC2_USER }}/app
 
@@ -179,9 +177,9 @@ jobs:
             done
 
             if [ $SUCCESS -eq 1 ]; then
-              echo "✅ Deployment Successful!"
+              echo "Deployment Successful!"
               rm -f .env.bak  # Clean up backup on success
-              echo "::DEPLOY_RESULT=success::"
+              echo "success" > /tmp/deploy_result.txt
               exit 0
             else
               echo "❌ Deployment Failed! Attempting rollback..."
@@ -229,35 +227,53 @@ jobs:
                 done
                 
                 if [ $ROLLBACK_SUCCESS -eq 1 ]; then
-                  echo "✅ Rollback successful! System restored to $ROLLBACK_TAG"
-                  echo "⚠️ Note: Deployment failed but system is now healthy with previous version."
-                  echo "::DEPLOY_RESULT=rollback::"
+                  echo "Rollback successful! System restored to $ROLLBACK_TAG"
+                  echo "Note: Deployment failed but system is now healthy with previous version."
+                  echo "rollback" > /tmp/deploy_result.txt
                   rm -f .env.bak
                   exit 0  # Exit 0 so workflow can send proper notification
                 else
-                  echo "❌ CRITICAL: Rollback failed! System may be in an unhealthy state."
+                  echo "CRITICAL: Rollback failed! System may be in an unhealthy state."
                   echo "Manual intervention required. Backup .env available at .env.bak"
-                  echo "::DEPLOY_RESULT=failure::"
+                  echo "failure" > /tmp/deploy_result.txt
                   exit 1  # Exit with 1 to indicate complete failure
                 fi
               else
-                echo "⚠️ No previous version available for rollback (ROLLBACK_TAG is empty or same as current)"
+                echo "No previous version available for rollback (ROLLBACK_TAG is empty or same as current)"
                 rm -f .env.bak  # Clean up backup before exit
-                echo "::DEPLOY_RESULT=failure::"
+                echo "failure" > /tmp/deploy_result.txt
                 exit 1
               fi
             fi
 
-      # Parse the deploy script output to determine the actual result
+      # Fetch the deployment result from the server
+      - name: Fetch deployment result
+        id: fetch_result
+        if: always()
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          capture_stdout: true
+          script: |
+            cat /tmp/deploy_result.txt 2>/dev/null || echo "unknown"
+            rm -f /tmp/deploy_result.txt
+
+      # Parse the deploy result
       - name: Parse deployment result
         id: parse_result
         if: always()
         env:
-          DEPLOY_OUTPUT: ${{ steps.deploy.outputs.stdout }}
+          DEPLOY_RESULT: ${{ steps.fetch_result.outputs.stdout }}
         run: |
-          if echo "$DEPLOY_OUTPUT" | grep -q "::DEPLOY_RESULT=success::"; then
+          # Trim whitespace and get the result
+          RESULT=$(echo "$DEPLOY_RESULT" | tr -d '[:space:]')
+          echo "Raw result: '$RESULT'"
+          
+          if [ "$RESULT" == "success" ]; then
             echo "deploy_status=success" >> $GITHUB_OUTPUT
-          elif echo "$DEPLOY_OUTPUT" | grep -q "::DEPLOY_RESULT=rollback::"; then
+          elif [ "$RESULT" == "rollback" ]; then
             echo "deploy_status=rollback" >> $GITHUB_OUTPUT
           else
             echo "deploy_status=failure" >> $GITHUB_OUTPUT
