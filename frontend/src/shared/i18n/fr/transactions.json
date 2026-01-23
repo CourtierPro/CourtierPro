@@ -237,6 +237,7 @@
   "timeline.createdNote": "Transaction créée pour {{clientName}}, adresse : {{address}}.",
   "timeline.stageChangeNote": "Étape changée en {{stage}}.",
   "timeline.stageChangeNoteFull": "Changement d'étape : {{previousStage}} → {{newStage}}.",
+  "timeline.stageRollbackNote": "Étape revenue à {{stage}}.",
   "timeline.by": "par {{name}}",
   "add": "Ajouter",
   "participantAdded": "Participant ajouté avec succès",

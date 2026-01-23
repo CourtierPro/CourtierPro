@@ -243,6 +243,7 @@
   "timeline.createdNote": "Transaction created for {{clientName}}.",
   "timeline.stageChangeNote": "Stage changed to {{stage}}.",
   "timeline.stageChangeNoteFull": "Stage changed: {{previousStage}} → {{newStage}}.",
+  "timeline.stageRollbackNote": "Stage rolled back to {{stage}}.",
   "timeline.by": "by {{name}}",
   "timeline.propertyAdded": "Property added: {{address}}",
   "timeline.propertyUpdated": "Property updated: {{address}}",
