@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 import { Button } from '@/shared/components/ui/button';
 import { Textarea } from '@/shared/components/ui/textarea';
+import { Checkbox } from '@/shared/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -81,6 +82,7 @@ function StageUpdateForm({
     defaultValues: {
       stage: defaultNextStage,
       note: '',
+      visibleToClient: true,
       reason: '',
     },
   });
@@ -94,6 +96,7 @@ function StageUpdateForm({
     reset({
       stage: defaultNextStage,
       note: '',
+      visibleToClient: true,
       reason: '',
     });
   }, [reset, defaultNextStage]);
@@ -294,7 +297,31 @@ function StageUpdateForm({
             )}
           />
 
-
+          {!rollback && (
+            <FormField
+              control={form.control}
+              name="visibleToClient"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      {t('visibleToClient')}
+                    </FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      {t('visibleToClientHelp')}
+                    </p>
+                  </div>
+                </FormItem>
+              )}
+            />
+          )}
 
         </div>
 
