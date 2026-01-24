@@ -701,6 +701,8 @@ CREATE TABLE IF NOT EXISTS appointments (
     longitude DOUBLE PRECISION,
     notes TEXT,
     refusal_reason TEXT,
+    cancellation_reason TEXT,
+    cancelled_by UUID,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     version BIGINT DEFAULT 0,

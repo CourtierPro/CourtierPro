@@ -85,4 +85,12 @@ public interface AppointmentService {
                         com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO reviewDTO,
                         UUID reviewerId);
 
+        /**
+         * Cancel an appointment (Confirmed or Proposed/Withdraw).
+         */
+        AppointmentResponseDTO cancelAppointment(
+                        UUID appointmentId,
+                        com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO,
+                        UUID requesterId);
+
 }

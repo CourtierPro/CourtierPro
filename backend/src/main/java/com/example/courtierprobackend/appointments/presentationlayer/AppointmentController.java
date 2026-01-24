@@ -147,4 +147,23 @@ public class AppointmentController {
 
         return ResponseEntity.ok(updatedAppointment);
     }
+
+    /**
+     * Cancel an appointment.
+     */
+    @PatchMapping("/{appointmentId}/cancel")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<AppointmentResponseDTO> cancelAppointment(
+            @PathVariable UUID appointmentId,
+            @RequestBody com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request) {
+
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        AppointmentResponseDTO updatedAppointment = appointmentService.cancelAppointment(appointmentId, cancelDTO,
+                userId);
+
+        return ResponseEntity.ok(updatedAppointment);
+    }
 }

@@ -68,6 +68,8 @@ class AppointmentControllerTest {
                                 -73.5,
                                 "Test notes",
                                 null,
+                                null,
+                                null,
                                 LocalDateTime.now(),
                                 LocalDateTime.now());
         }
