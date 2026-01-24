@@ -82,5 +82,15 @@
     "currentTime": "Current Time",
     "newTime": "Proposed New Time",
     "noChangeTitle": "No Changes",
-    "noChangeDesc": "The selected time is identical to the current time."
+    "noChangeDesc": "The selected time is identical to the current time.",
+    "cancelAppointment": "Cancel Appointment",
+    "reasonForCancelling": "Reason for cancelling",
+    "enterCancellationReason": "Enter a reason (e.g., Emergency, Illness)...",
+    "confirmCancellation": "Confirm Cancellation",
+    "cancelWarning": "This appointment will be cancelled, but you can reschedule it later if needed.",
+    "cancellationReason": "Cancellation Reason",
+    "close": "Close",
+    "reschedule": "Reschedule",
+    "originalTime": "Original Time",
+    "onlyCancellerCanReschedule": "Only the party who cancelled can reschedule."
 }

@@ -66,6 +66,9 @@ public class Appointment {
     @Column(name = "refusal_reason", columnDefinition = "TEXT")
     private String refusalReason;
 
+    @Column(name = "cancellation_reason", columnDefinition = "TEXT")
+    private String cancellationReason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -77,6 +80,9 @@ public class Appointment {
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    @Column(name = "cancelled_by")
+    private UUID cancelledBy;
 
     @Column(name = "deleted_by")
     private UUID deletedBy;
@@ -244,6 +250,22 @@ public class Appointment {
 
     public void setRefusalReason(String refusalReason) {
         this.refusalReason = refusalReason;
+    }
+
+    public String getCancellationReason() {
+        return cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
+    }
+
+    public UUID getCancelledBy() {
+        return cancelledBy;
+    }
+
+    public void setCancelledBy(UUID cancelledBy) {
+        this.cancelledBy = cancelledBy;
     }
 
     public LocalDateTime getCreatedAt() {

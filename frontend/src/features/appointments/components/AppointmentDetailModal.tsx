@@ -5,14 +5,15 @@ import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { useTranslation } from "react-i18next";
 import { type Appointment, getAppointmentTimeRange, getAppointmentDate } from "../types";
-import { format } from "date-fns";
 import { fr, enUS } from 'date-fns/locale';
-import { Calendar, Clock, MapPin, User, FileText, Check, X, AlertTriangle, CalendarClock } from "lucide-react";
-import { useReviewAppointment } from "../api/mutations";
+import { Calendar, Clock, MapPin, User, FileText, Check, X, AlertTriangle, CalendarClock, Ban } from "lucide-react";
+import { useReviewAppointment, useCancelAppointment } from "../api/mutations";
 import { Badge } from "@/shared/components/ui/badge";
 import { getStatusBadgeVariant } from "../enums";
 import { useAuth0 } from "@auth0/auth0-react";
+import { format } from "date-fns";
 import { Section } from "@/shared/components/branded/Section";
+
 import {
     Select,
     SelectContent,
@@ -35,8 +36,10 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
     const isBroker = userRoles.includes('BROKER');
 
     const [isDeclineOpen, setIsDeclineOpen] = useState(false);
+    const [isCancelOpen, setIsCancelOpen] = useState(false);
     const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
     const [refusalReason, setRefusalReason] = useState("");
+    const [cancellationReason, setCancellationReason] = useState("");
 
     // Reschedule state
     const [newDate, setNewDate] = useState("");
@@ -44,6 +47,7 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
     const [newEndTime, setNewEndTime] = useState("");
 
     const reviewMutation = useReviewAppointment();
+    const cancelMutation = useCancelAppointment();
 
     // Logic to determine other party name
     // If I am broker, show client name. If I am client, show broker name.
@@ -74,7 +78,23 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
     // Determine correctness of roles
     // InitiatorType is 'BROKER' | 'CLIENT'
     const myRole = isBroker ? 'BROKER' : 'CLIENT';
+
+    // Can Review: Only if PROPOSED and I am NOT the initiator
     const canReview = appointment ? appointment.status === 'PROPOSED' && appointment.initiatedBy !== myRole : false;
+
+    // Can Cancel:
+    // 1. If CONFIRMED -> Both can cancel.
+    // 2. If PROPOSED -> Only Initiator can cancel (Withdraw).
+    // 3. Not already cancelled/declined.
+    const canCancel = useMemo(() => {
+        if (!appointment) return false;
+        if (appointment.status === 'CANCELLED' || appointment.status === 'DECLINED') return false;
+
+        if (appointment.status === 'CONFIRMED') return true;
+        if (appointment.status === 'PROPOSED' && appointment.initiatedBy === myRole) return true;
+
+        return false;
+    }, [appointment, myRole]);
 
     // Conflict Check (Current Appointment)
     const hasConflict = useMemo(() => {
@@ -135,6 +155,20 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
         });
     };
 
+    const handleCancel = () => {
+        if (!cancellationReason.trim() || !appointment) return;
+        cancelMutation.mutate({
+            id: appointment.appointmentId,
+            data: { reason: cancellationReason }
+        }, {
+            onSuccess: () => {
+                setIsCancelOpen(false);
+                setCancellationReason("");
+                onClose();
+            }
+        });
+    }
+
     const handleReschedule = () => {
         if (!newDate || !newStartTime || !newEndTime || !appointment) return;
 
@@ -170,6 +204,21 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
         const currentStart = new Date(appointment.fromDateTime);
         const currentEnd = new Date(appointment.toDateTime);
 
+        // For "Reviving" a cancelled/declined appointment, strictly prepopulate with OLD times 
+        // to allow user to see what it was, or choose new.
+        // User requested fields to be filled.
+        if (appointment.status === 'CANCELLED' || appointment.status === 'DECLINED') {
+            setNewDate(format(currentStart, 'yyyy-MM-dd'));
+            setNewStartTime(format(currentStart, 'HH:mm'));
+            setNewEndTime(format(currentEnd, 'HH:mm'));
+
+            setIsRescheduleOpen(true);
+            setIsDeclineOpen(false);
+            setIsCancelOpen(false);
+            return;
+        }
+
+        // ... existing smart logic for active appointments ...
         // Calculate duration in minutes
         const durationMs = currentEnd.getTime() - currentStart.getTime();
 
@@ -206,6 +255,7 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
 
         setIsRescheduleOpen(true);
         setIsDeclineOpen(false); // Close others
+        setIsCancelOpen(false);
     };
 
     // Status Banner Logic
@@ -226,6 +276,13 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                 };
             }
         }
+        if (appointment.status === 'CANCELLED') {
+            return {
+                variant: 'destructive',
+                title: t('cancelled', 'Cancelled'),
+                desc: t('appointmentCancelled', 'This appointment has been cancelled.')
+            };
+        }
         return null; // No special banner for Confirmed/Declined/etc for now
     }, [appointment, canReview, t, otherPartyLabel]);
 
@@ -237,6 +294,13 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
     // We determine 'isMe' logic:
     const isMe = (isBroker && appointment.initiatedBy === 'BROKER') || (!isBroker && appointment.initiatedBy === 'CLIENT');
     const bgClass = !isMe ? "bg-orange-50/30 dark:bg-orange-900/10" : "bg-background";
+    const isCancelled = appointment.status === 'CANCELLED';
+
+    // Fix: access the correct UUID based on role, because user.sub is Auth0 ID but cancelledBy is internal UUID
+    const currentUserUuid = isBroker ? appointment.brokerId : appointment.clientId;
+    const canRescheduleCancelled = isCancelled && appointment.cancelledBy === currentUserUuid;
+
+
 
     return (
         <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
@@ -246,18 +310,22 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                     {statusBanner && (
                         <div className={`mb-4 p-3 rounded-lg border flex items-start gap-3 ${statusBanner.variant === 'action'
                             ? 'bg-primary/10 border-primary/20 text-primary-foreground dark:text-primary'
-                            : 'bg-muted border-border text-muted-foreground'
+                            : statusBanner.variant === 'destructive'
+                                ? 'bg-destructive/10 border-destructive/20 text-destructive'
+                                : 'bg-muted border-border text-muted-foreground'
                             }`}>
                             {statusBanner.variant === 'action' ? (
                                 <AlertTriangle className="w-5 h-5 ml-2 mt-0.5 text-primary" />
+                            ) : statusBanner.variant === 'destructive' ? (
+                                <Ban className="w-5 h-5 ml-2 mt-0.5 text-destructive" />
                             ) : (
                                 <Clock className="w-5 h-5 ml-2 mt-0.5" />
                             )}
                             <div>
-                                <p className={`font-semibold text-sm ${statusBanner.variant === 'action' ? 'text-primary' : ''}`}>
+                                <p className={`font-semibold text-sm ${statusBanner.variant === 'action' ? 'text-primary' : statusBanner.variant === 'destructive' ? 'text-destructive' : ''}`}>
                                     {statusBanner.title}
                                 </p>
-                                <p className={`text-xs ${statusBanner.variant === 'action' ? 'text-primary/80' : ''}`}>
+                                <p className={`text-xs ${statusBanner.variant === 'action' ? 'text-primary/80' : statusBanner.variant === 'destructive' ? 'text-destructive/80' : ''}`}>
                                     {statusBanner.desc}
                                 </p>
                             </div>
@@ -265,10 +333,16 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                     )}
 
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                            <Calendar className="w-6 h-6 text-primary" />
+                        <div className={`p-2 rounded-lg ${isCancelled ? 'bg-muted' : 'bg-primary/10'}`}>
+                            {isCancelled ? (
+                                <Ban className="w-6 h-6 text-muted-foreground" />
+                            ) : (
+                                <Calendar className="w-6 h-6 text-primary" />
+                            )}
                         </div>
-                        <DialogTitle>{t(appointment.title.toLowerCase(), appointment.title)}</DialogTitle>
+                        <DialogTitle className={isCancelled ? "text-muted-foreground line-through" : ""}>
+                            {t(appointment.title.toLowerCase(), appointment.title)}
+                        </DialogTitle>
                     </div>
                 </DialogHeader>
 
@@ -276,13 +350,16 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                     {/* Status Badge */}
                     <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">{t('statusLabel', 'Status')}</span>
-                        <Badge variant={getStatusBadgeVariant(appointment.status)}>
+                        <Badge
+                            variant={getStatusBadgeVariant(appointment.status)}
+                            className={appointment.status === 'CONFIRMED' ? 'bg-green-600 hover:bg-green-700 border-transparent text-white' : ''}
+                        >
                             {t(`status.${appointment.status.toLowerCase()}`, appointment.status)}
                         </Badge>
                     </div>
 
                     {/* Conflict Warning */}
-                    {canReview && hasConflict && !isRescheduleOpen && (
+                    {canReview && hasConflict && !isRescheduleOpen && !isCancelled && (
                         <div className="bg-destructive/15 text-destructive border border-destructive/30 rounded-lg p-3 flex items-start gap-3">
                             <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
                             <div className="text-sm">
@@ -293,7 +370,7 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                     )}
 
                     {/* Date and Time */}
-                    <Section className="p-4 space-y-3 bg-muted/30">
+                    <Section className={`p-4 space-y-3 bg-muted/30 ${isCancelled ? 'opacity-60' : ''}`}>
                         <div className="flex items-center gap-3">
                             <Calendar className="w-4 h-4 text-muted-foreground" />
                             <span className="font-medium">
@@ -307,7 +384,7 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                     </Section>
 
                     {/* Participants */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className={`grid grid-cols-2 gap-4 ${isCancelled ? 'opacity-60' : ''}`}>
                         <div className="space-y-1">
                             <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">
                                 {otherPartyLabel}
@@ -370,9 +447,22 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                             </p>
                         </div>
                     )}
+                    {/* Cancellation Reason (if Cancelled) */}
+                    {/* Note: 'cancellationReason' might not be in Type definition yet if frontend type file not updated, but we handle it assuming backend sends it */}
+                    {appointment.status === 'CANCELLED' && appointment.cancellationReason && (
+                        <div className="space-y-2 pt-2 border-t border-border/50">
+                            <p className="text-xs text-destructive uppercase font-semibold tracking-wider flex items-center gap-2">
+                                <Ban className="w-3 h-3" />
+                                {t('cancellationReason', 'Cancellation Reason')}
+                            </p>
+                            <p className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+                                "{appointment.cancellationReason}"
+                            </p>
+                        </div>
+                    )}
 
-                    {/* Review Actions */}
-                    {canReview && !isDeclineOpen && !isRescheduleOpen && (
+                    {/* Review Actions (PROPOSED + NOT ME) */}
+                    {canReview && !isDeclineOpen && !isRescheduleOpen && !isCancelOpen && (
                         <div className="pt-4 flex flex-col gap-3">
                             <div className="grid grid-cols-2 gap-3">
                                 <Button
@@ -399,6 +489,63 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                         </div>
                     )}
 
+                    {/* Cancel Action (CONFIRMED or PROPOSED + ME) */}
+                    {canCancel && !isCancelOpen && !isRescheduleOpen && !isDeclineOpen && (
+                        <div className="pt-4 flex flex-col gap-3">
+                            <Button
+                                variant="destructive"
+                                className="w-full"
+                                onClick={() => setIsCancelOpen(true)}
+                                disabled={cancelMutation.isPending}
+                            >
+                                <Ban className="w-4 h-4 mr-2" />
+                                {t('cancelAppointment', 'Cancel Appointment')}
+                            </Button>
+
+                            {/* Allow rescheduling even if not "cancelled" yet, just a regular reschedule initiated by proper party */}
+                            {/* Actually, Reschedule for Confirmed appointments isn't explicitly detailed but implies "Propose New Time" flow again? 
+                                 For now, let's keep it simple: Cancel first. 
+                                 Or if user wants to existing reschedule? 
+                                 The ticket says: "Cancelled appointments can be rescheduled" -> imply after cancellation.
+                             */}
+                        </div>
+                    )}
+
+                    {/* Reschedule Action (Visible for CANCELLED appointments too - BUT only if I cancelled it) */}
+                    {(isCancelled || appointment.status === 'DECLINED') && !isRescheduleOpen && (
+                        <div className="pt-4">
+                            {/* 
+                               Check permission:
+                               - If status is CANCELLED, only the person who cancelled (cancelledBy) can reschedule.
+                               - If status is DECLINED, implied that the person who declined (Reviewer) blocked it? 
+                                 Actually for DECLINE, usually the *Proposer* should have the chance to propose again (Reschedule).
+                                 But the requirement specifically mentioned "cancelled". 
+                                 Let's handle CANCEL: if cancelledBy exists, must match user.sub.
+                                 For DECLINED: The *other* party (Initiator) usually fixes it.
+                           */}
+                            {(() => {
+                                // For Declined: If I initiated it, I should be able to reschedule (propose new time).
+                                const canRescheduleDeclined = appointment.status === 'DECLINED' && appointment.initiatedBy === myRole;
+
+                                const canShowReschedule = isCancelled ? canRescheduleCancelled : canRescheduleDeclined;
+
+                                if (canShowReschedule) {
+                                    return (
+                                        <Button variant="outline" className="w-full" onClick={openReschedule}>
+                                            <CalendarClock className="w-4 h-4 mr-2" />
+                                            {t('reschedule', 'Reschedule')}
+                                        </Button>
+                                    );
+                                } else if (isCancelled) {
+                                    // Optional: Show message why they can't?
+                                    return <p className="text-xs text-center text-muted-foreground mt-2 italic">{t('onlyCancellerCanReschedule', 'Only the party who cancelled can reschedule.')}</p>;
+                                }
+                                return null;
+                            })()}
+                        </div>
+                    )}
+
+
                     {/* Reschedule Form */}
                     {isRescheduleOpen && (
                         <div className="pt-4 space-y-4 animate-in fade-in slide-in-from-bottom-2">
@@ -406,7 +553,7 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
 
                             {/* Visual Comparison: Current Time */}
                             <div className="bg-muted/50 p-2 rounded-md border text-xs flex justify-between items-center text-muted-foreground mb-2">
-                                <span>{t('currentTime', 'Current Time')}:</span>
+                                <span>{t('originalTime', 'Original Time')}:</span>
                                 <span className="font-mono decoration-dotted line-through opacity-70">
                                     {format(getAppointmentDate(appointment), 'MMM d')} • {getAppointmentTimeRange(appointment)}
                                 </span>
@@ -501,9 +648,7 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                                         !newEndTime ||
                                         hasNewConflict ||
                                         reviewMutation.isPending ||
-                                        // Disable if end time is before or equal to start time
                                         (newStartTime >= newEndTime) ||
-                                        // Disable if the time hasn't changed
                                         (appointment &&
                                             newDate === format(new Date(appointment.fromDateTime), 'yyyy-MM-dd') &&
                                             newStartTime === format(new Date(appointment.fromDateTime), 'HH:mm') &&
@@ -539,8 +684,39 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                         </div>
                     )}
 
+                    {/* Cancellation Input */}
+                    {isCancelOpen && (
+                        <div className="pt-4 space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                            <div className="bg-destructive/10 p-3 rounded-lg border border-destructive/20 mb-2">
+                                <p className="text-xs text-destructive flex gap-2">
+                                    <AlertTriangle className="w-4 h-4" />
+                                    {t('cancelWarning', 'This action cannot be undone. Typical reasons include emergencies or scheduling conflicts.')}
+                                </p>
+                            </div>
+                            <p className="text-sm font-medium">{t('reasonForCancelling', 'Reason for cancelling')}</p>
+                            <Textarea
+                                value={cancellationReason}
+                                onChange={(e) => setCancellationReason(e.target.value)}
+                                placeholder={t('enterCancellationReason', 'Enter a reason (e.g., Emergency, Illness)...')}
+                                className="resize-none"
+                            />
+                            <div className="flex gap-2 justify-end">
+                                <Button variant="ghost" onClick={() => setIsCancelOpen(false)}>{t('close', 'Close')}</Button>
+                                <Button
+                                    variant="destructive"
+                                    onClick={handleCancel}
+                                    disabled={!cancellationReason.trim() || cancelMutation.isPending}
+                                >
+                                    {t('confirmCancellation', 'Confirm Cancellation')}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             </DialogContent>
+
+
         </Dialog>
     );
 }

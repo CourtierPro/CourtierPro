@@ -48,3 +48,21 @@ export function useReviewAppointment() {
         },
     });
 }
+
+export interface AppointmentCancellationDTO {
+    reason: string;
+}
+
+export function useCancelAppointment() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ id, data }: { id: string; data: AppointmentCancellationDTO }) => {
+            const res = await axiosInstance.patch(`/appointments/${id}/cancel`, data);
+            return res.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+        },
+    });
+}

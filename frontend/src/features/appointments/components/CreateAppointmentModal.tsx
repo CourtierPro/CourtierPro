@@ -43,6 +43,7 @@ interface CreateAppointmentModalProps {
   prefilledTransactionId?: string;
   prefilledTransactionAddress?: string;
   existingAppointments?: Appointment[];
+  initialData?: Partial<AppointmentFormData> & { title?: string, startTime?: string, endTime?: string };
 }
 
 export interface AppointmentFormData {
@@ -65,6 +66,7 @@ export function CreateAppointmentModal({
   prefilledTransactionId = '',
   prefilledTransactionAddress = '',
   existingAppointments = [],
+  initialData,
 }: CreateAppointmentModalProps) {
   const { t, i18n } = useTranslation('appointments');
   const { user } = useAuth0();
@@ -213,12 +215,26 @@ export function CreateAppointmentModal({
 
   useEffect(() => {
     if (isOpen) {
-      setAppointmentType('');
-      setCustomTitle('');
-      setDate('');
-      setStartTime('');
-      setEndTime('');
-      setMessage('');
+      if (initialData) {
+        setAppointmentType(initialData.type || '');
+        setCustomTitle(initialData.title || '');
+        setMessage(initialData.message || '');
+        // We don't prepopulate date/time for rescheduling usually unless specifically requested to "copy" exactly, 
+        // but typically rescheduling implies a *new* time. 
+        // However, the requirement says "fields should be filled".
+        // Let's fill them if provided, but user will likely change them.
+        setDate(initialData.date || '');
+        setStartTime(initialData.startTime || initialData.time || '');
+        setEndTime(initialData.endTime || initialData.time || '');
+      } else {
+        setAppointmentType('');
+        setCustomTitle('');
+        setDate('');
+        setStartTime('');
+        setEndTime('');
+        setMessage('');
+      }
+
       setClientSearchTerm('');
       setShowClientDropdown(false);
 
@@ -228,6 +244,18 @@ export function CreateAppointmentModal({
         // Try to pre-fill broker info if available in the transaction list
         if (allTransactions.length > 0) {
           const tx = allTransactions.find(t => t.transactionId === prefilledTransactionId);
+          if (tx && tx.brokerName) {
+            setSelectedBrokerName(tx.brokerName);
+            setSelectedBrokerId(tx.brokerId || '');
+          }
+        }
+      } else if (initialData && initialData.transactionId && initialData.clientId) {
+        // Robust handling for rescheduling case
+        setSelectedTransactionId(initialData.transactionId);
+        setSelectedClientId(initialData.clientId);
+        // Also try to resolve broker name if possible
+        if (allTransactions.length > 0) {
+          const tx = allTransactions.find(t => t.transactionId === initialData.transactionId);
           if (tx && tx.brokerName) {
             setSelectedBrokerName(tx.brokerName);
             setSelectedBrokerId(tx.brokerId || '');

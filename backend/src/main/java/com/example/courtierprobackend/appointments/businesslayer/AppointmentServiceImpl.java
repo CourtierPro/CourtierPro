@@ -250,11 +250,33 @@ public class AppointmentServiceImpl implements AppointmentService {
                                                 && isClient);
 
                 if (isInitiator) {
-                        throw new ForbiddenException("You cannot review an appointment proposal you initiated");
+                        // Exception: Initiator CAN reschedule if the appointment was cancelled or
+                        // declined (reactivating it)
+                        if (reviewDTO.action() != com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO.ReviewAction.RESCHEDULE) {
+                                throw new ForbiddenException("You cannot review an appointment proposal you initiated");
+                        }
                 }
 
-                if (appointment.getStatus() != AppointmentStatus.PROPOSED) {
-                        throw new ForbiddenException("Appointment can only be reviewed while in PROPOSED status");
+                if (appointment.getStatus() != AppointmentStatus.PROPOSED &&
+                                appointment.getStatus() != AppointmentStatus.CANCELLED &&
+                                appointment.getStatus() != AppointmentStatus.DECLINED) {
+                        throw new ForbiddenException(
+                                        "Appointment can only be reviewed while in PROPOSED status (or rescheduled if Cancelled/Declined)");
+                }
+
+                // If rescheduling from Cancelled/Declined, ensure it's a Reschedule action
+                if ((appointment.getStatus() == AppointmentStatus.CANCELLED
+                                || appointment.getStatus() == AppointmentStatus.DECLINED) &&
+                                reviewDTO.action() != com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO.ReviewAction.RESCHEDULE) {
+                        throw new ForbiddenException("Cancelled or Declined appointments can only be rescheduled");
+                }
+
+                // RESTRICTION: Only the person who cancelled the appointment can reschedule it.
+                if (appointment.getStatus() == AppointmentStatus.CANCELLED && appointment.getCancelledBy() != null) {
+                        if (!appointment.getCancelledBy().equals(reviewerId)) {
+                                throw new ForbiddenException(
+                                                "Only the party who cancelled the appointment can reschedule it.");
+                        }
                 }
 
                 switch (reviewDTO.action()) {
@@ -322,6 +344,64 @@ public class AppointmentServiceImpl implements AppointmentService {
                 return mapToDTO(saved, getUserNamesMap(List.of(saved)));
         }
 
+        @Override
+        @Transactional
+        public AppointmentResponseDTO cancelAppointment(
+                        UUID appointmentId,
+                        com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO,
+                        UUID requesterId) {
+                Appointment appointment = appointmentRepository
+                                .findByAppointmentIdAndDeletedAtIsNull(appointmentId)
+                                .orElseThrow(() -> new NotFoundException("Appointment not found: " + appointmentId));
+
+                boolean isBroker = appointment.getBrokerId().equals(requesterId);
+                boolean isClient = appointment.getClientId().equals(requesterId);
+
+                if (!isBroker && !isClient) {
+                        throw new ForbiddenException("You do not have permission to cancel this appointment");
+                }
+
+                if (cancelDTO.reason() == null || cancelDTO.reason().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Cancellation reason is required");
+                }
+
+                // Logic:
+                // 1. If CONFIRMED -> Both can cancel (Emergency/Change of plans).
+                // 2. If PROPOSED -> Only Initiator can cancel (Withdraw availability).
+                // - If Recipient wants to "cancel" a proposal, they should use DECLINE
+                // (reviewAppointment).
+
+                boolean isInitiator = (appointment
+                                .getInitiatedBy() == com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType.BROKER
+                                && isBroker)
+                                || (appointment
+                                                .getInitiatedBy() == com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType.CLIENT
+                                                && isClient);
+
+                if (appointment.getStatus() == AppointmentStatus.PROPOSED && !isInitiator) {
+                        throw new ForbiddenException(
+                                        "You cannot cancel a proposal you did not initiate. Please decline it instead.");
+                }
+
+                // You cannot cancel if already cancelled or declined
+                if (appointment.getStatus() == AppointmentStatus.CANCELLED
+                                || appointment.getStatus() == AppointmentStatus.DECLINED) {
+                        throw new IllegalArgumentException("Appointment is already cancelled or declined");
+                }
+
+                appointment.setStatus(AppointmentStatus.CANCELLED);
+                appointment.setCancellationReason(cancelDTO.reason().trim());
+                appointment.setCancelledBy(requesterId);
+
+                Appointment saved = appointmentRepository.save(appointment);
+
+                // Audit
+                appointmentAuditService.logAction(saved.getAppointmentId(), "CANCELLED", requesterId,
+                                "Reason: " + cancelDTO.reason());
+
+                return mapToDTO(saved, getUserNamesMap(List.of(saved)));
+        }
+
         private AppointmentResponseDTO mapToDTO(Appointment apt, Map<UUID, String> userNames) {
                 return new AppointmentResponseDTO(
                                 apt.getAppointmentId(),
@@ -340,6 +420,8 @@ public class AppointmentServiceImpl implements AppointmentService {
                                 apt.getLongitude(),
                                 apt.getNotes(),
                                 apt.getRefusalReason(),
+                                apt.getCancellationReason(),
+                                apt.getCancelledBy(),
                                 apt.getCreatedAt(),
                                 apt.getUpdatedAt());
         }

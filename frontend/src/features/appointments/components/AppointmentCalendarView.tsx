@@ -46,6 +46,7 @@ export function AppointmentCalendarView({
     const appointmentsByDate = useMemo(() => {
         const map = new Map<string, Appointment[]>();
         for (const apt of appointments) {
+
             const date = new Date(apt.fromDateTime);
             const key = format(date, 'yyyy-MM-dd');
             if (!map.has(key)) {

@@ -82,5 +82,15 @@
     "currentTime": "Heure actuelle",
     "newTime": "Nouvelle heure proposée",
     "noChangeTitle": "Aucun changement",
-    "noChangeDesc": "L'heure sélectionnée est identique à l'heure actuelle."
+    "noChangeDesc": "L'heure sélectionnée est identique à l'heure actuelle.",
+    "cancelAppointment": "Annuler le rendez-vous",
+    "reasonForCancelling": "Raison de l'annulation",
+    "enterCancellationReason": "Saisir une raison (ex: Urgence, Maladie)...",
+    "confirmCancellation": "Confirmer l'annulation",
+    "cancelWarning": "Ce rendez-vous sera annulé, mais vous pourrez le replanifier plus tard si nécessaire.",
+    "cancellationReason": "Raison de l'annulation",
+    "close": "Fermer",
+    "reschedule": "Replanifier",
+    "originalTime": "Heure originale",
+    "onlyCancellerCanReschedule": "Seule la partie qui a annulé peut replanifier."
 }

@@ -31,6 +31,9 @@ export function AppointmentList({ groupedAppointments, allAppointments }: Appoin
         <div className="space-y-6">
             {sortedDates.map((dateKey) => {
                 const appointments = groupedAppointments.get(dateKey) || [];
+
+                if (appointments.length === 0) return null;
+
                 const date = parseISO(dateKey);
 
                 return (
@@ -39,14 +42,17 @@ export function AppointmentList({ groupedAppointments, allAppointments }: Appoin
                             {format(date, 'EEEE, MMMM d, yyyy')}
                         </h3>
                         <div className="grid gap-3">
-                            {appointments.map((apt) => (
-                                <AppointmentItem
-                                    key={apt.appointmentId}
-                                    appointment={apt}
-                                    onClick={setSelectedAppointment}
-                                    isBroker={isBroker}
-                                />
-                            ))}
+                            {appointments.map((apt) => {
+
+                                return (
+                                    <AppointmentItem
+                                        key={apt.appointmentId}
+                                        appointment={apt}
+                                        onClick={setSelectedAppointment}
+                                        isBroker={isBroker}
+                                    />
+                                );
+                            })}
                         </div>
                     </div>
                 );

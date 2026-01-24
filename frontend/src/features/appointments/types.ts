@@ -21,6 +21,8 @@ export interface Appointment {
     longitude: number | null;
     notes: string | null;
     refusalReason?: string | null;
+    cancellationReason?: string | null;
+    cancelledBy?: string | null;
     createdAt: string;
     updatedAt: string;
 }
