@@ -22,9 +22,11 @@ public class DocumentRequestRequestDTO {
     private Boolean visibleToClient;
     private String brokerNotes;
     private StageEnum stage;
-    
+
     /**
      * List of condition IDs to link to this document request.
      */
     private List<UUID> conditionIds;
+
+    private java.time.LocalDateTime dueDate;
 }

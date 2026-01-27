@@ -165,6 +165,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 request.setLastUpdatedAt(LocalDateTime.now());
                 // Add stage mapping
                 request.setStage(requestDTO.getStage());
+                request.setDueDate(requestDTO.getDueDate());
 
                 DocumentRequest savedRequest = repository.save(request);
 
@@ -302,6 +303,9 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 }
                 if (!normEnum.apply(request.getStage()).equals(normEnum.apply(requestDTO.getStage()))) {
                         request.setStage(requestDTO.getStage());
+                }
+                if (requestDTO.getDueDate() != null && !requestDTO.getDueDate().equals(request.getDueDate())) {
+                        request.setDueDate(requestDTO.getDueDate());
                 }
 
                 // Only update lastUpdatedAt, save, and send notifications/timeline if something
@@ -713,12 +717,16 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                         : "Unknown";
                         String clientEmail = client != null ? client.getEmail() : null;
 
-                        String address = tx.getPropertyAddress() != null ? String.format("%s, %s, %s, %s",
-                                        tx.getPropertyAddress().getStreet(),
-                                        tx.getPropertyAddress().getCity(),
-                                        tx.getPropertyAddress().getProvince(),
-                                        tx.getPropertyAddress().getPostalCode())
-                                        : "No Address";
+                        String address = "No Address";
+                        if (tx.getPropertyAddress() != null) {
+                                address = java.util.stream.Stream.of(
+                                                tx.getPropertyAddress().getStreet(),
+                                                tx.getPropertyAddress().getCity(),
+                                                tx.getPropertyAddress().getProvince(),
+                                                tx.getPropertyAddress().getPostalCode())
+                                                .filter(s -> s != null && !s.trim().isEmpty())
+                                                .collect(Collectors.joining(", "));
+                        }
 
                         Integer daysOutstanding = null;
                         if (req.getCreatedAt() != null) {

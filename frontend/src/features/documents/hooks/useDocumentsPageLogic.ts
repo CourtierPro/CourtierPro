@@ -14,7 +14,7 @@ export function useDocumentsPageLogic(transactionId: string) {
     const { handleError } = useErrorHandler();
 
     // Adapt signature to accept stage and conditionIds parameters
-    const handleRequestDocument = async (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string, conditionIds: string[] = []) => {
+    const handleRequestDocument = async (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string, conditionIds: string[] = [], dueDate?: Date) => {
         try {
             await requestDocument.mutateAsync({
                 transactionId,
@@ -25,7 +25,8 @@ export function useDocumentsPageLogic(transactionId: string) {
                     visibleToClient: true,
                     brokerNotes: instructions, // Mapping instructions to brokerNotes for now
                     stage: stage,
-                    conditionIds: conditionIds.length > 0 ? conditionIds : undefined
+                    conditionIds: conditionIds.length > 0 ? conditionIds : undefined,
+                    dueDate: dueDate
                 }
             });
             setIsModalOpen(false);

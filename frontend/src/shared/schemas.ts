@@ -77,6 +77,7 @@ export const requestDocumentSchema = z.object({
     customTitle: z.string().trim().optional(),
     instructions: z.string().trim().optional(),
     stage: z.string().min(1, "stageRequired"),
+    dueDate: z.date().optional(),
 }).superRefine((data, ctx) => {
     if (data.docType === DocumentTypeEnum.OTHER && (!data.customTitle || data.customTitle.trim().length === 0)) {
         ctx.addIssue({

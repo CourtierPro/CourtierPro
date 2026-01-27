@@ -127,5 +127,8 @@
     },
     "noPropertySelected": "Aucune propriété sélectionnée",
     "reupload": "Retéléverser",
-    "allStages": "Toutes les étapes"
+    "allStages": "Toutes les étapes",
+    "dueDate": "Date d'échéance",
+    "pickDate": "Choisir une date",
+    "advancedOptions": "Options avancées (Conditions liées)"
 }

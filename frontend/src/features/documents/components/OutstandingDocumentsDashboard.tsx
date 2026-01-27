@@ -38,9 +38,35 @@ export function OutstandingDocumentsDashboard() {
         });
     };
 
-    // Sort documents within groups by urgency (days outstanding desc)
+    // Sort documents within groups by urgency (dueDate asc, then daysOutstanding desc)
     Object.keys(groupedDocs).forEach(key => {
-        groupedDocs[key].sort((a: OutstandingDocumentDTO, b: OutstandingDocumentDTO) => (b.daysOutstanding || 0) - (a.daysOutstanding || 0));
+        groupedDocs[key].sort((a: OutstandingDocumentDTO, b: OutstandingDocumentDTO) => {
+            // If both have due dates, sort by due date (earliest/overdue first)
+            if (a.dueDate && b.dueDate) {
+                return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+            }
+            // If only one has due date, it comes first
+            if (a.dueDate) return -1;
+            if (b.dueDate) return 1;
+
+            // Fallback: days outstanding (descending - older requests first)
+            return (b.daysOutstanding || 0) - (a.daysOutstanding || 0);
+        });
+    });
+
+    // Sort groups by the urgency of their most urgent document
+    const sortedGroups = Object.entries(groupedDocs).sort(([, docsA], [, docsB]) => {
+        const firstA = docsA[0]; // Guaranteed to be most urgent due to sort above
+        const firstB = docsB[0];
+
+        // Similar comparison logic for groups
+        if (firstA.dueDate && firstB.dueDate) {
+            return new Date(firstA.dueDate).getTime() - new Date(firstB.dueDate).getTime();
+        }
+        if (firstA.dueDate) return -1;
+        if (firstB.dueDate) return 1;
+
+        return (firstB.daysOutstanding || 0) - (firstA.daysOutstanding || 0);
     });
 
     return (
@@ -57,7 +83,7 @@ export function OutstandingDocumentsDashboard() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                {(Object.entries(groupedDocs) as [string, OutstandingDocumentDTO[]][]).map(([address, docs]) => (
+                {sortedGroups.map(([address, docs]) => (
                     <div key={address} className="space-y-2">
                         <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
@@ -73,7 +99,9 @@ export function OutstandingDocumentsDashboard() {
                                                 {doc.daysOutstanding} {t('days', 'days')}
                                             </Badge>
                                             <div>
-                                                <p className="font-medium text-sm">{doc.title}</p>
+                                                <p className="font-medium text-sm">
+                                                    {t(`types.${doc.title}`, { defaultValue: doc.title })}
+                                                </p>
                                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                     <span>{doc.clientName}</span>
                                                     {doc.dueDate && (

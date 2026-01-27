@@ -39,12 +39,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     errorString.includes("consent_required");
 
                 if (isConsentOrLoginRequired) {
+                    // LOOP PROTECTION: Commenting out auto-redirect to allow debugging.
+                    // The user will see a toast error instead.
+
                     await loginWithRedirect({
                         appState: { returnTo: window.location.pathname },
                         authorizationParams: {
                             audience: audience,
                         },
                     });
+
                 }
                 throw error;
             }

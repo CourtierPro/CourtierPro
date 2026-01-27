@@ -1,13 +1,15 @@
 import { useRef, useEffect, useState } from 'react';
 import DOMPurify from 'dompurify';
-import { Send, FileText } from 'lucide-react';
+import { Send, FileText, Calendar as CalendarIcon, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { format } from 'date-fns';
 
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
+import { Calendar } from '@/shared/components/ui/calendar';
 import {
   Select,
   SelectContent,
@@ -31,6 +33,12 @@ import {
   FormMessage,
   FormDescription,
 } from '@/shared/components/ui/form';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/shared/components/ui/popover';
+import { cn } from '@/shared/utils/utils';
 
 import { DocumentTypeEnum } from '@/features/documents/types';
 import { useTransactionStages } from '@/features/transactions/hooks/useTransactionStages';
@@ -42,7 +50,7 @@ import { useParticipantPermissions } from '@/features/transactions/hooks/usePart
 interface RequestDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string, conditionIds: string[]) => void;
+  onSubmit: (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string, conditionIds: string[], dueDate?: Date) => void;
   transactionType: 'buy' | 'sell';
   currentStage: string;
   transactionId: string;
@@ -62,6 +70,7 @@ export function RequestDocumentModal({
 
   const customTitleInputRef = useRef<HTMLInputElement>(null);
   const [selectedConditionIds, setSelectedConditionIds] = useState<string[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Fetch dynamic stages from backend
   const side = transactionType === 'buy' ? 'BUY_SIDE' : 'SELL_SIDE';
@@ -108,6 +117,7 @@ export function RequestDocumentModal({
       customTitle: '',
       instructions: '',
       stage: currentStage,
+      dueDate: undefined,
     },
   });
 
@@ -123,6 +133,7 @@ export function RequestDocumentModal({
         customTitle: '',
         instructions: '',
         stage: currentStage,
+        dueDate: undefined,
       });
     }
   }, [isOpen, currentStage, reset]);
@@ -130,6 +141,7 @@ export function RequestDocumentModal({
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       setSelectedConditionIds([]);
+      setShowAdvanced(false);
       onClose();
     }
   };
@@ -149,7 +161,8 @@ export function RequestDocumentModal({
       data.docType === DocumentTypeEnum.OTHER ? (data.customTitle?.trim() || '') : '',
       data.instructions?.trim() || '',
       data.stage,
-      selectedConditionIds
+      selectedConditionIds,
+      data.dueDate
     );
     setSelectedConditionIds([]);
     onClose();
@@ -249,49 +262,110 @@ export function RequestDocumentModal({
               )}
             />
 
-            {/* Stage */}
-            <FormField
-              control={form.control}
-              name="stage"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('associatedStage')}</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('selectStage')} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {isLoadingStages ? (
-                        <div className="p-2 text-sm text-muted-foreground text-center">
-                          {t('loading')}...
-                        </div>
-                      ) : (
-                        stageOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage>{t(form.formState.errors.stage?.message || '')}</FormMessage>
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              {/* Stage */}
+              <FormField
+                control={form.control}
+                name="stage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('associatedStage')}</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('selectStage')} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {isLoadingStages ? (
+                          <div className="p-2 text-sm text-muted-foreground text-center">
+                            {t('loading')}...
+                          </div>
+                        ) : (
+                          stageOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage>{t(form.formState.errors.stage?.message || '')}</FormMessage>
+                  </FormItem>
+                )}
+              />
+
+              {/* Due Date */}
+              <FormField
+                control={form.control}
+                name="dueDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col pt-2.5">
+                    <FormLabel>{t('dueDate')}</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>{t('pickDate')}</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date < new Date(new Date().setHours(0, 0, 0, 0))
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Condition Selection */}
-            <ConditionSelector
-              transactionId={transactionId}
-              selectedConditionIds={selectedConditionIds}
-              onChange={setSelectedConditionIds}
-              showCreateButton={checkPermission('EDIT_CONDITIONS')}
-            />
+            <div className="pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                className="p-0 h-auto font-medium text-sm flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+              >
+                {showAdvanced ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                {t('advancedOptions')}
+              </Button>
+
+              {showAdvanced && (
+                <div className="pt-3 pl-2 border-l-2 border-muted mt-2">
+                  <ConditionSelector
+                    transactionId={transactionId}
+                    selectedConditionIds={selectedConditionIds}
+                    onChange={setSelectedConditionIds}
+                    showCreateButton={checkPermission('EDIT_CONDITIONS')}
+                  />
+                </div>
+              )}
+            </div>
 
             <div className="p-4 rounded-lg border-2 border-border bg-muted/50">
               <p

@@ -9,6 +9,7 @@ export interface CreateDocumentRequestDTO {
     brokerNotes?: string;
     stage: string;
     conditionIds?: string[];
+    dueDate?: Date;
 }
 
 export interface UpdateDocumentRequestDTO {
@@ -17,6 +18,7 @@ export interface UpdateDocumentRequestDTO {
     expectedFrom?: DocumentPartyEnum;
     visibleToClient?: boolean;
     brokerNotes?: string;
+    dueDate?: Date;
 }
 
 export interface OutstandingDocumentDTO {

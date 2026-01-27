@@ -126,5 +126,8 @@
     },
     "noPropertySelected": "No property selected",
     "reupload": "Re-upload",
-    "allStages": "All stages"
+    "allStages": "All stages",
+    "dueDate": "Due Date",
+    "pickDate": "Pick a date",
+    "advancedOptions": "Advanced Options (Linked Conditions)"
 }
