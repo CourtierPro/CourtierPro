@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchDocuments } from './documentsApi';
+import { fetchDocuments, fetchOutstandingDocuments } from './documentsApi';
 import type { DocumentRequest } from '../types';
 import axiosInstance from '@/shared/api/axiosInstance';
 
@@ -11,6 +11,7 @@ export const documentKeys = {
     detail: (id: string) => [...documentKeys.details(), id] as const,
     stats: () => [...documentKeys.all, 'stats'] as const,
     stat: (transactionId: string) => [...documentKeys.stats(), transactionId] as const,
+    outstanding: () => [...documentKeys.all, 'outstanding'] as const,
 };
 
 export function useDocuments(transactionId: string) {
@@ -27,12 +28,12 @@ export function useDocumentStats(transactionId: string) {
         queryFn: async () => {
             const response = await axiosInstance.get<DocumentRequest[]>(`/transactions/${transactionId}/documents`);
             const docs = response.data || [];
-            
+
             const pending = docs.filter((d) => d.status === 'REQUESTED').length;
             const submitted = docs.filter((d) => d.status === 'SUBMITTED').length;
             const approved = docs.filter((d) => d.status === 'APPROVED').length;
             const needsRevision = docs.filter((d) => d.status === 'NEEDS_REVISION').length;
-            
+
             return {
                 count: docs.length,
                 statuses: { pending, submitted, approved, needsRevision }
@@ -43,3 +44,10 @@ export function useDocumentStats(transactionId: string) {
 }
 
 export type { DocumentRequest as Document }; // Alias for compatibility if needed, but better to migrate
+
+export function useGetOutstandingDocuments() {
+    return useQuery({
+        queryKey: documentKeys.outstanding(),
+        queryFn: fetchOutstandingDocuments,
+    });
+}

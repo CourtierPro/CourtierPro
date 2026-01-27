@@ -36,11 +36,11 @@ services:
       context: ./frontend
     container_name: courtierpro_frontend
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+      VITE_API_URL: http://localhost:8080
       VITE_AUTH0_DOMAIN: ${VITE_AUTH0_DOMAIN:-${AUTH0_DOMAIN}}
       VITE_AUTH0_CLIENT_ID: ${VITE_AUTH0_CLIENT_ID}
       VITE_AUTH0_AUDIENCE: ${VITE_AUTH0_AUDIENCE:-${AUTH0_AUDIENCE}}
-      VITE_AUTH0_CALLBACK_URL: ${VITE_AUTH0_CALLBACK_URL:-http://localhost:8081}
+      VITE_AUTH0_CALLBACK_URL: http://localhost:8081
     ports:
       - "8081:80"
 

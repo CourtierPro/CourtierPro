@@ -23,6 +23,7 @@ import { useStageOptions } from '@/features/documents/hooks/useStageOptions';
 import { type DocumentRequest } from "@/features/documents/types";
 import { getRoleFromUser } from "@/features/auth/roleUtils";
 import { useAllTransactionDocuments } from "@/features/transactions/api/queries";
+import { OutstandingDocumentsDashboard } from "@/features/documents/components/OutstandingDocumentsDashboard";
 import axiosInstance from "@/shared/api/axiosInstance";
 import { format } from "date-fns";
 import type { UnifiedDocument } from "@/shared/api/types";
@@ -207,6 +208,9 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
           )
         }
       />
+
+      {/* Outstanding Documents Dashboard (Only visible to brokers) */}
+      {role === 'broker' && <OutstandingDocumentsDashboard />}
 
       {/* Stage dropdown selector */}
       <StageDropdownSelector

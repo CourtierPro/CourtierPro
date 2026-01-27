@@ -163,8 +163,10 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                 requestDTO.getVisibleToClient() != null ? requestDTO.getVisibleToClient() : true);
                 request.setBrokerNotes(requestDTO.getBrokerNotes());
                 request.setLastUpdatedAt(LocalDateTime.now());
+                request.setCreatedAt(LocalDateTime.now());
                 // Add stage mapping
                 request.setStage(requestDTO.getStage());
+                request.setDueDate(requestDTO.getDueDate());
 
                 DocumentRequest savedRequest = repository.save(request);
 
@@ -302,6 +304,9 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 }
                 if (!normEnum.apply(request.getStage()).equals(normEnum.apply(requestDTO.getStage()))) {
                         request.setStage(requestDTO.getStage());
+                }
+                if (requestDTO.getDueDate() != null && !requestDTO.getDueDate().equals(request.getDueDate())) {
+                        request.setDueDate(requestDTO.getDueDate());
                 }
 
                 // Only update lastUpdatedAt, save, and send notifications/timeline if something
@@ -695,6 +700,103 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 }
 
                 return mapToResponseDTO(updated);
+        }
+
+        @Override
+        public java.util.List<com.example.courtierprobackend.documents.presentationlayer.models.OutstandingDocumentDTO> getOutstandingDocumentSummary(
+                        UUID brokerId) {
+                // Pass current time to filter for overdue documents
+                List<DocumentRequest> requests = repository.findOutstandingDocumentsForBroker(brokerId,
+                                LocalDateTime.now());
+
+                return requests.stream().map(req -> {
+                        Transaction tx = transactionRepository
+                                        .findByTransactionId(req.getTransactionRef().getTransactionId()).orElse(null);
+                        if (tx == null)
+                                return null;
+
+                        UserAccount client = resolveUserAccount(tx.getClientId()).orElse(null);
+                        String clientName = client != null ? client.getFirstName() + " " + client.getLastName()
+                                        : "Unknown";
+                        String clientEmail = client != null ? client.getEmail() : null;
+
+                        String address = "No Address";
+                        if (tx.getPropertyAddress() != null) {
+                                address = java.util.stream.Stream.of(
+                                                tx.getPropertyAddress().getStreet(),
+                                                tx.getPropertyAddress().getCity(),
+                                                tx.getPropertyAddress().getProvince(),
+                                                tx.getPropertyAddress().getPostalCode())
+                                                .filter(s -> s != null && !s.trim().isEmpty())
+                                                .collect(Collectors.joining(", "));
+                        }
+
+                        Integer daysOutstanding = 0;
+                        if (req.getDueDate() != null) {
+                                // Calculate days PAST due date
+                                daysOutstanding = (int) java.time.temporal.ChronoUnit.DAYS.between(req.getDueDate(),
+                                                LocalDateTime.now());
+                        } else {
+                                // Fallback for legacy/migrated data without due date (though query excludes
+                                // them now)
+                                LocalDateTime startDate = req.getCreatedAt() != null ? req.getCreatedAt()
+                                                : req.getLastUpdatedAt();
+                                if (startDate != null) {
+                                        daysOutstanding = (int) java.time.temporal.ChronoUnit.DAYS.between(startDate,
+                                                        LocalDateTime.now());
+                                }
+                        }
+
+                        return com.example.courtierprobackend.documents.presentationlayer.models.OutstandingDocumentDTO
+                                        .builder()
+                                        .id(req.getRequestId())
+                                        .title(req.getCustomTitle() != null ? req.getCustomTitle()
+                                                        : req.getDocType().toString())
+                                        .transactionAddress(address)
+                                        .clientName(clientName)
+                                        .clientEmail(clientEmail)
+                                        .dueDate(req.getDueDate())
+                                        .daysOutstanding(daysOutstanding)
+                                        .status(req.getStatus().toString())
+                                        .build();
+                })
+                                .filter(java.util.Objects::nonNull)
+                                .collect(Collectors.toList());
+        }
+
+        @Override
+        public void sendDocumentReminder(UUID requestId, UUID brokerId) {
+                DocumentRequest request = repository.findByRequestId(requestId)
+                                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+
+                Transaction tx = transactionRepository
+                                .findByTransactionId(request.getTransactionRef().getTransactionId())
+                                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+                verifyBrokerOrCoManager(tx, brokerId,
+                                com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
+
+                if (request.getStatus() != DocumentStatusEnum.REQUESTED
+                                && request.getStatus() != DocumentStatusEnum.NEEDS_REVISION) {
+                        throw new BadRequestException("Can only remind for outstanding documents");
+                }
+
+                UserAccount client = resolveUserAccount(tx.getClientId())
+                                .orElseThrow(() -> new NotFoundException("Client not found"));
+                UserAccount broker = resolveUserAccount(tx.getBrokerId())
+                                .orElseThrow(() -> new NotFoundException("Broker not found"));
+
+                String documentName = request.getCustomTitle() != null ? request.getCustomTitle()
+                                : request.getDocType().toString();
+
+                emailService.sendDocumentRequestedNotification(
+                                client.getEmail(),
+                                client.getFirstName() + " " + client.getLastName(),
+                                broker.getFirstName() + " " + broker.getLastName(),
+                                documentName,
+                                request.getDocType().toString(),
+                                request.getBrokerNotes(),
+                                client.getPreferredLanguage());
         }
 
         private boolean isFrench(String lang) {

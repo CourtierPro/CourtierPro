@@ -27,4 +27,19 @@ public class GlobalDocumentController {
         UUID internalId = UserContextUtils.resolveUserId(request);
         return ResponseEntity.ok(service.getAllDocumentsForUser(internalId));
     }
+
+    @GetMapping("/outstanding")
+    public ResponseEntity<List<com.example.courtierprobackend.documents.presentationlayer.models.OutstandingDocumentDTO>> getOutstandingDocuments(
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request);
+        return ResponseEntity.ok(service.getOutstandingDocumentSummary(brokerId));
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/remind")
+    public ResponseEntity<Void> sendReminder(@org.springframework.web.bind.annotation.PathVariable UUID id,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request);
+        service.sendDocumentReminder(id, brokerId);
+        return ResponseEntity.ok().build();
+    }
 }

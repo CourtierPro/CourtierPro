@@ -1,4 +1,11 @@
 {
+    "outstandingDocuments": "Documents en attente",
+    "outstandingDocumentsDesc": "Examinez et rappelez aux clients les documents en retard.",
+    "reminderSent": "Rappel envoyé avec succès",
+    "reminderFailed": "Échec de l'envoi du rappel",
+    "days": "jours de retard",
+    "due": "Dû le",
+    "remind": "Rappeler",
     "edited": "Modifié",
     "Edit": "Modifier",
     "edit": "Modifier",
@@ -120,5 +127,10 @@
     },
     "noPropertySelected": "Aucune propriété sélectionnée",
     "reupload": "Retéléverser",
-    "allStages": "Toutes les étapes"
+    "allStages": "Toutes les étapes",
+    "dueDate": "Date d'échéance",
+    "pickDate": "Choisir une date",
+    "advancedOptions": "Options avancées (Conditions liées)",
+    "dueToday": "Dû aujourd'hui",
+    "noOutstandingDocuments": "Aucun document en retard. Vous êtes à jour !"
 }

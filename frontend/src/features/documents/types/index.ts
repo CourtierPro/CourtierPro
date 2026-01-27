@@ -57,6 +57,27 @@ export interface SubmittedDocument {
     storageObject: StorageObject;
 }
 
+export interface DocumentRequestCreateDTO {
+    docType: DocumentTypeEnum;
+    customTitle?: string;
+    expectedFrom: DocumentPartyEnum;
+    visibleToClient: boolean;
+    brokerNotes?: string;
+    stage: string;
+    conditionIds?: string[];
+    dueDate?: Date;
+}
+
+export interface DocumentRequestUpdateDTO {
+    docType?: DocumentTypeEnum;
+    customTitle?: string;
+    expectedFrom?: DocumentPartyEnum;
+    visibleToClient?: boolean;
+    brokerNotes?: string;
+    stage?: string;
+    conditionIds?: string[];
+    dueDate?: Date;
+}
 export interface DocumentRequest {
     id: number;
     requestId: string;
@@ -74,4 +95,5 @@ export interface DocumentRequest {
     lastUpdatedAt?: string;
     visibleToClient: boolean;
     stage: string; // Added to match backend and fix filtering
+    dueDate?: string;
 }

@@ -9,6 +9,7 @@ export interface CreateDocumentRequestDTO {
     brokerNotes?: string;
     stage: string;
     conditionIds?: string[];
+    dueDate?: Date;
 }
 
 export interface UpdateDocumentRequestDTO {
@@ -17,6 +18,18 @@ export interface UpdateDocumentRequestDTO {
     expectedFrom?: DocumentPartyEnum;
     visibleToClient?: boolean;
     brokerNotes?: string;
+    dueDate?: Date;
+}
+
+export interface OutstandingDocumentDTO {
+    id: string;
+    title: string;
+    transactionAddress: string;
+    clientName: string;
+    clientEmail: string;
+    dueDate: string | null;
+    daysOutstanding: number | null;
+    status: string;
 }
 
 export const fetchDocuments = async (transactionId: string): Promise<DocumentRequest[]> => {
@@ -33,6 +46,11 @@ export const fetchAllDocuments = async (): Promise<DocumentRequest[]> => {
     // The controller is scoped to a transaction. I should probably move the global endpoint or create a new controller.
     // Let's check the controller again.
     const response = await axiosInstance.get<DocumentRequest[]>('/documents');
+    return response.data;
+};
+
+export const fetchOutstandingDocuments = async (): Promise<OutstandingDocumentDTO[]> => {
+    const response = await axiosInstance.get<OutstandingDocumentDTO[]>('/documents/outstanding');
     return response.data;
 };
 
@@ -123,4 +141,8 @@ export const reviewDocument = async (
         { handleLocally: true }
     );
     return response.data;
+};
+
+export const sendDocumentReminder = async (requestId: string): Promise<void> => {
+    await axiosInstance.post(`/documents/${requestId}/remind`);
 };

@@ -1,7 +1,7 @@
 import { updateDocumentRequest } from './documentsApi';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentKeys } from '@/features/documents/api/queries';
-import { createDocumentRequest, submitDocument, reviewDocument, type CreateDocumentRequestDTO } from './documentsApi.ts';
+import { createDocumentRequest, submitDocument, reviewDocument, sendDocumentReminder, type CreateDocumentRequestDTO } from './documentsApi.ts';
 
 import type { UpdateDocumentRequestDTO } from './documentsApi';
 export function useUpdateDocumentRequest() {
@@ -11,6 +11,7 @@ export function useUpdateDocumentRequest() {
             return updateDocumentRequest(transactionId, requestId, data);
         },
         onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
             queryClient.invalidateQueries({ queryKey: ['documents', transactionId] });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
         },
@@ -25,14 +26,19 @@ export function useRequestDocument() {
         mutationFn: ({ transactionId, data }: { transactionId: string; data: CreateDocumentRequestDTO }) =>
             createDocumentRequest(transactionId, data),
         onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
-            queryClient.invalidateQueries({ queryKey: [
-                'transactions', 'detail', transactionId, 'timeline'
-            ] }); // Timeline broker
-            queryClient.invalidateQueries({ queryKey: [
-                'transaction', transactionId, 'timeline', 'client'
-            ] }); // Timeline client
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transactions', 'detail', transactionId, 'timeline'
+                ]
+            }); // Timeline broker
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transaction', transactionId, 'timeline', 'client'
+                ]
+            }); // Timeline client
         },
     });
 }
@@ -44,14 +50,19 @@ export function useSubmitDocument() {
         mutationFn: ({ transactionId, requestId, file }: { transactionId: string; requestId: string; file: File }) =>
             submitDocument(transactionId, requestId, file),
         onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
-            queryClient.invalidateQueries({ queryKey: [
-                'transactions', 'detail', transactionId, 'timeline'
-            ] }); // Timeline broker
-            queryClient.invalidateQueries({ queryKey: [
-                'transaction', transactionId, 'timeline', 'client'
-            ] }); // Timeline client
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transactions', 'detail', transactionId, 'timeline'
+                ]
+            }); // Timeline broker
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transaction', transactionId, 'timeline', 'client'
+                ]
+            }); // Timeline client
         },
     });
 }
@@ -67,16 +78,27 @@ export const useReviewDocument = () => {
             comments?: string;
         }) => reviewDocument(transactionId, requestId, decision, comments),
         onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
             queryClient.invalidateQueries({ queryKey: documentKeys.stat(transactionId) });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
-            queryClient.invalidateQueries({ queryKey: [
-                'transactions', 'detail', transactionId, 'timeline'
-            ] }); // Timeline broker
-            queryClient.invalidateQueries({ queryKey: [
-                'transaction', transactionId, 'timeline', 'client'
-            ] }); // Timeline client
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transactions', 'detail', transactionId, 'timeline'
+                ]
+            }); // Timeline broker
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transaction', transactionId, 'timeline', 'client'
+                ]
+            }); // Timeline client
         },
+    });
+};
+
+export const useSendDocumentReminder = () => {
+    return useMutation({
+        mutationFn: (requestId: string) => sendDocumentReminder(requestId),
     });
 };
 
