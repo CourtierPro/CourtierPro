@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 @Repository
 public interface DocumentRequestRepository extends JpaRepository<DocumentRequest, Long> {
@@ -56,6 +57,8 @@ public interface DocumentRequestRepository extends JpaRepository<DocumentRequest
                         "JOIN Transaction t ON d.transactionRef.transactionId = t.transactionId " +
                         "WHERE t.brokerId = :brokerId " +
                         "AND (d.status = 'REQUESTED' OR d.status = 'NEEDS_REVISION') " +
+                        "AND d.dueDate < :now " +
                         "ORDER BY d.dueDate ASC")
-        List<DocumentRequest> findOutstandingDocumentsForBroker(@Param("brokerId") UUID brokerId);
+        List<DocumentRequest> findOutstandingDocumentsForBroker(@Param("brokerId") UUID brokerId,
+                        @Param("now") LocalDateTime now);
 }

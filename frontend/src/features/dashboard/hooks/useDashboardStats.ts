@@ -18,6 +18,7 @@ export interface BrokerDashboardStats {
     pendingDocumentReviews: number;
     expiringOffersCount: number;
     approachingConditionsCount: number;
+    outstandingDocumentsCount: number;
 }
 
 export interface AdminDashboardStats {

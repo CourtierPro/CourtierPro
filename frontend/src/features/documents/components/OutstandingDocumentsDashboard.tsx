@@ -70,7 +70,7 @@ export function OutstandingDocumentsDashboard() {
     });
 
     return (
-        <Card className="border-orange-200 bg-orange-50/30 dark:bg-orange-950/10 mb-6">
+        <Card className="border-orange-200 bg-orange-50/30 dark:bg-orange-950/10 h-full">
             <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                     <AlertCircle className="w-5 h-5 text-orange-600" />

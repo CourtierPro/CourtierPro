@@ -1993,10 +1993,12 @@ class DocumentRequestServiceImplTest {
                 request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
                 request.setDocType(DocumentTypeEnum.PROOF_OF_FUNDS);
                 request.setStatus(DocumentStatusEnum.REQUESTED);
-                request.setCreatedAt(java.time.LocalDateTime.now().minusDays(3));
-                request.setDueDate(java.time.LocalDateTime.now().plusDays(5));
+                request.setCreatedAt(java.time.LocalDateTime.now().minusDays(10));
+                // Set due date to 5 days ago, so it is 5 days overdue
+                request.setDueDate(java.time.LocalDateTime.now().minusDays(5));
 
-                when(repository.findOutstandingDocumentsForBroker(brokerId)).thenReturn(List.of(request));
+                when(repository.findOutstandingDocumentsForBroker(eq(brokerId), any(java.time.LocalDateTime.class)))
+                                .thenReturn(List.of(request));
 
                 Transaction tx = new Transaction();
                 tx.setTransactionId(transactionId);
@@ -2022,7 +2024,8 @@ class DocumentRequestServiceImplTest {
                 assertThat(result.get(0).getTitle()).isEqualTo("PROOF_OF_FUNDS");
                 assertThat(result.get(0).getTransactionAddress()).contains("123 Main St", "City", "QC", "H1H1H1");
                 assertThat(result.get(0).getClientName()).isEqualTo("John Doe");
-                assertThat(result.get(0).getDaysOutstanding()).isEqualTo(3);
+                // Due date was 5 days ago, so it is 5 days outstanding
+                assertThat(result.get(0).getDaysOutstanding()).isEqualTo(5);
         }
 
         @Test

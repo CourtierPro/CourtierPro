@@ -705,7 +705,9 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         @Override
         public java.util.List<com.example.courtierprobackend.documents.presentationlayer.models.OutstandingDocumentDTO> getOutstandingDocumentSummary(
                         UUID brokerId) {
-                List<DocumentRequest> requests = repository.findOutstandingDocumentsForBroker(brokerId);
+                // Pass current time to filter for overdue documents
+                List<DocumentRequest> requests = repository.findOutstandingDocumentsForBroker(brokerId,
+                                LocalDateTime.now());
 
                 return requests.stream().map(req -> {
                         Transaction tx = transactionRepository
@@ -730,11 +732,19 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                         }
 
                         Integer daysOutstanding = 0;
-                        LocalDateTime startDate = req.getCreatedAt() != null ? req.getCreatedAt()
-                                        : req.getLastUpdatedAt();
-                        if (startDate != null) {
-                                daysOutstanding = (int) java.time.temporal.ChronoUnit.DAYS.between(startDate,
+                        if (req.getDueDate() != null) {
+                                // Calculate days PAST due date
+                                daysOutstanding = (int) java.time.temporal.ChronoUnit.DAYS.between(req.getDueDate(),
                                                 LocalDateTime.now());
+                        } else {
+                                // Fallback for legacy/migrated data without due date (though query excludes
+                                // them now)
+                                LocalDateTime startDate = req.getCreatedAt() != null ? req.getCreatedAt()
+                                                : req.getLastUpdatedAt();
+                                if (startDate != null) {
+                                        daysOutstanding = (int) java.time.temporal.ChronoUnit.DAYS.between(startDate,
+                                                        LocalDateTime.now());
+                                }
                         }
 
                         return com.example.courtierprobackend.documents.presentationlayer.models.OutstandingDocumentDTO
