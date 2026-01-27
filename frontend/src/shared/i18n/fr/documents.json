@@ -130,5 +130,7 @@
     "allStages": "Toutes les étapes",
     "dueDate": "Date d'échéance",
     "pickDate": "Choisir une date",
-    "advancedOptions": "Options avancées (Conditions liées)"
+    "advancedOptions": "Options avancées (Conditions liées)",
+    "dueToday": "Dû aujourd'hui",
+    "noOutstandingDocuments": "Aucun document en retard. Vous êtes à jour !"
 }

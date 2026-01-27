@@ -129,5 +129,7 @@
     "allStages": "All stages",
     "dueDate": "Due Date",
     "pickDate": "Pick a date",
-    "advancedOptions": "Advanced Options (Linked Conditions)"
+    "advancedOptions": "Advanced Options (Linked Conditions)",
+    "dueToday": "Due Today",
+    "noOutstandingDocuments": "No outstanding documents. You're all caught up!"
 }

@@ -3,22 +3,24 @@ import { useSendDocumentReminder } from "@/features/documents/api/mutations";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import { Bell, AlertCircle } from "lucide-react";
+import { Bell, AlertCircle, CheckCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { format, parseISO, isPast } from "date-fns";
 import { toast } from "sonner";
 import { type OutstandingDocumentDTO } from "../api/documentsApi";
+import { cn } from "@/shared/utils/utils";
 
 export function OutstandingDocumentsDashboard() {
     const { t } = useTranslation('documents');
     const { data: outstandingDocs, isLoading } = useGetOutstandingDocuments();
     const { mutate: remind, isPending: isReminding } = useSendDocumentReminder();
 
+    const hasDocuments = outstandingDocs && outstandingDocs.length > 0;
+
     if (isLoading) return null; // Or a skeleton
-    if (!outstandingDocs || outstandingDocs.length === 0) return null;
 
     // Group by transaction
-    const groupedDocs = outstandingDocs.reduce((acc: Record<string, OutstandingDocumentDTO[]>, doc: OutstandingDocumentDTO) => {
+    const groupedDocs = (outstandingDocs || []).reduce((acc: Record<string, OutstandingDocumentDTO[]>, doc: OutstandingDocumentDTO) => {
         const key = doc.transactionAddress;
         if (!acc[key]) {
             acc[key] = [];
@@ -70,11 +72,11 @@ export function OutstandingDocumentsDashboard() {
     });
 
     return (
-        <Card className="border-orange-200 bg-orange-50/30 dark:bg-orange-950/10 h-full">
+        <Card className={cn("h-full", hasDocuments && "border-orange-200 bg-orange-50/30 dark:bg-orange-950/10")}>
             <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 text-orange-600" />
-                    <CardTitle className="text-lg font-semibold text-orange-900 dark:text-orange-100">
+                    <AlertCircle className={cn("w-5 h-5", hasDocuments ? "text-orange-600" : "text-muted-foreground")} />
+                    <CardTitle className={cn("text-lg font-semibold", hasDocuments ? "text-orange-900 dark:text-orange-100" : "")}>
                         {t('outstandingDocuments', 'Outstanding Documents')}
                     </CardTitle>
                 </div>
@@ -83,54 +85,71 @@ export function OutstandingDocumentsDashboard() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                {sortedGroups.map(([address, docs]) => (
-                    <div key={address} className="space-y-2">
-                        <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                            {address}
-                        </h4>
-                        <div className="space-y-2 pl-3 border-l-2 border-slate-100 dark:border-slate-800">
-                            {docs.map((doc: OutstandingDocumentDTO) => {
-                                const isOverdue = doc.dueDate && isPast(parseISO(doc.dueDate));
-                                return (
-                                    <div key={doc.id} className="flex items-center justify-between p-3 bg-white dark:bg-card border rounded-lg shadow-sm">
-                                        <div className="flex items-center gap-3">
-                                            <Badge variant={isOverdue ? "destructive" : "secondary"} className="h-6">
-                                                {doc.daysOutstanding} {t('days', 'days')}
-                                            </Badge>
-                                            <div>
-                                                <p className="font-medium text-sm">
-                                                    {t(`types.${doc.title}`, { defaultValue: doc.title })}
-                                                </p>
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                    <span>{doc.clientName}</span>
-                                                    {doc.dueDate && (
-                                                        <>
-                                                            <span>•</span>
-                                                            <span className={isOverdue ? "text-destructive" : ""}>
-                                                                {t('due', 'Due')}: {format(parseISO(doc.dueDate), 'MMM d')}
-                                                            </span>
-                                                        </>
-                                                    )}
+                {(!outstandingDocs || outstandingDocs.length === 0) ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <CheckCircle className="h-10 w-10 text-green-500/50 mb-2" />
+                        <p className="text-sm text-muted-foreground">
+                            {t('noOutstandingDocuments', "No outstanding documents. You're all caught up!")}
+                        </p>
+                    </div>
+                ) : (
+                    sortedGroups.map(([address, docs]) => (
+                        <div key={address} className="space-y-2">
+                            <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                {address}
+                            </h4>
+                            <div className="space-y-2 pl-3 border-l-2 border-slate-100 dark:border-slate-800">
+                                {docs.map((doc: OutstandingDocumentDTO) => {
+                                    const isOverdue = doc.dueDate && isPast(parseISO(doc.dueDate));
+                                    const isDueToday = doc.daysOutstanding === 0;
+
+                                    return (
+                                        <div key={doc.id} className="flex items-center justify-between p-3 bg-white dark:bg-card border rounded-lg shadow-sm">
+                                            <div className="flex items-center gap-3">
+                                                <Badge
+                                                    variant={isOverdue ? "destructive" : "secondary"}
+                                                    className="h-6"
+                                                >
+                                                    {isDueToday
+                                                        ? t('dueToday', 'Due Today')
+                                                        : `${doc.daysOutstanding} ${t('days', 'days')}`
+                                                    }
+                                                </Badge>
+                                                <div>
+                                                    <p className="font-medium text-sm">
+                                                        {t(`types.${doc.title}`, { defaultValue: doc.title })}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                        <span>{doc.clientName}</span>
+                                                        {doc.dueDate && (
+                                                            <>
+                                                                <span>•</span>
+                                                                <span className={isOverdue ? "text-destructive dark:text-red-400" : ""}>
+                                                                    {t('due', 'Due')}: {format(parseISO(doc.dueDate), 'MMM d')}
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="gap-2 text-muted-foreground hover:text-primary"
+                                                onClick={() => handleRemind(doc.id)}
+                                                disabled={isReminding}
+                                            >
+                                                <Bell className="w-4 h-4" />
+                                                {t('remind', 'Remind')}
+                                            </Button>
                                         </div>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="gap-2 text-muted-foreground hover:text-primary"
-                                            onClick={() => handleRemind(doc.id)}
-                                            disabled={isReminding}
-                                        >
-                                            <Bell className="w-4 h-4" />
-                                            {t('remind', 'Remind')}
-                                        </Button>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </CardContent>
         </Card>
     );
