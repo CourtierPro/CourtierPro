@@ -71,8 +71,8 @@ public class AppointmentController {
         } else {
             // Get all appointments
             appointments = isBroker
-                    ? appointmentService.getAppointmentsForBroker(userId)
-                    : appointmentService.getAppointmentsForClient(userId);
+                ? appointmentService.getAppointmentsForBroker(userId)
+                : appointmentService.getAppointmentsForClient(userId, userId, null);
         }
 
         return ResponseEntity.ok(appointments);
@@ -165,5 +165,19 @@ public class AppointmentController {
                 userId);
 
         return ResponseEntity.ok(updatedAppointment);
+    }
+
+    @GetMapping("/client/{clientId}")
+    @PreAuthorize("hasAnyRole('BROKER', 'ADMIN')")
+    public ResponseEntity<List<AppointmentResponseDTO>> getAppointmentsForClient(
+            @PathVariable UUID clientId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request) {
+        UUID requesterId = UserContextUtils.resolveUserId(request, brokerHeader);
+        // If you have a way to get the email, set it here. Otherwise, pass null for now.
+        String requesterEmail = null;
+        List<AppointmentResponseDTO> appointments = appointmentService.getAppointmentsForClient(clientId, requesterId, requesterEmail);
+        return ResponseEntity.ok(appointments);
     }
 }

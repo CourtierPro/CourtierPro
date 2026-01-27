@@ -32,15 +32,18 @@ public class AppointmentServiceImpl implements AppointmentService {
         private final UserAccountRepository userAccountRepository;
         private final TransactionRepository transactionRepository;
         private final com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService;
+        private final com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository;
 
         public AppointmentServiceImpl(AppointmentRepository appointmentRepository,
                         UserAccountRepository userAccountRepository,
                         TransactionRepository transactionRepository,
-                        com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService) {
+                        com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService,
+                        com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository) {
                 this.appointmentRepository = appointmentRepository;
                 this.userAccountRepository = userAccountRepository;
                 this.transactionRepository = transactionRepository;
                 this.appointmentAuditService = appointmentAuditService;
+                this.transactionParticipantRepository = transactionParticipantRepository;
         }
 
         @Override
@@ -51,10 +54,24 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         @Override
-        public List<AppointmentResponseDTO> getAppointmentsForClient(UUID clientId) {
-                List<Appointment> appointments = appointmentRepository
-                                .findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId);
-                return mapToDTOs(appointments);
+        public List<AppointmentResponseDTO> getAppointmentsForClient(UUID clientId, UUID requesterId, String requesterEmail) {
+                List<Appointment> allAppointments = appointmentRepository
+                        .findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId);
+                final UUID finalRequesterId = requesterId;
+                final String finalRequesterEmail = requesterEmail;
+                List<Appointment> filtered = allAppointments.stream().filter(apt -> {
+                        if (finalRequesterId == null) return false;
+                        if (apt.getBrokerId() != null && apt.getBrokerId().equals(finalRequesterId)) return true;
+                        if (apt.getClientId() != null && apt.getClientId().equals(finalRequesterId)) return true;
+                        if (apt.getTransactionId() != null) {
+                                var participants = transactionParticipantRepository.findByTransactionId(apt.getTransactionId());
+                                return participants.stream().anyMatch(p ->
+                                                (p.getUserId() != null && p.getUserId().equals(finalRequesterId)) || (finalRequesterEmail != null && p.getEmail() != null && finalRequesterEmail.equalsIgnoreCase(p.getEmail()))
+                                );
+                        }
+                        return false;
+                }).collect(java.util.stream.Collectors.toList());
+                return mapToDTOs(filtered);
         }
 
         @Override

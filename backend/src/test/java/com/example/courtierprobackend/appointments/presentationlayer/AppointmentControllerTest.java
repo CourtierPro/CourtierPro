@@ -209,7 +209,7 @@ class AppointmentControllerTest {
                 Jwt jwt = createJwt("auth0|client");
                 AppointmentResponseDTO dto = createTestAppointmentDTO();
 
-                when(appointmentService.getAppointmentsForClient(clientId)).thenReturn(List.of(dto));
+                when(appointmentService.getAppointmentsForClient(eq(clientId), any(UUID.class), any())).thenReturn(List.of(dto));
 
                 // Act
                 ResponseEntity<List<AppointmentResponseDTO>> response = controller.getAppointments(
@@ -218,7 +218,7 @@ class AppointmentControllerTest {
                 // Assert
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
                 assertThat(response.getBody()).hasSize(1);
-                verify(appointmentService).getAppointmentsForClient(clientId);
+                verify(appointmentService).getAppointmentsForClient(eq(clientId), any(UUID.class), any());
         }
 
         @Test
@@ -427,5 +427,45 @@ class AppointmentControllerTest {
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
                 assertThat(response.getBody()).isNotNull();
                 verify(appointmentService).reviewAppointment(eq(appointmentId), eq(reviewDTO), eq(brokerId));
+        }
+
+        // ========== GET /appointments/client/{clientId} Tests ==========
+
+        @Test
+        void getAppointmentsForClient_brokerRole_returnsAppointments() {
+                // Arrange
+                MockHttpServletRequest request = createBrokerRequest(brokerId);
+                Jwt jwt = createJwt("auth0|broker");
+                AppointmentResponseDTO dto = createTestAppointmentDTO();
+                when(appointmentService.getAppointmentsForClient(eq(clientId), any(UUID.class), any())).thenReturn(List.of(dto));
+
+                // Act
+                ResponseEntity<List<AppointmentResponseDTO>> response = controller.getAppointmentsForClient(
+                        clientId, null, jwt, request);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).hasSize(1);
+                verify(appointmentService).getAppointmentsForClient(eq(clientId), any(UUID.class), any());
+        }
+
+        @Test
+        void getAppointmentsForClient_adminRole_returnsAppointments() {
+                // Arrange
+                MockHttpServletRequest request = new MockHttpServletRequest();
+                request.setAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR, brokerId);
+                request.setAttribute(UserContextFilter.USER_ROLE_ATTR, "ADMIN");
+                Jwt jwt = createJwt("auth0|admin");
+                AppointmentResponseDTO dto = createTestAppointmentDTO();
+                when(appointmentService.getAppointmentsForClient(eq(clientId), any(UUID.class), any())).thenReturn(List.of(dto));
+
+                // Act
+                ResponseEntity<List<AppointmentResponseDTO>> response = controller.getAppointmentsForClient(
+                        clientId, null, jwt, request);
+
+                // Assert
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).hasSize(1);
+                verify(appointmentService).getAppointmentsForClient(eq(clientId), any(UUID.class), any());
         }
 }

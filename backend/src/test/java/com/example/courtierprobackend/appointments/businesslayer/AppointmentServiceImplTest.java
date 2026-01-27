@@ -55,10 +55,13 @@ class AppointmentServiceImplTest {
         private UUID clientId;
         private UUID transactionId;
 
+        @Mock
+        private com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository;
+
         @BeforeEach
         void setUp() {
                 appointmentService = new AppointmentServiceImpl(appointmentRepository, userAccountRepository,
-                                transactionRepository, appointmentAuditService);
+                                transactionRepository, appointmentAuditService, transactionParticipantRepository);
                 brokerId = UUID.randomUUID();
                 clientId = UUID.randomUUID();
                 transactionId = UUID.randomUUID();
@@ -137,33 +140,61 @@ class AppointmentServiceImplTest {
 
         // ========== getAppointmentsForClient Tests ==========
 
+
         @Test
-        void getAppointmentsForClient_returnsAppointments() {
-                // Arrange
+        void getAppointmentsForClient_asClient_returnsAppointments() {
                 Appointment apt = createTestAppointment();
                 when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
-                                .thenReturn(List.of(apt));
+                        .thenReturn(List.of(apt));
                 mockUserAccounts();
-
-                // Act
-                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId);
-
-                // Assert
+                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, clientId, null);
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).title()).isEqualTo("Test Appointment");
-                verify(appointmentRepository).findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId);
+        }
+
+        @Test
+        void getAppointmentsForClient_asBroker_returnsAppointments() {
+                Appointment apt = createTestAppointment();
+                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                        .thenReturn(List.of(apt));
+                mockUserAccounts();
+                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, brokerId, null);
+                assertThat(result).hasSize(1);
+        }
+
+        @Test
+        void getAppointmentsForClient_asCoBroker_returnsAppointments() {
+                Appointment apt = createTestAppointment();
+                UUID coBrokerId = UUID.randomUUID();
+                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                        .thenReturn(List.of(apt));
+                mockUserAccounts();
+                com.example.courtierprobackend.transactions.datalayer.TransactionParticipant coBroker = new com.example.courtierprobackend.transactions.datalayer.TransactionParticipant();
+                coBroker.setUserId(coBrokerId);
+                coBroker.setTransactionId(transactionId);
+                coBroker.setRole(com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER);
+                when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of(coBroker));
+                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, coBrokerId, null);
+                assertThat(result).hasSize(1);
+        }
+
+        @Test
+        void getAppointmentsForClient_forbiddenUser_returnsEmpty() {
+                Appointment apt = createTestAppointment();
+                UUID otherId = UUID.randomUUID();
+                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                        .thenReturn(List.of(apt));
+                mockUserAccounts();
+                when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, otherId, null);
+                assertThat(result).isEmpty();
         }
 
         @Test
         void getAppointmentsForClient_withNoAppointments_returnsEmptyList() {
-                // Arrange
                 when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
-                                .thenReturn(List.of());
-
-                // Act
-                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId);
-
-                // Assert
+                        .thenReturn(List.of());
+                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, clientId, null);
                 assertThat(result).isEmpty();
         }
 

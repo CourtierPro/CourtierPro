@@ -20,7 +20,7 @@ public interface AppointmentService {
         /**
          * Get all appointments for a client.
          */
-        List<AppointmentResponseDTO> getAppointmentsForClient(UUID clientId);
+        List<AppointmentResponseDTO> getAppointmentsForClient(UUID clientId, UUID requesterId, String requesterEmail);
 
         /**
          * Get appointments for a broker within a date range.
