@@ -170,7 +170,7 @@ export function RequestDocumentModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20">
@@ -304,7 +304,7 @@ export function RequestDocumentModal({
                 control={form.control}
                 name="dueDate"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col pt-2.5">
+                  <FormItem className="flex flex-col">
                     <FormLabel>{t('dueDate')}</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>

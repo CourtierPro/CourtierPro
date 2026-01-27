@@ -39,15 +39,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     errorString.includes("consent_required");
 
                 if (isConsentOrLoginRequired) {
-
-
                     await loginWithRedirect({
                         appState: { returnTo: window.location.pathname },
                         authorizationParams: {
                             audience: audience,
                         },
                     });
-
                 }
                 throw error;
             }

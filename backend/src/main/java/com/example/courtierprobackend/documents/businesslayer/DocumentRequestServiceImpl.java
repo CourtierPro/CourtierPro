@@ -163,6 +163,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                 requestDTO.getVisibleToClient() != null ? requestDTO.getVisibleToClient() : true);
                 request.setBrokerNotes(requestDTO.getBrokerNotes());
                 request.setLastUpdatedAt(LocalDateTime.now());
+                request.setCreatedAt(LocalDateTime.now());
                 // Add stage mapping
                 request.setStage(requestDTO.getStage());
                 request.setDueDate(requestDTO.getDueDate());
@@ -728,9 +729,11 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                                 .collect(Collectors.joining(", "));
                         }
 
-                        Integer daysOutstanding = null;
-                        if (req.getCreatedAt() != null) {
-                                daysOutstanding = (int) java.time.temporal.ChronoUnit.DAYS.between(req.getCreatedAt(),
+                        Integer daysOutstanding = 0;
+                        LocalDateTime startDate = req.getCreatedAt() != null ? req.getCreatedAt()
+                                        : req.getLastUpdatedAt();
+                        if (startDate != null) {
+                                daysOutstanding = (int) java.time.temporal.ChronoUnit.DAYS.between(startDate,
                                                 LocalDateTime.now());
                         }
 
