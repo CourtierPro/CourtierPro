@@ -70,6 +70,10 @@ public class DocumentRequest {
 
     private LocalDateTime lastUpdatedAt;
 
+    private LocalDateTime createdAt;
+
+    private LocalDateTime dueDate;
+
     private boolean visibleToClient;
 
     public boolean getVisibleToClient() {
@@ -80,4 +84,3 @@ public class DocumentRequest {
     private LocalDateTime deletedAt;
     private UUID deletedBy;
 }
-

@@ -1,4 +1,11 @@
 {
+    "outstandingDocuments": "Documents en attente",
+    "outstandingDocumentsDesc": "Examinez et rappelez aux clients les documents en retard.",
+    "reminderSent": "Rappel envoyé avec succès",
+    "reminderFailed": "Échec de l'envoi du rappel",
+    "days": "jours de retard",
+    "due": "Dû le",
+    "remind": "Rappeler",
     "edited": "Modifié",
     "Edit": "Modifier",
     "edit": "Modifier",

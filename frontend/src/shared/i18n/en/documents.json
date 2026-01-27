@@ -1,4 +1,11 @@
 {
+    "outstandingDocuments": "Outstanding Documents",
+    "outstandingDocumentsDesc": "Review and remind clients about overdue documents.",
+    "reminderSent": "Reminder sent successfully",
+    "reminderFailed": "Failed to send reminder",
+    "days": "days outstanding",
+    "due": "Due",
+    "remind": "Remind",
     "edited": "Edited",
     "Edit": "Edit",
     "edit": "Edit",

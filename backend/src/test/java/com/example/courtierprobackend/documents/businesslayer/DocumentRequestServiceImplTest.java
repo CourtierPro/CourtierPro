@@ -10,11 +10,12 @@ import com.example.courtierprobackend.documents.datalayer.valueobjects.Transacti
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentReviewRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.OutstandingDocumentDTO;
 import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
-import com.example.courtierprobackend.transactions.datalayer.Transaction;
+import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository;
@@ -1978,5 +1979,102 @@ class DocumentRequestServiceImplTest {
 
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).getSubmittedDocuments()).isNull();
+        }
+
+        @Test
+        void getOutstandingDocumentSummary_ShouldReturnList() {
+                UUID brokerId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+                UUID transactionId = UUID.randomUUID();
+                UUID requestId = UUID.randomUUID();
+
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+                request.setDocType(DocumentTypeEnum.PROOF_OF_FUNDS);
+                request.setStatus(DocumentStatusEnum.REQUESTED);
+                request.setCreatedAt(java.time.LocalDateTime.now().minusDays(3));
+                request.setDueDate(java.time.LocalDateTime.now().plusDays(5));
+
+                when(repository.findOutstandingDocumentsForBroker(brokerId)).thenReturn(List.of(request));
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setClientId(clientId);
+                tx.setBrokerId(brokerId);
+                tx.setPropertyAddress(new PropertyAddress("123 Main St", "City", "QC", "H1H1H1"));
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+                UserAccount client = new UserAccount();
+                client.setId(clientId);
+                client.setFirstName("John");
+                client.setLastName("Doe");
+                client.setEmail("john@example.com");
+
+                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+
+                List<OutstandingDocumentDTO> result = service.getOutstandingDocumentSummary(brokerId);
+
+                assertThat(result).isNotNull();
+                assertThat(result).hasSize(1);
+                assertThat(result.get(0).getId()).isEqualTo(requestId);
+                assertThat(result.get(0).getTitle()).isEqualTo("PROOF_OF_FUNDS");
+                assertThat(result.get(0).getTransactionAddress()).contains("123 Main St", "City", "QC", "H1H1H1");
+                assertThat(result.get(0).getClientName()).isEqualTo("John Doe");
+                assertThat(result.get(0).getDaysOutstanding()).isEqualTo(3);
+        }
+
+        @Test
+        void sendDocumentReminder_ShouldSendEmail() {
+                UUID brokerId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+                UUID transactionId = UUID.randomUUID();
+                UUID requestId = UUID.randomUUID();
+
+                DocumentRequest request = new DocumentRequest();
+                request.setRequestId(requestId);
+                request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+                request.setDocType(DocumentTypeEnum.PROOF_OF_FUNDS);
+                request.setStatus(DocumentStatusEnum.REQUESTED);
+
+                when(repository.findByRequestId(requestId)).thenReturn(Optional.of(request));
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setClientId(clientId);
+                tx.setBrokerId(brokerId);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                // Assuming permission checks pass if broker owns transaction or we mock access
+                // utils if used
+                when(participantRepository.findByTransactionId(transactionId))
+                                .thenReturn(java.util.Collections.emptyList());
+
+                UserAccount client = new UserAccount();
+                client.setId(clientId);
+                client.setFirstName("John");
+                client.setLastName("Doe");
+                client.setEmail("john@example.com");
+                client.setPreferredLanguage("en");
+
+                UserAccount broker = new UserAccount();
+                broker.setId(brokerId);
+                broker.setFirstName("Agent");
+                broker.setLastName("Smith");
+
+                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+
+                service.sendDocumentReminder(requestId, brokerId);
+
+                verify(emailService).sendDocumentRequestedNotification(
+                                eq("john@example.com"),
+                                eq("John Doe"),
+                                eq("Agent Smith"),
+                                anyString(),
+                                eq("PROOF_OF_FUNDS"),
+                                any(),
+                                eq("en"));
         }
 }
