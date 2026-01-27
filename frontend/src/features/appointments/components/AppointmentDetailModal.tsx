@@ -489,6 +489,18 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                         </div>
                     )}
 
+                    {/* Reschedule Action (CONFIRMED or PROPOSED, not cancelled/declined, not already in reschedule/decline/cancel mode) */}
+                    {appointment &&
+                        (appointment.status === 'CONFIRMED' || (appointment.status === 'PROPOSED' && appointment.initiatedBy === myRole)) &&
+                        !isCancelled && !isDeclineOpen && !isRescheduleOpen && !isCancelOpen && (
+                            <div className="pt-4">
+                                <Button variant="outline" className="w-full" onClick={openReschedule}>
+                                    <CalendarClock className="w-4 h-4 mr-2" />
+                                    {t('reschedule', 'Reschedule')}
+                                </Button>
+                            </div>
+                    )}
+
                     {/* Cancel Action (CONFIRMED or PROPOSED + ME) */}
                     {canCancel && !isCancelOpen && !isRescheduleOpen && !isDeclineOpen && (
                         <div className="pt-4 flex flex-col gap-3">
