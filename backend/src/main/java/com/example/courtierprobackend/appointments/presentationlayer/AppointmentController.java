@@ -54,6 +54,10 @@ public class AppointmentController {
                 System.out.println("[DEBUG] No appointments found for brokerId=" + userId + ". Try checking the brokerId on appointments and fromDateTime. Also check if the broker's Auth0 user is mapped to an internal user with BROKER role.");
             }
             return ResponseEntity.ok(appointments);
+        } catch (com.example.courtierprobackend.common.exceptions.ForbiddenException fe) {
+            System.out.println("[ERROR] ForbiddenException in getTopUpcomingAppointments: " + fe.getMessage());
+            fe.printStackTrace();
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
             System.out.println("[ERROR] Exception in getTopUpcomingAppointments: " + e.getMessage());
             e.printStackTrace();

@@ -247,6 +247,13 @@ public class AppointmentServiceImpl implements AppointmentService {
                                 .orElseThrow(() -> new NotFoundException(
                                                 "Transaction not found: " + request.transactionId()));
 
+                if (transaction.getBrokerId() == null) {
+                    throw new IllegalStateException("Cannot create appointment: transaction is missing brokerId. Please ensure the transaction has a broker assigned.");
+                }
+                if (transaction.getClientId() == null) {
+                    throw new IllegalStateException("Cannot create appointment: transaction is missing clientId. Please ensure the transaction has a client assigned.");
+                }
+
                 boolean isBroker = transaction.getBrokerId().equals(requesterId);
                 boolean isClient = transaction.getClientId().equals(requesterId);
 
@@ -254,14 +261,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                         throw new ForbiddenException(
                                         "You do not have permission to request an appointment for this transaction");
                 }
-
-
-                                if (transaction.getBrokerId() == null) {
-                                        throw new IllegalStateException("Cannot create appointment: transaction is missing brokerId. Please ensure the transaction has a broker assigned.");
-                                }
-                                if (transaction.getClientId() == null) {
-                                        throw new IllegalStateException("Cannot create appointment: transaction is missing clientId. Please ensure the transaction has a client assigned.");
-                                }
 
                                 Appointment appointment = new Appointment();
                                 appointment.setTransactionId(transaction.getTransactionId());
