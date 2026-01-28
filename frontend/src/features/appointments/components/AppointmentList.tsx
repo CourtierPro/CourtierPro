@@ -49,7 +49,7 @@ export function AppointmentList({ groupedAppointments, allAppointments }: Appoin
 
                                 return (
                                     <AppointmentItem
-                                        key={apt.appointmentId + '-' + apt.clientId}
+                                        key={apt.appointmentId}
                                         appointment={apt}
                                         onClick={setSelectedAppointment}
                                         isBroker={isBroker}

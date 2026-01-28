@@ -1,3 +1,62 @@
+    @Test
+    void getAppointmentsForClientByDateRange_filtersByCoBrokerAccess() {
+        Appointment apt = new Appointment();
+        apt.setAppointmentId(UUID.randomUUID());
+        apt.setTransactionId(transactionId);
+        apt.setBrokerId(brokerId);
+        apt.setClientId(clientId);
+        java.time.LocalDateTime from = java.time.LocalDateTime.now().minusDays(1);
+        java.time.LocalDateTime to = java.time.LocalDateTime.now().plusDays(1);
+        when(appointmentRepository.findByClientIdAndDateRange(clientId, from, to))
+                .thenReturn(List.of(apt));
+        TransactionParticipant coBroker = new TransactionParticipant();
+        coBroker.setUserId(coBrokerId);
+        coBroker.setTransactionId(transactionId);
+        coBroker.setRole(com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER);
+        when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of(coBroker));
+        var result = appointmentService.getAppointmentsForClientByDateRange(clientId, from, to, coBrokerId, null);
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getAppointmentsForClientByStatus_filtersByCoBrokerAccess() {
+        Appointment apt = new Appointment();
+        apt.setAppointmentId(UUID.randomUUID());
+        apt.setTransactionId(transactionId);
+        apt.setBrokerId(brokerId);
+        apt.setClientId(clientId);
+        com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED;
+        when(appointmentRepository.findByClientIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId, status))
+                .thenReturn(List.of(apt));
+        TransactionParticipant coBroker = new TransactionParticipant();
+        coBroker.setUserId(coBrokerId);
+        coBroker.setTransactionId(transactionId);
+        coBroker.setRole(com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER);
+        when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of(coBroker));
+        var result = appointmentService.getAppointmentsForClientByStatus(clientId, status, coBrokerId, null);
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getAppointmentsForClientByDateRangeAndStatus_filtersByCoBrokerAccess() {
+        Appointment apt = new Appointment();
+        apt.setAppointmentId(UUID.randomUUID());
+        apt.setTransactionId(transactionId);
+        apt.setBrokerId(brokerId);
+        apt.setClientId(clientId);
+        java.time.LocalDateTime from = java.time.LocalDateTime.now().minusDays(1);
+        java.time.LocalDateTime to = java.time.LocalDateTime.now().plusDays(1);
+        com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED;
+        when(appointmentRepository.findByClientIdAndDateRangeAndStatus(clientId, from, to, status))
+                .thenReturn(List.of(apt));
+        TransactionParticipant coBroker = new TransactionParticipant();
+        coBroker.setUserId(coBrokerId);
+        coBroker.setTransactionId(transactionId);
+        coBroker.setRole(com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER);
+        when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of(coBroker));
+        var result = appointmentService.getAppointmentsForClientByDateRangeAndStatus(clientId, from, to, status, coBrokerId, null);
+        assertThat(result).hasSize(1);
+    }
 package com.example.courtierprobackend.appointments.businesslayer;
 
 import com.example.courtierprobackend.appointments.datalayer.Appointment;
@@ -64,15 +123,10 @@ public class AppointmentServiceImplAccessControlTest {
         coBroker.setTransactionId(transactionId);
         coBroker.setRole(com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER);
         when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of(coBroker));
-        // Simulate static context for UserContextUtils
-        // (You may need to use PowerMockito or similar for static mocking in real code)
-        // For this example, assume the filtering logic is testable directly.
-        // Act
-        List<Appointment> appointments = appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId);
-        List<TransactionParticipant> participants = transactionParticipantRepository.findByTransactionId(transactionId);
-        boolean coBrokerHasAccess = participants.stream().anyMatch(p -> p.getUserId().equals(coBrokerId));
-        // Assert
-        assertThat(appointments).hasSize(1);
-        assertThat(coBrokerHasAccess).isTrue();
+        // Act: Call the service method with coBrokerId as requester
+        var result = appointmentService.getAppointmentsForClient(clientId, coBrokerId, null);
+        // Assert: The appointment should be returned for the co-broker
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getAppointmentId()).isEqualTo(apt.getAppointmentId());
     }
 }

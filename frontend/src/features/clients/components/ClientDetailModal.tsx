@@ -97,6 +97,7 @@ export function ClientDetailModal({ client: clientProp, isOpen, onClose }: Clien
                             </div>
                         </div>
                     </section>
+                    <Separator />
 
                     <Separator />
 

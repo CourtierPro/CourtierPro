@@ -14,7 +14,7 @@ export function useClientAppointmentHistory(clientId: string) {
         ...past.sort((a, b) => new Date(b.fromDateTime).getTime() - new Date(a.fromDateTime).getTime()),
     ];
 
-    const groupedAppointments = useMemo(() => groupAppointmentsByDate(sorted), [sorted]);
+    const groupedAppointments = useMemo(() => groupAppointmentsByDate(sorted), [appointments]);
 
     return { appointments: sorted, groupedAppointments, isLoading, isError, refetch };
 }
