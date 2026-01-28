@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useBrokerDashboardStats } from "@/features/dashboard/hooks/useDashboardStats";
 import { QuickLinksGrid, type QuickLink } from "@/features/dashboard/components/QuickLinksGrid";
+import { AppointmentWidget } from "@/features/dashboard/components/AppointmentWidget";
 import { PriorityCardsSection } from "@/features/dashboard/components/PriorityCardsSection";
 import { RecentActivityFeed } from "@/features/dashboard/components/RecentActivityFeed";
 import { CreateTransactionModal } from "@/features/transactions/components/CreateTransactionModal";
@@ -92,6 +93,12 @@ export function BrokerDashboardPage() {
           icon={<Users className="w-4 h-4" />}
           onClick={() => navigate("/clients")}
         />
+      </div>
+
+
+      {/* Appointment Widget */}
+      <div className="my-6">
+        <AppointmentWidget />
       </div>
 
       {/* Quick Links */}

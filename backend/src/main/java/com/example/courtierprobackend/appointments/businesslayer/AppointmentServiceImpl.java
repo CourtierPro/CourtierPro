@@ -28,6 +28,18 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class AppointmentServiceImpl implements AppointmentService {
 
+        @Override
+        public List<AppointmentResponseDTO> getTopUpcomingAppointmentsForBroker(UUID brokerId, int limit) {
+                List<Appointment> appointments = appointmentRepository.findUpcomingByBrokerId(brokerId, LocalDateTime.now());
+                return mapToDTOs(appointments.stream().limit(limit).toList());
+        }
+
+        @Override
+        public List<AppointmentResponseDTO> getTopUpcomingAppointmentsForClient(UUID clientId, int limit) {
+                List<Appointment> appointments = appointmentRepository.findUpcomingByClientId(clientId, LocalDateTime.now());
+                return mapToDTOs(appointments.stream().limit(limit).toList());
+        }
+
         private final AppointmentRepository appointmentRepository;
         private final UserAccountRepository userAccountRepository;
         private final TransactionRepository transactionRepository;
