@@ -235,7 +235,9 @@ class AppointmentServiceImplTest {
                 // Act
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClientByDateRange(clientId,
                                 from,
-                                to);
+                                to,
+                                clientId,
+                                null);
 
                 // Assert
                 assertThat(result).hasSize(1);
@@ -279,7 +281,9 @@ class AppointmentServiceImplTest {
 
                 // Act
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClientByStatus(clientId,
-                                AppointmentStatus.DECLINED);
+                                AppointmentStatus.DECLINED,
+                                clientId,
+                                null);
 
                 // Assert
                 assertThat(result).hasSize(1);
@@ -328,7 +332,9 @@ class AppointmentServiceImplTest {
                 // Act
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClientByDateRangeAndStatus(
                                 clientId,
-                                from, to, AppointmentStatus.CONFIRMED);
+                                from, to, AppointmentStatus.CONFIRMED,
+                                clientId,
+                                null);
 
                 // Assert
                 assertThat(result).hasSize(1);

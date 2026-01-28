@@ -230,7 +230,7 @@ class AppointmentControllerTest {
                 LocalDateTime to = LocalDateTime.now().plusDays(7);
                 AppointmentResponseDTO dto = createTestAppointmentDTO();
 
-                when(appointmentService.getAppointmentsForClientByDateRange(clientId, from, to))
+                when(appointmentService.getAppointmentsForClientByDateRange(clientId, from, to, clientId, null))
                                 .thenReturn(List.of(dto));
 
                 // Act
@@ -240,7 +240,7 @@ class AppointmentControllerTest {
                 // Assert
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
                 assertThat(response.getBody()).hasSize(1);
-                verify(appointmentService).getAppointmentsForClientByDateRange(clientId, from, to);
+                verify(appointmentService).getAppointmentsForClientByDateRange(clientId, from, to, clientId, null);
         }
 
         @Test
@@ -250,7 +250,7 @@ class AppointmentControllerTest {
                 Jwt jwt = createJwt("auth0|client");
                 AppointmentResponseDTO dto = createTestAppointmentDTO();
 
-                when(appointmentService.getAppointmentsForClientByStatus(clientId, AppointmentStatus.DECLINED))
+                when(appointmentService.getAppointmentsForClientByStatus(clientId, AppointmentStatus.DECLINED, clientId, null))
                                 .thenReturn(List.of(dto));
 
                 // Act
@@ -260,7 +260,7 @@ class AppointmentControllerTest {
                 // Assert
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
                 assertThat(response.getBody()).hasSize(1);
-                verify(appointmentService).getAppointmentsForClientByStatus(clientId, AppointmentStatus.DECLINED);
+                verify(appointmentService).getAppointmentsForClientByStatus(clientId, AppointmentStatus.DECLINED, clientId, null);
         }
 
         @Test
@@ -273,7 +273,7 @@ class AppointmentControllerTest {
                 AppointmentStatus status = AppointmentStatus.CONFIRMED;
                 AppointmentResponseDTO dto = createTestAppointmentDTO();
 
-                when(appointmentService.getAppointmentsForClientByDateRangeAndStatus(clientId, from, to, status))
+                when(appointmentService.getAppointmentsForClientByDateRangeAndStatus(clientId, from, to, status, clientId, null))
                                 .thenReturn(List.of(dto));
 
                 // Act
@@ -283,7 +283,7 @@ class AppointmentControllerTest {
                 // Assert
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
                 assertThat(response.getBody()).hasSize(1);
-                verify(appointmentService).getAppointmentsForClientByDateRangeAndStatus(clientId, from, to, status);
+                verify(appointmentService).getAppointmentsForClientByDateRangeAndStatus(clientId, from, to, status, clientId, null);
         }
 
         // ========== GET /appointments Tests - Header Override ==========
