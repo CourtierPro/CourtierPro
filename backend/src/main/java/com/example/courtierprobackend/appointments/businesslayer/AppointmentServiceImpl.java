@@ -31,13 +31,21 @@ public class AppointmentServiceImpl implements AppointmentService {
         @Override
         public List<AppointmentResponseDTO> getTopUpcomingAppointmentsForBroker(UUID brokerId, int limit) {
                 List<Appointment> appointments = appointmentRepository.findUpcomingByBrokerId(brokerId, LocalDateTime.now());
-                return mapToDTOs(appointments.stream().limit(limit).toList());
+                return mapToDTOs(appointments.stream()
+                        .filter(appointment -> appointment.getStatus() == AppointmentStatus.CONFIRMED
+                                || appointment.getStatus() == AppointmentStatus.PROPOSED)
+                        .limit(limit)
+                        .toList());
         }
 
         @Override
         public List<AppointmentResponseDTO> getTopUpcomingAppointmentsForClient(UUID clientId, int limit) {
                 List<Appointment> appointments = appointmentRepository.findUpcomingByClientId(clientId, LocalDateTime.now());
-                return mapToDTOs(appointments.stream().limit(limit).toList());
+                return mapToDTOs(appointments.stream()
+                        .filter(appointment -> appointment.getStatus() == AppointmentStatus.CONFIRMED
+                                || appointment.getStatus() == AppointmentStatus.PROPOSED)
+                        .limit(limit)
+                        .toList());
         }
 
         private final AppointmentRepository appointmentRepository;
@@ -262,10 +270,10 @@ public class AppointmentServiceImpl implements AppointmentService {
                                         "You do not have permission to request an appointment for this transaction");
                 }
 
-                                Appointment appointment = new Appointment();
-                                appointment.setTransactionId(transaction.getTransactionId());
-                                appointment.setBrokerId(transaction.getBrokerId());
-                                appointment.setClientId(transaction.getClientId());
+                Appointment appointment = new Appointment();
+                appointment.setTransactionId(transaction.getTransactionId());
+                appointment.setBrokerId(transaction.getBrokerId());
+                appointment.setClientId(transaction.getClientId());
 
                 // Handle custom title for "other" type, otherwise use the type as title
                 if ("other".equalsIgnoreCase(request.type()) && request.title() != null && !request.title().isBlank()) {

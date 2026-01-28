@@ -48,12 +48,13 @@ public class AppointmentController {
                     : appointmentService.getTopUpcomingAppointmentsForClient(userId, 3);
             return ResponseEntity.ok(appointments);
         } catch (com.example.courtierprobackend.common.exceptions.ForbiddenException fe) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.status(403).build();
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
     }
 
+    // ...existing code...
     private final AppointmentService appointmentService;
 
     /**

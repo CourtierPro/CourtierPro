@@ -8,6 +8,8 @@ import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { useAppointments } from "@/features/appointments/api/queries";
+// Removed unused UUID import
+import type { Appointment } from "@/features/appointments/types";
 import { format, parseISO, isToday } from "date-fns";
 import { CreateAppointmentModal } from "@/features/appointments/components/CreateAppointmentModal";
 
@@ -70,16 +72,17 @@ export function AppointmentWidget() {
             <div className="text-sm text-muted-foreground mb-2">{t("noIncomingRequests", "No incoming requests.")}</div>
           ) : (
             <div className="space-y-2 mb-2">
-              {incomingRequests.map((apt) => (
+              {incomingRequests.map((apt: Appointment) => (
                 <button
                   key={apt.appointmentId}
-                  onClick={() => navigate(`/appointments?id=${apt.appointmentId}`)}
+                  onClick={() => navigate(`/appointments?id=${encodeURIComponent(apt.appointmentId as string)}`)}
                   className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left focus:outline-none focus:ring-2 focus:ring-primary"
+                  aria-label={`Open appointment ${apt.title} on ${format(parseISO(apt.fromDateTime), "EEEE, MMMM d, yyyy")} from ${format(parseISO(apt.fromDateTime), "HH:mm")} to ${format(parseISO(apt.toDateTime), "HH:mm")}`}
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="text-xl flex-shrink-0">📅</div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm">{t(apt.title.toLowerCase(), apt.title)}</div>
+                      <div className="font-medium text-sm">{String(t(apt.title.toLowerCase(), apt.title))}</div>
                       <div className="text-xs text-muted-foreground truncate">{apt.clientName}</div>
                     </div>
                   </div>
@@ -105,11 +108,12 @@ export function AppointmentWidget() {
             <div className="text-sm text-muted-foreground mb-2">{t("noConfirmed", "No confirmed appointments.")}</div>
           ) : (
             <div className="space-y-2 mb-2">
-              {confirmedAppointments.map((apt) => (
+              {confirmedAppointments.map((apt: Appointment) => (
                 <button
                   key={apt.appointmentId}
-                  onClick={() => navigate(`/appointments?id=${apt.appointmentId}`)}
+                  onClick={() => navigate(`/appointments?id=${apt.appointmentId as string}`)}
                   className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left focus:outline-none focus:ring-2 focus:ring-primary"
+                  aria-label={`Open appointment ${apt.title} on ${format(parseISO(apt.fromDateTime), "EEEE, MMMM d, yyyy")} from ${format(parseISO(apt.fromDateTime), "HH:mm")} to ${format(parseISO(apt.toDateTime), "HH:mm")}`}
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="text-xl flex-shrink-0">📅</div>
@@ -119,12 +123,12 @@ export function AppointmentWidget() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1 ml-2 flex-shrink-0">
-                    <Badge variant={isToday(parseISO(apt.fromDateTime)) ? "warning" : "secondary"} className="text-xs">
-                      {format(parseISO(apt.fromDateTime), "EEE, MMM d")}
+                    <Badge variant={(() => { try { return isToday(parseISO(apt.fromDateTime)) ? "warning" : "secondary"; } catch { return "secondary"; } })()} className="text-xs">
+                      {(() => { try { return format(parseISO(apt.fromDateTime), "EEE, MMM d"); } catch { return apt.fromDateTime; } })()}
                     </Badge>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {format(parseISO(apt.fromDateTime), "HH:mm")} - {format(parseISO(apt.toDateTime), "HH:mm")}
+                      {(() => { try { return format(parseISO(apt.fromDateTime), "HH:mm"); } catch { return "--:--"; } })()} - {(() => { try { return format(parseISO(apt.toDateTime), "HH:mm"); } catch { return "--:--"; } })()}
                     </span>
                   </div>
                 </button>
