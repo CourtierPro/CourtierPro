@@ -146,6 +146,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
          * Requirement: "query the repository for appointments starting between 24h and
          * 25h from now that have reminderSent = false and are not CANCELLED/DECLINED"
          */
-        List<Appointment> findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotIn(LocalDateTime start,
+        List<Appointment> findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotInAndDeletedAtIsNull(
+                        LocalDateTime start,
                         LocalDateTime end, java.util.Collection<AppointmentStatus> statuses);
 }

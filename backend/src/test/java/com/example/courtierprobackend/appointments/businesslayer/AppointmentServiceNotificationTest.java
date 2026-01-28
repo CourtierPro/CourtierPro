@@ -269,7 +269,7 @@ class AppointmentServiceNotificationTest {
         upcoming.setStatus(AppointmentStatus.CONFIRMED);
 
         // Mock returns list with one appointment
-        when(appointmentRepository.findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotIn(
+        when(appointmentRepository.findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotInAndDeletedAtIsNull(
                 any(LocalDateTime.class), any(LocalDateTime.class), any()))
                 .thenReturn(List.of(upcoming));
 
@@ -293,7 +293,7 @@ class AppointmentServiceNotificationTest {
                 eq(NotificationCategory.APPOINTMENT));
 
         // Verify reminderSent flag update
-        verify(appointmentRepository).save(upcoming);
+        verify(appointmentRepository).saveAll(anyList());
     }
 
     @Test
@@ -301,7 +301,7 @@ class AppointmentServiceNotificationTest {
         // Arrange
         // Mock returns empty list (simulating query filtering out already sent
         // reminders)
-        when(appointmentRepository.findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotIn(
+        when(appointmentRepository.findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotInAndDeletedAtIsNull(
                 any(LocalDateTime.class), any(LocalDateTime.class), any()))
                 .thenReturn(Collections.emptyList());
 

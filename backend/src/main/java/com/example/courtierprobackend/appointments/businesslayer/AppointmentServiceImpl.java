@@ -609,6 +609,11 @@ public class AppointmentServiceImpl implements AppointmentService {
                                 apt.getUpdatedAt());
         }
 
+        /**
+         * Sends appointment reminders for appointments starting between 24 and 25 hours
+         * from now.
+         * Runs every hour.
+         */
         @org.springframework.scheduling.annotation.Scheduled(cron = "0 0 * * * *") // Runs every hour
         @Transactional
         public void sendAppointmentReminders() {
@@ -618,44 +623,61 @@ public class AppointmentServiceImpl implements AppointmentService {
 
                 List<AppointmentStatus> excluded = List.of(AppointmentStatus.CANCELLED, AppointmentStatus.DECLINED);
                 List<Appointment> appointments = appointmentRepository
-                                .findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotIn(startWindow, endWindow,
+                                .findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotInAndDeletedAtIsNull(
+                                                startWindow, endWindow,
                                                 excluded);
 
+                List<Appointment> updatedAppointments = new java.util.ArrayList<>();
+
                 for (Appointment apt : appointments) {
-                        // Determine recipients
-                        UserAccount broker = userAccountRepository.findById(apt.getBrokerId()).orElse(null);
-                        UserAccount client = userAccountRepository.findById(apt.getClientId()).orElse(null);
+                        try {
+                                // Determine recipients
+                                UserAccount broker = userAccountRepository.findById(apt.getBrokerId()).orElse(null);
+                                UserAccount client = userAccountRepository.findById(apt.getClientId()).orElse(null);
 
-                        if (broker != null) {
-                                notificationService.createNotification(
-                                                broker.getId().toString(),
-                                                "APPOINTMENT_REMINDER",
-                                                "APPOINTMENT_REMINDER_MSG",
-                                                Map.of(),
-                                                apt.getAppointmentId().toString(),
-                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
-                                String language = broker.getPreferredLanguage() != null ? broker.getPreferredLanguage()
-                                                : "en";
-                                emailService.sendAppointmentReminderNotification(apt, broker.getEmail(),
-                                                getFullName(broker), language);
+                                if (broker != null) {
+                                        notificationService.createNotification(
+                                                        broker.getId().toString(),
+                                                        "APPOINTMENT_REMINDER",
+                                                        "APPOINTMENT_REMINDER_MSG",
+                                                        Map.of(),
+                                                        apt.getAppointmentId().toString(),
+                                                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                        String language = broker.getPreferredLanguage() != null
+                                                        ? broker.getPreferredLanguage()
+                                                        : "en";
+                                        emailService.sendAppointmentReminderNotification(apt, broker.getEmail(),
+                                                        getFullName(broker), language);
+                                }
+
+                                if (client != null) {
+                                        notificationService.createNotification(
+                                                        client.getId().toString(),
+                                                        "APPOINTMENT_REMINDER",
+                                                        "APPOINTMENT_REMINDER_MSG",
+                                                        Map.of(),
+                                                        apt.getAppointmentId().toString(),
+                                                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                        String language = client.getPreferredLanguage() != null
+                                                        ? client.getPreferredLanguage()
+                                                        : "en";
+                                        emailService.sendAppointmentReminderNotification(apt, client.getEmail(),
+                                                        getFullName(client), language);
+                                }
+
+                                apt.setReminderSent(true);
+                                updatedAppointments.add(apt);
+
+                        } catch (Exception e) {
+                                // Log error but continue processing other appointments
+                                org.slf4j.LoggerFactory.getLogger(AppointmentServiceImpl.class)
+                                                .error("Failed to send reminder for appointment {}",
+                                                                apt.getAppointmentId(), e);
                         }
+                }
 
-                        if (client != null) {
-                                notificationService.createNotification(
-                                                client.getId().toString(),
-                                                "APPOINTMENT_REMINDER",
-                                                "APPOINTMENT_REMINDER_MSG",
-                                                Map.of(),
-                                                apt.getAppointmentId().toString(),
-                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
-                                String language = client.getPreferredLanguage() != null ? client.getPreferredLanguage()
-                                                : "en";
-                                emailService.sendAppointmentReminderNotification(apt, client.getEmail(),
-                                                getFullName(client), language);
-                        }
-
-                        apt.setReminderSent(true);
-                        appointmentRepository.save(apt);
+                if (!updatedAppointments.isEmpty()) {
+                        appointmentRepository.saveAll(updatedAppointments);
                 }
         }
 }

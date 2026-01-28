@@ -66,7 +66,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
                 if (notification.titleKey === 'APPOINTMENT_CONFIRMED') {
                     return <CalendarCheck className="w-4 h-4 text-green-600" />;
                 }
-                if (notification.titleKey === 'APPOINTMENT_CANCELLED' || notification.titleKey === 'APPOINTMENT_REJECTED' || notification.titleKey === 'APPOINTMENT_DECLINED') {
+                if (notification.titleKey === 'APPOINTMENT_CANCELLED' || notification.titleKey === 'APPOINTMENT_DECLINED') {
                     return <CalendarX className="w-4 h-4 text-red-500" />;
                 }
                 if (notification.titleKey === 'APPOINTMENT_REMINDER') {
