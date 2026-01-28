@@ -328,8 +328,10 @@ public class AppointmentServiceImpl implements AppointmentService {
                                         com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
 
                         // Email
+                        String language = recipient.getPreferredLanguage() != null ? recipient.getPreferredLanguage()
+                                        : "en";
                         emailService.sendAppointmentRequestedNotification(saved, recipient.getEmail(),
-                                        getFullName(recipient), "en"); // Defaulting to "en" as requested
+                                        getFullName(recipient), language);
                 }
 
                 return mapToDTO(saved, getUserNamesMap(List.of(saved)));
@@ -464,8 +466,11 @@ public class AppointmentServiceImpl implements AppointmentService {
                                                 Map.of(),
                                                 saved.getAppointmentId().toString(),
                                                 com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                String language = recipient.getPreferredLanguage() != null
+                                                ? recipient.getPreferredLanguage()
+                                                : "en";
                                 emailService.sendAppointmentConfirmedNotification(saved, recipient.getEmail(),
-                                                getFullName(recipient), "en");
+                                                getFullName(recipient), language);
 
                         } else if (reviewDTO
                                         .action() == com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO.ReviewAction.DECLINE) {
@@ -476,8 +481,11 @@ public class AppointmentServiceImpl implements AppointmentService {
                                                 Map.of("reason", appointment.getRefusalReason()),
                                                 saved.getAppointmentId().toString(),
                                                 com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                String language = recipient.getPreferredLanguage() != null
+                                                ? recipient.getPreferredLanguage()
+                                                : "en";
                                 emailService.sendAppointmentStatusUpdateNotification(saved, recipient.getEmail(),
-                                                getFullName(recipient), "en", "DECLINED",
+                                                getFullName(recipient), language, "DECLINED",
                                                 appointment.getRefusalReason());
 
                         } else if (reviewDTO
@@ -489,8 +497,11 @@ public class AppointmentServiceImpl implements AppointmentService {
                                                 Map.of(),
                                                 saved.getAppointmentId().toString(),
                                                 com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                String language = recipient.getPreferredLanguage() != null
+                                                ? recipient.getPreferredLanguage()
+                                                : "en";
                                 emailService.sendAppointmentStatusUpdateNotification(saved, recipient.getEmail(),
-                                                getFullName(recipient), "en", "RESCHEDULED", "New time proposed");
+                                                getFullName(recipient), language, "RESCHEDULED", "New time proposed");
                         }
                 }
 
@@ -564,8 +575,11 @@ public class AppointmentServiceImpl implements AppointmentService {
                                         Map.of("reason", appointment.getCancellationReason()),
                                         saved.getAppointmentId().toString(),
                                         com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                        String language = recipient.getPreferredLanguage() != null ? recipient.getPreferredLanguage()
+                                        : "en";
                         emailService.sendAppointmentStatusUpdateNotification(saved, recipient.getEmail(),
-                                        getFullName(recipient), "en", "CANCELLED", appointment.getCancellationReason());
+                                        getFullName(recipient), language, "CANCELLED",
+                                        appointment.getCancellationReason());
                 }
 
                 return mapToDTO(saved, getUserNamesMap(List.of(saved)));
@@ -620,8 +634,10 @@ public class AppointmentServiceImpl implements AppointmentService {
                                                 Map.of(),
                                                 apt.getAppointmentId().toString(),
                                                 com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                String language = broker.getPreferredLanguage() != null ? broker.getPreferredLanguage()
+                                                : "en";
                                 emailService.sendAppointmentReminderNotification(apt, broker.getEmail(),
-                                                getFullName(broker), "en");
+                                                getFullName(broker), language);
                         }
 
                         if (client != null) {
@@ -632,8 +648,10 @@ public class AppointmentServiceImpl implements AppointmentService {
                                                 Map.of(),
                                                 apt.getAppointmentId().toString(),
                                                 com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                String language = client.getPreferredLanguage() != null ? client.getPreferredLanguage()
+                                                : "en";
                                 emailService.sendAppointmentReminderNotification(apt, client.getEmail(),
-                                                getFullName(client), "en");
+                                                getFullName(client), language);
                         }
 
                         apt.setReminderSent(true);
