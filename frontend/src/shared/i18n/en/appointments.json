@@ -1,5 +1,10 @@
 {
     "title": "Appointments",
+    "incomingRequests": "Incoming Appointment Requests",
+    "noIncomingRequests": "No incoming requests.",
+    "upcomingConfirmed": "Upcoming Confirmed Appointments",
+    "noConfirmed": "No confirmed appointments.",
+    "requestAppointment": "Request Appointment",
     "subtitle": "View and manage your upcoming appointments.",
     "appointmentType": "Appointment Type",
     "selectType": "Select appointment type",

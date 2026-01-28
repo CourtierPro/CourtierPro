@@ -1,16 +1,21 @@
 import type { AppointmentStatus, InitiatorType } from './enums';
+
+/**
+ * Type alias for UUIDs for type safety.
+ */
+export type UUID = string & { readonly brand: unique symbol };
 import { format } from 'date-fns';
 
 /**
  * Appointment response from the backend API.
  */
 export interface Appointment {
-    appointmentId: string;
+    appointmentId: UUID;
     title: string;
-    transactionId: string | null;
-    brokerId: string;
+    transactionId: UUID | null;
+    brokerId: UUID;
     brokerName: string;
-    clientId: string;
+    clientId: UUID;
     clientName: string;
     fromDateTime: string; // ISO datetime string
     toDateTime: string; // ISO datetime string

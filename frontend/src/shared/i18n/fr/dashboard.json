@@ -13,6 +13,7 @@
         "upcomingAppointments": "Rendez-vous à venir",
         "upcomingAppointmentsDesc": "Votre emploi du temps pour les 7 prochains jours.",
         "calendarPlaceholder": "Calendrier...",
+        "seeAllAppointments": "Voir tous les rendez-vous",
         "vsLastMonth": "vs le mois dernier",
         "newToday": "nouveau aujourd'hui",
         "quickLinks": {
@@ -111,7 +112,8 @@
         "viewMode": {
             "grid": "Grille",
             "list": "Liste"
-        }
+        },
+        "seeAllAppointments": "Voir tous les rendez-vous"
     },
     "carousel": {
         "previous": "Transaction précédente",
@@ -121,7 +123,8 @@
     "appointments": {
         "title": "Rendez-vous à venir",
         "description": "Votre calendrier pour les 7 prochains jours.",
-        "placeholder": "Calendrier (aucune donnée)..."
+        "placeholder": "Calendrier (aucune donnée)...",
+        "seeAll": "Voir tous les rendez-vous"
     },
     "admin": {
         "title": "Tableau de bord Admin",

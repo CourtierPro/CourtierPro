@@ -468,4 +468,71 @@ class AppointmentControllerTest {
                 assertThat(response.getBody()).hasSize(1);
                 verify(appointmentService).getAppointmentsForClient(eq(clientId), any(UUID.class), any());
         }
+
+        @Test
+        void getTopUpcomingAppointments_broker_returnsAppointments() {
+                MockHttpServletRequest request = createBrokerRequest(brokerId);
+                Jwt jwt = createJwt("auth0|broker");
+                AppointmentResponseDTO dto = createTestAppointmentDTO();
+                when(appointmentService.getTopUpcomingAppointmentsForBroker(brokerId, 3)).thenReturn(List.of(dto));
+                ResponseEntity<List<AppointmentResponseDTO>> response = controller.getTopUpcomingAppointments(null, jwt, request);
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).hasSize(1);
+                verify(appointmentService).getTopUpcomingAppointmentsForBroker(brokerId, 3);
+        }
+
+        @Test
+        void getTopUpcomingAppointments_client_returnsAppointments() {
+                MockHttpServletRequest request = createClientRequest(clientId);
+                Jwt jwt = createJwt("auth0|client");
+                AppointmentResponseDTO dto = createTestAppointmentDTO();
+                when(appointmentService.getTopUpcomingAppointmentsForClient(clientId, 3)).thenReturn(List.of(dto));
+                ResponseEntity<List<AppointmentResponseDTO>> response = controller.getTopUpcomingAppointments(null, jwt, request);
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).hasSize(1);
+                verify(appointmentService).getTopUpcomingAppointmentsForClient(clientId, 3);
+        }
+
+        @Test
+        void getTopUpcomingAppointments_broker_noAppointments_returnsEmptyList() {
+                MockHttpServletRequest request = createBrokerRequest(brokerId);
+                Jwt jwt = createJwt("auth0|broker");
+                when(appointmentService.getTopUpcomingAppointmentsForBroker(brokerId, 3)).thenReturn(List.of());
+                ResponseEntity<List<AppointmentResponseDTO>> response = controller.getTopUpcomingAppointments(null, jwt, request);
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isEmpty();
+        }
+
+        @Test
+        void getTopUpcomingAppointments_client_noAppointments_returnsEmptyList() {
+                MockHttpServletRequest request = createClientRequest(clientId);
+                Jwt jwt = createJwt("auth0|client");
+                when(appointmentService.getTopUpcomingAppointmentsForClient(clientId, 3)).thenReturn(List.of());
+                ResponseEntity<List<AppointmentResponseDTO>> response = controller.getTopUpcomingAppointments(null, jwt, request);
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isEmpty();
+        }
+
+        @Test
+        void cancelAppointment_broker_returnsUpdatedAppointment() {
+            MockHttpServletRequest request = createBrokerRequest(brokerId);
+            Jwt jwt = createJwt("auth0|broker");
+            UUID appointmentId = UUID.randomUUID();
+            com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO("Reason");
+            AppointmentResponseDTO updatedDTO = createTestAppointmentDTO();
+            when(appointmentService.cancelAppointment(appointmentId, cancelDTO, brokerId)).thenReturn(updatedDTO);
+            ResponseEntity<AppointmentResponseDTO> response = controller.cancelAppointment(appointmentId, cancelDTO, null, jwt, request);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isEqualTo(updatedDTO);
+            verify(appointmentService).cancelAppointment(appointmentId, cancelDTO, brokerId);
+        }
+
+        @Test
+        void getTopUpcomingAppointments_serviceThrowsException_returnsInternalServerError() {
+            MockHttpServletRequest request = createBrokerRequest(brokerId);
+            Jwt jwt = createJwt("auth0|broker");
+            when(appointmentService.getTopUpcomingAppointmentsForBroker(brokerId, 3)).thenThrow(new RuntimeException("fail"));
+            ResponseEntity<List<AppointmentResponseDTO>> response = controller.getTopUpcomingAppointments(null, jwt, request);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
 }
