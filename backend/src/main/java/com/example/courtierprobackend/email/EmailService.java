@@ -720,7 +720,7 @@ public class EmailService {
                 ? "Bonjour {{name}}, une nouvelle demande de rendez-vous \"{{title}}\" a été reçue pour {{date}} à {{location}}. Notes: {{notes}}"
                 : "Hello {{name}}, a new appointment request \"{{title}}\" has been received for {{date}} at {{location}}. Notes: {{notes}}";
 
-        sendAppointmentEmail(toEmail, subject, body, recipientName, appointment);
+        sendAppointmentEmail(toEmail, subject, body, recipientName, appointment, language, null);
     }
 
     public void sendAppointmentConfirmedNotification(
@@ -736,7 +736,7 @@ public class EmailService {
                 ? "Bonjour {{name}}, votre rendez-vous \"{{title}}\" pour {{date}} à {{location}} a été confirmé."
                 : "Hello {{name}}, your appointment \"{{title}}\" for {{date}} at {{location}} has been confirmed.";
 
-        sendAppointmentEmail(toEmail, subject, body, recipientName, appointment);
+        sendAppointmentEmail(toEmail, subject, body, recipientName, appointment, language, null);
     }
 
     public void sendAppointmentStatusUpdateNotification(
@@ -751,8 +751,11 @@ public class EmailService {
                 ? "Bonjour {{name}}, le statut de votre rendez-vous \"{{title}}\" pour {{date}} est maintenant: {{status}}. Raison: {{reason}}"
                 : "Hello {{name}}, the status of your appointment \"{{title}}\" for {{date}} is now: {{status}}. Reason: {{reason}}";
 
-        body = body.replace("{{status}}", status).replace("{{reason}}", reason != null ? reason : "");
-        sendAppointmentEmail(toEmail, subject, body, recipientName, appointment);
+        java.util.Map<String, String> extraVars = new java.util.HashMap<>();
+        extraVars.put("status", status);
+        extraVars.put("reason", reason);
+
+        sendAppointmentEmail(toEmail, subject, body, recipientName, appointment, language, extraVars);
     }
 
     public void sendAppointmentReminderNotification(
@@ -768,7 +771,7 @@ public class EmailService {
                 ? "Bonjour {{name}}, ceci est un rappel pour votre rendez-vous \"{{title}}\" demain à {{date}} à {{location}}."
                 : "Hello {{name}}, this is a reminder for your appointment \"{{title}}\" tomorrow at {{date}} at {{location}}.";
 
-        sendAppointmentEmail(toEmail, subject, body, recipientName, appointment);
+        sendAppointmentEmail(toEmail, subject, body, recipientName, appointment, language, null);
     }
 
     private boolean isEmailEnabled(String email) {
@@ -778,9 +781,16 @@ public class EmailService {
     }
 
     private void sendAppointmentEmail(String to, String subject, String bodyTemplate, String name,
-            com.example.courtierprobackend.appointments.datalayer.Appointment appointment) {
+            com.example.courtierprobackend.appointments.datalayer.Appointment appointment, String language,
+            java.util.Map<String, String> extraVars) {
         try {
-            String dateStr = appointment.getFromDateTime().toString().replace("T", " ");
+            boolean isFrench = "fr".equalsIgnoreCase(language);
+            java.util.Locale locale = isFrench ? java.util.Locale.CANADA_FRENCH : java.util.Locale.US;
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter
+                    .ofLocalizedDateTime(java.time.format.FormatStyle.LONG, java.time.format.FormatStyle.SHORT)
+                    .withLocale(locale);
+
+            String dateStr = appointment.getFromDateTime().format(formatter);
             String body = bodyTemplate
                     .replace("{{name}}", escapeHtml(name))
                     .replace("{{title}}",
@@ -789,6 +799,14 @@ public class EmailService {
                     .replace("{{location}}",
                             escapeHtml(appointment.getLocation() != null ? appointment.getLocation() : "N/A"))
                     .replace("{{notes}}", escapeHtml(appointment.getNotes() != null ? appointment.getNotes() : ""));
+
+            if (extraVars != null) {
+                for (java.util.Map.Entry<String, String> entry : extraVars.entrySet()) {
+                    String key = "{{" + entry.getKey() + "}}";
+                    String value = entry.getValue() != null ? escapeHtml(entry.getValue()) : "";
+                    body = body.replace(key, value);
+                }
+            }
 
             sendEmail(to, subject, convertPlainTextToHtml(body));
         } catch (Exception e) {

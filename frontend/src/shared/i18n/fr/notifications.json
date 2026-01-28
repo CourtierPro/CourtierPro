@@ -38,5 +38,17 @@
     "notifications.propertyOfferStatusChanged.title": "Statut de l'offre mis à jour",
     "notifications.propertyOfferStatusChanged.message": "Le statut de l'offre pour la propriété au {{address}} a été mis à jour à {{status}}.",
     "notifications.clientOfferDecision.title": "Décision du client reçue",
-    "notifications.clientOfferDecision.message": "{{clientName}} a indiqué une décision de {{decision}} pour l'offre de {{buyerName}}."
+    "notifications.clientOfferDecision.message": "{{clientName}} a indiqué une décision de {{decision}} pour l'offre de {{buyerName}}.",
+    "APPOINTMENT_REQUESTED": "Nouvelle demande de rendez-vous",
+    "APPOINTMENT_CONFIRMED": "Rendez-vous confirmé",
+    "APPOINTMENT_DECLINED": "Rendez-vous refusé",
+    "APPOINTMENT_CANCELLED": "Rendez-vous annulé",
+    "APPOINTMENT_RESCHEDULED": "Rendez-vous reporté",
+    "APPOINTMENT_REMINDER": "Rappel de rendez-vous à venir",
+    "NEW_APPOINTMENT_REQUEST": "Vous avez une nouvelle demande de rendez-vous de {{name}}.",
+    "APPOINTMENT_HAS_BEEN_CONFIRMED": "Votre rendez-vous a été confirmé.",
+    "APPOINTMENT_HAS_BEEN_DECLINED": "Votre demande de rendez-vous a été refusée. Raison : {{reason}}",
+    "APPOINTMENT_HAS_BEEN_CANCELLED": "Votre rendez-vous a été annulé. Raison : {{reason}}",
+    "APPOINTMENT_HAS_BEEN_RESCHEDULED": "Votre rendez-vous a été reporté.",
+    "APPOINTMENT_REMINDER_MSG": "Vous avez un rendez-vous à venir dans 24 heures."
 }
