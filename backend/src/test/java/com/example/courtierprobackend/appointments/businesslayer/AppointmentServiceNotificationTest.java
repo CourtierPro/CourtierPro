@@ -64,10 +64,15 @@ class AppointmentServiceNotificationTest {
     private UserAccount broker;
     private UserAccount client;
 
+    @Mock
+    private com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository; // Added
+                                                                                                                                                  // mock
+
     @BeforeEach
     void setUp() {
         appointmentService = new AppointmentServiceImpl(appointmentRepository, userAccountRepository,
-                transactionRepository, appointmentAuditService, emailService, notificationService);
+                transactionRepository, appointmentAuditService, emailService, notificationService,
+                transactionParticipantRepository);
 
         brokerId = UUID.randomUUID();
         clientId = UUID.randomUUID();
