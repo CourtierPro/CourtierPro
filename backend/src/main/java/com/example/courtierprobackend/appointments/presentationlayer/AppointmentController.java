@@ -75,26 +75,33 @@ public class AppointmentController {
 
         List<AppointmentResponseDTO> appointments;
 
+        String requesterEmail = null;
+        if (jwt != null) {
+            Object emailClaim = jwt.getClaims().get("email");
+            if (emailClaim instanceof String) {
+                requesterEmail = (String) emailClaim;
+            }
+        }
         if (from != null && to != null && status != null) {
             // Filter by date range AND status
             appointments = isBroker
                     ? appointmentService.getAppointmentsForBrokerByDateRangeAndStatus(userId, from, to, status)
-                    : appointmentService.getAppointmentsForClientByDateRangeAndStatus(userId, from, to, status);
+                    : appointmentService.getAppointmentsForClientByDateRangeAndStatus(userId, from, to, status, userId, requesterEmail);
         } else if (from != null && to != null) {
             // Filter by date range
             appointments = isBroker
                     ? appointmentService.getAppointmentsForBrokerByDateRange(userId, from, to)
-                    : appointmentService.getAppointmentsForClientByDateRange(userId, from, to);
+                    : appointmentService.getAppointmentsForClientByDateRange(userId, from, to, userId, requesterEmail);
         } else if (status != null) {
             // Filter by status
             appointments = isBroker
                     ? appointmentService.getAppointmentsForBrokerByStatus(userId, status)
-                    : appointmentService.getAppointmentsForClientByStatus(userId, status);
+                    : appointmentService.getAppointmentsForClientByStatus(userId, status, userId, requesterEmail);
         } else {
             // Get all appointments
             appointments = isBroker
-                    ? appointmentService.getAppointmentsForBroker(userId)
-                    : appointmentService.getAppointmentsForClient(userId);
+                ? appointmentService.getAppointmentsForBroker(userId)
+                : appointmentService.getAppointmentsForClient(userId, userId, null);
         }
 
         return ResponseEntity.ok(appointments);
@@ -187,5 +194,25 @@ public class AppointmentController {
                 userId);
 
         return ResponseEntity.ok(updatedAppointment);
+    }
+
+    @GetMapping("/client/{clientId}")
+    @PreAuthorize("hasAnyRole('BROKER', 'ADMIN')")
+    public ResponseEntity<List<AppointmentResponseDTO>> getAppointmentsForClient(
+            @PathVariable UUID clientId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request) {
+        UUID requesterId = UserContextUtils.resolveUserId(request, brokerHeader);
+        // If you have a way to get the email, set it here. Otherwise, pass null for now.
+        String requesterEmail = null;
+        if (jwt != null) {
+            Object emailClaim = jwt.getClaims().get("email");
+            if (emailClaim instanceof String) {
+                requesterEmail = (String) emailClaim;
+            }
+        }
+        List<AppointmentResponseDTO> appointments = appointmentService.getAppointmentsForClient(clientId, requesterId, requesterEmail);
+        return ResponseEntity.ok(appointments);
     }
 }
