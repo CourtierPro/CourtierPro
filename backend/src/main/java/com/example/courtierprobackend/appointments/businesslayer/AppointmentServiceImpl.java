@@ -32,15 +32,21 @@ public class AppointmentServiceImpl implements AppointmentService {
         private final UserAccountRepository userAccountRepository;
         private final TransactionRepository transactionRepository;
         private final com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService;
+        private final com.example.courtierprobackend.email.EmailService emailService;
+        private final com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
 
         public AppointmentServiceImpl(AppointmentRepository appointmentRepository,
                         UserAccountRepository userAccountRepository,
                         TransactionRepository transactionRepository,
-                        com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService) {
+                        com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService,
+                        com.example.courtierprobackend.email.EmailService emailService,
+                        com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService) {
                 this.appointmentRepository = appointmentRepository;
                 this.userAccountRepository = userAccountRepository;
                 this.transactionRepository = transactionRepository;
                 this.appointmentAuditService = appointmentAuditService;
+                this.emailService = emailService;
+                this.notificationService = notificationService;
         }
 
         @Override
@@ -222,6 +228,29 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointmentAuditService.logAction(saved.getAppointmentId(), "CREATED", requesterId,
                                 "Appointment requested");
 
+                // Notification & Email
+                UUID recipientId = isBroker ? transaction.getClientId() : transaction.getBrokerId();
+                UserAccount recipient = userAccountRepository.findById(recipientId).orElse(null);
+
+                if (recipient != null) {
+                        UserAccount requester = userAccountRepository.findById(requesterId).orElse(null);
+                        String requesterName = (requester != null) ? getFullName(requester)
+                                        : (isBroker ? "Broker" : "Client");
+
+                        // In-App Notification
+                        notificationService.createNotification(
+                                        recipient.getId().toString(),
+                                        "APPOINTMENT_REQUESTED", // Title Key
+                                        "NEW_APPOINTMENT_REQUEST", // Message Key
+                                        Map.of("name", requesterName),
+                                        saved.getAppointmentId().toString(),
+                                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+
+                        // Email
+                        emailService.sendAppointmentRequestedNotification(saved, recipient.getEmail(),
+                                        getFullName(recipient), "en"); // Defaulting to "en" as requested
+                }
+
                 return mapToDTO(saved, getUserNamesMap(List.of(saved)));
         }
 
@@ -341,6 +370,49 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointmentAuditService.logAction(saved.getAppointmentId(), reviewDTO.action().name(), reviewerId,
                                 details);
 
+                // Notifications
+                UUID recipientId = (isBroker) ? appointment.getClientId() : appointment.getBrokerId();
+                UserAccount recipient = userAccountRepository.findById(recipientId).orElse(null);
+
+                if (recipient != null) {
+                        if (reviewDTO.action() == com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO.ReviewAction.CONFIRM) {
+                                notificationService.createNotification(
+                                                recipient.getId().toString(),
+                                                "APPOINTMENT_CONFIRMED",
+                                                "APPOINTMENT_HAS_BEEN_CONFIRMED",
+                                                Map.of(),
+                                                saved.getAppointmentId().toString(),
+                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                emailService.sendAppointmentConfirmedNotification(saved, recipient.getEmail(),
+                                                getFullName(recipient), "en");
+
+                        } else if (reviewDTO
+                                        .action() == com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO.ReviewAction.DECLINE) {
+                                notificationService.createNotification(
+                                                recipient.getId().toString(),
+                                                "APPOINTMENT_DECLINED",
+                                                "APPOINTMENT_HAS_BEEN_DECLINED",
+                                                Map.of("reason", appointment.getRefusalReason()),
+                                                saved.getAppointmentId().toString(),
+                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                emailService.sendAppointmentStatusUpdateNotification(saved, recipient.getEmail(),
+                                                getFullName(recipient), "en", "DECLINED",
+                                                appointment.getRefusalReason());
+
+                        } else if (reviewDTO
+                                        .action() == com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO.ReviewAction.RESCHEDULE) {
+                                notificationService.createNotification(
+                                                recipient.getId().toString(),
+                                                "APPOINTMENT_RESCHEDULED",
+                                                "APPOINTMENT_HAS_BEEN_RESCHEDULED",
+                                                Map.of(),
+                                                saved.getAppointmentId().toString(),
+                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                emailService.sendAppointmentStatusUpdateNotification(saved, recipient.getEmail(),
+                                                getFullName(recipient), "en", "RESCHEDULED", "New time proposed");
+                        }
+                }
+
                 return mapToDTO(saved, getUserNamesMap(List.of(saved)));
         }
 
@@ -399,6 +471,22 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointmentAuditService.logAction(saved.getAppointmentId(), "CANCELLED", requesterId,
                                 "Reason: " + cancelDTO.reason());
 
+                // Notifications
+                UUID recipientId = (isBroker) ? appointment.getClientId() : appointment.getBrokerId();
+                UserAccount recipient = userAccountRepository.findById(recipientId).orElse(null);
+
+                if (recipient != null) {
+                        notificationService.createNotification(
+                                        recipient.getId().toString(),
+                                        "APPOINTMENT_CANCELLED",
+                                        "APPOINTMENT_HAS_BEEN_CANCELLED",
+                                        Map.of("reason", appointment.getCancellationReason()),
+                                        saved.getAppointmentId().toString(),
+                                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                        emailService.sendAppointmentStatusUpdateNotification(saved, recipient.getEmail(),
+                                        getFullName(recipient), "en", "CANCELLED", appointment.getCancellationReason());
+                }
+
                 return mapToDTO(saved, getUserNamesMap(List.of(saved)));
         }
 
@@ -424,5 +512,51 @@ public class AppointmentServiceImpl implements AppointmentService {
                                 apt.getCancelledBy(),
                                 apt.getCreatedAt(),
                                 apt.getUpdatedAt());
+        }
+
+        @org.springframework.scheduling.annotation.Scheduled(cron = "0 0 * * * *") // Runs every hour
+        @Transactional
+        public void sendAppointmentReminders() {
+                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime startWindow = now.plusHours(24);
+                LocalDateTime endWindow = now.plusHours(25);
+
+                List<AppointmentStatus> excluded = List.of(AppointmentStatus.CANCELLED, AppointmentStatus.DECLINED);
+                List<Appointment> appointments = appointmentRepository
+                                .findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotIn(startWindow, endWindow,
+                                                excluded);
+
+                for (Appointment apt : appointments) {
+                        // Determine recipients
+                        UserAccount broker = userAccountRepository.findById(apt.getBrokerId()).orElse(null);
+                        UserAccount client = userAccountRepository.findById(apt.getClientId()).orElse(null);
+
+                        if (broker != null) {
+                                notificationService.createNotification(
+                                                broker.getId().toString(),
+                                                "APPOINTMENT_REMINDER",
+                                                "APPOINTMENT_REMINDER_MSG",
+                                                Map.of(),
+                                                apt.getAppointmentId().toString(),
+                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                emailService.sendAppointmentReminderNotification(apt, broker.getEmail(),
+                                                getFullName(broker), "en");
+                        }
+
+                        if (client != null) {
+                                notificationService.createNotification(
+                                                client.getId().toString(),
+                                                "APPOINTMENT_REMINDER",
+                                                "APPOINTMENT_REMINDER_MSG",
+                                                Map.of(),
+                                                apt.getAppointmentId().toString(),
+                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                emailService.sendAppointmentReminderNotification(apt, client.getEmail(),
+                                                getFullName(client), "en");
+                        }
+
+                        apt.setReminderSent(true);
+                        appointmentRepository.save(apt);
+                }
         }
 }

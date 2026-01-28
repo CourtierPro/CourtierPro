@@ -69,8 +69,8 @@ public class EmailService {
      * @param languageCode     "en" / "fr" or null -> will fall back to org default
      */
     public boolean sendPasswordSetupEmail(String toEmail,
-                                          String passwordSetupUrl,
-                                          String languageCode) {
+            String passwordSetupUrl,
+            String languageCode) {
         try {
             OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
 
@@ -110,7 +110,7 @@ public class EmailService {
     }
 
     public void sendDocumentSubmittedNotification(DocumentRequest request, String brokerEmail, String uploaderName,
-                                                 String documentName, String docType, String brokerLanguage) {
+            String documentName, String docType, String brokerLanguage) {
         // Check broker's email notification preference
         var brokerOpt = userAccountRepository.findByEmail(brokerEmail);
         if (!brokerOpt.isPresent() || !brokerOpt.get().isEmailNotificationsEnabled()) {
@@ -131,7 +131,8 @@ public class EmailService {
             // Get organization settings for templates and subject/body
             OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
 
-            String subject = isFrench ? settings.getDocumentSubmittedSubjectFr() : settings.getDocumentSubmittedSubjectEn();
+            String subject = isFrench ? settings.getDocumentSubmittedSubjectFr()
+                    : settings.getDocumentSubmittedSubjectEn();
             String bodyText = isFrench ? settings.getDocumentSubmittedBodyFr() : settings.getDocumentSubmittedBodyEn();
 
             // Fallback to defaults if not configured
@@ -149,14 +150,16 @@ public class EmailService {
                         : "Hello {{uploaderName}}, your document {{documentName}} has been submitted for the transaction {{transactionId}}.";
             }
 
-            // Use organization settings for body if available, otherwise fallback to template
+            // Use organization settings for body if available, otherwise fallback to
+            // template
             String emailBody;
             if (bodyText != null) {
                 emailBody = convertPlainTextToHtml(bodyText)
                         .replace("{{uploaderName}}", escapeHtml(uploaderName))
                         .replace("{{documentName}}", escapeHtml(displayName))
                         .replace("{{documentType}}", escapeHtml(translatedDocType))
-                        .replace("{{transactionId}}", escapeHtml(request.getTransactionRef().getTransactionId().toString()));
+                        .replace("{{transactionId}}",
+                                escapeHtml(request.getTransactionRef().getTransactionId().toString()));
             } else {
                 String templatePath = isFrench
                         ? "email-templates/document_submitted_fr.html"
@@ -166,7 +169,8 @@ public class EmailService {
                         .replace("{{subject}}", escapeHtml(subject))
                         .replace("{{uploaderName}}", escapeHtml(uploaderName))
                         .replace("{{documentName}}", escapeHtml(displayName))
-                        .replace("{{transactionId}}", escapeHtml(request.getTransactionRef().getTransactionId().toString()));
+                        .replace("{{transactionId}}",
+                                escapeHtml(request.getTransactionRef().getTransactionId().toString()));
             }
 
             sendEmail(brokerEmail, subject, emailBody);
@@ -178,7 +182,7 @@ public class EmailService {
     }
 
     public void sendDocumentRequestedNotification(String clientEmail, String clientName, String brokerName,
-                                                 String documentName, String docType, String brokerNotes, String clientLanguage) {
+            String documentName, String docType, String brokerNotes, String clientLanguage) {
         // Check client's email notification preference
         var clientOpt = userAccountRepository.findByEmail(clientEmail);
         if (!clientOpt.isPresent() || !clientOpt.get().isEmailNotificationsEnabled()) {
@@ -199,7 +203,8 @@ public class EmailService {
             // Get organization settings for templates and subject/body
             OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
 
-            String subject = isFrench ? settings.getDocumentRequestedSubjectFr() : settings.getDocumentRequestedSubjectEn();
+            String subject = isFrench ? settings.getDocumentRequestedSubjectFr()
+                    : settings.getDocumentRequestedSubjectEn();
             String bodyText = isFrench ? settings.getDocumentRequestedBodyFr() : settings.getDocumentRequestedBodyEn();
 
             // Fallback to defaults if not configured
@@ -224,7 +229,8 @@ public class EmailService {
             // Process conditional blocks BEFORE converting to HTML
             bodyText = handleConditionalBlocks(bodyText, variableValues);
 
-            // Use organization settings for body if available, otherwise fallback to template
+            // Use organization settings for body if available, otherwise fallback to
+            // template
             String emailBody;
             if (bodyText != null) {
                 emailBody = convertPlainTextToHtml(bodyText)
@@ -254,7 +260,7 @@ public class EmailService {
     }
 
     public void sendDocumentEditedNotification(String clientEmail, String clientName, String brokerName,
-                                              String documentName, String docType, String clientLanguage) {
+            String documentName, String docType, String clientLanguage) {
         try {
             boolean isFrench = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr");
 
@@ -339,8 +345,8 @@ public class EmailService {
             String resolvedClientName = (clientName != null && !clientName.trim().isEmpty())
                     ? clientName
                     : (clientEmail != null && !clientEmail.isBlank()
-                    ? clientEmail
-                    : (isFrench ? "client" : "there"));
+                            ? clientEmail
+                            : (isFrench ? "client" : "there"));
 
             String emailBody = convertPlainTextToHtml(bodyText)
                     .replace("{{clientName}}", escapeHtml(resolvedClientName))
@@ -349,7 +355,8 @@ public class EmailService {
                     .replace("{{documentType}}", escapeHtml(translatedDocType))
                     .replace("{{transactionId}}", escapeHtml(request.getTransactionRef().getTransactionId().toString()))
                     .replace("{{status}}", escapeHtml(translatedStatus))
-                    .replace("{{brokerNotes}}", request.getBrokerNotes() != null ? escapeHtml(request.getBrokerNotes()) : "");
+                    .replace("{{brokerNotes}}",
+                            request.getBrokerNotes() != null ? escapeHtml(request.getBrokerNotes()) : "");
 
             sendEmail(clientEmail, subject, emailBody);
         } catch (MessagingException | UnsupportedEncodingException e) {
@@ -357,10 +364,12 @@ public class EmailService {
         }
     }
 
-    // ==================== PROPERTY OFFER NOTIFICATIONS (BUY-SIDE) ====================
+    // ==================== PROPERTY OFFER NOTIFICATIONS (BUY-SIDE)
+    // ====================
 
     /**
-     * Send email notification when a property offer is made on behalf of a buyer client.
+     * Send email notification when a property offer is made on behalf of a buyer
+     * client.
      */
     public void sendPropertyOfferMadeNotification(
             String clientEmail,
@@ -375,7 +384,8 @@ public class EmailService {
 
             OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
 
-            String subject = isFrench ? settings.getPropertyOfferMadeSubjectFr() : settings.getPropertyOfferMadeSubjectEn();
+            String subject = isFrench ? settings.getPropertyOfferMadeSubjectFr()
+                    : settings.getPropertyOfferMadeSubjectEn();
             String bodyText = isFrench ? settings.getPropertyOfferMadeBodyFr() : settings.getPropertyOfferMadeBodyEn();
             if (subject == null) {
                 subject = "";
@@ -386,8 +396,8 @@ public class EmailService {
             String resolvedClientName = (clientName != null && !clientName.trim().isEmpty())
                     ? clientName
                     : (clientEmail != null && !clientEmail.isBlank()
-                    ? clientEmail
-                    : (isFrench ? "client" : "there"));
+                            ? clientEmail
+                            : (isFrench ? "client" : "there"));
 
             String emailBody = convertPlainTextToHtml(bodyText)
                     .replace("{{clientName}}", escapeHtml(resolvedClientName))
@@ -403,7 +413,8 @@ public class EmailService {
     }
 
     /**
-     * Send email notification when a property offer status changes (e.g., COUNTERED, ACCEPTED, DECLINED).
+     * Send email notification when a property offer status changes (e.g.,
+     * COUNTERED, ACCEPTED, DECLINED).
      */
     public void sendPropertyOfferStatusChangedNotification(
             String clientEmail,
@@ -422,13 +433,15 @@ public class EmailService {
 
             OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
 
-            String subject = isFrench ? settings.getPropertyOfferStatusSubjectFr() : settings.getPropertyOfferStatusSubjectEn();
-            String bodyText = isFrench ? settings.getPropertyOfferStatusBodyFr() : settings.getPropertyOfferStatusBodyEn();
+            String subject = isFrench ? settings.getPropertyOfferStatusSubjectFr()
+                    : settings.getPropertyOfferStatusSubjectEn();
+            String bodyText = isFrench ? settings.getPropertyOfferStatusBodyFr()
+                    : settings.getPropertyOfferStatusBodyEn();
             String resolvedClientName = (clientName != null && !clientName.trim().isEmpty())
                     ? clientName
                     : (clientEmail != null && !clientEmail.isBlank()
-                    ? clientEmail
-                    : (isFrench ? "client" : "there"));
+                            ? clientEmail
+                            : (isFrench ? "client" : "there"));
 
             // Prepare variable values for conditional blocks
             java.util.Map<String, String> variableValues = new java.util.HashMap<>();
@@ -443,7 +456,8 @@ public class EmailService {
                     .replace("{{propertyAddress}}", escapeHtml(propertyAddress))
                     .replace("{{previousStatus}}", escapeHtml(translatedPreviousStatus))
                     .replace("{{newStatus}}", escapeHtml(translatedNewStatus))
-                    .replace("{{counterpartyResponse}}", escapeHtml(counterpartyResponse != null ? counterpartyResponse : ""));
+                    .replace("{{counterpartyResponse}}",
+                            escapeHtml(counterpartyResponse != null ? counterpartyResponse : ""));
 
             sendEmail(clientEmail, subject, emailBody);
         } catch (MessagingException | UnsupportedEncodingException e) {
@@ -454,7 +468,8 @@ public class EmailService {
     // ==================== OFFER NOTIFICATIONS (SELL-SIDE) ====================
 
     /**
-     * Send email notification when an offer is received on a seller client's property.
+     * Send email notification when an offer is received on a seller client's
+     * property.
      */
     public void sendOfferReceivedNotification(
             String clientEmail,
@@ -473,8 +488,8 @@ public class EmailService {
             String resolvedClientName = (clientName != null && !clientName.trim().isEmpty())
                     ? clientName
                     : (clientEmail != null && !clientEmail.isBlank()
-                    ? clientEmail
-                    : (isFrench ? "client" : "there"));
+                            ? clientEmail
+                            : (isFrench ? "client" : "there"));
 
             String emailBody = convertPlainTextToHtml(bodyText)
                     .replace("{{clientName}}", escapeHtml(resolvedClientName))
@@ -489,7 +504,8 @@ public class EmailService {
     }
 
     /**
-     * Send email notification when an offer status changes on a seller client's property.
+     * Send email notification when an offer status changes on a seller client's
+     * property.
      */
     public void sendOfferStatusChangedNotification(
             String clientEmail,
@@ -512,8 +528,8 @@ public class EmailService {
             String resolvedClientName = (clientName != null && !clientName.trim().isEmpty())
                     ? clientName
                     : (clientEmail != null && !clientEmail.isBlank()
-                    ? clientEmail
-                    : (isFrench ? "client" : "there"));
+                            ? clientEmail
+                            : (isFrench ? "client" : "there"));
 
             String emailBody = convertPlainTextToHtml(bodyText)
                     .replace("{{clientName}}", escapeHtml(resolvedClientName))
@@ -532,7 +548,8 @@ public class EmailService {
      * Translate offer status enum values to human-readable strings.
      */
     String translateOfferStatus(String status, boolean isFrench) {
-        if (status == null) return "";
+        if (status == null)
+            return "";
         return switch (status) {
             case "OFFER_MADE" -> isFrench ? "Offre soumise" : "Offer Made";
             case "PENDING" -> isFrench ? "En attente" : "Pending";
@@ -567,7 +584,6 @@ public class EmailService {
         };
     }
 
-
     // ... (keep existing methods until sendEmail) ...
 
     boolean sendEmail(String to, String subject, String body)
@@ -584,7 +600,8 @@ public class EmailService {
 
     private boolean sendEmailSes(String to, String subject, String body) {
         try {
-            software.amazon.awssdk.services.ses.model.SendEmailRequest request = software.amazon.awssdk.services.ses.model.SendEmailRequest.builder()
+            software.amazon.awssdk.services.ses.model.SendEmailRequest request = software.amazon.awssdk.services.ses.model.SendEmailRequest
+                    .builder()
                     .source(fromAddress)
                     .destination(d -> d.toAddresses(to))
                     .message(m -> m
@@ -642,7 +659,7 @@ public class EmailService {
     }
 
     public void sendStageUpdateEmail(String toEmail, String clientName, String brokerName, String transactionAddress,
-                                     String newStage, String language) {
+            String newStage, String language) {
         try {
             boolean isFrench = language != null && language.equalsIgnoreCase("fr");
 
@@ -680,7 +697,7 @@ public class EmailService {
         if (s == null) {
             return "";
         }
-            return s
+        return s
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
@@ -688,20 +705,115 @@ public class EmailService {
                 .replace("'", "&#39;");
     }
 
+    // ==================== APPOINTMENT NOTIFICATIONS ====================
+
+    public void sendAppointmentRequestedNotification(
+            com.example.courtierprobackend.appointments.datalayer.Appointment appointment, String toEmail,
+            String recipientName, String language) {
+        if (!isEmailEnabled(toEmail))
+            return;
+
+        boolean isFrench = "fr".equalsIgnoreCase(language);
+        String subject = isFrench ? "Nouvelle demande de rendez-vous: " + appointment.getTitle()
+                : "New Appointment Request: " + appointment.getTitle();
+        String body = isFrench
+                ? "Bonjour {{name}}, une nouvelle demande de rendez-vous \"{{title}}\" a été reçue pour {{date}} à {{location}}. Notes: {{notes}}"
+                : "Hello {{name}}, a new appointment request \"{{title}}\" has been received for {{date}} at {{location}}. Notes: {{notes}}";
+
+        sendAppointmentEmail(toEmail, subject, body, recipientName, appointment);
+    }
+
+    public void sendAppointmentConfirmedNotification(
+            com.example.courtierprobackend.appointments.datalayer.Appointment appointment, String toEmail,
+            String recipientName, String language) {
+        if (!isEmailEnabled(toEmail))
+            return;
+
+        boolean isFrench = "fr".equalsIgnoreCase(language);
+        String subject = isFrench ? "Rendez-vous confirmé: " + appointment.getTitle()
+                : "Appointment Confirmed: " + appointment.getTitle();
+        String body = isFrench
+                ? "Bonjour {{name}}, votre rendez-vous \"{{title}}\" pour {{date}} à {{location}} a été confirmé."
+                : "Hello {{name}}, your appointment \"{{title}}\" for {{date}} at {{location}} has been confirmed.";
+
+        sendAppointmentEmail(toEmail, subject, body, recipientName, appointment);
+    }
+
+    public void sendAppointmentStatusUpdateNotification(
+            com.example.courtierprobackend.appointments.datalayer.Appointment appointment, String toEmail,
+            String recipientName, String language, String status, String reason) {
+        if (!isEmailEnabled(toEmail))
+            return;
+
+        boolean isFrench = "fr".equalsIgnoreCase(language);
+        String subject = isFrench ? "Mise à jour du rendez-vous: " + status : "Appointment Update: " + status;
+        String body = isFrench
+                ? "Bonjour {{name}}, le statut de votre rendez-vous \"{{title}}\" pour {{date}} est maintenant: {{status}}. Raison: {{reason}}"
+                : "Hello {{name}}, the status of your appointment \"{{title}}\" for {{date}} is now: {{status}}. Reason: {{reason}}";
+
+        body = body.replace("{{status}}", status).replace("{{reason}}", reason != null ? reason : "");
+        sendAppointmentEmail(toEmail, subject, body, recipientName, appointment);
+    }
+
+    public void sendAppointmentReminderNotification(
+            com.example.courtierprobackend.appointments.datalayer.Appointment appointment, String toEmail,
+            String recipientName, String language) {
+        if (!isEmailEnabled(toEmail))
+            return;
+
+        boolean isFrench = "fr".equalsIgnoreCase(language);
+        String subject = isFrench ? "Rappel de rendez-vous: " + appointment.getTitle()
+                : "Appointment Reminder: " + appointment.getTitle();
+        String body = isFrench
+                ? "Bonjour {{name}}, ceci est un rappel pour votre rendez-vous \"{{title}}\" demain à {{date}} à {{location}}."
+                : "Hello {{name}}, this is a reminder for your appointment \"{{title}}\" tomorrow at {{date}} at {{location}}.";
+
+        sendAppointmentEmail(toEmail, subject, body, recipientName, appointment);
+    }
+
+    private boolean isEmailEnabled(String email) {
+        var userOpt = userAccountRepository.findByEmail(email);
+        return userOpt.map(com.example.courtierprobackend.user.dataaccesslayer.UserAccount::isEmailNotificationsEnabled)
+                .orElse(true);
+    }
+
+    private void sendAppointmentEmail(String to, String subject, String bodyTemplate, String name,
+            com.example.courtierprobackend.appointments.datalayer.Appointment appointment) {
+        try {
+            String dateStr = appointment.getFromDateTime().toString().replace("T", " ");
+            String body = bodyTemplate
+                    .replace("{{name}}", escapeHtml(name))
+                    .replace("{{title}}",
+                            escapeHtml(appointment.getTitle() != null ? appointment.getTitle() : "Appointment"))
+                    .replace("{{date}}", escapeHtml(dateStr))
+                    .replace("{{location}}",
+                            escapeHtml(appointment.getLocation() != null ? appointment.getLocation() : "N/A"))
+                    .replace("{{notes}}", escapeHtml(appointment.getNotes() != null ? appointment.getNotes() : ""));
+
+            sendEmail(to, subject, convertPlainTextToHtml(body));
+        } catch (Exception e) {
+            logger.error("Failed to send appointment email to {}", to, e);
+        }
+    }
+
     /**
      * Send email change confirmation email with a token link.
      */
-    public void sendEmailChangeConfirmation(com.example.courtierprobackend.user.dataaccesslayer.UserAccount user, String newEmail, String token) {
-        // This is a simple implementation. You may want to use templates and localization.
+    public void sendEmailChangeConfirmation(com.example.courtierprobackend.user.dataaccesslayer.UserAccount user,
+            String newEmail, String token) {
+        // This is a simple implementation. You may want to use templates and
+        // localization.
         String subject = "Confirm your new email address";
         String confirmationUrl = frontendBaseUrl + "/confirm-email?token=" + token;
-        String body = String.format("Hello %s,\n\nPlease confirm your new email address by clicking the link below:\n%s\n\nIf you did not request this change, please ignore this email.",
+        String body = String.format(
+                "Hello %s,\n\nPlease confirm your new email address by clicking the link below:\n%s\n\nIf you did not request this change, please ignore this email.",
                 user.getFirstName() != null ? user.getFirstName() : "User", confirmationUrl);
         sendSimpleEmail(newEmail, subject, body);
     }
 
     void sendSimpleEmail(String to, String subject, String body) {
-        // Minimal implementation using JavaMail. You may want to use your existing logic or templates.
+        // Minimal implementation using JavaMail. You may want to use your existing
+        // logic or templates.
         try {
             Properties props = new Properties();
             props.put("mail.smtp.auth", "true");
@@ -744,78 +856,69 @@ public class EmailService {
         // Handle heading sizes (centered)
         escaped = escaped.replaceAll(
                 "(?s)\\[HEADING-SM\\](.*?)\\[/HEADING-SM\\]",
-                "<h4 style=\"font-size: 1.25em; font-weight: 700; margin: 14px 0 8px 0; text-align: center;\">$1</h4>"
-        );
+                "<h4 style=\"font-size: 1.25em; font-weight: 700; margin: 14px 0 8px 0; text-align: center;\">$1</h4>");
         escaped = escaped.replaceAll(
                 "(?s)\\[HEADING-MD\\](.*?)\\[/HEADING-MD\\]",
-                "<h3 style=\"font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0; text-align: center;\">$1</h3>"
-        );
+                "<h3 style=\"font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0; text-align: center;\">$1</h3>");
         escaped = escaped.replaceAll(
                 "(?s)\\[HEADING-LG\\](.*?)\\[/HEADING-LG\\]",
-                "<h2 style=\"font-size: 1.75em; font-weight: 700; margin: 18px 0 12px 0; text-align: center;\">$1</h2>"
-        );
+                "<h2 style=\"font-size: 1.75em; font-weight: 700; margin: 18px 0 12px 0; text-align: center;\">$1</h2>");
         // Default heading (centered)
         escaped = escaped.replaceAll(
                 "(?s)\\[HEADING\\](.*?)\\[/HEADING\\]",
-                "<h3 style=\"font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0; text-align: center;\">$1</h3>"
-        );
+                "<h3 style=\"font-size: 1.5em; font-weight: 700; margin: 15px 0 10px 0; text-align: center;\">$1</h3>");
 
-        // Handle [BOX]...[/BOX] (default blue, dotall to allow multi-line content, max-width 600px, centered)
+        // Handle [BOX]...[/BOX] (default blue, dotall to allow multi-line content,
+        // max-width 600px, centered)
         escaped = escaped.replaceAll(
                 "(?s)\\[BOX\\](.*?)\\[/BOX\\]",
-                "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>"
-        );
+                "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>");
 
-        // Handle colored boxes with hex or named colors: [BOX-blue], [BOX-#FF5733], etc.
+        // Handle colored boxes with hex or named colors: [BOX-blue], [BOX-#FF5733],
+        // etc.
         escaped = handleDynamicBoxes(escaped);
 
-        // Handle colored boxes [BOX-RED], [BOX-BLUE], [BOX-GREEN], [BOX-YELLOW] (legacy support)
+        // Handle colored boxes [BOX-RED], [BOX-BLUE], [BOX-GREEN], [BOX-YELLOW] (legacy
+        // support)
         escaped = escaped.replaceAll(
                 "(?s)\\[BOX-RED\\](.*?)\\[/BOX-RED\\]",
-                "<div style=\"border-left: 4px solid #ef4444; background-color: #fee2e2; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #7f1d1d; font-weight: 500;\">$1</p></div>"
-        );
+                "<div style=\"border-left: 4px solid #ef4444; background-color: #fee2e2; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #7f1d1d; font-weight: 500;\">$1</p></div>");
         escaped = escaped.replaceAll(
                 "(?s)\\[BOX-BLUE\\](.*?)\\[/BOX-BLUE\\]",
-                "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>"
-        );
+                "<div style=\"border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #1e3a8a; font-weight: 500;\">$1</p></div>");
         escaped = escaped.replaceAll(
                 "(?s)\\[BOX-GREEN\\](.*?)\\[/BOX-GREEN\\]",
-                "<div style=\"border-left: 4px solid #22c55e; background-color: #f0fdf4; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #166534; font-weight: 500;\">$1</p></div>"
-        );
+                "<div style=\"border-left: 4px solid #22c55e; background-color: #f0fdf4; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #166534; font-weight: 500;\">$1</p></div>");
         escaped = escaped.replaceAll(
                 "(?s)\\[BOX-YELLOW\\](.*?)\\[/BOX-YELLOW\\]",
-                "<div style=\"border-left: 4px solid #eab308; background-color: #fefce8; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #713f12; font-weight: 500;\">$1</p></div>"
-        );
+                "<div style=\"border-left: 4px solid #eab308; background-color: #fefce8; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: #713f12; font-weight: 500;\">$1</p></div>");
 
         // Handle [BOLD]...[/BOLD]
         escaped = escaped.replaceAll(
                 "(?s)\\[BOLD\\](.*?)\\[/BOLD\\]",
-                "<strong>$1</strong>"
-        );
+                "<strong>$1</strong>");
 
         // Handle [ITALIC]...[/ITALIC]
         escaped = escaped.replaceAll(
                 "(?s)\\[ITALIC\\](.*?)\\[/ITALIC\\]",
-                "<em>$1</em>"
-        );
+                "<em>$1</em>");
 
         // Handle [BUTTON]Label|Url[/BUTTON]
         escaped = escaped.replaceAll(
                 "(?s)\\[BUTTON\\](.*?)\\|(.*?)\\[/BUTTON\\]",
-                "<div style=\"text-align: center; margin: 24px 0;\"><a href=\"$2\" style=\"display: inline-block; background-color: #3b82f6; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;\">$1</a></div>"
-        );
+                "<div style=\"text-align: center; margin: 24px 0;\"><a href=\"$2\" style=\"display: inline-block; background-color: #3b82f6; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;\">$1</a></div>");
 
         // Handle [HIGHLIGHT]...[/HIGHLIGHT]
         escaped = escaped.replaceAll(
                 "(?s)\\[HIGHLIGHT\\](.*?)\\[/HIGHLIGHT\\]",
-                "<span style=\"background-color: #fef08a; padding: 0 4px; border-radius: 3px;\">$1</span>"
-        );
+                "<span style=\"background-color: #fef08a; padding: 0 4px; border-radius: 3px;\">$1</span>");
 
         // Handle highlight colors: [HIGHLIGHT-yellow], [HIGHLIGHT-pink], etc.
         escaped = handleHighlightColors(escaped);
 
         // Handle [SEPARATOR]
-        escaped = escaped.replace("[SEPARATOR]", "<hr style=\"border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;\" />");
+        escaped = escaped.replace("[SEPARATOR]",
+                "<hr style=\"border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;\" />");
 
         // Convert double newlines to paragraph breaks
         String html = escaped.replace("\n\n", "</p><p>");
@@ -842,18 +945,17 @@ public class EmailService {
 
         // Map des couleurs de background et texte associées
         java.util.Map<String, String[]> colorStyles = new java.util.HashMap<>();
-        colorStyles.put("#6b7280", new String[]{"#f3f4f6", "#1f2937"}); // gray
-        colorStyles.put("#ef4444", new String[]{"#fee2e2", "#7f1d1d"}); // red
-        colorStyles.put("#22c55e", new String[]{"#f0fdf4", "#166534"}); // green
-        colorStyles.put("#3b82f6", new String[]{"#eff6ff", "#1e3a8a"}); // blue
-        colorStyles.put("#eab308", new String[]{"#fefce8", "#713f12"}); // yellow
-        colorStyles.put("#f97316", new String[]{"#ffedd5", "#92400e"}); // orange
-        colorStyles.put("#ffffff", new String[]{"#f9fafb", "#111827"}); // white
+        colorStyles.put("#6b7280", new String[] { "#f3f4f6", "#1f2937" }); // gray
+        colorStyles.put("#ef4444", new String[] { "#fee2e2", "#7f1d1d" }); // red
+        colorStyles.put("#22c55e", new String[] { "#f0fdf4", "#166534" }); // green
+        colorStyles.put("#3b82f6", new String[] { "#eff6ff", "#1e3a8a" }); // blue
+        colorStyles.put("#eab308", new String[] { "#fefce8", "#713f12" }); // yellow
+        colorStyles.put("#f97316", new String[] { "#ffedd5", "#92400e" }); // orange
+        colorStyles.put("#ffffff", new String[] { "#f9fafb", "#111827" }); // white
 
         // Pattern pour [BOX-color]
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
-                "(?s)\\[BOX-([a-zA-Z]+)\\](.*?)\\[/BOX-[a-zA-Z]+\\]"
-        );
+                "(?s)\\[BOX-([a-zA-Z]+)\\](.*?)\\[/BOX-[a-zA-Z]+\\]");
         java.util.regex.Matcher matcher = pattern.matcher(text);
         StringBuffer sb = new StringBuffer();
 
@@ -872,7 +974,9 @@ public class EmailService {
                 textColor = bgAndText[1];
             }
 
-            String replacement = "<div style=\"border-left: 4px solid " + borderColor + "; background-color: " + bgColor + "; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: " + textColor + "; font-weight: 500;\">" + content + "</p></div>";
+            String replacement = "<div style=\"border-left: 4px solid " + borderColor + "; background-color: " + bgColor
+                    + "; padding: 15px; margin: 10px 0; border-radius: 4px; max-width: 600px; text-align: center;\"><p style=\"margin: 0; color: "
+                    + textColor + "; font-weight: 500;\">" + content + "</p></div>";
             matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(replacement));
         }
         matcher.appendTail(sb);
@@ -891,8 +995,7 @@ public class EmailService {
 
         // Pattern pour [HIGHLIGHT-color]
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
-                "(?s)\\[HIGHLIGHT-([a-zA-Z]+)\\](.*?)\\[/HIGHLIGHT-[a-zA-Z]+\\]"
-        );
+                "(?s)\\[HIGHLIGHT-([a-zA-Z]+)\\](.*?)\\[/HIGHLIGHT-[a-zA-Z]+\\]");
         java.util.regex.Matcher matcher = pattern.matcher(text);
         StringBuffer sb = new StringBuffer();
 
@@ -903,7 +1006,8 @@ public class EmailService {
             // Déterminer la couleur highlight
             String bgColor = highlightColorMap.getOrDefault(colorKey, highlightColorMap.get("yellow"));
 
-            String replacement = "<span style=\"background-color: " + bgColor + "; padding: 0 4px; border-radius: 3px;\">" + content + "</span>";
+            String replacement = "<span style=\"background-color: " + bgColor
+                    + "; padding: 0 4px; border-radius: 3px;\">" + content + "</span>";
             matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(replacement));
         }
         matcher.appendTail(sb);
@@ -913,15 +1017,15 @@ public class EmailService {
 
     /**
      * Process conditional blocks [IF-variable]...[/IF-variable]
-     * The content is shown only if the variable will be replaced with a non-empty value.
+     * The content is shown only if the variable will be replaced with a non-empty
+     * value.
      * This method should be called BEFORE variable replacement.
      */
     String handleConditionalBlocks(String text, java.util.Map<String, String> variableValues) {
         // Pattern pour [IF-variableName]...[/IF-variableName]
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
                 "\\[IF-([a-zA-Z0-9_]+)\\](.*?)\\[/IF-\\1\\]",
-                java.util.regex.Pattern.DOTALL
-        );
+                java.util.regex.Pattern.DOTALL);
         java.util.regex.Matcher matcher = pattern.matcher(text);
         StringBuffer sb = new StringBuffer();
 
@@ -933,7 +1037,8 @@ public class EmailService {
             String variableValue = variableValues.get(variableName);
             boolean hasValue = variableValue != null && !variableValue.trim().isEmpty();
 
-            // If variable has value, keep the content (without IF tags), otherwise remove everything
+            // If variable has value, keep the content (without IF tags), otherwise remove
+            // everything
             String replacement = hasValue ? content : "";
             matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(replacement));
         }
@@ -946,7 +1051,8 @@ public class EmailService {
      * Translate document status enum to human-readable text
      */
     private String translateDocumentStatus(Object status, boolean isFrench) {
-        if (status == null) return "";
+        if (status == null)
+            return "";
         String statusStr = status.toString();
 
         if (isFrench) {

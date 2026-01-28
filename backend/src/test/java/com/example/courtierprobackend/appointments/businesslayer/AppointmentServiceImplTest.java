@@ -49,6 +49,12 @@ class AppointmentServiceImplTest {
         @Mock
         private com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService;
 
+        @Mock
+        private com.example.courtierprobackend.email.EmailService emailService;
+
+        @Mock
+        private com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
+
         private AppointmentServiceImpl appointmentService;
 
         private UUID brokerId;
@@ -58,7 +64,7 @@ class AppointmentServiceImplTest {
         @BeforeEach
         void setUp() {
                 appointmentService = new AppointmentServiceImpl(appointmentRepository, userAccountRepository,
-                                transactionRepository, appointmentAuditService);
+                                transactionRepository, appointmentAuditService, emailService, notificationService);
                 brokerId = UUID.randomUUID();
                 clientId = UUID.randomUUID();
                 transactionId = UUID.randomUUID();

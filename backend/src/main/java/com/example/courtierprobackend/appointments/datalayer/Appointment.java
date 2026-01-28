@@ -87,6 +87,9 @@ public class Appointment {
     @Column(name = "deleted_by")
     private UUID deletedBy;
 
+    @Column(name = "reminder_sent", nullable = false)
+    private Boolean reminderSent = false;
+
     public Appointment() {
     }
 
@@ -310,5 +313,13 @@ public class Appointment {
 
     public boolean isDeleted() {
         return deletedAt != null;
+    }
+
+    public Boolean getReminderSent() {
+        return reminderSent;
+    }
+
+    public void setReminderSent(Boolean reminderSent) {
+        this.reminderSent = reminderSent;
     }
 }
