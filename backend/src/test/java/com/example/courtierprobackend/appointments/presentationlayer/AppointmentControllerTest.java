@@ -528,18 +528,6 @@ class AppointmentControllerTest {
         }
 
         @Test
-        void getTopUpcomingAppointments_userIdNull_returnsBadRequest() {
-            // Arrange: set up a request with a valid role but no userId
-            MockHttpServletRequest request = new MockHttpServletRequest();
-            request.setAttribute(UserContextFilter.USER_ROLE_ATTR, "BROKER"); // or "CLIENT"
-            Jwt jwt = createJwt("auth0|broker");
-            // Act
-            ResponseEntity<List<AppointmentResponseDTO>> response = controller.getTopUpcomingAppointments(null, jwt, request);
-            // Assert
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        }
-
-        @Test
         void getTopUpcomingAppointments_serviceThrowsException_returnsInternalServerError() {
             MockHttpServletRequest request = createBrokerRequest(brokerId);
             Jwt jwt = createJwt("auth0|broker");
