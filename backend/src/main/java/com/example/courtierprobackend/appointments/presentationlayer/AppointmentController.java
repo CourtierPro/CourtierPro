@@ -39,28 +39,17 @@ public class AppointmentController {
         try {
             UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
             boolean isBroker = UserContextUtils.isBroker(request);
-            System.out.println("[DEBUG] /appointments/top-upcoming called. userId=" + userId + ", isBroker=" + isBroker);
             Object roleAttr = request.getAttribute("userRole");
-            System.out.println("[DEBUG] userRole attribute: " + (roleAttr != null ? roleAttr.toString() : "null"));
             if (userId == null) {
-                System.out.println("[ERROR] Could not resolve userId for appointments widget. JWT or user mapping may be missing.");
                 return ResponseEntity.badRequest().build();
             }
             List<AppointmentResponseDTO> appointments = isBroker
                     ? appointmentService.getTopUpcomingAppointmentsForBroker(userId, 3)
                     : appointmentService.getTopUpcomingAppointmentsForClient(userId, 3);
-            System.out.println("[DEBUG] Appointments returned: " + (appointments != null ? appointments.size() : 0));
-            if (isBroker && (appointments == null || appointments.isEmpty())) {
-                System.out.println("[DEBUG] No appointments found for brokerId=" + userId + ". Try checking the brokerId on appointments and fromDateTime. Also check if the broker's Auth0 user is mapped to an internal user with BROKER role.");
-            }
             return ResponseEntity.ok(appointments);
         } catch (com.example.courtierprobackend.common.exceptions.ForbiddenException fe) {
-            System.out.println("[ERROR] ForbiddenException in getTopUpcomingAppointments: " + fe.getMessage());
-            fe.printStackTrace();
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-            System.out.println("[ERROR] Exception in getTopUpcomingAppointments: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
