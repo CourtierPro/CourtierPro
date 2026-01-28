@@ -72,6 +72,9 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
                 if (notification.titleKey === 'APPOINTMENT_REMINDER') {
                     return <Clock className="w-4 h-4 text-amber-500" />;
                 }
+                if (notification.titleKey === 'APPOINTMENT_RESCHEDULED') {
+                    return <Calendar className="w-4 h-4 text-orange-500" />;
+                }
                 // Default appointment icon
                 return <Calendar className="w-4 h-4 text-primary" />;
             case NotificationCategory.BROADCAST:
