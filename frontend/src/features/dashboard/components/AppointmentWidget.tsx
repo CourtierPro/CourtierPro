@@ -27,6 +27,7 @@ export function AppointmentWidget() {
       const res = await axiosInstance.get<Appointment[]>("/appointments/top-upcoming");
       return res.data;
     },
+    refetchInterval: 10000, // Poll every 10 seconds for live updates
   });
 
   if (isLoading) {

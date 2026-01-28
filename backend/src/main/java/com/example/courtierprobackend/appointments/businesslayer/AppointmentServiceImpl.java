@@ -255,10 +255,18 @@ public class AppointmentServiceImpl implements AppointmentService {
                                         "You do not have permission to request an appointment for this transaction");
                 }
 
-                Appointment appointment = new Appointment();
-                appointment.setTransactionId(transaction.getTransactionId());
-                appointment.setBrokerId(transaction.getBrokerId());
-                appointment.setClientId(transaction.getClientId());
+
+                                if (transaction.getBrokerId() == null) {
+                                        throw new IllegalStateException("Cannot create appointment: transaction is missing brokerId. Please ensure the transaction has a broker assigned.");
+                                }
+                                if (transaction.getClientId() == null) {
+                                        throw new IllegalStateException("Cannot create appointment: transaction is missing clientId. Please ensure the transaction has a client assigned.");
+                                }
+
+                                Appointment appointment = new Appointment();
+                                appointment.setTransactionId(transaction.getTransactionId());
+                                appointment.setBrokerId(transaction.getBrokerId());
+                                appointment.setClientId(transaction.getClientId());
 
                 // Handle custom title for "other" type, otherwise use the type as title
                 if ("other".equalsIgnoreCase(request.type()) && request.title() != null && !request.title().isBlank()) {
