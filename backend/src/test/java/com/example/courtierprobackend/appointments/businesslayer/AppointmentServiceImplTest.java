@@ -55,10 +55,13 @@ class AppointmentServiceImplTest {
         private UUID clientId;
         private UUID transactionId;
 
+        @Mock
+        private com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository;
+
         @BeforeEach
         void setUp() {
                 appointmentService = new AppointmentServiceImpl(appointmentRepository, userAccountRepository,
-                                transactionRepository, appointmentAuditService);
+                                transactionRepository, appointmentAuditService, transactionParticipantRepository);
                 brokerId = UUID.randomUUID();
                 clientId = UUID.randomUUID();
                 transactionId = UUID.randomUUID();
@@ -137,33 +140,61 @@ class AppointmentServiceImplTest {
 
         // ========== getAppointmentsForClient Tests ==========
 
+
         @Test
-        void getAppointmentsForClient_returnsAppointments() {
-                // Arrange
+        void getAppointmentsForClient_asClient_returnsAppointments() {
                 Appointment apt = createTestAppointment();
                 when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
-                                .thenReturn(List.of(apt));
+                        .thenReturn(List.of(apt));
                 mockUserAccounts();
-
-                // Act
-                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId);
-
-                // Assert
+                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, clientId, null);
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).title()).isEqualTo("Test Appointment");
-                verify(appointmentRepository).findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId);
+        }
+
+        @Test
+        void getAppointmentsForClient_asBroker_returnsAppointments() {
+                Appointment apt = createTestAppointment();
+                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                        .thenReturn(List.of(apt));
+                mockUserAccounts();
+                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, brokerId, null);
+                assertThat(result).hasSize(1);
+        }
+
+        @Test
+        void getAppointmentsForClient_asCoBroker_returnsAppointments() {
+                Appointment apt = createTestAppointment();
+                UUID coBrokerId = UUID.randomUUID();
+                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                        .thenReturn(List.of(apt));
+                mockUserAccounts();
+                com.example.courtierprobackend.transactions.datalayer.TransactionParticipant coBroker = new com.example.courtierprobackend.transactions.datalayer.TransactionParticipant();
+                coBroker.setUserId(coBrokerId);
+                coBroker.setTransactionId(transactionId);
+                coBroker.setRole(com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER);
+                when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of(coBroker));
+                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, coBrokerId, null);
+                assertThat(result).hasSize(1);
+        }
+
+        @Test
+        void getAppointmentsForClient_forbiddenUser_returnsEmpty() {
+                Appointment apt = createTestAppointment();
+                UUID otherId = UUID.randomUUID();
+                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                        .thenReturn(List.of(apt));
+                mockUserAccounts();
+                when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, otherId, null);
+                assertThat(result).isEmpty();
         }
 
         @Test
         void getAppointmentsForClient_withNoAppointments_returnsEmptyList() {
-                // Arrange
                 when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
-                                .thenReturn(List.of());
-
-                // Act
-                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId);
-
-                // Assert
+                        .thenReturn(List.of());
+                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, clientId, null);
                 assertThat(result).isEmpty();
         }
 
@@ -204,7 +235,9 @@ class AppointmentServiceImplTest {
                 // Act
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClientByDateRange(clientId,
                                 from,
-                                to);
+                                to,
+                                clientId,
+                                null);
 
                 // Assert
                 assertThat(result).hasSize(1);
@@ -248,7 +281,9 @@ class AppointmentServiceImplTest {
 
                 // Act
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClientByStatus(clientId,
-                                AppointmentStatus.DECLINED);
+                                AppointmentStatus.DECLINED,
+                                clientId,
+                                null);
 
                 // Assert
                 assertThat(result).hasSize(1);
@@ -297,7 +332,9 @@ class AppointmentServiceImplTest {
                 // Act
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClientByDateRangeAndStatus(
                                 clientId,
-                                from, to, AppointmentStatus.CONFIRMED);
+                                from, to, AppointmentStatus.CONFIRMED,
+                                clientId,
+                                null);
 
                 // Assert
                 assertThat(result).hasSize(1);
@@ -945,5 +982,90 @@ class AppointmentServiceImplTest {
                 assertThatThrownBy(() -> appointmentService.requestAppointment(request, brokerId))
                                 .isInstanceOf(IllegalArgumentException.class)
                                 .hasMessageContaining("End time must be after start time");
+        }
+        // ========== Custom Access Control Filtering Tests ==========
+        @Test
+        void getAppointmentsForClientByDateRange_nullRequester_returnsEmpty() {
+                LocalDateTime from = LocalDateTime.now();
+                LocalDateTime to = LocalDateTime.now().plusDays(1);
+                Appointment apt = createTestAppointment();
+                when(appointmentRepository.findByClientIdAndDateRange(clientId, from, to)).thenReturn(List.of(apt));
+                mockUserAccounts();
+                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClientByDateRange(clientId, from, to, null, null);
+                assertThat(result).isEmpty();
+        }
+
+        @Test
+        void getAppointmentsForClientByDateRange_asCoBroker_returnsAppointment() {
+                LocalDateTime from = LocalDateTime.now();
+                LocalDateTime to = LocalDateTime.now().plusDays(1);
+                Appointment apt = createTestAppointment();
+                UUID coBrokerId = UUID.randomUUID();
+                apt.setTransactionId(transactionId);
+                when(appointmentRepository.findByClientIdAndDateRange(clientId, from, to)).thenReturn(List.of(apt));
+                mockUserAccounts();
+                com.example.courtierprobackend.transactions.datalayer.TransactionParticipant coBroker = new com.example.courtierprobackend.transactions.datalayer.TransactionParticipant();
+                coBroker.setUserId(coBrokerId);
+                coBroker.setTransactionId(transactionId);
+                coBroker.setRole(com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER);
+                when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of(coBroker));
+                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClientByDateRange(clientId, from, to, coBrokerId, null);
+                assertThat(result).hasSize(1);
+        }
+
+        // ========== Appointment Start Time Validation Test ==========
+        @Test
+        void requestAppointment_startTimeNotInFuture_throwsIllegalArgumentException() {
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                        transactionId, "Type", "Title", java.time.LocalDate.now().minusDays(1), java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Past date");
+                Transaction transaction = new Transaction();
+                transaction.setTransactionId(transactionId);
+                transaction.setBrokerId(brokerId);
+                transaction.setClientId(clientId);
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+                assertThatThrownBy(() -> appointmentService.requestAppointment(request, brokerId))
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("Appointment start time must be in the future");
+        }
+
+        // ========== cancelAppointment Tests ==========
+        @Test
+        void cancelAppointment_forbiddenUser_throwsForbiddenException() {
+                Appointment apt = createTestAppointment();
+                apt.setBrokerId(brokerId);
+                apt.setClientId(clientId);
+                apt.setStatus(AppointmentStatus.CONFIRMED);
+                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(any())).thenReturn(Optional.of(apt));
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO("Not allowed");
+                UUID otherUser = UUID.randomUUID();
+                assertThatThrownBy(() -> appointmentService.cancelAppointment(UUID.randomUUID(), cancelDTO, otherUser))
+                        .isInstanceOf(ForbiddenException.class)
+                        .hasMessageContaining("You do not have permission to cancel this appointment");
+        }
+
+        @Test
+        void cancelAppointment_missingReason_throwsIllegalArgumentException() {
+                Appointment apt = createTestAppointment();
+                apt.setBrokerId(brokerId);
+                apt.setClientId(clientId);
+                apt.setStatus(AppointmentStatus.CONFIRMED);
+                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(any())).thenReturn(Optional.of(apt));
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO("");
+                assertThatThrownBy(() -> appointmentService.cancelAppointment(UUID.randomUUID(), cancelDTO, brokerId))
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("Cancellation reason is required");
+        }
+
+        @Test
+        void cancelAppointment_alreadyCancelled_throwsIllegalArgumentException() {
+                Appointment apt = createTestAppointment();
+                apt.setBrokerId(brokerId);
+                apt.setClientId(clientId);
+                apt.setStatus(AppointmentStatus.CANCELLED);
+                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(any())).thenReturn(Optional.of(apt));
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO("Already cancelled");
+                assertThatThrownBy(() -> appointmentService.cancelAppointment(UUID.randomUUID(), cancelDTO, brokerId))
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("Appointment is already cancelled or declined");
         }
 }

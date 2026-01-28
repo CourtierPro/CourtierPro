@@ -17,6 +17,10 @@ import { ClientTransactionItem } from './ClientTransactionItem';
 import { useClients } from '../hooks/useClients';
 import type { Client } from '../api/clientsApi';
 
+// Appointments
+import { AppointmentList } from '@/features/appointments/components/AppointmentList';
+import { useClientAppointmentHistory } from '@/features/appointments/hooks/useClientAppointmentHistory';
+
 interface ClientDetailModalProps {
     client: Client | null;
     isOpen: boolean;
@@ -35,6 +39,15 @@ export function ClientDetailModal({ client: clientProp, isOpen, onClose }: Clien
 
     // Use the new hook that returns ALL transactions for a client (across all brokers)
     const { data: transactions, isLoading, isError, refetch } = useAllClientTransactions(client?.id ?? '');
+
+    // Appointments logic
+    const {
+        appointments: appointmentHistory,
+        groupedAppointments: groupedAppointmentHistory,
+        isLoading: isAppointmentsLoading,
+        isError: isAppointmentsError,
+        refetch: refetchAppointments
+    } = useClientAppointmentHistory(client?.id ?? '');
 
     if (!client) return null;
 
@@ -84,6 +97,7 @@ export function ClientDetailModal({ client: clientProp, isOpen, onClose }: Clien
                             </div>
                         </div>
                     </section>
+                    <Separator />
 
                     <Separator />
 
@@ -132,6 +146,27 @@ export function ClientDetailModal({ client: clientProp, isOpen, onClose }: Clien
                                     </div>
                                 )}
                             </div>
+                        )}
+                    </section>
+
+                    {/* Appointments */}
+                    <section>
+                        <h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            {t('title', { ns: 'appointments' })}
+                        </h4>
+                        {isAppointmentsLoading && <LoadingState message={t('loadingAppointments', 'Loading appointments...')} />}
+                        {isAppointmentsError && (
+                            <ErrorState message={t('errorLoadingAppointments', 'Could not load appointments.')} onRetry={refetchAppointments} />
+                        )}
+                        {!isAppointmentsLoading && !isAppointmentsError && (
+                            appointmentHistory.length === 0 ? (
+                                <p className="text-sm text-muted-foreground italic pl-6">{t('noAppointments', 'No appointments found.')}</p>
+                            ) : (
+                                <div className="pl-2">
+                                    <AppointmentList groupedAppointments={groupedAppointmentHistory} allAppointments={appointmentHistory} />
+                                </div>
+                            )
                         )}
                     </section>
                 </div>

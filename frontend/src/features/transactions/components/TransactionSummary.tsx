@@ -69,7 +69,7 @@ export function TransactionSummary({ transactionId, isReadOnly = false }: Transa
           </div>
           <div className="flex justify-between text-xs text-muted-foreground">
             {stages.map((stage, idx) => (
-              <div key={stage} className={`flex flex-col items-center ${idx <= stageIndex ? 'text-primary font-medium' : ''}`}>
+              <div key={stage + '-' + idx} className={`flex flex-col items-center ${idx <= stageIndex ? 'text-primary font-medium' : ''}`}>
                 <div className={`w-2 h-2 rounded-full mb-1 ${idx <= stageIndex ? (isTerminated && idx === stageIndex ? 'bg-destructive' : 'bg-primary') : 'bg-muted'}`} />
                 <span className="hidden sm:block">{stage}</span>
               </div>

@@ -19,8 +19,15 @@ public interface AppointmentService {
 
         /**
          * Get all appointments for a client.
+         *
+         * @param clientId the public identifier of the client whose appointments are requested
+         * @param requesterId the identifier of the authenticated requester, used to enforce access
+         *                   control and ensure only authorized users can view the client's appointments
+         * @param requesterEmail the email of the authenticated requester, used to support additional
+         *                      access control checks or auditing as part of the filtering logic
+         * @return a list of appointments the requester is authorized to view for the given client
          */
-        List<AppointmentResponseDTO> getAppointmentsForClient(UUID clientId);
+        List<AppointmentResponseDTO> getAppointmentsForClient(UUID clientId, UUID requesterId, String requesterEmail);
 
         /**
          * Get appointments for a broker within a date range.
@@ -32,7 +39,7 @@ public interface AppointmentService {
          * Get appointments for a client within a date range.
          */
         List<AppointmentResponseDTO> getAppointmentsForClientByDateRange(
-                        UUID clientId, LocalDateTime from, LocalDateTime to);
+                        UUID clientId, LocalDateTime from, LocalDateTime to, UUID requesterId, String requesterEmail);
 
         /**
          * Get appointments for a broker with specific status.
@@ -44,7 +51,7 @@ public interface AppointmentService {
          * Get appointments for a client with specific status.
          */
         List<AppointmentResponseDTO> getAppointmentsForClientByStatus(
-                        UUID clientId, AppointmentStatus status);
+                        UUID clientId, AppointmentStatus status, UUID requesterId, String requesterEmail);
 
         /**
          * Get appointments for a broker within a date range and with specific status.
@@ -56,7 +63,7 @@ public interface AppointmentService {
          * Get appointments for a client within a date range and with specific status.
          */
         List<AppointmentResponseDTO> getAppointmentsForClientByDateRangeAndStatus(
-                        UUID clientId, LocalDateTime from, LocalDateTime to, AppointmentStatus status);
+                        UUID clientId, LocalDateTime from, LocalDateTime to, AppointmentStatus status, UUID requesterId, String requesterEmail);
 
         /**
          * Get appointments for a specific transaction.
