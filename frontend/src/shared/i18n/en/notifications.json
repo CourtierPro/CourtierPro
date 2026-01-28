@@ -38,5 +38,17 @@
     "notifications.propertyOfferStatusChanged.title": "Offer Status Updated",
     "notifications.propertyOfferStatusChanged.message": "The status for the offer on {{address}} has been updated to {{status}}.",
     "notifications.clientOfferDecision.title": "Client Decision Received",
-    "notifications.clientOfferDecision.message": "{{clientName}} has indicated a decision of {{decision}} for the offer from {{buyerName}}."
+    "notifications.clientOfferDecision.message": "{{clientName}} has indicated a decision of {{decision}} for the offer from {{buyerName}}.",
+    "APPOINTMENT_REQUESTED": "New appointment request",
+    "APPOINTMENT_CONFIRMED": "Appointment confirmed",
+    "APPOINTMENT_DECLINED": "Appointment declined",
+    "APPOINTMENT_CANCELLED": "Appointment cancelled",
+    "APPOINTMENT_RESCHEDULED": "Appointment rescheduled",
+    "APPOINTMENT_REMINDER": "Upcoming appointment reminder",
+    "NEW_APPOINTMENT_REQUEST": "You have a new appointment request from {{name}}.",
+    "APPOINTMENT_HAS_BEEN_CONFIRMED": "Your appointment has been confirmed.",
+    "APPOINTMENT_HAS_BEEN_DECLINED": "Your appointment request has been declined. Reason: {{reason}}",
+    "APPOINTMENT_HAS_BEEN_CANCELLED": "Your appointment has been cancelled. Reason: {{reason}}",
+    "APPOINTMENT_HAS_BEEN_RESCHEDULED": "Your appointment has been rescheduled.",
+    "APPOINTMENT_REMINDER_MSG": "You have an appointment coming up in 24 hours."
 }

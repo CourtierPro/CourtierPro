@@ -26,6 +26,7 @@ export const NotificationCategory = {
     CONDITION_STATUS_CHANGED: 'CONDITION_STATUS_CHANGED',
     BROADCAST: 'BROADCAST',
     GENERAL: 'GENERAL',
+    APPOINTMENT: 'APPOINTMENT',
 } as const;
 
 export type NotificationCategory = (typeof NotificationCategory)[keyof typeof NotificationCategory];

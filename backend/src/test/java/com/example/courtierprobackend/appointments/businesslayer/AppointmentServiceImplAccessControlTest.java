@@ -36,16 +36,22 @@ public class AppointmentServiceImplAccessControlTest {
     private UUID clientId;
     private UUID coBrokerId;
 
+    @Mock
+    private com.example.courtierprobackend.email.EmailService emailService;
+    @Mock
+    private com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
         appointmentService = new AppointmentServiceImpl(
-            appointmentRepository,
-            userAccountRepository,
-            transactionRepository,
-            appointmentAuditService,
-            transactionParticipantRepository
-        );
+                appointmentRepository,
+                userAccountRepository,
+                transactionRepository,
+                appointmentAuditService,
+                emailService,
+                notificationService,
+                transactionParticipantRepository);
         transactionId = UUID.randomUUID();
         brokerId = UUID.randomUUID();
         clientId = UUID.randomUUID();
@@ -108,7 +114,8 @@ public class AppointmentServiceImplAccessControlTest {
         coBroker.setTransactionId(transactionId);
         coBroker.setRole(com.example.courtierprobackend.transactions.datalayer.enums.ParticipantRole.CO_BROKER);
         when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of(coBroker));
-        var result = appointmentService.getAppointmentsForClientByDateRangeAndStatus(clientId, from, to, status, coBrokerId, null);
+        var result = appointmentService.getAppointmentsForClientByDateRangeAndStatus(clientId, from, to, status,
+                coBrokerId, null);
         assertThat(result).hasSize(1);
     }
 }

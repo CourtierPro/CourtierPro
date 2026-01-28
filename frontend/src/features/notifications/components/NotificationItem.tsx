@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/sha
 import { Badge } from '@/shared/components/ui/badge';
 import { formatDateTime } from '@/shared/utils/date';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Bell, AlertCircle, CheckCircle, Info, Sparkles, XCircle, Home, DollarSign, FileCheck, ArrowLeftRight } from 'lucide-react';
+import { FileText, Bell, AlertCircle, CheckCircle, Info, Sparkles, XCircle, Home, DollarSign, FileCheck, ArrowLeftRight, Calendar, CalendarCheck, CalendarX, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { NotificationType, NotificationCategory, type NotificationResponseDTO } from '../api/notificationsApi';
 import { cn } from '@/shared/utils/utils';
@@ -58,6 +58,25 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
         }
 
         switch (notification.category) {
+            case NotificationCategory.APPOINTMENT:
+                // Determine specific appointment icon based on the titleKey or messageKey
+                if (notification.titleKey === 'APPOINTMENT_REQUESTED') {
+                    return <Calendar className="w-4 h-4 text-blue-500" />;
+                }
+                if (notification.titleKey === 'APPOINTMENT_CONFIRMED') {
+                    return <CalendarCheck className="w-4 h-4 text-green-600" />;
+                }
+                if (notification.titleKey === 'APPOINTMENT_CANCELLED' || notification.titleKey === 'APPOINTMENT_DECLINED') {
+                    return <CalendarX className="w-4 h-4 text-red-500" />;
+                }
+                if (notification.titleKey === 'APPOINTMENT_REMINDER') {
+                    return <Clock className="w-4 h-4 text-amber-500" />;
+                }
+                if (notification.titleKey === 'APPOINTMENT_RESCHEDULED') {
+                    return <Calendar className="w-4 h-4 text-orange-500" />;
+                }
+                // Default appointment icon
+                return <Calendar className="w-4 h-4 text-primary" />;
             case NotificationCategory.BROADCAST:
                 return <AlertCircle className="w-4 h-4 text-orange-600" />;
             case NotificationCategory.WELCOME:
@@ -103,6 +122,13 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
             // Prevent navigation for cancelled transactions
             if (notification.category === NotificationCategory.TRANSACTION_CANCELLED) {
                 toast.info(t('transactionDeletedMessage', 'This transaction has been cancelled or deleted.'));
+                return;
+            }
+
+            // Handle Appointment Navigation
+            // IMPORTANT: For appointments, relatedTransactionId stores the appointmentId as per backend implementation
+            if (notification.category === NotificationCategory.APPOINTMENT) {
+                navigate(`/appointments?id=${notification.relatedTransactionId}`);
                 return;
             }
 

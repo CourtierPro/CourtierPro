@@ -32,17 +32,23 @@ public class AppointmentServiceImpl implements AppointmentService {
         private final UserAccountRepository userAccountRepository;
         private final TransactionRepository transactionRepository;
         private final com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService;
+        private final com.example.courtierprobackend.email.EmailService emailService;
+        private final com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
         private final com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository;
 
         public AppointmentServiceImpl(AppointmentRepository appointmentRepository,
                         UserAccountRepository userAccountRepository,
                         TransactionRepository transactionRepository,
                         com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService,
+                        com.example.courtierprobackend.email.EmailService emailService,
+                        com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService,
                         com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository) {
                 this.appointmentRepository = appointmentRepository;
                 this.userAccountRepository = userAccountRepository;
                 this.transactionRepository = transactionRepository;
                 this.appointmentAuditService = appointmentAuditService;
+                this.emailService = emailService;
+                this.notificationService = notificationService;
                 this.transactionParticipantRepository = transactionParticipantRepository;
         }
 
@@ -54,20 +60,26 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         @Override
-        public List<AppointmentResponseDTO> getAppointmentsForClient(UUID clientId, UUID requesterId, String requesterEmail) {
+        public List<AppointmentResponseDTO> getAppointmentsForClient(UUID clientId, UUID requesterId,
+                        String requesterEmail) {
                 List<Appointment> allAppointments = appointmentRepository
-                        .findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId);
+                                .findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId);
                 final UUID finalRequesterId = requesterId;
                 final String finalRequesterEmail = requesterEmail;
                 List<Appointment> filtered = allAppointments.stream().filter(apt -> {
-                        if (finalRequesterId == null) return false;
-                        if (apt.getBrokerId() != null && apt.getBrokerId().equals(finalRequesterId)) return true;
-                        if (apt.getClientId() != null && apt.getClientId().equals(finalRequesterId)) return true;
+                        if (finalRequesterId == null)
+                                return false;
+                        if (apt.getBrokerId() != null && apt.getBrokerId().equals(finalRequesterId))
+                                return true;
+                        if (apt.getClientId() != null && apt.getClientId().equals(finalRequesterId))
+                                return true;
                         if (apt.getTransactionId() != null) {
-                                var participants = transactionParticipantRepository.findByTransactionId(apt.getTransactionId());
-                                return participants.stream().anyMatch(p ->
-                                                (p.getUserId() != null && p.getUserId().equals(finalRequesterId)) || (finalRequesterEmail != null && p.getEmail() != null && finalRequesterEmail.equalsIgnoreCase(p.getEmail()))
-                                );
+                                var participants = transactionParticipantRepository
+                                                .findByTransactionId(apt.getTransactionId());
+                                return participants.stream().anyMatch(p -> (p.getUserId() != null
+                                                && p.getUserId().equals(finalRequesterId))
+                                                || (finalRequesterEmail != null && p.getEmail() != null
+                                                                && finalRequesterEmail.equalsIgnoreCase(p.getEmail())));
                         }
                         return false;
                 }).collect(java.util.stream.Collectors.toList());
@@ -90,14 +102,19 @@ public class AppointmentServiceImpl implements AppointmentService {
                 final UUID finalRequesterId = requesterId;
                 final String finalRequesterEmail = requesterEmail;
                 List<Appointment> filtered = appointments.stream().filter(apt -> {
-                        if (finalRequesterId == null) return false;
-                        if (apt.getBrokerId() != null && apt.getBrokerId().equals(finalRequesterId)) return true;
-                        if (apt.getClientId() != null && apt.getClientId().equals(finalRequesterId)) return true;
+                        if (finalRequesterId == null)
+                                return false;
+                        if (apt.getBrokerId() != null && apt.getBrokerId().equals(finalRequesterId))
+                                return true;
+                        if (apt.getClientId() != null && apt.getClientId().equals(finalRequesterId))
+                                return true;
                         if (apt.getTransactionId() != null) {
-                                var participants = transactionParticipantRepository.findByTransactionId(apt.getTransactionId());
-                                return participants.stream().anyMatch(p ->
-                                                (p.getUserId() != null && p.getUserId().equals(finalRequesterId)) || (finalRequesterEmail != null && p.getEmail() != null && finalRequesterEmail.equalsIgnoreCase(p.getEmail()))
-                                );
+                                var participants = transactionParticipantRepository
+                                                .findByTransactionId(apt.getTransactionId());
+                                return participants.stream().anyMatch(p -> (p.getUserId() != null
+                                                && p.getUserId().equals(finalRequesterId))
+                                                || (finalRequesterEmail != null && p.getEmail() != null
+                                                                && finalRequesterEmail.equalsIgnoreCase(p.getEmail())));
                         }
                         return false;
                 }).collect(java.util.stream.Collectors.toList());
@@ -120,14 +137,19 @@ public class AppointmentServiceImpl implements AppointmentService {
                 final UUID finalRequesterId = requesterId;
                 final String finalRequesterEmail = requesterEmail;
                 List<Appointment> filtered = appointments.stream().filter(apt -> {
-                        if (finalRequesterId == null) return false;
-                        if (apt.getBrokerId() != null && apt.getBrokerId().equals(finalRequesterId)) return true;
-                        if (apt.getClientId() != null && apt.getClientId().equals(finalRequesterId)) return true;
+                        if (finalRequesterId == null)
+                                return false;
+                        if (apt.getBrokerId() != null && apt.getBrokerId().equals(finalRequesterId))
+                                return true;
+                        if (apt.getClientId() != null && apt.getClientId().equals(finalRequesterId))
+                                return true;
                         if (apt.getTransactionId() != null) {
-                                var participants = transactionParticipantRepository.findByTransactionId(apt.getTransactionId());
-                                return participants.stream().anyMatch(p ->
-                                                (p.getUserId() != null && p.getUserId().equals(finalRequesterId)) || (finalRequesterEmail != null && p.getEmail() != null && finalRequesterEmail.equalsIgnoreCase(p.getEmail()))
-                                );
+                                var participants = transactionParticipantRepository
+                                                .findByTransactionId(apt.getTransactionId());
+                                return participants.stream().anyMatch(p -> (p.getUserId() != null
+                                                && p.getUserId().equals(finalRequesterId))
+                                                || (finalRequesterEmail != null && p.getEmail() != null
+                                                                && finalRequesterEmail.equalsIgnoreCase(p.getEmail())));
                         }
                         return false;
                 }).collect(java.util.stream.Collectors.toList());
@@ -144,20 +166,26 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         @Override
         public List<AppointmentResponseDTO> getAppointmentsForClientByDateRangeAndStatus(
-                        UUID clientId, LocalDateTime from, LocalDateTime to, AppointmentStatus status, UUID requesterId, String requesterEmail) {
+                        UUID clientId, LocalDateTime from, LocalDateTime to, AppointmentStatus status, UUID requesterId,
+                        String requesterEmail) {
                 List<Appointment> appointments = appointmentRepository
                                 .findByClientIdAndDateRangeAndStatus(clientId, from, to, status);
                 final UUID finalRequesterId = requesterId;
                 final String finalRequesterEmail = requesterEmail;
                 List<Appointment> filtered = appointments.stream().filter(apt -> {
-                        if (finalRequesterId == null) return false;
-                        if (apt.getBrokerId() != null && apt.getBrokerId().equals(finalRequesterId)) return true;
-                        if (apt.getClientId() != null && apt.getClientId().equals(finalRequesterId)) return true;
+                        if (finalRequesterId == null)
+                                return false;
+                        if (apt.getBrokerId() != null && apt.getBrokerId().equals(finalRequesterId))
+                                return true;
+                        if (apt.getClientId() != null && apt.getClientId().equals(finalRequesterId))
+                                return true;
                         if (apt.getTransactionId() != null) {
-                                var participants = transactionParticipantRepository.findByTransactionId(apt.getTransactionId());
-                                return participants.stream().anyMatch(p ->
-                                                (p.getUserId() != null && p.getUserId().equals(finalRequesterId)) || (finalRequesterEmail != null && p.getEmail() != null && finalRequesterEmail.equalsIgnoreCase(p.getEmail()))
-                                );
+                                var participants = transactionParticipantRepository
+                                                .findByTransactionId(apt.getTransactionId());
+                                return participants.stream().anyMatch(p -> (p.getUserId() != null
+                                                && p.getUserId().equals(finalRequesterId))
+                                                || (finalRequesterEmail != null && p.getEmail() != null
+                                                                && finalRequesterEmail.equalsIgnoreCase(p.getEmail())));
                         }
                         return false;
                 }).collect(java.util.stream.Collectors.toList());
@@ -281,6 +309,31 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointmentAuditService.logAction(saved.getAppointmentId(), "CREATED", requesterId,
                                 "Appointment requested");
 
+                // Notification & Email
+                UUID recipientId = isBroker ? transaction.getClientId() : transaction.getBrokerId();
+                UserAccount recipient = userAccountRepository.findById(recipientId).orElse(null);
+
+                if (recipient != null) {
+                        UserAccount requester = userAccountRepository.findById(requesterId).orElse(null);
+                        String requesterName = (requester != null) ? getFullName(requester)
+                                        : (isBroker ? "Broker" : "Client");
+
+                        // In-App Notification
+                        notificationService.createNotification(
+                                        recipient.getId().toString(),
+                                        "APPOINTMENT_REQUESTED", // Title Key
+                                        "NEW_APPOINTMENT_REQUEST", // Message Key
+                                        Map.of("name", requesterName),
+                                        saved.getAppointmentId().toString(),
+                                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+
+                        // Email
+                        String language = recipient.getPreferredLanguage() != null ? recipient.getPreferredLanguage()
+                                        : "en";
+                        emailService.sendAppointmentRequestedNotification(saved, recipient.getEmail(),
+                                        getFullName(recipient), language);
+                }
+
                 return mapToDTO(saved, getUserNamesMap(List.of(saved)));
         }
 
@@ -400,6 +453,58 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointmentAuditService.logAction(saved.getAppointmentId(), reviewDTO.action().name(), reviewerId,
                                 details);
 
+                // Notifications
+                UUID recipientId = (isBroker) ? appointment.getClientId() : appointment.getBrokerId();
+                UserAccount recipient = userAccountRepository.findById(recipientId).orElse(null);
+
+                if (recipient != null) {
+                        if (reviewDTO.action() == com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO.ReviewAction.CONFIRM) {
+                                notificationService.createNotification(
+                                                recipient.getId().toString(),
+                                                "APPOINTMENT_CONFIRMED",
+                                                "APPOINTMENT_HAS_BEEN_CONFIRMED",
+                                                Map.of(),
+                                                saved.getAppointmentId().toString(),
+                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                String language = recipient.getPreferredLanguage() != null
+                                                ? recipient.getPreferredLanguage()
+                                                : "en";
+                                emailService.sendAppointmentConfirmedNotification(saved, recipient.getEmail(),
+                                                getFullName(recipient), language);
+
+                        } else if (reviewDTO
+                                        .action() == com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO.ReviewAction.DECLINE) {
+                                notificationService.createNotification(
+                                                recipient.getId().toString(),
+                                                "APPOINTMENT_DECLINED",
+                                                "APPOINTMENT_HAS_BEEN_DECLINED",
+                                                Map.of("reason", appointment.getRefusalReason()),
+                                                saved.getAppointmentId().toString(),
+                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                String language = recipient.getPreferredLanguage() != null
+                                                ? recipient.getPreferredLanguage()
+                                                : "en";
+                                emailService.sendAppointmentStatusUpdateNotification(saved, recipient.getEmail(),
+                                                getFullName(recipient), language, "DECLINED",
+                                                appointment.getRefusalReason());
+
+                        } else if (reviewDTO
+                                        .action() == com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO.ReviewAction.RESCHEDULE) {
+                                notificationService.createNotification(
+                                                recipient.getId().toString(),
+                                                "APPOINTMENT_RESCHEDULED",
+                                                "APPOINTMENT_HAS_BEEN_RESCHEDULED",
+                                                Map.of(),
+                                                saved.getAppointmentId().toString(),
+                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                String language = recipient.getPreferredLanguage() != null
+                                                ? recipient.getPreferredLanguage()
+                                                : "en";
+                                emailService.sendAppointmentStatusUpdateNotification(saved, recipient.getEmail(),
+                                                getFullName(recipient), language, "RESCHEDULED", "New time proposed");
+                        }
+                }
+
                 return mapToDTO(saved, getUserNamesMap(List.of(saved)));
         }
 
@@ -458,6 +563,25 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointmentAuditService.logAction(saved.getAppointmentId(), "CANCELLED", requesterId,
                                 "Reason: " + cancelDTO.reason());
 
+                // Notifications
+                UUID recipientId = (isBroker) ? appointment.getClientId() : appointment.getBrokerId();
+                UserAccount recipient = userAccountRepository.findById(recipientId).orElse(null);
+
+                if (recipient != null) {
+                        notificationService.createNotification(
+                                        recipient.getId().toString(),
+                                        "APPOINTMENT_CANCELLED",
+                                        "APPOINTMENT_HAS_BEEN_CANCELLED",
+                                        Map.of("reason", appointment.getCancellationReason()),
+                                        saved.getAppointmentId().toString(),
+                                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                        String language = recipient.getPreferredLanguage() != null ? recipient.getPreferredLanguage()
+                                        : "en";
+                        emailService.sendAppointmentStatusUpdateNotification(saved, recipient.getEmail(),
+                                        getFullName(recipient), language, "CANCELLED",
+                                        appointment.getCancellationReason());
+                }
+
                 return mapToDTO(saved, getUserNamesMap(List.of(saved)));
         }
 
@@ -483,5 +607,77 @@ public class AppointmentServiceImpl implements AppointmentService {
                                 apt.getCancelledBy(),
                                 apt.getCreatedAt(),
                                 apt.getUpdatedAt());
+        }
+
+        /**
+         * Sends appointment reminders for appointments starting between 24 and 25 hours
+         * from now.
+         * Runs every hour.
+         */
+        @org.springframework.scheduling.annotation.Scheduled(cron = "0 0 * * * *") // Runs every hour
+        @Transactional
+        public void sendAppointmentReminders() {
+                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime startWindow = now.plusHours(24);
+                LocalDateTime endWindow = now.plusHours(25);
+
+                List<AppointmentStatus> excluded = List.of(AppointmentStatus.CANCELLED, AppointmentStatus.DECLINED);
+                List<Appointment> appointments = appointmentRepository
+                                .findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotInAndDeletedAtIsNull(
+                                                startWindow, endWindow,
+                                                excluded);
+
+                List<Appointment> updatedAppointments = new java.util.ArrayList<>();
+
+                for (Appointment apt : appointments) {
+                        try {
+                                // Determine recipients
+                                UserAccount broker = userAccountRepository.findById(apt.getBrokerId()).orElse(null);
+                                UserAccount client = userAccountRepository.findById(apt.getClientId()).orElse(null);
+
+                                if (broker != null) {
+                                        notificationService.createNotification(
+                                                        broker.getId().toString(),
+                                                        "APPOINTMENT_REMINDER",
+                                                        "APPOINTMENT_REMINDER_MSG",
+                                                        Map.of(),
+                                                        apt.getAppointmentId().toString(),
+                                                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                        String language = broker.getPreferredLanguage() != null
+                                                        ? broker.getPreferredLanguage()
+                                                        : "en";
+                                        emailService.sendAppointmentReminderNotification(apt, broker.getEmail(),
+                                                        getFullName(broker), language);
+                                }
+
+                                if (client != null) {
+                                        notificationService.createNotification(
+                                                        client.getId().toString(),
+                                                        "APPOINTMENT_REMINDER",
+                                                        "APPOINTMENT_REMINDER_MSG",
+                                                        Map.of(),
+                                                        apt.getAppointmentId().toString(),
+                                                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.APPOINTMENT);
+                                        String language = client.getPreferredLanguage() != null
+                                                        ? client.getPreferredLanguage()
+                                                        : "en";
+                                        emailService.sendAppointmentReminderNotification(apt, client.getEmail(),
+                                                        getFullName(client), language);
+                                }
+
+                                apt.setReminderSent(true);
+                                updatedAppointments.add(apt);
+
+                        } catch (Exception e) {
+                                // Log error but continue processing other appointments
+                                org.slf4j.LoggerFactory.getLogger(AppointmentServiceImpl.class)
+                                                .error("Failed to send reminder for appointment {}",
+                                                                apt.getAppointmentId(), e);
+                        }
+                }
+
+                if (!updatedAppointments.isEmpty()) {
+                        appointmentRepository.saveAll(updatedAppointments);
+                }
         }
 }
