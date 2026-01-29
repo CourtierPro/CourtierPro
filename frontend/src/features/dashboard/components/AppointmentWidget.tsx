@@ -11,10 +11,11 @@ import { useAppointments } from "@/features/appointments/api/queries";
 // Removed unused UUID import
 import type { Appointment } from "@/features/appointments/types";
 import { format, parseISO, isToday } from "date-fns";
+import { useTranslation as useI18nTranslation } from "react-i18next";
 import { CreateAppointmentModal } from "@/features/appointments/components/CreateAppointmentModal";
 
 export function AppointmentWidget() {
-  const { t } = useTranslation("appointments");
+  const { t, i18n } = useTranslation("appointments");
   const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
   const { data: appointments, isLoading, error } = useAppointments();
@@ -88,11 +89,11 @@ export function AppointmentWidget() {
                   </div>
                   <div className="flex flex-col items-end gap-1 ml-2 flex-shrink-0">
                     <Badge variant="secondary" className="text-xs">
-                      {format(parseISO(apt.fromDateTime), "EEE, MMM d")}
+                      {parseISO(apt.fromDateTime).toLocaleDateString(i18n.language, { weekday: 'short', month: 'short', day: 'numeric' })}
                     </Badge>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {format(parseISO(apt.fromDateTime), "HH:mm")} - {format(parseISO(apt.toDateTime), "HH:mm")}
+                      {parseISO(apt.fromDateTime).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })} - {parseISO(apt.toDateTime).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                 </button>
@@ -124,11 +125,11 @@ export function AppointmentWidget() {
                   </div>
                   <div className="flex flex-col items-end gap-1 ml-2 flex-shrink-0">
                     <Badge variant={(() => { try { return isToday(parseISO(apt.fromDateTime)) ? "warning" : "secondary"; } catch { return "secondary"; } })()} className="text-xs">
-                      {(() => { try { return format(parseISO(apt.fromDateTime), "EEE, MMM d"); } catch { return apt.fromDateTime; } })()}
+                      {(() => { try { return parseISO(apt.fromDateTime).toLocaleDateString(i18n.language, { weekday: 'short', month: 'short', day: 'numeric' }); } catch { return apt.fromDateTime; } })()}
                     </Badge>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {(() => { try { return format(parseISO(apt.fromDateTime), "HH:mm"); } catch { return "--:--"; } })()} - {(() => { try { return format(parseISO(apt.toDateTime), "HH:mm"); } catch { return "--:--"; } })()}
+                      {(() => { try { return parseISO(apt.fromDateTime).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' }); } catch { return "--:--"; } })()} - {(() => { try { return parseISO(apt.toDateTime).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' }); } catch { return "--:--"; } })()}
                     </span>
                   </div>
                 </button>
@@ -137,20 +138,7 @@ export function AppointmentWidget() {
           )}
         </div>
 
-        {/* Request Appointment Button (modal trigger) */}
-        <div className="flex justify-end">
-          <Button
-            variant="default"
-            size="sm"
-            className="rounded-md px-4 py-2"
-            onClick={() => setModalOpen(true)}
-            onMouseDown={e => e.preventDefault()}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            {t("appointments.requestAppointment", "Request Appointment")}
-          </Button>
-        </div>
-        <CreateAppointmentModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onSubmit={() => setModalOpen(false)} />
+        {/* Removed Request Appointment Button, modal will be triggered from QuickLinksGrid */}
       </CardContent>
     </Card>
   );
