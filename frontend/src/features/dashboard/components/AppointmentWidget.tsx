@@ -1,23 +1,19 @@
-
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
-import { Calendar, Clock, Plus } from "lucide-react";
-import { Button } from "@/shared/components/ui/button";
+import { Calendar, Clock } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { useAppointments } from "@/features/appointments/api/queries";
 // Removed unused UUID import
 import type { Appointment } from "@/features/appointments/types";
 import { format, parseISO, isToday } from "date-fns";
-import { useTranslation as useI18nTranslation } from "react-i18next";
-import { CreateAppointmentModal } from "@/features/appointments/components/CreateAppointmentModal";
+// Removed unused imports
 
 export function AppointmentWidget() {
   const { t, i18n } = useTranslation("appointments");
   const navigate = useNavigate();
-  const [modalOpen, setModalOpen] = useState(false);
+  // Removed unused modal state
   const { data: appointments, isLoading, error } = useAppointments();
 
   // Split appointments
