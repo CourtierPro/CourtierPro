@@ -1,5 +1,10 @@
 {
     "title": "Rendez-vous",
+    "incomingRequests": "Demandes de rendez-vous entrantes",
+    "upcomingConfirmed": "Rendez-vous confirmés à venir",
+    "noConfirmed": "Aucun rendez-vous confirmé.",
+    "noConfirmed": "Aucun rendez-vous confirmé.",
+    "requestAppointment": "Demander un rendez-vous",
     "subtitle": "Consultez et gérez vos rendez-vous à venir.",
     "appointmentType": "Type de rendez-vous",
     "selectType": "Sélectionner le type de rendez-vous",

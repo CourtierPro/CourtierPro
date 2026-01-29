@@ -11,20 +11,22 @@ import {
   Plus,
   List,
   FileCheck,
-  Calendar,
   Bell,
 } from "lucide-react";
 import { useBrokerDashboardStats } from "@/features/dashboard/hooks/useDashboardStats";
 import { QuickLinksGrid, type QuickLink } from "@/features/dashboard/components/QuickLinksGrid";
+import { AppointmentWidget } from "@/features/dashboard/components/AppointmentWidget";
 import { PriorityCardsSection } from "@/features/dashboard/components/PriorityCardsSection";
 import { RecentActivityFeed } from "@/features/dashboard/components/RecentActivityFeed";
 import { CreateTransactionModal } from "@/features/transactions/components/CreateTransactionModal";
+import { CreateAppointmentModal } from "@/features/appointments/components/CreateAppointmentModal";
 
 export function BrokerDashboardPage() {
   const { t } = useTranslation("dashboard");
   const navigate = useNavigate();
   const { data: stats, isLoading } = useBrokerDashboardStats();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isRequestAppointmentOpen, setIsRequestAppointmentOpen] = useState(false);
 
   const quickLinks: QuickLink[] = [
     {
@@ -53,11 +55,11 @@ export function BrokerDashboardPage() {
       href: "/documents?status=SUBMITTED",
     },
     {
-      id: "appointments",
-      label: t("broker.quickLinks.appointments"),
-      icon: <Calendar className="w-7 h-7" />,
-      href: "/appointments",
-      disabled: true,
+      id: "request-appointment",
+      label: t("broker.quickLinks.requestAppointment", "Request Appointment"),
+      icon: <Plus className="w-7 h-7" />,
+      onClick: () => setIsRequestAppointmentOpen(true),
+      variant: "default",
     },
     {
       id: "notifications",
@@ -94,6 +96,12 @@ export function BrokerDashboardPage() {
         />
       </div>
 
+
+      {/* Appointment Widget */}
+      <div className="my-6">
+        <AppointmentWidget />
+      </div>
+
       {/* Quick Links */}
       <Section
         title={t("broker.quickLinks.title")}
@@ -113,6 +121,12 @@ export function BrokerDashboardPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={() => setIsCreateModalOpen(false)}
+      />
+      {/* Request Appointment Modal */}
+      <CreateAppointmentModal
+        isOpen={isRequestAppointmentOpen}
+        onClose={() => setIsRequestAppointmentOpen(false)}
+        onSubmit={() => setIsRequestAppointmentOpen(false)}
       />
     </div>
   );

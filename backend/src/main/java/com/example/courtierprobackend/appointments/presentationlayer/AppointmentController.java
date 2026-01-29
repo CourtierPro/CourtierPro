@@ -26,7 +26,35 @@ import java.util.UUID;
 @RequestMapping("/appointments")
 @RequiredArgsConstructor
 public class AppointmentController {
+    /**
+     * Get top 3 upcoming appointments for the authenticated user (broker or client).
+     * Used for dashboard widget.
+     */
+    @GetMapping("/top-upcoming")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<List<AppointmentResponseDTO>> getTopUpcomingAppointments(
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request) {
+        try {
+            UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+            boolean isBroker = UserContextUtils.isBroker(request);
+            Object roleAttr = request.getAttribute("userRole");
+            if (userId == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            List<AppointmentResponseDTO> appointments = isBroker
+                    ? appointmentService.getTopUpcomingAppointmentsForBroker(userId, 3)
+                    : appointmentService.getTopUpcomingAppointmentsForClient(userId, 3);
+            return ResponseEntity.ok(appointments);
+        } catch (com.example.courtierprobackend.common.exceptions.ForbiddenException fe) {
+            return ResponseEntity.status(403).build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 
+    // ...existing code...
     private final AppointmentService appointmentService;
 
     /**

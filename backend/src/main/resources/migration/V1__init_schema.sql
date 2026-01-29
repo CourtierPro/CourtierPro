@@ -737,3 +737,11 @@ CREATE TABLE IF NOT EXISTS appointment_audits (
 );
 
 CREATE INDEX idx_appointment_audits_appointment_id ON appointment_audits(appointment_id);
+-- ============================================================================
+-- DATA FIX: Ensure all appointments have the correct brokerId from their transaction
+-- ============================================================================
+UPDATE appointments a
+SET broker_id = t.broker_id
+FROM transactions t
+WHERE a.transaction_id = t.transaction_id
+    AND (a.broker_id IS NULL OR a.broker_id <> t.broker_id);

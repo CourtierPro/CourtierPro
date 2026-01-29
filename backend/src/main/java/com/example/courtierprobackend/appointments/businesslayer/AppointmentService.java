@@ -13,6 +13,16 @@ import java.util.UUID;
 public interface AppointmentService {
 
         /**
+         * Get top N upcoming appointments for a broker (from now onwards).
+         */
+        List<AppointmentResponseDTO> getTopUpcomingAppointmentsForBroker(UUID brokerId, int limit);
+
+        /**
+         * Get top N upcoming appointments for a client (from now onwards).
+         */
+        List<AppointmentResponseDTO> getTopUpcomingAppointmentsForClient(UUID clientId, int limit);
+
+        /**
          * Get all appointments for a broker.
          */
         List<AppointmentResponseDTO> getAppointmentsForBroker(UUID brokerId);

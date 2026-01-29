@@ -28,6 +28,26 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class AppointmentServiceImpl implements AppointmentService {
 
+        @Override
+        public List<AppointmentResponseDTO> getTopUpcomingAppointmentsForBroker(UUID brokerId, int limit) {
+                List<Appointment> appointments = appointmentRepository.findUpcomingByBrokerId(brokerId, LocalDateTime.now());
+                return mapToDTOs(appointments.stream()
+                        .filter(appointment -> appointment.getStatus() == AppointmentStatus.CONFIRMED
+                                || appointment.getStatus() == AppointmentStatus.PROPOSED)
+                        .limit(limit)
+                        .toList());
+        }
+
+        @Override
+        public List<AppointmentResponseDTO> getTopUpcomingAppointmentsForClient(UUID clientId, int limit) {
+                List<Appointment> appointments = appointmentRepository.findUpcomingByClientId(clientId, LocalDateTime.now());
+                return mapToDTOs(appointments.stream()
+                        .filter(appointment -> appointment.getStatus() == AppointmentStatus.CONFIRMED
+                                || appointment.getStatus() == AppointmentStatus.PROPOSED)
+                        .limit(limit)
+                        .toList());
+        }
+
         private final AppointmentRepository appointmentRepository;
         private final UserAccountRepository userAccountRepository;
         private final TransactionRepository transactionRepository;
@@ -262,6 +282,13 @@ public class AppointmentServiceImpl implements AppointmentService {
                 Transaction transaction = transactionRepository.findByTransactionId(request.transactionId())
                                 .orElseThrow(() -> new NotFoundException(
                                                 "Transaction not found: " + request.transactionId()));
+
+                if (transaction.getBrokerId() == null) {
+                    throw new IllegalStateException("Cannot create appointment: transaction is missing brokerId. Please ensure the transaction has a broker assigned.");
+                }
+                if (transaction.getClientId() == null) {
+                    throw new IllegalStateException("Cannot create appointment: transaction is missing clientId. Please ensure the transaction has a client assigned.");
+                }
 
                 boolean isBroker = transaction.getBrokerId().equals(requesterId);
                 boolean isClient = transaction.getClientId().equals(requesterId);
