@@ -52,7 +52,9 @@ System_Boundary(cp, "CourtierPro System") {
     Component(TransactionPage, "TransactionPage", "React Page", "Role-aware transaction detail page (docs + appointments)", $tags="broker-area,client-area")
 
     ' Domain feature components
-    Component(MyDayWidget, "MyDayWidget", "React Component", "Shows tasks, due documents, and upcoming appointments for today", $tags="broker-area,client-area")
+    Component(MyDayWidget, "AppointmentWidget", "React Component", "Shows upcoming appointments for today/week", $tags="broker-area,client-area")
+    Component(ActionCards, "ActionCards", "React Components", "PendingDocuments, ExpiringOffers, ApproachingConditions", $tags="broker-area,client-area")
+    Component(PinnedTransactions, "PinnedTransactionsPanel", "React Component", "Quick access to pinned files", $tags="broker-area")
     Component(TransactionsList, "TransactionsList", "React Component", "Lists and filters active/closed transactions", $tags="broker-area,client-area")
     Component(TransactionDetailsView, "TransactionDetailsView", "React Component", "Shows transaction timeline, stages, and key info", $tags="broker-area,client-area")
     Component(DocumentsCenter, "DocumentsCenter", "React Component", "Document checklist, upload, and signing status", $tags="broker-area,client-area")
@@ -61,6 +63,7 @@ System_Boundary(cp, "CourtierPro System") {
     ' Admin workspace
     Component(AdminUsersPage, "AdminUsersPage", "React Page", "Manage users (brokers, clients, admins)", $tags="admin-area")
     Component(AdminOrgSettingsPage, "AdminOrgSettingsPage", "React Page", "Org-level settings and templates", $tags="admin-area")
+    Component(InviteModals, "InviteModals", "React Components", "InviteClientModal, InviteUserModal", $tags="admin-area")
 
     ' Notes about role-based composition (implementation detail)
     note right of DashboardPage
@@ -101,6 +104,8 @@ Rel(AppShell, AdminOrgSettingsPage, "Renders", "Composition")
 
 ' Dashboard / transactions composition
 Rel(DashboardPage, MyDayWidget, "Embeds", "Composition")
+Rel(DashboardPage, ActionCards, "Embeds", "Composition")
+Rel(DashboardPage, PinnedTransactions, "Embeds", "Composition")
 Rel(DashboardPage, TransactionsList, "Embeds summary list", "Composition")
 
 Rel(TransactionsPage, TransactionsList, "Embeds", "Composition")
@@ -117,6 +122,7 @@ Rel(DocumentsCenter, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line,gr
 Rel(AppointmentsCenter, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line,orange-line")
 
 Rel(AdminUsersPage, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(InviteModals, ApiClient, "triggers invites", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(AdminOrgSettingsPage, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
 
 ' ApiClient calls backend container

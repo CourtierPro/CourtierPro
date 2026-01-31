@@ -76,6 +76,8 @@ package "Business Layer" #LightGreen {
     + getAllDocumentsForUser(userId): List<DocumentRequestResponseDTO>
     + getDocumentDownloadUrl(requestId, docId, userId): String
     + reviewDocument(transactionId, requestId, dto, brokerId): DocumentRequestResponseDTO
+    + getOutstandingDocumentSummary(brokerId): List<OutstandingDocumentDTO>
+    + sendDocumentReminder(requestId, brokerId): void
   }
   
   class DocumentRequestServiceImpl {
@@ -131,6 +133,8 @@ package "Data Layer" #LightYellow {
     - brokerNotes: String
     - visibleToClient: boolean
     - lastUpdatedAt: LocalDateTime
+    - createdAt: LocalDateTime
+    - dueDate: LocalDateTime
     - deletedAt: LocalDateTime
     - deletedBy: UUID
     --

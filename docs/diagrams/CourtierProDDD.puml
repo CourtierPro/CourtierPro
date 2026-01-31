@@ -355,7 +355,6 @@ rectangle "CourtierPro Domain" as Domain {
     Appointment --> AppointmentStatusEnum
 
     note bottom of Appointment
-      Future Feature.
       Invariants:
       • scheduledStart must be in the future when status is
         PENDING_BROKER_CONFIRMATION or CONFIRMED.
@@ -423,7 +422,6 @@ rectangle "CourtierPro Domain" as Domain {
     }
 
     note bottom of BrokerMetricsSnapshot
-      Future Feature.
       Computed from live operational data.
     end note
   }

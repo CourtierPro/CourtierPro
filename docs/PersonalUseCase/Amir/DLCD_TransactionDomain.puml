@@ -5,7 +5,7 @@ package "Transaction Domain" {
     
     class TransactionController {
         + createTransaction(request: TransactionRequestDTO): ResponseEntity
-        + getTransaction(transactionId: UUID): ResponseEntity
+        + getTransactionById(transactionId: UUID): ResponseEntity
         + updateTransactionStage(transactionId: UUID, request: StageUpdateRequestDTO): ResponseEntity
     }
 

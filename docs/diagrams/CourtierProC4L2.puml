@@ -29,7 +29,7 @@ SHOW_PERSON_OUTLINE()
 title CourtierPro — C4 Level 2 (Containers)
 
 System_Boundary(cp, "CourtierPro System") {
-    Container(frontend_app, "Static Hosting (delivery)", "CloudFront + S3 • HTML5/CSS", "Delivers the static site shell and the React SPA build.", $sprite="html5", $tags="webApp")
+    Container(frontend_app, "Static Hosting (delivery)", "Nginx (VM) • HTML5/CSS", "Delivers the static site shell and the React SPA build.", $sprite="html5", $tags="webApp")
     Container(web_spa, "CourtierPro Web App", "React 18 + Vite", "Single SPA with role-based sections (Broker, Client, Admin); i18n en/fr.", $sprite="react", $tags="framework-react")
     Container(backend_api, "CourtierPro Backend API", "Spring Boot 3 (WebFlux)", "REST/JSON over HTTPS; authentication, business logic, file links, notifications.", $sprite="spring_original", $tags="microService-java")
     ContainerDb(main_db, "courtierpro-db", "PostgreSQL 15", "Shared schema; context-owned tables.", $sprite="postgresql", $tags="storage-postgres")

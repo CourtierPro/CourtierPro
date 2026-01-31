@@ -11,7 +11,7 @@ group Create Transaction [FDUC Steps 1-2]
 end
 
 group Monitor Progress [FDUC Step 3]
-    Broker -> System: getTransactionDetails(transactionId)
+    Broker -> System: getTransactionById(transactionId)
     activate System
     System --> Broker: Transaction Details (Stage, Participants, Timeline)
     deactivate System

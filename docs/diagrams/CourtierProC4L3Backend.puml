@@ -38,6 +38,8 @@ System_Boundary(cp, "CourtierPro System") {
     ' ==== USER MANAGEMENT ====
     Component(CurrentUserController, "CurrentUserController", "REST Controller", "/api/me – current user’s view")
     Component(AdminUserController, "AdminUserController", "REST Controller", "/api/admin/users/** – admin management APIs")
+    Component(BrokerController, "BrokerController", "REST Controller", "/api/v1/brokers/** - broker management")
+    Component(OrganizationSettingsController, "OrganizationSettingsController", "REST Controller", "/api/v1/organization-settings - org-wide config")
     Component(UserProvisioningService, "UserProvisioningService", "Application Service", "Syncs Auth0 users to DB")
     Component(UserAccountRepository, "UserAccountRepository", "Spring Data Repository", "CRUD for UserAccount aggregate")
     Component(Auth0ManagementClient, "Auth0ManagementClient", "Infrastructure Adapter", "Delegates identity operations to Auth0")
@@ -45,6 +47,7 @@ System_Boundary(cp, "CourtierPro System") {
     ' ==== TRANSACTION MANAGEMENT ====
     Component(TransactionController, "TransactionController", "REST Controller", "/api/v1/transactions/** – general transaction APIs")
     Component(ClientTransactionController, "ClientTransactionController", "REST Controller", "/clients/{clientId}/transactions – client views")
+    Component(TransactionStageController, "TransactionStageController", "REST Controller", "/api/v1/transactions/{id}/stage – stage transitions")
     Component(TransactionService, "TransactionService", "Application Service", "Transaction lifecycle and queries")
     Component(TimelineService, "TimelineService", "Domain/Application Service", "Stage changes and timeline entries")
     Component(TransactionRepository, "TransactionRepository", "Spring Data Repository", "CRUD for Transaction aggregate")
@@ -56,7 +59,7 @@ System_Boundary(cp, "CourtierPro System") {
     Component(DocumentRequestRepository, "DocumentRequestRepository", "Spring Data Repository", "CRUD for DocumentRequest aggregate")
     Component(S3StorageService, "S3StorageService", "Infrastructure Adapter", "Pre-signed URLs and S3 interactions")
 
-    ' ==== APPOINTMENTS (Future) ====
+    ' ==== APPOINTMENTS ====
     Component(AppointmentController, "AppointmentController", "REST Controller", "/api/v1/appointments/** – appointments")
     Component(AppointmentService, "AppointmentService", "Application Service", "Appointment lifecycle & status transitions")
     Component(AppointmentRepository, "AppointmentRepository", "Spring Data Repository", "CRUD for Appointment aggregate")
@@ -78,7 +81,9 @@ System_Boundary(cp, "CourtierPro System") {
     ' ==== AUDIT & SEARCH ====
     Component(SearchController, "SearchController", "REST Controller", "/api/v1/search/**")
     Component(FeedbackController, "FeedbackController", "REST Controller", "/api/v1/feedback/**")
-    Component(AuditControllers, "AuditControllers", "REST Controllers", "AdminResourceController, LoginAuditController etc.\nExposes audit logs to Admin UI")
+    
+    Component(SystemAlertController, "SystemAlertController", "REST Controller", "/api/v1/system-alerts/**")
+    Component(AuditControllers, "AuditControllers", "REST Controllers", "AdminResourceController, LoginAuditController,\nLogoutAuditController, PasswordResetAudit etc.")
     
     Component(SearchService, "SearchService", "Application Service", "Search logic")
     Component(FeedbackService, "FeedbackService", "Application Service", "Feedback submission")
@@ -111,11 +116,14 @@ Rel(web_spa, NotificationController, "Uses", "JSON/REST/HTTPS", $tags="purple-li
 
 Rel(CurrentUserController, UserProvisioningService, "calls")
 Rel(AdminUserController, UserProvisioningService, "calls")
+Rel(BrokerController, UserProvisioningService, "calls")
+Rel(OrganizationSettingsController, UserAccountRepository, "uses (via service?)")
 Rel(UserProvisioningService, UserAccountRepository, "uses")
 Rel(UserProvisioningService, Auth0ManagementClient, "syncs identities")
 
 Rel(TransactionController, TransactionService, "calls")
 Rel(ClientTransactionController, TransactionService, "calls")
+Rel(TransactionStageController, TransactionService, "calls")
 Rel(TransactionService, TransactionRepository, "uses")
 Rel(TransactionService, TimelineService, "delegates stage changes")
 
@@ -141,6 +149,7 @@ Rel(web_spa, AuditControllers, "Uses (Admin)", "JSON/REST/HTTPS", $tags="purple-
 
 Rel(SearchController, SearchService, "calls") 
 Rel(FeedbackController, FeedbackService, "calls")
+Rel(SystemAlertController, AuditService, "calls")
 Rel(AuditControllers, AuditService, "calls")
 Rel(AuditService, AuditRepositories, "uses")
 ' Note: FeedbackService integrates with GitHub Issues (not shown in Db for now)
