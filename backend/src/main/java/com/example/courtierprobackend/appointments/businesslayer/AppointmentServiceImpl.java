@@ -701,57 +701,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 return mapToDTO(saved, getUserNamesMap(List.of(saved)));
         }
 
-        // Assuming there is a requestAppointment method that the user intends to
-        // modify.
-        // The provided snippet for insertion is syntactically incorrect and refers to
-        // variables not in scope if placed as shown in the example.
-        // I am placing it here as a placeholder, assuming the user will correct the
-        // context.
-        // If this is not the intended location, please provide more specific
-        // instructions.
-        // The original instruction was "Insert timelineService.addEntry call in
-        // requestAppointment method."
-        // but no such method exists in the provided document.
-        // The provided "Code Edit" snippet itself is also malformed.
-        // I will insert the *content* of the timeline entry logic, assuming it belongs
-        // within a method like `requestAppointment` and that `saved` and `requesterId`
-        // would be in scope there.
-        // I am commenting out the `return getAppointmentResponseDTO(saved);` and the
-        // partial
-        // `mapToDTO` lines as they are clearly out of place.
-        /*
-         * public AppointmentResponseDTO requestAppointment(...) { // Placeholder for
-         * the actual method signature
-         * // ... existing requestAppointment logic ...
-         * 
-         * if (saved.getTransactionId() != null) {
-         * try {
-         * com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.
-         * value_object.TransactionInfo info =
-         * com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.
-         * value_object.TransactionInfo
-         * .builder()
-         * .appointmentTitle(saved.getTitle())
-         * .appointmentDate(saved.getFromDateTime())
-         * .actorName(java.util.Objects.requireNonNullElse(
-         * getUserNamesMap(List.of(saved)).get(requesterId), "Unknown"))
-         * .build();
-         * 
-         * timelineService.addEntry(saved.getTransactionId(), requesterId,
-         * com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.
-         * TimelineEntryType.APPOINTMENT_REQUESTED,
-         * "Requested", null, info);
-         * } catch (Exception e) {
-         * org.slf4j.LoggerFactory.getLogger(AppointmentServiceImpl.class).
-         * error("Failed to add timeline entry", e);
-         * }
-         * }
-         * // return getAppointmentResponseDTO(saved); // This line is likely incorrect
-         * in this context
-         * // ... rest of requestAppointment logic ...
-         * }
-         */
-
         private AppointmentResponseDTO mapToDTO(Appointment apt, Map<UUID, String> userNames) {
                 return new AppointmentResponseDTO(
                                 apt.getAppointmentId(),
