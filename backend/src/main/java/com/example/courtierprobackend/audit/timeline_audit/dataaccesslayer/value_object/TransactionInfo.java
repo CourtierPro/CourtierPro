@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 @Data
 @AllArgsConstructor
@@ -37,4 +38,10 @@ public class TransactionInfo {
     private LocalDate conditionDeadline;
     private String conditionPreviousStatus;
     private String conditionNewStatus;
+
+    // Appointment-related fields
+    private String appointmentTitle;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private java.time.LocalDateTime appointmentDate;
 }

@@ -43,8 +43,11 @@ export function useReviewAppointment() {
             const res = await axiosInstance.patch(`/appointments/${id}/review`, data);
             return res.data;
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+            if (data.transactionId) {
+                queryClient.invalidateQueries({ queryKey: ['transactions', 'detail', data.transactionId, 'timeline'] });
+            }
         },
     });
 }
@@ -61,8 +64,11 @@ export function useCancelAppointment() {
             const res = await axiosInstance.patch(`/appointments/${id}/cancel`, data);
             return res.data;
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+            if (data.transactionId) {
+                queryClient.invalidateQueries({ queryKey: ['transactions', 'detail', data.transactionId, 'timeline'] });
+            }
         },
     });
 }

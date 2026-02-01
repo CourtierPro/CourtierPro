@@ -106,7 +106,13 @@ export type TimelineEventType =
   | 'CONDITION_UPDATED'
   | 'CONDITION_REMOVED'
   | 'CONDITION_SATISFIED'
-  | 'CONDITION_FAILED';
+  | 'CONDITION_SATISFIED'
+  | 'CONDITION_FAILED'
+  | 'APPOINTMENT_CONFIRMED'
+  | 'APPOINTMENT_CANCELLED'
+  | 'APPOINTMENT_DECLINED'
+  | 'APPOINTMENT_RESCHEDULED'
+  | 'APPOINTMENT_REQUESTED';
 
 export interface TransactionInfo {
   clientName?: string;
@@ -116,6 +122,9 @@ export interface TransactionInfo {
   previousStage?: string;
   newStage?: string;
   reason?: string;
+  // Appointment-related fields
+  appointmentTitle?: string;
+  appointmentDate?: string;
   // Offer-related fields
   buyerName?: string;
   offerAmount?: number;

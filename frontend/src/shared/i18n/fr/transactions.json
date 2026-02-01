@@ -315,6 +315,11 @@
     "CONDITION_REMOVED": "Condition retirée",
     "CONDITION_SATISFIED": "Condition satisfaite",
     "CONDITION_FAILED": "Condition non satisfaite",
+    "APPOINTMENT_CONFIRMED": "Rendez-vous confirmé",
+    "APPOINTMENT_CANCELLED": "Rendez-vous annulé",
+    "APPOINTMENT_DECLINED": "Rendez-vous refusé",
+    "APPOINTMENT_RESCHEDULED": "Rendez-vous reporté",
+    "APPOINTMENT_REQUESTED": "Rendez-vous demandé",
     "PROPERTY_OFFER_MADE": "Offre de propriété faite",
     "PROPERTY_OFFER_UPDATED": "Offre de propriété mise à jour",
     "OFFER_DOCUMENT_UPLOADED": "Document d'offre téléversé"
@@ -442,6 +447,19 @@
   "timeline.conditionRemoved": "Condition retirée: {{conditionType}}",
   "timeline.conditionSatisfied": "Condition satisfaite: {{conditionType}}",
   "timeline.conditionFailed": "Condition non satisfaite: {{conditionType}}",
+  "timeline.appointmentConfirmedDetail": "Rendez-vous confirmé : {{title}} — {{date}}",
+  "timeline.appointmentCancelledDetail": "Rendez-vous annulé : {{title}}",
+  "timeline.appointmentDeclinedDetail": "Rendez-vous refusé : {{title}}",
+  "timeline.appointmentRescheduledDetail": "Rendez-vous reporté : {{title}} — {{date}}",
+  "timeline.appointmentRequestedDetail": "Rendez-vous demandé : {{title}} — {{date}}",
+  "reasonLabel": "Raison",
+  "appointmentTypes": {
+    "showing": "Visite",
+    "inspection": "Inspection",
+    "walkthrough": "Visite des lieux",
+    "appraisal": "Évaluation",
+    "other": "Autre"
+  },
   "setActive": "Définir actif",
   "clearActiveProperty": "Effacer la sélection",
   "conditions": {

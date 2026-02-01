@@ -40,6 +40,8 @@ public class AppointmentServiceImplAccessControlTest {
     private com.example.courtierprobackend.email.EmailService emailService;
     @Mock
     private com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
+    @Mock
+    private com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService;
 
     @BeforeEach
     void setUp() {
@@ -50,6 +52,7 @@ public class AppointmentServiceImplAccessControlTest {
                 transactionRepository,
                 appointmentAuditService,
                 emailService,
+                timelineService,
                 notificationService,
                 transactionParticipantRepository);
         transactionId = UUID.randomUUID();
