@@ -1,0 +1,115 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+' Style configurations for a cleaner look
+skinparam usecase {
+  BackgroundColor White
+  BorderColor Black
+  ArrowColor Black
+  Shadowing false
+}
+skinparam rectangle {
+  BackgroundColor #f7f4eb
+  BorderColor Black
+  Shadowing false
+}
+skinparam note {
+  BackgroundColor #fffbe6
+  BorderColor Gray
+}
+
+title CourtierPro - High-Level Use Case Diagram
+
+' Actors
+actor "Admin" as Admin #LightCoral
+actor "Broker" as Broker #LightBlue
+actor "Client" as Client #LightGreen
+
+rectangle "CourtierPro System" {
+
+    ' === USE CASES ===
+
+    usecase "Register User" as UC_RegisterUser
+
+    usecase "Administer System" as UC_AdminSystem
+    note right of UC_AdminSystem
+      Includes: 
+      - Org Settings
+      - Broadcast Messages
+      - Emergency Deletions
+    end note
+
+    usecase "Authenticate & Manage Profile" as UC_Auth
+    note right of UC_Auth
+      Includes: 
+      - Login (Auth0) & MFA
+      - Reset Password
+      - Notification Preferences
+      - User Feedback
+    end note
+
+    usecase "Manage Transaction Lifecycle" as UC_TransLifecycle
+    note right of UC_TransLifecycle
+      Includes:
+      - Create/Close Transactions
+      - Update Stages
+      - Manage Offers & Conditions
+      - Pin Priorities
+    end note
+
+    usecase "View Transaction Progress" as UC_ViewTrans
+    note right of UC_ViewTrans
+      Includes:
+      - View Timeline & Notes
+      - View Offers (Seller)
+      - View Suggested Properties (Buyer)
+    end note
+
+    usecase "Manage Transaction Documents" as UC_Docs
+    note right of UC_Docs
+      Includes:
+      - Request Documents (Broker)
+      - Upload/Submit (Client)
+      - Review & Approve (Broker)
+    end note
+
+    usecase "Manage Appointments" as UC_Appt
+    note right of UC_Appt
+      Includes:
+      - Schedule Visits
+      - Confirm/Cancel/Reschedule
+      - View Calendar History
+    end note
+
+    usecase "Monitor Business Performance" as UC_Analytics
+    note right of UC_Analytics
+      Includes:
+      - View KPI Dashboard
+      - View Client List
+      - Transaction Pipeline
+    end note
+
+}
+
+' === RELATIONSHIPS ===
+
+' Admin Connections
+Admin --> UC_RegisterUser
+Admin --> UC_AdminSystem
+Admin --> UC_Auth
+
+' Broker Connections
+Broker --> UC_TransLifecycle
+Broker --> UC_Docs
+Broker --> UC_Appt
+Broker --> UC_Analytics
+Broker --> UC_Auth
+
+' Client Connections
+Client --> UC_ViewTrans
+Client --> UC_Docs
+Client --> UC_Appt
+Client --> UC_Auth
+@enduml
