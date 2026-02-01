@@ -27,6 +27,6 @@ public class TimelineEntryDTO {
     private Boolean visibleToClient;
     private Instant occurredAt;
     private UUID addedByBrokerId;
-    private String actorName; //: display name of the actor (broker/client)
+    private String actorName; // : display name of the actor (broker/client)
     private TransactionInfo transactionInfo;
 }

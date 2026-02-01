@@ -6,6 +6,7 @@ import { Section } from '@/shared/components/branded/Section';
 import { formatDateTime } from '@/shared/utils/date';
 import { getEventIcon } from './getEventIcon';
 import { getEventTypeLabel } from './getEventTypeLabel';
+import { AppointmentTimelineItem } from './AppointmentTimelineItem';
 
 
 interface ClientTransactionTimelineProps {
@@ -110,6 +111,12 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                                         return (
                                                             <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground ml-2">
                                                                 {t('timeline.by', { name: entry.actorName })}
+                                                            </span>
+                                                        );
+                                                    } else if (entry.type.startsWith('APPOINTMENT_') && entry.transactionInfo?.actorName) {
+                                                        return (
+                                                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground ml-2">
+                                                                {t('timeline.by', { name: entry.transactionInfo.actorName })}
                                                             </span>
                                                         );
                                                     }
@@ -299,6 +306,12 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                                         return entry.note || '';
                                                     })()}
                                                 </p>
+                                            )}
+                                            {/* Show translated info for APPOINTMENT events */}
+                                            {entry.type.startsWith('APPOINTMENT_') && (
+                                                <div className="text-sm text-muted-foreground mt-1">
+                                                    <AppointmentTimelineItem entry={entry} />
+                                                </div>
                                             )}
                                         </div>
                                         {entry.occurredAt && (

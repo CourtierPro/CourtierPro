@@ -122,6 +122,9 @@ CREATE TABLE IF NOT EXISTS timeline_entries (
     condition_deadline DATE,
     condition_previous_status VARCHAR(50),
     condition_new_status VARCHAR(50),
+    -- Appointment-related TransactionInfo fields
+    appointment_title VARCHAR(255),
+    appointment_date TIMESTAMP,
     -- Soft Delete Columns
     deleted_at TIMESTAMP,
     deleted_by UUID,

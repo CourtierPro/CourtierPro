@@ -42,7 +42,9 @@ public class TimelineServiceImpl implements TimelineService {
                     PROPERTY_ADDED, PROPERTY_UPDATED, PROPERTY_REMOVED,
                     OFFER_RECEIVED, OFFER_UPDATED, OFFER_REMOVED, PROPERTY_OFFER_MADE, PROPERTY_OFFER_UPDATED,
                     OFFER_DOCUMENT_UPLOADED,
-                    CONDITION_ADDED, CONDITION_UPDATED, CONDITION_REMOVED, CONDITION_SATISFIED, CONDITION_FAILED ->
+                    CONDITION_ADDED, CONDITION_UPDATED, CONDITION_REMOVED, CONDITION_SATISFIED, CONDITION_FAILED,
+                    APPOINTMENT_CONFIRMED, APPOINTMENT_CANCELLED, APPOINTMENT_DECLINED, APPOINTMENT_RESCHEDULED,
+                    APPOINTMENT_REQUESTED ->
                 true;
             default -> false;
         };
@@ -72,9 +74,8 @@ public class TimelineServiceImpl implements TimelineService {
                 .findByTransactionIdAndVisibleToClientTrueOrderByTimestampAsc(transactionId);
         log.info("[Timeline] Found {} client-visible entries for transaction {}", entries.size(), transactionId);
         for (TimelineEntry entry : entries) {
-            log.info("[Timeline] Entry: id={}, type={}, docType={}, visibleToClient={}, timestamp={}",
-                    entry.getId(), entry.getType(), entry.getDocType(), entry.isVisibleToClient(),
-                    entry.getTimestamp());
+            log.info("[Timeline] Entry: id={}, type={}, visibleToClient={}",
+                    entry.getId(), entry.getType(), entry.isVisibleToClient());
         }
         return entries.stream().map(timelineEntryMapper::toDTO).toList();
     }

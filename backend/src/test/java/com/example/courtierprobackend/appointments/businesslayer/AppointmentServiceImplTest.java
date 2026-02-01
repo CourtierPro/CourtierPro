@@ -64,10 +64,14 @@ class AppointmentServiceImplTest {
         @Mock
         private com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository;
 
+        @Mock
+        private com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService;
+
         @BeforeEach
         void setUp() {
                 appointmentService = new AppointmentServiceImpl(appointmentRepository, userAccountRepository,
-                                transactionRepository, appointmentAuditService, emailService, notificationService,
+                                transactionRepository, appointmentAuditService, emailService, timelineService,
+                                notificationService,
                                 transactionParticipantRepository);
                 brokerId = UUID.randomUUID();
                 clientId = UUID.randomUUID();
@@ -1090,29 +1094,31 @@ class AppointmentServiceImplTest {
         @Test
         void requestAppointment_missingBrokerId_throwsIllegalStateException() {
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
-                        transactionId, "Type", "Title", java.time.LocalDate.now().plusDays(1), java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg");
+                                transactionId, "Type", "Title", java.time.LocalDate.now().plusDays(1),
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg");
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
                 transaction.setBrokerId(null); // missing brokerId
                 transaction.setClientId(clientId);
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
                 assertThatThrownBy(() -> appointmentService.requestAppointment(request, clientId))
-                        .isInstanceOf(IllegalStateException.class)
-                        .hasMessageContaining("transaction is missing brokerId");
+                                .isInstanceOf(IllegalStateException.class)
+                                .hasMessageContaining("transaction is missing brokerId");
         }
 
         @Test
         void requestAppointment_missingClientId_throwsIllegalStateException() {
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
-                        transactionId, "Type", "Title", java.time.LocalDate.now().plusDays(1), java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg");
+                                transactionId, "Type", "Title", java.time.LocalDate.now().plusDays(1),
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg");
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
                 transaction.setBrokerId(brokerId);
                 transaction.setClientId(null); // missing clientId
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
                 assertThatThrownBy(() -> appointmentService.requestAppointment(request, brokerId))
-                        .isInstanceOf(IllegalStateException.class)
-                        .hasMessageContaining("transaction is missing clientId");
+                                .isInstanceOf(IllegalStateException.class)
+                                .hasMessageContaining("transaction is missing clientId");
         }
 
         @Test
@@ -1125,9 +1131,11 @@ class AppointmentServiceImplTest {
                 apt3.setFromDateTime(LocalDateTime.now().plusDays(3));
                 Appointment apt4 = createTestAppointment();
                 apt4.setFromDateTime(LocalDateTime.now().plusDays(4));
-                when(appointmentRepository.findUpcomingByBrokerId(eq(brokerId), any(LocalDateTime.class))).thenReturn(List.of(apt1, apt2, apt3, apt4));
+                when(appointmentRepository.findUpcomingByBrokerId(eq(brokerId), any(LocalDateTime.class)))
+                                .thenReturn(List.of(apt1, apt2, apt3, apt4));
                 mockUserAccounts();
-                List<AppointmentResponseDTO> result = appointmentService.getTopUpcomingAppointmentsForBroker(brokerId, 3);
+                List<AppointmentResponseDTO> result = appointmentService.getTopUpcomingAppointmentsForBroker(brokerId,
+                                3);
                 assertThat(result).hasSize(3);
         }
 
@@ -1141,16 +1149,19 @@ class AppointmentServiceImplTest {
                 apt3.setFromDateTime(LocalDateTime.now().plusDays(3));
                 Appointment apt4 = createTestAppointment();
                 apt4.setFromDateTime(LocalDateTime.now().plusDays(4));
-                when(appointmentRepository.findUpcomingByClientId(eq(clientId), any(LocalDateTime.class))).thenReturn(List.of(apt1, apt2, apt3, apt4));
+                when(appointmentRepository.findUpcomingByClientId(eq(clientId), any(LocalDateTime.class)))
+                                .thenReturn(List.of(apt1, apt2, apt3, apt4));
                 mockUserAccounts();
-                List<AppointmentResponseDTO> result = appointmentService.getTopUpcomingAppointmentsForClient(clientId, 3);
+                List<AppointmentResponseDTO> result = appointmentService.getTopUpcomingAppointmentsForClient(clientId,
+                                3);
                 assertThat(result).hasSize(3);
         }
 
         @Test
         void getAppointmentsForClient_nullRequester_returnsEmpty() {
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId)).thenReturn(List.of(apt));
+                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                                .thenReturn(List.of(apt));
                 mockUserAccounts();
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, null, null);
                 assertThat(result).isEmpty();
@@ -1160,11 +1171,12 @@ class AppointmentServiceImplTest {
         void getAppointmentsForClient_notRelated_returnsEmpty() {
                 Appointment apt = createTestAppointment();
                 UUID unrelatedId = UUID.randomUUID();
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId)).thenReturn(List.of(apt));
+                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                                .thenReturn(List.of(apt));
                 mockUserAccounts();
                 when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
-                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, unrelatedId, null);
+                List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, unrelatedId,
+                                null);
                 assertThat(result).isEmpty();
         }
 }
-

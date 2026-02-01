@@ -269,6 +269,19 @@
   "timeline.conditionRemoved": "Condition removed: {{conditionType}}",
   "timeline.conditionSatisfied": "Condition satisfied: {{conditionType}}",
   "timeline.conditionFailed": "Condition failed: {{conditionType}}",
+  "timeline.appointmentConfirmedDetail": "Confirmed Appointment: {{title}} — {{date}}",
+  "timeline.appointmentCancelledDetail": "Cancelled Appointment: {{title}}",
+  "timeline.appointmentDeclinedDetail": "Declined Appointment: {{title}}",
+  "timeline.appointmentRescheduledDetail": "Rescheduled Appointment: {{title}} — {{date}}",
+  "timeline.appointmentRequestedDetail": "Requested Appointment: {{title}} — {{date}}",
+  "reasonLabel": "Reason",
+  "appointmentTypes": {
+    "showing": "Showing",
+    "inspection": "Inspection",
+    "walkthrough": "Walkthrough",
+    "appraisal": "Appraisal",
+    "other": "Other"
+  },
   "setActive": "Set Active",
   "clearActiveProperty": "Clear Selection",
   "add": "Add",
@@ -328,7 +341,12 @@
     "CONDITION_UPDATED": "Condition Updated",
     "CONDITION_REMOVED": "Condition Removed",
     "CONDITION_SATISFIED": "Condition Satisfied",
-    "CONDITION_FAILED": "Condition Failed"
+    "CONDITION_FAILED": "Condition Failed",
+    "APPOINTMENT_CONFIRMED": "Appointment Confirmed",
+    "APPOINTMENT_CANCELLED": "Appointment Cancelled",
+    "APPOINTMENT_DECLINED": "Appointment Declined",
+    "APPOINTMENT_RESCHEDULED": "Appointment Rescheduled",
+    "APPOINTMENT_REQUESTED": "Appointment Requested"
   },
   "properties": "Properties",
   "loadingProperties": "Loading properties...",

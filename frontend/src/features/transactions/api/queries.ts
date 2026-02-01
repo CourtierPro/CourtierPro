@@ -144,7 +144,11 @@ export function useTransactionTimeline(transactionId: string) {
 
 export function useClientTransactionTimeline(transactionId: string) {
     return useQuery({
-        queryKey: ['transaction', transactionId, 'timeline', 'client'],
+        queryKey: [
+            ...transactionKeys.detail(transactionId),
+            'timeline',
+            'client'
+        ],
         queryFn: async () => {
             const res = await axiosInstance.get<TimelineEntryDTO[]>(`/transactions/${transactionId}/timeline/client`);
             return res.data;
