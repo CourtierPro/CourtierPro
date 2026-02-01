@@ -140,6 +140,14 @@ class AppointmentServiceNotificationTest {
                                 eq(client.getEmail()),
                                 eq("Jane Client"),
                                 eq("en"));
+
+                verify(timelineService).addEntry(
+                                eq(transactionId),
+                                eq(brokerId),
+                                eq(com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType.APPOINTMENT_REQUESTED),
+                                anyString(),
+                                isNull(),
+                                any());
         }
 
         @Test
@@ -179,6 +187,14 @@ class AppointmentServiceNotificationTest {
                                 eq(broker.getEmail()),
                                 eq("John Broker"),
                                 eq("en"));
+
+                verify(timelineService).addEntry(
+                                eq(transactionId),
+                                eq(clientId),
+                                eq(com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType.APPOINTMENT_CONFIRMED),
+                                any(), // Note can be null for confirmed
+                                isNull(),
+                                any());
         }
 
         @Test
@@ -219,6 +235,14 @@ class AppointmentServiceNotificationTest {
                                 eq("en"),
                                 eq("DECLINED"),
                                 eq("Busy"));
+
+                verify(timelineService).addEntry(
+                                eq(transactionId),
+                                eq(clientId),
+                                eq(com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType.APPOINTMENT_DECLINED),
+                                eq("Busy"),
+                                isNull(),
+                                any());
         }
 
         @Test
@@ -259,6 +283,14 @@ class AppointmentServiceNotificationTest {
                                 eq("en"),
                                 eq("CANCELLED"),
                                 eq("Emergencies"));
+
+                verify(timelineService).addEntry(
+                                eq(transactionId),
+                                eq(brokerId),
+                                eq(com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType.APPOINTMENT_CANCELLED),
+                                eq("Emergencies"),
+                                isNull(),
+                                any());
         }
 
         @Test
