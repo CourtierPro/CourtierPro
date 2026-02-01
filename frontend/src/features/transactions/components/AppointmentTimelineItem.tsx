@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { formatDateTime } from '@/shared/utils/date';
-import { TimelineEntry } from '@/shared/api/types';
+import type { TimelineEntryDTO } from '@/shared/api/types';
 
 interface AppointmentTimelineItemProps {
-    entry: TimelineEntry;
+    entry: TimelineEntryDTO;
 }
 
 export function AppointmentTimelineItem({ entry }: AppointmentTimelineItemProps) {
