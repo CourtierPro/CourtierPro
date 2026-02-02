@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
-import { Filter, Plus, Archive } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Filter, Plus, Archive, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
 import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
 import { useTransactions, usePinnedTransactionIds, useArchivedTransactions } from '@/features/transactions/api/queries';
 import { TransactionFilters } from './TransactionFilters';
 import { TransactionTable } from './TransactionTable';
@@ -31,6 +32,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { data: transactions = [], isLoading, error, refetch } = useTransactions({
     status: statusFilter,
@@ -105,21 +107,39 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     }
   });
 
+  // Filter by search term
+  const filteredTransactions = useMemo(() => {
+    if (!searchTerm.trim()) return sortedTransactions;
+    const query = searchTerm.toLowerCase();
+    return sortedTransactions.filter(tx => {
+      const clientName = tx.clientName?.toLowerCase() || '';
+      const streetAddress = tx.propertyAddress?.street?.toLowerCase() || '';
+      const city = tx.propertyAddress?.city?.toLowerCase() || '';
+      return clientName.includes(query) || streetAddress.includes(query) || city.includes(query);
+    });
+  }, [sortedTransactions, searchTerm]);
 
-  const totalPages = Math.ceil(sortedTransactions.length / ITEMS_PER_PAGE);
+
+  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedTransactions = sortedTransactions.slice(startIndex, endIndex);
+  const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
 
   const handleResetFilters = () => {
     setSideFilter('all');
     setStatusFilter('all');
     setStageFilter('all');
     setSortBy('dateDesc');
+    setSearchTerm('');
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = sideFilter !== 'all' || statusFilter !== 'all' || stageFilter !== 'all';
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = sideFilter !== 'all' || statusFilter !== 'all' || stageFilter !== 'all' || searchTerm.trim() !== '';
 
   if (error && !isLoadingData) {
     return (
@@ -192,6 +212,20 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
           hasActiveFilters={hasActiveFilters}
         />
       )}
+
+      {/* Search Input */}
+      <Section className="p-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder={t('searchPlaceholder', { defaultValue: 'Search by client name or address...' })}
+            value={searchTerm}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </Section>
 
       {paginatedTransactions.length === 0 ? (
         <Section className="p-12 text-center">

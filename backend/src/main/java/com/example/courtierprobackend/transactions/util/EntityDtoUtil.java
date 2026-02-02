@@ -47,6 +47,7 @@ public class EntityDtoUtil {
                 .openedDate(t.getOpenedAt() != null ? t.getOpenedAt().toLocalDate().toString() : null)
                 .archived(t.getArchived() != null ? t.getArchived() : false)
                 .archivedAt(t.getArchivedAt() != null ? t.getArchivedAt().toString() : null)
+                .notes(t.getNotes())
                 .build();
     }
 

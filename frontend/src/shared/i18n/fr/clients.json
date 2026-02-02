@@ -30,6 +30,10 @@
     "sortByName": "Nom",
     "sortByEmail": "Courriel",
     "sortByStatus": "Statut",
+    "filter": "Filtrer",
+    "filterAll": "Tous",
+    "filterActive": "Actifs",
+    "filterInactive": "Inactifs",
     "status": {
         "active": "Actif",
         "closed_successfully": "Fermée",

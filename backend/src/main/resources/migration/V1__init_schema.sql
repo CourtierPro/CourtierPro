@@ -77,7 +77,9 @@ CREATE TABLE IF NOT EXISTS transactions (
     archived_by UUID,
     -- Soft Delete Columns
     deleted_at TIMESTAMP,
-    deleted_by UUID
+    deleted_by UUID,
+    -- Internal notes for brokers
+    notes TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_transactions_transaction_id ON transactions(transaction_id);
@@ -433,7 +435,7 @@ CREATE TABLE IF NOT EXISTS properties (
     CONSTRAINT chk_offer_status 
         CHECK (offer_status IN ('OFFER_TO_BE_MADE', 'OFFER_MADE', 'COUNTERED', 'ACCEPTED', 'DECLINED')),
     CONSTRAINT chk_property_status
-        CHECK (status IN ('SUGGESTED', 'ACCEPTED', 'DECLINED'))
+        CHECK (status IN ('SUGGESTED', 'INTERESTED', 'NOT_INTERESTED', 'NEEDS_INFO'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_properties_transaction_id ON properties(transaction_id);

@@ -64,7 +64,7 @@ export function TransactionTable({ transactions, onNavigate, pinnedIds, showArch
                                 {t('propertyAddress')}
                             </th>
                             <th className="p-4 text-left font-medium text-muted-foreground" scope="col">
-                                {t('side')}
+                                {t('sideLabel')}
                             </th>
                             <th className="p-4 text-left font-medium text-muted-foreground" scope="col">
                                 {t('currentStage')}

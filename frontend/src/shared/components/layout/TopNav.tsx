@@ -168,7 +168,7 @@ export function TopNav({
           >
             <Globe className="w-5 h-5" />
             <span className="hidden sm:inline-block w-6 text-center">
-              {language.toUpperCase()}
+              {language === "en" ? "FR" : "EN"}
             </span>
           </Button>
         </div>

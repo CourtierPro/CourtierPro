@@ -2081,10 +2081,17 @@ class TransactionServiceImplTest {
                 UUID brokerId = UUID.randomUUID();
                 String notes = "Internal meeting notes";
 
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(transactionRepository.save(any())).thenReturn(tx);
+
                 // Act
                 transactionService.saveInternalNotes(transactionId, notes, brokerId);
 
                 // Assert
+                verify(transactionRepository).save(any());
                 verify(timelineService).addEntry(
                                 eq(transactionId),
                                 eq(brokerId),
@@ -2094,28 +2101,42 @@ class TransactionServiceImplTest {
         }
 
         @Test
-        void saveInternalNotes_withNullNotes_doesNothing() {
+        void saveInternalNotes_withNullNotes_savesEmptyNotes() {
                 // Arrange
                 UUID transactionId = UUID.randomUUID();
                 UUID brokerId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(transactionRepository.save(any())).thenReturn(tx);
 
                 // Act
                 transactionService.saveInternalNotes(transactionId, null, brokerId);
 
-                // Assert
+                // Assert - saves but no timeline entry for null/blank notes
+                verify(transactionRepository).save(any());
                 verify(timelineService, never()).addEntry(any(), any(), any(), any(), any());
         }
 
         @Test
-        void saveInternalNotes_withBlankNotes_doesNothing() {
+        void saveInternalNotes_withBlankNotes_savesEmptyNotes() {
                 // Arrange
                 UUID transactionId = UUID.randomUUID();
                 UUID brokerId = UUID.randomUUID();
 
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(transactionRepository.save(any())).thenReturn(tx);
+
                 // Act
                 transactionService.saveInternalNotes(transactionId, "   ", brokerId);
 
-                // Assert
+                // Assert - saves but no timeline entry for null/blank notes
+                verify(transactionRepository).save(any());
                 verify(timelineService, never()).addEntry(any(), any(), any(), any(), any());
         }
 

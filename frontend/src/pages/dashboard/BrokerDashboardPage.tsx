@@ -92,7 +92,7 @@ export function BrokerDashboardPage() {
           title={t("broker.activeClients")}
           value={stats?.activeClients?.toString() || "0"}
           icon={<Users className="w-4 h-4" />}
-          onClick={() => navigate("/clients")}
+          onClick={() => navigate("/clients?filter=active")}
         />
       </div>
 

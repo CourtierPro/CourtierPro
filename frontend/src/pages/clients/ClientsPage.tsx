@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Users, ArrowUpDown } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Users, ArrowUpDown, Filter } from 'lucide-react';
 import { PageHeader } from '@/shared/components/branded/PageHeader';
 import { LoadingState } from '@/shared/components/branded/LoadingState';
 import { ErrorState } from '@/shared/components/branded/ErrorState';
@@ -19,14 +20,32 @@ import { ClientCard } from '@/features/clients/components/ClientCard';
 import { ClientDetailModal } from '@/features/clients/components/ClientDetailModal';
 
 type SortField = 'name' | 'email' | 'status';
+type FilterType = 'all' | 'active' | 'inactive';
 
 export function ClientsPage() {
   const { t } = useTranslation('clients');
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: clients, isLoading, isError, refetch } = useClients();
   const { data: transactions } = useTransactions();
 
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [sortBy, setSortBy] = useState<SortField>('name');
+
+  // Derive filter from URL query param (no state needed, use URL as source of truth)
+  const filterFromUrl = searchParams.get('filter');
+  const filter: FilterType = filterFromUrl && ['all', 'active', 'inactive'].includes(filterFromUrl)
+    ? filterFromUrl as FilterType
+    : 'all';
+
+  const handleFilterChange = (newFilter: string) => {
+    const f = newFilter as FilterType;
+    if (f === 'all') {
+      searchParams.delete('filter');
+    } else {
+      searchParams.set('filter', f);
+    }
+    setSearchParams(searchParams);
+  };
 
   // Determine which clients have active transactions
   const clientActiveStatus = useMemo(() => {
@@ -42,11 +61,20 @@ export function ClientsPage() {
     return statusMap;
   }, [clients, transactions]);
 
+  // Filter clients based on filter selection
+  const filteredClients = useMemo(() => {
+    if (!clients) return [];
+    if (filter === 'all') return clients;
+
+    return clients.filter(client => {
+      const isActive = clientActiveStatus.get(client.id) ?? false;
+      return filter === 'active' ? isActive : !isActive;
+    });
+  }, [clients, filter, clientActiveStatus]);
+
   // Sort clients based on selected field
   const sortedClients = useMemo(() => {
-    if (!clients) return [];
-
-    const sorted = [...clients];
+    const sorted = [...filteredClients];
     sorted.sort((a, b) => {
       switch (sortBy) {
         case 'name': {
@@ -66,7 +94,7 @@ export function ClientsPage() {
       }
     });
     return sorted;
-  }, [clients, sortBy, clientActiveStatus]);
+  }, [filteredClients, sortBy, clientActiveStatus]);
 
   const handleClientClick = (client: Client) => {
     setSelectedClient(client);
@@ -118,8 +146,26 @@ export function ClientsPage() {
     <div className="space-y-6">
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
-      {/* Sort Controls */}
-      <div className="flex justify-end">
+      {/* Filter and Sort Controls */}
+      <div className="flex justify-end gap-2">
+        {/* Filter Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Filter className="h-4 w-4" />
+              {t('filter')}: {t(`filter${filter.charAt(0).toUpperCase() + filter.slice(1)}` as 'filterAll' | 'filterActive' | 'filterInactive')}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuRadioGroup value={filter} onValueChange={handleFilterChange}>
+              <DropdownMenuRadioItem value="all">{t('filterAll')}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="active">{t('filterActive')}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="inactive">{t('filterInactive')}</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Sort Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="gap-2">

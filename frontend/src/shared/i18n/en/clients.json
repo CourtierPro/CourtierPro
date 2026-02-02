@@ -30,6 +30,10 @@
     "sortByName": "Name",
     "sortByEmail": "Email",
     "sortByStatus": "Status",
+    "filter": "Filter",
+    "filterAll": "All",
+    "filterActive": "Active",
+    "filterInactive": "Inactive",
     "status": {
         "active": "Active",
         "closed_successfully": "Closed",

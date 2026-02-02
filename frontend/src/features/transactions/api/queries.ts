@@ -67,7 +67,11 @@ export function useTransactions(filters?: { status?: string; stage?: string; sid
             const params = new URLSearchParams();
             if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
             if (filters?.stage && filters.stage !== 'all') params.append('stage', filters.stage);
-            if (filters?.side && filters.side !== 'all') params.append('side', filters.side);
+            if (filters?.side && filters.side !== 'all') {
+                // Map frontend filter values to backend enum values
+                const sideValue = filters.side === 'buy' ? 'BUY_SIDE' : filters.side === 'sell' ? 'SELL_SIDE' : filters.side;
+                params.append('side', sideValue);
+            }
 
             const res = await axiosInstance.get<Transaction[]>(`/transactions?${params.toString()}`);
             return res.data;

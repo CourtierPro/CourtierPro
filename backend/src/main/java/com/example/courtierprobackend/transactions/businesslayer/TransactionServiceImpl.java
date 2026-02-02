@@ -98,9 +98,17 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public void saveInternalNotes(UUID transactionId, String notes, UUID brokerId) {
-        // Optionally: persist notes on the transaction entity if needed (not required
-        // per user)
-        // Always: create a timeline NOTE event
+        // Fetch transaction and verify access
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+        
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_NOTES);
+        
+        // Persist notes on the transaction entity
+        tx.setNotes(notes);
+        repo.save(tx);
+        
+        // Create a timeline NOTE event for non-empty notes
         if (notes != null && !notes.isBlank()) {
             timelineService.addEntry(
                     transactionId,
@@ -260,7 +268,7 @@ public class TransactionServiceImpl implements TransactionService {
             TransactionParticipant clientParticipant = TransactionParticipant.builder()
                     .transactionId(saved.getTransactionId())
                     .name(clientOpt.get().getFirstName() + " " + clientOpt.get().getLastName())
-                    .role(ParticipantRole.BUYER) // ou un rôle spécifique si besoin
+                    .role(saved.getSide() == TransactionSide.BUY_SIDE ? ParticipantRole.BUYER : ParticipantRole.SELLER)
                     .email(clientOpt.get().getEmail())
                     .userId(clientOpt.get().getId())
                     .phoneNumber(null)
@@ -419,12 +427,31 @@ public class TransactionServiceImpl implements TransactionService {
             participantTxs = repo.findAllByParticipantEmail(userEmail);
         }
 
+        // Apply the same filters to participant transactions
+        final TransactionStatus finalStatus = status;
+        final TransactionSide finalSide = side;
+        final Enum<?> finalStage = stage;
+        
+        List<Transaction> filteredParticipantTxs = participantTxs.stream()
+                .filter(tx -> !Boolean.TRUE.equals(tx.getArchived())) // exclude archived
+                .filter(tx -> finalStatus == null || tx.getStatus() == finalStatus)
+                .filter(tx -> finalSide == null || tx.getSide() == finalSide)
+                .filter(tx -> {
+                    if (finalStage == null) return true;
+                    if (tx.getSide() == TransactionSide.BUY_SIDE) {
+                        return tx.getBuyerStage() == finalStage;
+                    } else {
+                        return tx.getSellerStage() == finalStage;
+                    }
+                })
+                .toList();
+
         // Merge both lists without duplicates (by transactionId)
         Map<UUID, Transaction> txMap = new HashMap<>();
         for (Transaction tx : brokerTxs) {
             txMap.put(tx.getTransactionId(), tx);
         }
-        for (Transaction tx : participantTxs) {
+        for (Transaction tx : filteredParticipantTxs) {
             txMap.put(tx.getTransactionId(), tx);
         }
 
