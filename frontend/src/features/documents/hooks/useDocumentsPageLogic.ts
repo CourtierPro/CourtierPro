@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useDocuments } from '../api/queries';
 import { useCreateDocument } from '../api/mutations';
-import { DocumentPartyEnum, DocumentTypeEnum } from '../types';
+import { DocumentPartyEnum, DocumentTypeEnum, DocumentFlowEnum } from '../types';
 import { useErrorHandler } from '@/shared/hooks/useErrorHandler';
 
 export function useDocumentsPageLogic(transactionId: string) {
@@ -13,7 +13,8 @@ export function useDocumentsPageLogic(transactionId: string) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { handleError } = useErrorHandler();
 
-    // Adapt signature to accept stage, conditionIds, and status parameters
+    // Adapt signature to accept stage, conditionIds, status, and flow parameters
+    // Returns document ID for file upload flow
     const handleRequestDocument = async (
         docType: DocumentTypeEnum,
         customTitle: string,
@@ -21,10 +22,11 @@ export function useDocumentsPageLogic(transactionId: string) {
         stage: string,
         conditionIds: string[] = [],
         dueDate?: Date,
-        status?: 'DRAFT' | 'REQUESTED'
-    ) => {
+        status?: 'DRAFT' | 'REQUESTED' | 'SUBMITTED',
+        flow?: DocumentFlowEnum
+    ): Promise<string | undefined> => {
         try {
-            await createDocument.mutateAsync({
+            const result = await createDocument.mutateAsync({
                 transactionId,
                 data: {
                     docType: docType,
@@ -35,7 +37,8 @@ export function useDocumentsPageLogic(transactionId: string) {
                     stage: stage,
                     conditionIds: conditionIds.length > 0 ? conditionIds : undefined,
                     dueDate: dueDate,
-                    status: status // Pass status to API (DRAFT or REQUESTED)
+                    status: status, // Pass status to API (DRAFT, REQUESTED, or SUBMITTED)
+                    flow: flow // Pass flow to API (REQUEST or UPLOAD)
                 }
             });
             setIsModalOpen(false);
@@ -43,9 +46,11 @@ export function useDocumentsPageLogic(transactionId: string) {
                 ? t('success.draftSaved', 'Document saved as draft')
                 : t('success.documentRequested');
             toast.success(successMessage);
+            return result.documentId;
         } catch (error) {
             handleError(error);
             toast.error(t('errors.requestDocumentFailed', 'Failed to request document'));
+            return undefined;
         }
     };
 

@@ -1078,67 +1078,8 @@ class DocumentServiceImplTest {
                 assertThat(result.getBrokerNotes()).isEqualTo("New Notes");
         }
 
-        @Test
-        void submitDocument_ByBroker_UsesBrokerName() throws IOException {
                 // Arrange
-                UUID transactionId = UUID.randomUUID();
-                UUID requestId = UUID.randomUUID();
-                UUID brokerId = UUID.randomUUID();
-                UUID clientId = UUID.randomUUID();
 
-                Transaction tx = new Transaction();
-                tx.setTransactionId(transactionId);
-                tx.setBrokerId(brokerId);
-                tx.setClientId(clientId);
-
-                Document request = new Document();
-                request.setDocumentId(requestId);
-                request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
-                request.setStatus(DocumentStatusEnum.REQUESTED);
-                request.setDocType(DocumentTypeEnum.ID_VERIFICATION);
-                request.setVersions(new ArrayList<>());
-
-                UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Jane", "Broker",
-                                UserRole.BROKER, "en");
-                broker.setId(brokerId);
-
-                MockMultipartFile file = new MockMultipartFile("file", "test.pdf", "application/pdf",
-                                "content".getBytes());
-                StorageObject storageObject = StorageObject.builder().s3Key("key").fileName("test.pdf").build();
-
-                when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
-                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
-                when(storageService.uploadFile(any(), eq(transactionId), eq(requestId))).thenReturn(storageObject);
-                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker)); // For resolving
-                                                                                                // 'broker' var
-                                                                                                // (recipient)
-                // When resolving uploader (which is broker in this case, but verified as
-                // uploaderID)
-                // Wait, logic is: if (uploaderType == CLIENT) -> resolve uploaderName.
-                // else -> uploaderName = "Unknown Client" (default logic in service line 261).
-                // Wait, if Broker uploads, line 262 is false. Name stays "Unknown Client".
-                // Line 262: if (uploaderType == UploadedByRefEnum.CLIENT)
-                // So if Broker uploads, it says "Unknown Client"? That seems like a bug or
-                // incomplete feature in source.
-                // Let's verify what the code does first.
-
-                // In Service:
-                // String uploaderName = "Unknown Client";
-                // if (uploaderType == UploadedByRefEnum.CLIENT) { ... }
-                // So if Broker uploads, name is "Unknown Client".
-                // I should test that avoiding the CLIENT branch works as expected (even if
-                // logic is weird).
-
-                when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
-
-                // Act
-                service.submitDocument(transactionId, requestId, file, brokerId, UploadedByRefEnum.BROKER);
-
-                // Assert
-                // Verify notification message contains "Unknown Client" (as per current impl)
-                verify(emailService).sendDocumentSubmittedNotification(any(), anyString(), eq("Unknown Client"),
-                                anyString(), anyString(), anyString());
-        }
 
         @Test
         void reviewDocument_WithMissingClient_SkipsNotification() {
@@ -2369,5 +2310,144 @@ class DocumentServiceImplTest {
                 assertThatThrownBy(() -> service.sendDocumentRequest(documentId, brokerId))
                                 .isInstanceOf(NotFoundException.class)
                                 .hasMessageContaining("Document not found");
+        }
+        @Test
+        void submitDocument_WhenUploadedByBroker_NotifiesClient() throws IOException {
+                // Arrange
+                UUID transactionId = UUID.randomUUID();
+                UUID requestId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(clientId);
+
+                Document request = new Document();
+                request.setDocumentId(requestId);
+                request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+                request.setDocType(DocumentTypeEnum.PAY_STUBS);
+                request.setCustomTitle("Pay Stub");
+                request.setStatus(DocumentStatusEnum.REQUESTED);
+                request.setVersions(new ArrayList<>());
+
+                UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Jane", "Smith",
+                                UserRole.BROKER, "en");
+                broker.setId(brokerId);
+                UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "John", "Doe",
+                                UserRole.CLIENT, "en");
+                client.setId(clientId);
+
+                MockMultipartFile file = new MockMultipartFile("file", "paystub.pdf", "application/pdf",
+                                "content".getBytes());
+                StorageObject storageObject = StorageObject.builder().s3Key("key").fileName("test.pdf").build();
+
+                when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(storageService.uploadFile(any(), eq(transactionId), eq(requestId))).thenReturn(storageObject);
+                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+                when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
+
+                // Mock message prompts
+                when(messageSource.getMessage(eq("notification.document.submitted.title"), any(),
+                                any(java.util.Locale.class)))
+                                .thenReturn("Document Submitted");
+                when(messageSource.getMessage(eq("notification.document.submitted.message"), any(),
+                                any(java.util.Locale.class)))
+                                .thenReturn("Jane Smith submitted document: Pay Stub");
+                when(messageSource.getMessage(anyString(), any(), anyString(), any(java.util.Locale.class)))
+                                .thenReturn("Localized Doc Type");
+
+                // Act
+                // Broker uploads document
+                DocumentResponseDTO result = service.submitDocument(transactionId, requestId, file, brokerId,
+                                UploadedByRefEnum.BROKER);
+
+                // Assert
+                assertThat(result).isNotNull();
+                assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.SUBMITTED);
+
+                // Verify Email sent to CLIENT
+                verify(emailService).sendDocumentSubmittedNotification(
+                                any(),
+                                eq("client@test.com"), // Expected recipient: client
+                                eq("John Doe"), // Expected name greeting: client name
+                                eq("Pay Stub"), // Doc name
+                                anyString(),
+                                eq("en") // Client language
+                );
+
+                // Verify In-App Notification created for CLIENT
+                verify(notificationService).createNotification(
+                                eq(client.getId().toString()), // Expected recipient ID: client
+                                anyString(),
+                                eq("Jane Smith submitted document: Pay Stub"), // Expected message with Broker Name
+                                eq(transactionId.toString()),
+                                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_SUBMITTED));
+        }
+
+        @Test
+        void shareDocumentWithClient_Success() {
+                // Arrange
+                UUID transactionId = UUID.randomUUID();
+                UUID documentId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(clientId);
+
+                Document document = new Document();
+                document.setDocumentId(documentId);
+                document.setTransactionRef(
+                                com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef.builder()
+                                                .transactionId(transactionId).build());
+                document.setDocType(DocumentTypeEnum.OTHER);
+                document.setCustomTitle("Draft Doc");
+                document.setStatus(DocumentStatusEnum.DRAFT);
+                document.setFlow(DocumentFlowEnum.UPLOAD);
+
+                UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Broker", "User",
+                                UserRole.BROKER, "en");
+                broker.setId(brokerId);
+                UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "Client", "User",
+                                UserRole.CLIENT, "en");
+                client.setId(clientId);
+
+                when(repository.findByDocumentId(documentId)).thenReturn(Optional.of(document));
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+                when(repository.save(any(Document.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(messageSource.getMessage(any(), any(), any(), any())).thenReturn("Message");
+
+                // Act
+                DocumentResponseDTO result = service.shareDocumentWithClient(documentId, brokerId);
+
+                // Assert
+                assertThat(result).isNotNull();
+                assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.SUBMITTED);
+                assertThat(result.isVisibleToClient()).isTrue();
+
+                // Verify Email Sent
+                verify(emailService).sendDocumentSubmittedNotification(
+                                eq(document),
+                                eq("client@test.com"),
+                                eq("Broker User"),
+                                eq("Draft Doc"),
+                                eq("OTHER"),
+                                eq("en"));
+
+                // Verify In-App Notification
+                verify(notificationService).createNotification(
+                                eq(clientId.toString()),
+                                anyString(),
+                                anyString(),
+                                eq(transactionId.toString()),
+                                any());
         }
 }

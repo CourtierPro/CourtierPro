@@ -3,6 +3,7 @@ package com.example.courtierprobackend.documents.presentationlayer.models;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentPartyEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
+import com.example.courtierprobackend.documents.datalayer.enums.DocumentFlowEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.StageEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -36,4 +37,9 @@ public class DocumentRequestDTO {
      * Defaults to REQUESTED if not provided.
      */
     private DocumentStatusEnum status;
+
+    /**
+     * Flow type for the document. Defaults to REQUEST if not provided.
+     */
+    private DocumentFlowEnum flow;
 }

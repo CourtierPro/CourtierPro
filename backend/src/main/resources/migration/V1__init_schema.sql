@@ -158,6 +158,8 @@ CREATE TABLE IF NOT EXISTS documents (
     last_updated_at TIMESTAMP,
     visible_to_client BOOLEAN DEFAULT true,
     stage VARCHAR(64),
+    -- Flow type: REQUEST (client uploads) or UPLOAD (broker uploads)
+    flow VARCHAR(50) DEFAULT 'REQUEST',
     -- Date columns (consolidated from V2)
     due_date TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -170,6 +172,7 @@ CREATE INDEX IF NOT EXISTS idx_documents_document_id ON documents(document_id);
 CREATE INDEX IF NOT EXISTS idx_documents_transaction ON documents(transaction_id);
 CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
 CREATE INDEX IF NOT EXISTS idx_documents_deleted_at ON documents(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_documents_flow ON documents(flow);
 
 -- Search Indexes
 -- Search Indexes

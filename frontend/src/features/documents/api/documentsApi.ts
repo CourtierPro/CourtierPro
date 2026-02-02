@@ -1,5 +1,5 @@
 import { axiosInstance } from '@/shared/api/axiosInstance';
-import type { Document, DocumentTypeEnum, DocumentPartyEnum } from '../types';
+import type { Document, DocumentTypeEnum, DocumentPartyEnum, DocumentFlowEnum } from '../types';
 
 export interface CreateDocumentDTO {
     docType: DocumentTypeEnum;
@@ -10,8 +10,10 @@ export interface CreateDocumentDTO {
     stage: string;
     conditionIds?: string[];
     dueDate?: Date;
-    /** Optional status: 'DRAFT' or 'REQUESTED'. Defaults to 'REQUESTED' if not provided. */
-    status?: 'DRAFT' | 'REQUESTED';
+    /** Optional status: 'DRAFT', 'REQUESTED', or 'SUBMITTED'. Defaults to 'REQUESTED' if not provided. */
+    status?: 'DRAFT' | 'REQUESTED' | 'SUBMITTED';
+    /** Optional flow type: 'REQUEST' or 'UPLOAD'. Defaults to 'REQUEST' if not provided. */
+    flow?: DocumentFlowEnum;
 }
 
 export interface UpdateDocumentDTO {
@@ -152,6 +154,47 @@ export const sendDocumentRequest = async (
 ): Promise<Document> => {
     const response = await axiosInstance.post<Document>(
         `/transactions/${transactionId}/documents/${documentId}/send`,
+        {},
+        { handleLocally: true }
+    );
+    return response.data;
+};
+
+/**
+ * Uploads a file to a document without changing its status.
+ * Used for attaching files to draft documents.
+ */
+export const uploadFileToDocument = async (
+    transactionId: string,
+    documentId: string,
+    file: File
+): Promise<Document> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await axiosInstance.post<Document>(
+        `/transactions/${transactionId}/documents/${documentId}/upload`,
+        formData,
+        {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+            handleLocally: true,
+        }
+    );
+    return response.data;
+};
+
+/**
+ * Shares an UPLOAD flow draft document with the client.
+ * Transitions from DRAFT to SUBMITTED status.
+ */
+export const shareDocumentWithClient = async (
+    transactionId: string,
+    documentId: string
+): Promise<Document> => {
+    const response = await axiosInstance.post<Document>(
+        `/transactions/${transactionId}/documents/${documentId}/share`,
         {},
         { handleLocally: true }
     );

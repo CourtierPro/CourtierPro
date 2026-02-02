@@ -152,4 +152,36 @@ public class DocumentController {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
         return ResponseEntity.ok(service.sendDocumentRequest(documentId, brokerId));
     }
+
+    /**
+     * Uploads a file to a document without changing its status.
+     * Used for attaching files to draft documents.
+     */
+    @PostMapping("/{documentId}/upload")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<DocumentResponseDTO> uploadFileToDocument(
+            @PathVariable UUID transactionId,
+            @PathVariable UUID documentId,
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) throws IOException {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.uploadFileToDocument(transactionId, documentId, file, brokerId, UploadedByRefEnum.BROKER));
+    }
+
+    /**
+     * Shares an UPLOAD flow draft document with the client.
+     * Transitions from DRAFT to SUBMITTED status.
+     */
+    @PostMapping("/{documentId}/share")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<DocumentResponseDTO> shareDocumentWithClient(
+            @PathVariable UUID transactionId,
+            @PathVariable UUID documentId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.shareDocumentWithClient(documentId, brokerId));
+    }
 }
+

@@ -1,7 +1,7 @@
 import { updateDocument } from './documentsApi';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentKeys } from '@/features/documents/api/queries';
-import { createDocument, submitDocument, reviewDocument, sendDocumentReminder, sendDocumentRequest, type CreateDocumentDTO } from './documentsApi.ts';
+import { createDocument, submitDocument, reviewDocument, sendDocumentReminder, sendDocumentRequest, deleteDocument, uploadFileToDocument, shareDocumentWithClient, type CreateDocumentDTO } from './documentsApi.ts';
 
 import type { UpdateDocumentDTO } from './documentsApi';
 
@@ -68,6 +68,24 @@ export function useSubmitDocument() {
     });
 }
 
+/**
+ * Mutation hook to upload a file to a document without changing its status.
+ * Used for attaching files to draft documents.
+ */
+export function useUploadFileToDocument() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ transactionId, documentId, file }: { transactionId: string; documentId: string; file: File }) =>
+            uploadFileToDocument(transactionId, documentId, file),
+        onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
+            queryClient.invalidateQueries({ queryKey: ['documents'] });
+        },
+    });
+}
+
+
 export const useReviewDocument = () => {
     const queryClient = useQueryClient();
 
@@ -113,6 +131,62 @@ export const useSendDocumentRequest = () => {
     return useMutation({
         mutationFn: ({ transactionId, documentId }: { transactionId: string; documentId: string }) =>
             sendDocumentRequest(transactionId, documentId),
+        onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
+            queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
+            queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transactions', 'detail', transactionId, 'timeline'
+                ]
+            }); // Timeline broker
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transaction', transactionId, 'timeline', 'client'
+                ]
+            }); // Timeline client
+        },
+    });
+};
+
+/**
+ * Mutation hook to delete a document (typically a draft).
+ * Only brokers with EDIT_DOCUMENTS permission can delete documents.
+ */
+export const useDeleteDocument = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ transactionId, documentId }: { transactionId: string; documentId: string }) =>
+            deleteDocument(transactionId, documentId),
+        onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
+            queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
+            queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transactions', 'detail', transactionId, 'timeline'
+                ]
+            }); // Timeline broker
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transaction', transactionId, 'timeline', 'client'
+                ]
+            }); // Timeline client
+        },
+    });
+};
+
+/**
+ * Mutation hook to share an UPLOAD flow draft document with the client.
+ * Transitions from DRAFT to SUBMITTED status.
+ */
+export const useShareDocumentWithClient = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ transactionId, documentId }: { transactionId: string; documentId: string }) =>
+            shareDocumentWithClient(transactionId, documentId),
         onSuccess: (_, { transactionId }) => {
             queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });

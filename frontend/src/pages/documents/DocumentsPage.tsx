@@ -5,18 +5,19 @@ import { Section } from "@/shared/components/branded/Section";
 import { SectionHeader } from "@/shared/components/branded/SectionHeader";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
-import { Plus, FileText, Download, Eye, Tag } from "lucide-react";
+import { Plus, FileText, Download, Eye, Tag, Upload } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { toast } from "sonner";
 
 import { useDocumentsPageLogic } from "@/features/documents/hooks/useDocumentsPageLogic";
 import { RequestDocumentModal } from "@/features/documents/components/RequestDocumentModal";
+import { UploadForClientModal } from "@/features/documents/components/UploadForClientModal";
 import { UploadDocumentModal } from "@/features/documents/components/UploadDocumentModal";
 import { DocumentReviewModal } from "@/features/documents/components/DocumentReviewModal";
 import { DocumentList } from "@/features/documents/components/DocumentList";
 import { EditDocumentModal } from "@/features/documents/components/EditDocumentModal";
-import { useUpdateDocument, useSendDocumentRequest } from "@/features/documents/api/mutations";
+import { useUpdateDocument, useSendDocumentRequest, useDeleteDocument, useUploadFileToDocument, useShareDocumentWithClient } from "@/features/documents/api/mutations";
 import { useTranslation } from "react-i18next";
 import { StageDropdownSelector } from '@/features/documents/components/StageDropdownSelector';
 import { useStageOptions } from '@/features/documents/hooks/useStageOptions';
@@ -78,14 +79,32 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
   // Edit modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
+  // Upload for client modal state
+  const [isUploadForClientModalOpen, setIsUploadForClientModalOpen] = useState(false);
 
   const updateDocumentMutation = useUpdateDocument();
   const sendDocumentRequestMutation = useSendDocumentRequest();
+  const deleteDocumentMutation = useDeleteDocument();
+  const uploadFileToDocumentMutation = useUploadFileToDocument();
+  const shareDocumentWithClientMutation = useShareDocumentWithClient();
 
   const handleUploadClick = (document: Document) => {
     setSelectedDocument(document);
     setIsUploadModalOpen(true);
   };
+
+  // Handler for uploading file to an existing document without changing status (used by UploadForClientModal for drafts)
+  const handleUploadFileForDocument = useCallback(
+    async (documentId: string, file: File) => {
+      await uploadFileToDocumentMutation.mutateAsync({
+        transactionId,
+        documentId,
+        file
+      });
+      refetch();
+    },
+    [transactionId, uploadFileToDocumentMutation, refetch]
+  );
 
   // Send Request handler for draft documents
   const handleSendDocumentRequest = useCallback(
@@ -104,6 +123,66 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
       );
     },
     [transactionId, sendDocumentRequestMutation, refetch, tDocuments]
+  );
+
+  // Delete handler for draft documents
+  const handleDeleteDocument = useCallback(
+    (document: Document) => {
+      toast(tDocuments('confirmDeleteDraft', 'Are you sure you want to delete this draft?'), {
+        action: {
+          label: tDocuments('actions.delete', 'Delete'),
+          onClick: () => {
+            deleteDocumentMutation.mutate(
+              { transactionId, documentId: document.documentId },
+              {
+                onSuccess: () => {
+                  toast.success(tDocuments('success.draftDeleted', 'Draft deleted successfully'));
+                  refetch();
+                },
+                onError: () => {
+                  toast.error(tDocuments('errors.deleteFailed', 'Failed to delete draft'));
+                }
+              }
+            );
+          }
+        },
+        cancel: {
+          label: tDocuments('actions.cancel', 'Cancel'),
+          onClick: () => { }
+        }
+      });
+    },
+    [transactionId, deleteDocumentMutation, refetch, tDocuments]
+  );
+
+  // Share handler for UPLOAD flow draft documents
+  const handleShareDocument = useCallback(
+    (document: Document) => {
+      toast(tDocuments('confirmShareDraft', 'Are you sure you want to share this document with the client?'), {
+        action: {
+          label: tDocuments('actions.share', 'Share'),
+          onClick: () => {
+            shareDocumentWithClientMutation.mutate(
+              { transactionId, documentId: document.documentId },
+              {
+                onSuccess: () => {
+                  toast.success(tDocuments('success.documentShared', 'Document shared with client'));
+                  refetch();
+                },
+                onError: () => {
+                  toast.error(tDocuments('errors.shareFailed', 'Failed to share document'));
+                }
+              }
+            );
+          }
+        },
+        cancel: {
+          label: tDocuments('actions.cancel', 'Cancel'),
+          onClick: () => { }
+        }
+      });
+    },
+    [transactionId, shareDocumentWithClientMutation, refetch, tDocuments]
   );
 
   // Edit click handler
@@ -221,10 +300,16 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
         subtitle={tDocuments('subtitle', 'Manage all your transaction documents in one place.')}
         actions={
           !isReadOnly && !hideRequestButton && canReview && canEditDocuments && (
-            <Button onClick={() => setIsModalOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              {tDocuments('requestDocument', 'Request Document')}
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setIsUploadForClientModalOpen(true)}>
+                <Upload className="w-4 h-4 mr-2" />
+                {tDocuments('uploadForClient', 'Upload for Client')}
+              </Button>
+              <Button onClick={() => setIsModalOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                {tDocuments('requestDocument', 'Request Document')}
+              </Button>
+            </>
           )
         }
       />
@@ -245,6 +330,8 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
         onReview={canReview ? handleReviewClick : undefined}
         onEdit={canReview && canEditDocuments ? handleEditClick : undefined}
         onSendRequest={canReview ? handleSendDocumentRequest : undefined}
+        onShare={canReview && canEditDocuments ? handleShareDocument : undefined}
+        onDelete={canReview && canEditDocuments ? handleDeleteDocument : undefined}
         focusDocumentId={focusDocumentId}
         isBroker={role === 'broker'}
       />
@@ -332,6 +419,18 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleRequestDocument}
+        transactionType={transactionSide === 'BUY_SIDE' ? 'buy' : 'sell'}
+        currentStage={currentStage || ''}
+        transactionId={transactionId}
+      />
+
+      {/* Key forces remount on open to reset all state */}
+      <UploadForClientModal
+        key={isUploadForClientModalOpen ? 'open' : 'closed'}
+        isOpen={isUploadForClientModalOpen}
+        onClose={() => setIsUploadForClientModalOpen(false)}
+        onSubmit={handleRequestDocument}
+        onUploadFile={handleUploadFileForDocument}
         transactionType={transactionSide === 'BUY_SIDE' ? 'buy' : 'sell'}
         currentStage={currentStage || ''}
         transactionId={transactionId}

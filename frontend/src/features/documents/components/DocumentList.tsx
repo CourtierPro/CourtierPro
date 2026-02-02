@@ -12,6 +12,8 @@ interface DocumentListProps {
     onReview?: (document: Document) => void;
     onEdit?: (document: Document) => void;
     onSendRequest?: (document: Document) => void;
+    onShare?: (document: Document) => void;
+    onDelete?: (document: Document) => void;
     focusDocumentId?: string | null;
     showBrokerNotes?: boolean;
     isBroker?: boolean;
@@ -23,6 +25,8 @@ export function DocumentList({
     onReview,
     onEdit,
     onSendRequest,
+    onShare,
+    onDelete,
     focusDocumentId,
     showBrokerNotes = true,
     isBroker = false
@@ -112,6 +116,8 @@ export function DocumentList({
                                             onReview={onReview}
                                             onEdit={onEdit}
                                             onSendRequest={onSendRequest}
+                                            onShare={onShare}
+                                            onDelete={onDelete}
                                             isFocused={focusDocumentId === doc.documentId}
                                             showBrokerNotes={showBrokerNotes}
                                         />

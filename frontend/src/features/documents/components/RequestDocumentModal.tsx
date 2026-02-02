@@ -191,7 +191,7 @@ export function RequestDocumentModal({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-6 py-4">
+          <form onSubmit={form.handleSubmit((data) => onFormSubmit(data, 'REQUESTED'))} className="space-y-6 py-4">
 
             {/* Document Type Select */}
             <FormField

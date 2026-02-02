@@ -3,6 +3,7 @@ package com.example.courtierprobackend.documents.datalayer;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentPartyEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
+import com.example.courtierprobackend.documents.datalayer.enums.DocumentFlowEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.StageEnum;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
 import com.example.courtierprobackend.transactions.datalayer.enums.BuyerStage;
@@ -61,6 +62,10 @@ public class Document {
 
     @Enumerated(EnumType.STRING)
     private StageEnum stage;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private DocumentFlowEnum flow = DocumentFlowEnum.REQUEST;
 
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

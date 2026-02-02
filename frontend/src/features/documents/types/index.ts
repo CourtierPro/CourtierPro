@@ -36,6 +36,12 @@ export const DocumentTypeEnum = {
 } as const;
 export type DocumentTypeEnum = typeof DocumentTypeEnum[keyof typeof DocumentTypeEnum];
 
+export const DocumentFlowEnum = {
+    REQUEST: 'REQUEST',
+    UPLOAD: 'UPLOAD',
+} as const;
+export type DocumentFlowEnum = typeof DocumentFlowEnum[keyof typeof DocumentFlowEnum];
+
 export interface StorageObject {
     s3Key: string;
     fileName: string;
@@ -67,6 +73,8 @@ export interface DocumentCreateDTO {
     stage: string;
     conditionIds?: string[];
     dueDate?: Date;
+    status?: DocumentStatusEnum;
+    flow?: DocumentFlowEnum;
 }
 
 export interface DocumentUpdateDTO {
@@ -78,6 +86,7 @@ export interface DocumentUpdateDTO {
     stage?: string;
     conditionIds?: string[];
     dueDate?: Date;
+    flow?: DocumentFlowEnum;
 }
 
 export interface Document {
@@ -98,4 +107,5 @@ export interface Document {
     visibleToClient: boolean;
     stage: string;
     dueDate?: string;
+    flow: DocumentFlowEnum;
 }

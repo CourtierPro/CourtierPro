@@ -172,6 +172,8 @@ public class DocumentServiceImpl implements DocumentService {
                 // Add stage mapping
                 document.setStage(requestDTO.getStage());
                 document.setDueDate(requestDTO.getDueDate());
+                // Set flow type, default to REQUEST if not provided
+                document.setFlow(requestDTO.getFlow() != null ? requestDTO.getFlow() : DocumentFlowEnum.REQUEST);
 
                 Document savedDocument = repository.save(document);
 
@@ -478,48 +480,141 @@ public class DocumentServiceImpl implements DocumentService {
                                                                 : savedDocument.getDocType()),
                                 savedDocument.getDocType() != null ? savedDocument.getDocType().toString() : null);
 
-                // Notify broker
-                UserAccount broker = resolveUserAccount(tx.getBrokerId())
-                                .orElseThrow(() -> new NotFoundException("Broker not found: " + tx.getBrokerId()));
+                // Notification logic
+                if (uploaderType == UploadedByRefEnum.BROKER) {
+                        // Broker uploaded for Client -> Notify Client
+                        UserAccount client = resolveUserAccount(tx.getClientId())
+                                        .orElseThrow(() -> new NotFoundException("Client not found: " + tx.getClientId()));
+                        UserAccount broker = resolveUserAccount(tx.getBrokerId())
+                                        .orElseThrow(() -> new NotFoundException("Broker not found: " + tx.getBrokerId()));
 
-                // Get uploader name
-                String uploaderName = "Unknown Client";
-                if (uploaderType == UploadedByRefEnum.CLIENT) {
-                        uploaderName = resolveUserAccount(uploaderId)
-                                        .map(u -> u.getFirstName() + " " + u.getLastName())
-                                        .orElse("Unknown Client");
+                        String clientName = client.getFirstName() + " " + client.getLastName();
+                        String brokerName = broker.getFirstName() + " " + broker.getLastName();
+                        String documentName = savedDocument.getCustomTitle() != null ? savedDocument.getCustomTitle()
+                                        : savedDocument.getDocType().toString();
+                        String docType = savedDocument.getDocType().toString();
+                        String clientLanguage = client.getPreferredLanguage() != null ? client.getPreferredLanguage()
+                                        : "en";
+
+                        // Send Email to Client
+                        emailService.sendDocumentSubmittedNotification(savedDocument, client.getEmail(), clientName,
+                                        documentName, docType, clientLanguage);
+
+                        // In-app Notification for Client
+                        try {
+                                Locale locale = isFrench(clientLanguage) ? Locale.FRENCH : Locale.ENGLISH;
+                                String localizedDocType = messageSource.getMessage(
+                                                "document.type." + savedDocument.getDocType(), null,
+                                                savedDocument.getDocType().name(), locale);
+                                String displayDocName = savedDocument.getCustomTitle() != null
+                                                ? savedDocument.getCustomTitle()
+                                                : localizedDocType;
+
+                                String title = messageSource.getMessage("notification.document.submitted.title", null,
+                                                locale);
+                                // For client notification: "{Broker Name} submitted document: {Doc Name}"
+                                String message = messageSource.getMessage("notification.document.submitted.message",
+                                                new Object[] { brokerName, displayDocName }, locale);
+
+                                notificationService.createNotification(
+                                                client.getId().toString(),
+                                                title,
+                                                message,
+                                                transactionId.toString(),
+                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_SUBMITTED);
+                        } catch (Exception e) {
+                                logger.error("Failed to send in-app notification for document submission to client", e);
+                        }
+
+                } else {
+                        // Client (or other) uploaded -> Notify Broker
+                        UserAccount broker = resolveUserAccount(tx.getBrokerId())
+                                        .orElseThrow(() -> new NotFoundException("Broker not found: " + tx.getBrokerId()));
+
+                        // Get uploader name
+                        String uploaderName = "Unknown Client";
+                        if (uploaderType == UploadedByRefEnum.CLIENT) {
+                                uploaderName = resolveUserAccount(uploaderId)
+                                                .map(u -> u.getFirstName() + " " + u.getLastName())
+                                                .orElse("Unknown Client");
+                        }
+
+                        String documentName = savedDocument.getCustomTitle() != null ? savedDocument.getCustomTitle()
+                                        : savedDocument.getDocType().toString();
+                        String docType = savedDocument.getDocType().toString();
+                        String brokerLanguage = broker.getPreferredLanguage() != null ? broker.getPreferredLanguage()
+                                        : "en";
+
+                        emailService.sendDocumentSubmittedNotification(savedDocument, broker.getEmail(), uploaderName,
+                                        documentName, docType, brokerLanguage);
+
+                        // In-app Notification for Broker
+                        try {
+                                Locale locale = isFrench(brokerLanguage) ? Locale.FRENCH : Locale.ENGLISH;
+                                String localizedDocType = messageSource.getMessage(
+                                                "document.type." + savedDocument.getDocType(), null,
+                                                savedDocument.getDocType().name(), locale);
+                                String displayDocName = savedDocument.getCustomTitle() != null
+                                                ? savedDocument.getCustomTitle()
+                                                : localizedDocType;
+
+                                String title = messageSource.getMessage("notification.document.submitted.title", null,
+                                                locale);
+                                // For broker notification: "{Client Name} submitted document: {Doc Name}"
+                                String message = messageSource.getMessage("notification.document.submitted.message",
+                                                new Object[] { uploaderName, displayDocName }, locale);
+                                notificationService.createNotification(
+                                                broker.getId().toString(),
+                                                title,
+                                                message,
+                                                transactionId.toString(),
+                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_SUBMITTED);
+                        } catch (Exception e) {
+                                logger.error("Failed to send in-app notification for document submission to broker", e);
+                        }
                 }
 
-                String documentName = savedDocument.getCustomTitle() != null ? savedDocument.getCustomTitle()
-                                : savedDocument.getDocType().toString();
-                String docType = savedDocument.getDocType().toString();
-                String brokerLanguage = broker.getPreferredLanguage() != null ? broker.getPreferredLanguage() : "en";
+                return mapToResponseDTO(savedDocument);
+        }
 
-                emailService.sendDocumentSubmittedNotification(savedDocument, broker.getEmail(), uploaderName,
-                                documentName, docType, brokerLanguage);
+        @Transactional
+        @Override
+        public DocumentResponseDTO uploadFileToDocument(UUID transactionId, UUID documentId, MultipartFile file,
+                        UUID uploaderId, UploadedByRefEnum uploaderType) throws IOException {
+                Document document = repository.findByDocumentId(documentId)
+                                .orElseThrow(() -> new NotFoundException("Document not found: " + documentId));
 
-                // In-app Notification for Broker
-                try {
-                        Locale locale = isFrench(brokerLanguage) ? Locale.FRENCH : Locale.ENGLISH;
-                        String localizedDocType = messageSource.getMessage(
-                                        "document.type." + savedDocument.getDocType(), null,
-                                        savedDocument.getDocType().name(), locale);
-                        String displayDocName = savedDocument.getCustomTitle() != null
-                                        ? savedDocument.getCustomTitle()
-                                        : localizedDocType;
-
-                        String title = messageSource.getMessage("notification.document.submitted.title", null, locale);
-                        String message = messageSource.getMessage("notification.document.submitted.message",
-                                        new Object[] { uploaderName, displayDocName }, locale);
-                        notificationService.createNotification(
-                                        broker.getId().toString(),
-                                        title,
-                                        message,
-                                        transactionId.toString(),
-                                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_SUBMITTED);
-                } catch (Exception e) {
-                        logger.error("Failed to send in-app notification for document submission", e);
+                if (!document.getTransactionRef().getTransactionId().equals(transactionId)) {
+                        throw new BadRequestException(
+                                        "Document does not belong to transaction: " + transactionId);
                 }
+
+                Transaction tx = transactionRepository.findByTransactionId(transactionId)
+                                .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
+
+                verifyEditAccess(tx, uploaderId);
+
+                StorageObject storageObject = storageService.uploadFile(file, transactionId, documentId);
+
+                UploadedBy uploadedBy = UploadedBy.builder()
+                                .uploaderType(uploaderType)
+                                .uploaderId(uploaderId)
+                                .party(document.getExpectedFrom())
+                                .build();
+
+                DocumentVersion version = DocumentVersion.builder()
+                                .versionId(UUID.randomUUID())
+                                .uploadedAt(LocalDateTime.now())
+                                .uploadedBy(uploadedBy)
+                                .storageObject(storageObject)
+                                .document(document)
+                                .build();
+
+                document.getVersions().add(version);
+                // Note: We do NOT change the status here - the document keeps its current status
+                document.setLastUpdatedAt(LocalDateTime.now());
+
+                Document savedDocument = repository.save(document);
 
                 return mapToResponseDTO(savedDocument);
         }
@@ -541,7 +636,8 @@ public class DocumentServiceImpl implements DocumentService {
                                 .brokerNotes(document.getBrokerNotes())
                                 .lastUpdatedAt(document.getLastUpdatedAt())
                                 .visibleToClient(document.isVisibleToClient())
-                                .stage(document.getStage()) // Add stage field to response
+                                .stage(document.getStage())
+				.flow(document.getFlow())
                                 .build();
         }
 
@@ -877,6 +973,83 @@ public class DocumentServiceImpl implements DocumentService {
                                                 com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REQUEST);
                         } catch (Exception e) {
                                 logger.error("Failed to send in-app notification for document request", e);
+                        }
+                }
+
+                return mapToResponseDTO(savedDocument);
+        }
+
+        @Transactional
+        @Override
+        public DocumentResponseDTO shareDocumentWithClient(UUID documentId, UUID brokerId) {
+                Document document = repository.findByDocumentId(documentId)
+                                .orElseThrow(() -> new NotFoundException("Document not found: " + documentId));
+
+                Transaction tx = transactionRepository
+                                .findByTransactionId(document.getTransactionRef().getTransactionId())
+                                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+                verifyBrokerOrCoManager(tx, brokerId,
+                                com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
+
+                if (document.getStatus() != DocumentStatusEnum.DRAFT) {
+                        throw new BadRequestException("Only draft documents can be shared with client");
+                }
+
+                if (document.getFlow() != DocumentFlowEnum.UPLOAD) {
+                        throw new BadRequestException("Only UPLOAD flow documents can be shared using this endpoint");
+                }
+
+                // Transition to SUBMITTED status and make visible to client
+                document.setStatus(DocumentStatusEnum.SUBMITTED);
+                document.setVisibleToClient(true);
+                document.setLastUpdatedAt(LocalDateTime.now());
+                Document savedDocument = repository.save(document);
+
+                // Add timeline entry for document shared
+                timelineService.addEntry(
+                                tx.getTransactionId(),
+                                tx.getBrokerId(),
+                                TimelineEntryType.DOCUMENT_SUBMITTED,
+                                "Document shared with client: " + (document.getCustomTitle() != null ? document.getCustomTitle() : document.getDocType()),
+                                document.getDocType() != null ? document.getDocType().toString() : null);
+
+                // Notify client via email
+                UserAccount client = resolveUserAccount(tx.getClientId()).orElse(null);
+                UserAccount broker = resolveUserAccount(tx.getBrokerId()).orElse(null);
+
+                if (client != null && broker != null) {
+                        String documentName = document.getCustomTitle() != null ? document.getCustomTitle()
+                                        : document.getDocType().toString();
+                        String brokerName = broker.getFirstName() + " " + broker.getLastName();
+                        String docType = document.getDocType().toString();
+                        String clientLanguage = client.getPreferredLanguage();
+
+                        emailService.sendDocumentSubmittedNotification(savedDocument, client.getEmail(), brokerName,
+                                        documentName, docType, clientLanguage);
+
+                        // In-app Notification for Client
+                        try {
+                                Locale locale = isFrench(clientLanguage) ? Locale.FRENCH : Locale.ENGLISH;
+                                String localizedDocType = messageSource.getMessage(
+                                                "document.type." + document.getDocType(), null,
+                                                document.getDocType().name(), locale);
+                                String displayDocName = document.getCustomTitle() != null
+                                                ? document.getCustomTitle()
+                                                : localizedDocType;
+                                String title = messageSource.getMessage("notification.document.shared.title", null,
+                                                "Document Shared", locale);
+                                String message = messageSource.getMessage("notification.document.shared.message",
+                                                new Object[] { brokerName, displayDocName },
+                                                brokerName + " shared a document: " + displayDocName, locale);
+                                notificationService.createNotification(
+                                                client.getId().toString(),
+                                                title,
+                                                message,
+                                                tx.getTransactionId().toString(),
+                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_SUBMITTED);
+                        } catch (Exception e) {
+                                logger.error("Failed to send in-app notification for document share", e);
                         }
                 }
 
