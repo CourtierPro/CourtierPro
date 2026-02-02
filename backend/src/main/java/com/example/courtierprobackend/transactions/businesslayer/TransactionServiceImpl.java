@@ -86,6 +86,11 @@ import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageOb
 import com.example.courtierprobackend.transactions.datalayer.dto.UnifiedDocumentDTO;
 import com.example.courtierprobackend.transactions.datalayer.DocumentConditionLink;
 import org.springframework.web.multipart.MultipartFile;
+import com.example.courtierprobackend.transactions.datalayer.SearchCriteria;
+import com.example.courtierprobackend.transactions.datalayer.repositories.SearchCriteriaRepository;
+import com.example.courtierprobackend.transactions.datalayer.dto.SearchCriteriaRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.SearchCriteriaResponseDTO;
+
 
 @Service
 @RequiredArgsConstructor
@@ -124,6 +129,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final S3StorageService s3StorageService;
     private final com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository documentRequestRepository;
     private final com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository documentConditionLinkRepository;
+    private final SearchCriteriaRepository searchCriteriaRepository;
 
     private String lookupUserName(UUID userId) {
         if (userId == null) {
@@ -191,7 +197,6 @@ public class TransactionServiceImpl implements TransactionService {
         UUID brokerId = dto.getBrokerId();
         String street = dto.getPropertyAddress().getStreet();
 
-        // 2) Prevent duplicate ACTIVE transactions
         // 2) Prevent duplicate ACTIVE transactions (only if address is provided)
         if (street != null && !street.isBlank()) {
             repo.findByClientIdAndPropertyAddress_StreetAndStatus(
@@ -260,7 +265,8 @@ public class TransactionServiceImpl implements TransactionService {
                     .userId(clientOpt.get().getId())
                     .phoneNumber(null)
                     .permissions(Set.of(ParticipantPermission.VIEW_DOCUMENTS, ParticipantPermission.VIEW_STAGE,
-                            ParticipantPermission.VIEW_CONDITIONS, ParticipantPermission.VIEW_NOTES))
+                            ParticipantPermission.VIEW_CONDITIONS, ParticipantPermission.VIEW_NOTES,
+                            ParticipantPermission.VIEW_SEARCH_CRITERIA, ParticipantPermission.EDIT_SEARCH_CRITERIA))
                     .isSystem(true)
                     .build();
             participantRepository.save(clientParticipant);
@@ -2792,5 +2798,183 @@ public class TransactionServiceImpl implements TransactionService {
         });
 
         return allDocuments;
+    }
+
+    // ========== Search Criteria (for buyer transactions) ==========
+
+    @Override
+    public SearchCriteriaResponseDTO getSearchCriteria(UUID transactionId, UUID userId, boolean isBroker) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        // Verify access (broker, client, or participant)
+        String userEmail = userId != null
+                ? userAccountRepository.findById(userId).map(UserAccount::getEmail).orElse(null)
+                : null;
+        List<TransactionParticipant> participants = participantRepository.findByTransactionId(transactionId);
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail, participants);
+
+        // Validate that it's a buy-side transaction
+        if (tx.getSide() != TransactionSide.BUY_SIDE) {
+            throw new BadRequestException("Search criteria is only applicable to buyer-side transactions");
+        }
+
+        return searchCriteriaRepository.findByTransactionId(transactionId)
+                .map(this::toSearchCriteriaResponseDTO)
+                .orElse(null);
+    }
+
+    @Override
+    @Transactional
+    public SearchCriteriaResponseDTO createOrUpdateSearchCriteria(UUID transactionId, SearchCriteriaRequestDTO dto,
+            UUID userId, boolean isBroker) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        // Verify access (broker, client, or participant)
+        String userEmail = userId != null
+                ? userAccountRepository.findById(userId).map(UserAccount::getEmail).orElse(null)
+                : null;
+        List<TransactionParticipant> participants = participantRepository.findByTransactionId(transactionId);
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail, participants);
+
+        // Validate that it's a buy-side transaction
+        if (tx.getSide() != TransactionSide.BUY_SIDE) {
+            throw new BadRequestException("Search criteria is only applicable to buyer-side transactions");
+        }
+
+        // Find existing or create new
+        SearchCriteria criteria = searchCriteriaRepository.findByTransactionId(transactionId)
+                .orElseGet(() -> {
+                    SearchCriteria newCriteria = new SearchCriteria();
+                    newCriteria.setSearchCriteriaId(UUID.randomUUID());
+                    newCriteria.setTransactionId(transactionId);
+                    return newCriteria;
+                });
+
+        // Update all fields from DTO
+        updateSearchCriteriaFromDTO(criteria, dto);
+
+        SearchCriteria saved = searchCriteriaRepository.save(criteria);
+        return toSearchCriteriaResponseDTO(saved);
+    }
+
+    @Override
+    @Transactional
+    public void deleteSearchCriteria(UUID transactionId, UUID userId, boolean isBroker) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        // Verify access (broker, client, or participant)
+        String userEmail = userId != null
+                ? userAccountRepository.findById(userId).map(UserAccount::getEmail).orElse(null)
+                : null;
+        List<TransactionParticipant> participants = participantRepository.findByTransactionId(transactionId);
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail, participants);
+
+        // Validate that it's a buy-side transaction
+        if (tx.getSide() != TransactionSide.BUY_SIDE) {
+            throw new BadRequestException("Search criteria is only applicable to buyer-side transactions");
+        }
+
+        SearchCriteria criteria = searchCriteriaRepository.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Search criteria not found for this transaction"));
+
+        searchCriteriaRepository.delete(criteria);
+    }
+
+    private void updateSearchCriteriaFromDTO(SearchCriteria criteria, SearchCriteriaRequestDTO dto) {
+        // Property Types
+        if (dto.getPropertyTypes() != null) {
+            criteria.setPropertyTypes(dto.getPropertyTypes());
+        }
+
+        // Features
+        criteria.setMinBedrooms(dto.getMinBedrooms());
+        criteria.setMinBathrooms(dto.getMinBathrooms());
+        criteria.setMinParkingSpaces(dto.getMinParkingSpaces());
+        criteria.setMinGarages(dto.getMinGarages());
+        criteria.setHasPool(dto.getHasPool());
+        criteria.setHasElevator(dto.getHasElevator());
+        criteria.setAdaptedForReducedMobility(dto.getAdaptedForReducedMobility());
+        criteria.setHasWaterfront(dto.getHasWaterfront());
+        criteria.setHasAccessToWaterfront(dto.getHasAccessToWaterfront());
+        criteria.setHasNavigableWater(dto.getHasNavigableWater());
+        criteria.setIsResort(dto.getIsResort());
+        criteria.setPetsAllowed(dto.getPetsAllowed());
+        criteria.setSmokingAllowed(dto.getSmokingAllowed());
+
+        // Building
+        criteria.setMinLivingArea(dto.getMinLivingArea());
+        criteria.setMaxLivingArea(dto.getMaxLivingArea());
+        criteria.setLivingAreaUnit(dto.getLivingAreaUnit());
+        criteria.setMinYearBuilt(dto.getMinYearBuilt());
+        criteria.setMaxYearBuilt(dto.getMaxYearBuilt());
+        if (dto.getBuildingStyles() != null) {
+            criteria.setBuildingStyles(dto.getBuildingStyles());
+        }
+
+        // Plex Types
+        if (dto.getPlexTypes() != null) {
+            criteria.setPlexTypes(dto.getPlexTypes());
+        }
+
+        // Other Criteria
+        criteria.setMinLandArea(dto.getMinLandArea());
+        criteria.setMaxLandArea(dto.getMaxLandArea());
+        criteria.setLandAreaUnit(dto.getLandAreaUnit());
+        criteria.setNewSince(dto.getNewSince());
+        criteria.setMoveInDate(dto.getMoveInDate());
+        criteria.setOpenHousesOnly(dto.getOpenHousesOnly());
+        criteria.setRepossessionOnly(dto.getRepossessionOnly());
+
+        // Price Range
+        criteria.setMinPrice(dto.getMinPrice());
+        criteria.setMaxPrice(dto.getMaxPrice());
+
+        // Regions
+        if (dto.getRegions() != null) {
+            criteria.setRegions(dto.getRegions());
+        }
+    }
+
+    private SearchCriteriaResponseDTO toSearchCriteriaResponseDTO(SearchCriteria criteria) {
+        return SearchCriteriaResponseDTO.builder()
+                .searchCriteriaId(criteria.getSearchCriteriaId())
+                .transactionId(criteria.getTransactionId())
+                .propertyTypes(criteria.getPropertyTypes())
+                .minBedrooms(criteria.getMinBedrooms())
+                .minBathrooms(criteria.getMinBathrooms())
+                .minParkingSpaces(criteria.getMinParkingSpaces())
+                .minGarages(criteria.getMinGarages())
+                .hasPool(criteria.getHasPool())
+                .hasElevator(criteria.getHasElevator())
+                .adaptedForReducedMobility(criteria.getAdaptedForReducedMobility())
+                .hasWaterfront(criteria.getHasWaterfront())
+                .hasAccessToWaterfront(criteria.getHasAccessToWaterfront())
+                .hasNavigableWater(criteria.getHasNavigableWater())
+                .isResort(criteria.getIsResort())
+                .petsAllowed(criteria.getPetsAllowed())
+                .smokingAllowed(criteria.getSmokingAllowed())
+                .minLivingArea(criteria.getMinLivingArea())
+                .maxLivingArea(criteria.getMaxLivingArea())
+                .livingAreaUnit(criteria.getLivingAreaUnit())
+                .minYearBuilt(criteria.getMinYearBuilt())
+                .maxYearBuilt(criteria.getMaxYearBuilt())
+                .buildingStyles(criteria.getBuildingStyles())
+                .plexTypes(criteria.getPlexTypes())
+                .minLandArea(criteria.getMinLandArea())
+                .maxLandArea(criteria.getMaxLandArea())
+                .landAreaUnit(criteria.getLandAreaUnit())
+                .newSince(criteria.getNewSince())
+                .moveInDate(criteria.getMoveInDate())
+                .openHousesOnly(criteria.getOpenHousesOnly())
+                .repossessionOnly(criteria.getRepossessionOnly())
+                .minPrice(criteria.getMinPrice())
+                .maxPrice(criteria.getMaxPrice())
+                .regions(criteria.getRegions())
+                .createdAt(criteria.getCreatedAt())
+                .updatedAt(criteria.getUpdatedAt())
+                .build();
     }
 }

@@ -22,7 +22,11 @@ export type ParticipantPermission =
 
   // Notes Management
   | 'VIEW_NOTES'
-  | 'EDIT_NOTES';
+  | 'EDIT_NOTES'
+
+  // Search Criteria Management (Buyer side)
+  | 'VIEW_SEARCH_CRITERIA'
+  | 'EDIT_SEARCH_CRITERIA';
 
 export type ParticipantRole = 'BROKER' | 'CO_BROKER' | 'NOTARY' | 'LAWYER' | 'BUYER' | 'SELLER' | 'OTHER';
 
@@ -357,3 +361,140 @@ export interface ConditionRequestDTO {
   notes?: string;
 }
 
+// ==================== SEARCH CRITERIA TYPES (for buyer transactions) ====================
+
+export type SearchCriteriaPropertyType =
+  | 'SINGLE_FAMILY_HOME'
+  | 'CONDO'
+  | 'LOFT_STUDIO'
+  | 'PLEX'
+  | 'INTERGENERATIONAL'
+  | 'MOBILE_HOME'
+  | 'HOBBY_FARM'
+  | 'COTTAGE'
+  | 'LOT';
+
+export type SearchCriteriaBuildingStyle =
+  | 'NEW_CONSTRUCTION'
+  | 'CENTURY_HISTORIC'
+  | 'BUNGALOW'
+  | 'MORE_THAN_ONE_STOREY'
+  | 'SPLIT_LEVEL'
+  | 'DETACHED'
+  | 'SEMI_DETACHED'
+  | 'ATTACHED';
+
+export type SearchCriteriaPlexType =
+  | 'DUPLEX'
+  | 'TRIPLEX'
+  | 'QUADRUPLEX'
+  | 'QUINTUPLEX';
+
+export type QuebecRegion =
+  | 'BAS_SAINT_LAURENT'
+  | 'SAGUENAY_LAC_SAINT_JEAN'
+  | 'CAPITALE_NATIONALE'
+  | 'MAURICIE'
+  | 'ESTRIE'
+  | 'MONTREAL'
+  | 'OUTAOUAIS'
+  | 'ABITIBI_TEMISCAMINGUE'
+  | 'COTE_NORD'
+  | 'NORD_DU_QUEBEC'
+  | 'GASPESIE_ILES_DE_LA_MADELEINE'
+  | 'CHAUDIERE_APPALACHES'
+  | 'LAVAL'
+  | 'LANAUDIERE'
+  | 'LAURENTIDES'
+  | 'MONTEREGIE'
+  | 'CENTRE_DU_QUEBEC';
+
+export type AreaUnit = 'SQFT' | 'SQM';
+
+export interface SearchCriteria {
+  searchCriteriaId: string;
+  transactionId: string;
+
+  // Property Types
+  propertyTypes?: SearchCriteriaPropertyType[];
+
+  // Features
+  minBedrooms?: number;
+  minBathrooms?: number;
+  minParkingSpaces?: number;
+  minGarages?: number;
+  hasPool?: boolean;
+  hasElevator?: boolean;
+  adaptedForReducedMobility?: boolean;
+  hasWaterfront?: boolean;
+  hasAccessToWaterfront?: boolean;
+  hasNavigableWater?: boolean;
+  isResort?: boolean;
+  petsAllowed?: boolean;
+  smokingAllowed?: boolean;
+
+  // Building
+  minLivingArea?: number;
+  maxLivingArea?: number;
+  livingAreaUnit?: AreaUnit;
+  minYearBuilt?: number;
+  maxYearBuilt?: number;
+  buildingStyles?: SearchCriteriaBuildingStyle[];
+
+  // Plex Types
+  plexTypes?: SearchCriteriaPlexType[];
+
+  // Other Criteria
+  minLandArea?: number;
+  maxLandArea?: number;
+  landAreaUnit?: AreaUnit;
+  newSince?: string;
+  moveInDate?: string;
+  openHousesOnly?: boolean;
+  repossessionOnly?: boolean;
+
+  // Price Range
+  minPrice?: number;
+  maxPrice?: number;
+
+  // Regions
+  regions?: QuebecRegion[];
+
+  // Timestamps
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SearchCriteriaRequestDTO {
+  propertyTypes?: SearchCriteriaPropertyType[];
+  minBedrooms?: number;
+  minBathrooms?: number;
+  minParkingSpaces?: number;
+  minGarages?: number;
+  hasPool?: boolean;
+  hasElevator?: boolean;
+  adaptedForReducedMobility?: boolean;
+  hasWaterfront?: boolean;
+  hasAccessToWaterfront?: boolean;
+  hasNavigableWater?: boolean;
+  isResort?: boolean;
+  petsAllowed?: boolean;
+  smokingAllowed?: boolean;
+  minLivingArea?: number;
+  maxLivingArea?: number;
+  livingAreaUnit?: AreaUnit;
+  minYearBuilt?: number;
+  maxYearBuilt?: number;
+  buildingStyles?: SearchCriteriaBuildingStyle[];
+  plexTypes?: SearchCriteriaPlexType[];
+  minLandArea?: number;
+  maxLandArea?: number;
+  landAreaUnit?: AreaUnit;
+  newSince?: string;
+  moveInDate?: string;
+  openHousesOnly?: boolean;
+  repossessionOnly?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
+  regions?: QuebecRegion[];
+}

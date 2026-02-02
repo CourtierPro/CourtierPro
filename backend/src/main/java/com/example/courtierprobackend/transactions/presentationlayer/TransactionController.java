@@ -20,6 +20,8 @@ import com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRe
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferRevisionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.SearchCriteriaRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.SearchCriteriaResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus;
 
 import com.example.courtierprobackend.security.UserContextUtils;
@@ -633,4 +635,46 @@ public class TransactionController {
         boolean isBroker = UserContextUtils.isBroker(request);
         return ResponseEntity.ok(service.getAllTransactionDocuments(transactionId, userId, isBroker));
     }
+
+    // ==================== SEARCH CRITERIA ENDPOINTS ====================
+
+    @GetMapping("/{transactionId}/search-criteria")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<SearchCriteriaResponseDTO> getSearchCriteria(
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        boolean isBroker = UserContextUtils.isBroker(request);
+        SearchCriteriaResponseDTO criteria = service.getSearchCriteria(transactionId, userId, isBroker);
+        if (criteria == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(criteria);
+    }
+
+    @PutMapping("/{transactionId}/search-criteria")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<SearchCriteriaResponseDTO> createOrUpdateSearchCriteria(
+            @PathVariable UUID transactionId,
+            @RequestBody SearchCriteriaRequestDTO dto,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        boolean isBroker = UserContextUtils.isBroker(request);
+        return ResponseEntity.ok(service.createOrUpdateSearchCriteria(transactionId, dto, userId, isBroker));
+    }
+
+    @DeleteMapping("/{transactionId}/search-criteria")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<Void> deleteSearchCriteria(
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        boolean isBroker = UserContextUtils.isBroker(request);
+        service.deleteSearchCriteria(transactionId, userId, isBroker);
+        return ResponseEntity.noContent().build();
+    }
 }
+

@@ -50,6 +50,7 @@ class ConditionLinkingServiceUnitTest {
     @Mock private S3StorageService s3StorageService;
     @Mock private DocumentRequestRepository documentRequestRepository;
     @Mock private DocumentConditionLinkRepository documentConditionLinkRepository;
+    @Mock private SearchCriteriaRepository searchCriteriaRepository;
 
     private TransactionServiceImpl transactionService;
 
@@ -77,7 +78,8 @@ class ConditionLinkingServiceUnitTest {
                 offerRevisionRepository,
                 s3StorageService,
                 documentRequestRepository,
-                documentConditionLinkRepository
+                documentConditionLinkRepository,
+                searchCriteriaRepository
         );
 
         transactionId = UUID.randomUUID();

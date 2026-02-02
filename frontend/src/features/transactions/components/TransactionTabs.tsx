@@ -19,6 +19,7 @@ import { AddConditionModal } from './AddConditionModal';
 import { ConditionDetailModal } from './ConditionDetailModal';
 import { useParticipantPermissions } from '@/features/transactions/hooks/useParticipantPermissions';
 import { TransactionAppointments } from './TransactionAppointments';
+import { SearchCriteriaSection } from './SearchCriteriaSection';
 
 interface TransactionTabsProps {
   transaction: Transaction;
@@ -141,6 +142,15 @@ export function TransactionTabs({
             {t('properties')}
           </TabsTrigger>
         )}
+        {/* Search Criteria tab - only for buyer-side transactions */}
+        {isBuyerTransaction && (
+          <TabsTrigger
+            value="search-criteria"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
+          >
+            {t('searchCriteria.tab')}
+          </TabsTrigger>
+        )}
         {/* Offers tab - only for seller-side transactions */}
         {isSellerTransaction && (
           <TabsTrigger
@@ -237,6 +247,16 @@ export function TransactionTabs({
             transactionId={transaction.transactionId}
             isReadOnly={isReadOnly}
             clientId={isReadOnly ? transaction.clientId : undefined}
+          />
+        </TabsContent>
+      )}
+
+      {/* Search Criteria Tab Content - only for buyer-side transactions */}
+      {isBuyerTransaction && (
+        <TabsContent value="search-criteria" className="py-4">
+          <SearchCriteriaSection
+            transactionId={transaction.transactionId}
+            isReadOnly={isReadOnly}
           />
         </TabsContent>
       )}
