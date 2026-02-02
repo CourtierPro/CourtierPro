@@ -256,7 +256,6 @@ export function TransactionTabs({
         <TabsContent value="search-criteria" className="py-4">
           <SearchCriteriaSection
             transactionId={transaction.transactionId}
-            isReadOnly={isReadOnly}
           />
         </TabsContent>
       )}

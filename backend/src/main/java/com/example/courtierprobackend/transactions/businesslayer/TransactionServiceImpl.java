@@ -2845,12 +2845,10 @@ public class TransactionServiceImpl implements TransactionService {
 
         // Find existing or create new
         SearchCriteria criteria = searchCriteriaRepository.findByTransactionId(transactionId)
-                .orElseGet(() -> {
-                    SearchCriteria newCriteria = new SearchCriteria();
-                    newCriteria.setSearchCriteriaId(UUID.randomUUID());
-                    newCriteria.setTransactionId(transactionId);
-                    return newCriteria;
-                });
+                .orElseGet(() -> SearchCriteria.builder()
+                        .searchCriteriaId(UUID.randomUUID())
+                        .transactionId(transactionId)
+                        .build());
 
         // Update all fields from DTO
         updateSearchCriteriaFromDTO(criteria, dto);
@@ -2884,9 +2882,11 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     private void updateSearchCriteriaFromDTO(SearchCriteria criteria, SearchCriteriaRequestDTO dto) {
-        // Property Types
+        // Property Types - set directly to allow clearing (empty set clears selections)
+        // null from DTO means "don't update", empty set means "clear all"
         if (dto.getPropertyTypes() != null) {
-            criteria.setPropertyTypes(dto.getPropertyTypes());
+            criteria.getPropertyTypes().clear();
+            criteria.getPropertyTypes().addAll(dto.getPropertyTypes());
         }
 
         // Features
@@ -2911,12 +2911,14 @@ public class TransactionServiceImpl implements TransactionService {
         criteria.setMinYearBuilt(dto.getMinYearBuilt());
         criteria.setMaxYearBuilt(dto.getMaxYearBuilt());
         if (dto.getBuildingStyles() != null) {
-            criteria.setBuildingStyles(dto.getBuildingStyles());
+            criteria.getBuildingStyles().clear();
+            criteria.getBuildingStyles().addAll(dto.getBuildingStyles());
         }
 
         // Plex Types
         if (dto.getPlexTypes() != null) {
-            criteria.setPlexTypes(dto.getPlexTypes());
+            criteria.getPlexTypes().clear();
+            criteria.getPlexTypes().addAll(dto.getPlexTypes());
         }
 
         // Other Criteria
@@ -2934,7 +2936,8 @@ public class TransactionServiceImpl implements TransactionService {
 
         // Regions
         if (dto.getRegions() != null) {
-            criteria.setRegions(dto.getRegions());
+            criteria.getRegions().clear();
+            criteria.getRegions().addAll(dto.getRegions());
         }
     }
 

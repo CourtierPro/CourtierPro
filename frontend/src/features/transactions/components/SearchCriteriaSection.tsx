@@ -40,7 +40,6 @@ import type {
 
 interface SearchCriteriaSectionProps {
     transactionId: string;
-    isReadOnly?: boolean;
 }
 
 const PROPERTY_TYPES: SearchCriteriaPropertyType[] = [
