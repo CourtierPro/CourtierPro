@@ -66,6 +66,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
+                request.setStatus(DocumentStatusEnum.DRAFT);
                 request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
 
                 DocumentRequestDTO dto = new DocumentRequestDTO();
@@ -107,6 +108,7 @@ class DocumentServiceImplTest {
                 request.setTransactionRef(
                                 new TransactionRef(tx.getTransactionId(), clientId, TransactionSide.BUY_SIDE));
                 request.setDocType(DocumentTypeEnum.PAY_STUBS);
+                request.setStatus(DocumentStatusEnum.DRAFT);
 
                 DocumentRequestDTO dto = new DocumentRequestDTO();
                 dto.setDocType(DocumentTypeEnum.BANK_STATEMENT); // trigger update
@@ -143,6 +145,7 @@ class DocumentServiceImplTest {
                 request.setTransactionRef(
                                 new TransactionRef(tx.getTransactionId(), clientId, TransactionSide.BUY_SIDE));
                 request.setDocType(DocumentTypeEnum.PAY_STUBS);
+                request.setStatus(DocumentStatusEnum.DRAFT);
 
                 DocumentRequestDTO dto = new DocumentRequestDTO();
                 dto.setDocType(DocumentTypeEnum.BANK_STATEMENT); // trigger update
@@ -252,6 +255,7 @@ class DocumentServiceImplTest {
                 UUID requestId = UUID.randomUUID();
                 Document doc = new Document();
                 doc.setDocumentId(requestId);
+                doc.setStatus(DocumentStatusEnum.DRAFT); // Added this line
                 doc.setTransactionRef(new TransactionRef(transactionId, UUID.randomUUID(), TransactionSide.BUY_SIDE));
                 doc.setDocType(DocumentTypeEnum.ID_VERIFICATION);
                 doc.setStatus(DocumentStatusEnum.REQUESTED);
@@ -947,6 +951,7 @@ class DocumentServiceImplTest {
                 UUID brokerId = UUID.randomUUID();
                 Document request = new Document();
                 request.setDocumentId(requestId);
+                request.setStatus(DocumentStatusEnum.DRAFT);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1049,6 +1054,7 @@ class DocumentServiceImplTest {
                 request.setDocumentId(requestId);
                 request.setDocType(DocumentTypeEnum.ID_VERIFICATION);
                 request.setVisibleToClient(false);
+                request.setStatus(DocumentStatusEnum.DRAFT);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1238,6 +1244,9 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
+                request.setVisibleToClient(true);
+                request.setBrokerNotes("Notes");
+                request.setStatus(DocumentStatusEnum.DRAFT);
                 request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
@@ -1308,6 +1317,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
+                request.setStatus(DocumentStatusEnum.DRAFT);
                 request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
@@ -2449,5 +2459,172 @@ class DocumentServiceImplTest {
                                 anyString(),
                                 eq(transactionId.toString()),
                                 any());
+        }
+        
+        // ========== EXTRA TESTS for Fixes ==========
+
+        @Test
+        void deleteDocument_WhenStatusNotDraft_ThrowsBadRequestException() {
+                // Arrange
+                UUID documentId = UUID.randomUUID();
+                UUID userId = UUID.randomUUID();
+                UUID transactionId = UUID.randomUUID();
+
+                Document document = new Document();
+                document.setDocumentId(documentId);
+                document.setStatus(DocumentStatusEnum.REQUESTED); // NOT DRAFT
+                document.setTransactionRef(new TransactionRef(transactionId, UUID.randomUUID(), TransactionSide.BUY_SIDE));
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(userId); // Broker has edit access
+                tx.setClientId(UUID.randomUUID());
+
+                when(repository.findByDocumentId(documentId)).thenReturn(Optional.of(document));
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+                // Act & Assert
+                assertThatThrownBy(() -> service.deleteDocument(documentId, userId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("Only draft documents can be deleted");
+        }
+
+        @Test
+        void deleteDocument_WhenStatusIsDraft_DeletesDocument() {
+                // Arrange
+                UUID documentId = UUID.randomUUID();
+                UUID userId = UUID.randomUUID();
+                UUID transactionId = UUID.randomUUID();
+
+                Document document = new Document();
+                document.setDocumentId(documentId);
+                document.setStatus(DocumentStatusEnum.DRAFT);
+                document.setTransactionRef(new TransactionRef(transactionId, UUID.randomUUID(), TransactionSide.BUY_SIDE));
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(userId);
+                tx.setClientId(UUID.randomUUID());
+
+                when(repository.findByDocumentId(documentId)).thenReturn(Optional.of(document));
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+                // Act
+                service.deleteDocument(documentId, userId);
+
+                // Assert
+                verify(repository).delete(document);
+        }
+
+        @Test
+        void getAllDocumentsForUser_WhenUserIsClient_FiltersOutDrafts() {
+                // Arrange
+                UUID clientId = UUID.randomUUID();
+                UUID txId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(txId);
+                tx.setClientId(clientId); // User IS the client
+                tx.setBrokerId(UUID.randomUUID());
+
+                Document draftDoc = new Document();
+                draftDoc.setDocumentId(UUID.randomUUID());
+                draftDoc.setStatus(DocumentStatusEnum.DRAFT);
+                draftDoc.setTransactionRef(new TransactionRef(txId, clientId, TransactionSide.BUY_SIDE));
+
+                Document requestedDoc = new Document();
+                requestedDoc.setDocumentId(UUID.randomUUID());
+                requestedDoc.setStatus(DocumentStatusEnum.REQUESTED);
+                requestedDoc.setTransactionRef(new TransactionRef(txId, clientId, TransactionSide.BUY_SIDE));
+
+                when(repository.findByUserId(clientId)).thenReturn(List.of(draftDoc, requestedDoc));
+                // Mock tx lookup for filtering
+                when(transactionRepository.findByTransactionId(txId)).thenReturn(Optional.of(tx));
+
+                // Act
+                List<DocumentResponseDTO> result = service.getAllDocumentsForUser(clientId);
+
+                // Assert
+                assertThat(result).hasSize(1);
+                assertThat(result.get(0).getStatus()).isEqualTo(DocumentStatusEnum.REQUESTED);
+        }
+
+        @Test
+        void getAllDocumentsForUser_WhenUserIsNotClient_DoesNotFilterDrafts() {
+                 // Arrange
+                UUID brokerId = UUID.randomUUID();
+                UUID txId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(txId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(UUID.randomUUID()); // User is NOT the client
+
+                Document draftDoc = new Document();
+                draftDoc.setDocumentId(UUID.randomUUID());
+                draftDoc.setStatus(DocumentStatusEnum.DRAFT);
+                draftDoc.setTransactionRef(new TransactionRef(txId, UUID.randomUUID(), TransactionSide.BUY_SIDE));
+
+                when(repository.findByUserId(brokerId)).thenReturn(List.of(draftDoc));
+                when(transactionRepository.findByTransactionId(txId)).thenReturn(Optional.of(tx));
+
+                // Act
+                List<DocumentResponseDTO> result = service.getAllDocumentsForUser(brokerId);
+
+                // Assert
+                assertThat(result).hasSize(1);
+        }
+
+        @Test
+        void updateDocument_WhenNotDraft_IgnoresImmutableFields() {
+                // Arrange
+                UUID documentId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                UUID txId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+
+                Document document = new Document();
+                document.setDocumentId(documentId);
+                document.setStatus(DocumentStatusEnum.REQUESTED); // Not draft
+                document.setDocType(DocumentTypeEnum.PAY_STUBS);
+                document.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                document.setTransactionRef(new TransactionRef(txId, clientId, TransactionSide.BUY_SIDE));
+                document.setBrokerNotes("Old Notes");
+                document.setCustomTitle("Old Title");
+
+                // Request tries to change immutable fields (docType, expectedFrom)
+                DocumentRequestDTO requestDTO = new DocumentRequestDTO();
+                requestDTO.setDocType(DocumentTypeEnum.BANK_STATEMENT); // Should be ignored
+                requestDTO.setExpectedFrom(DocumentPartyEnum.BROKER);   // Should be ignored
+                requestDTO.setBrokerNotes("New Notes");                 // Should be updated
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(txId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(clientId);
+
+                UserAccount brokerUser = new UserAccount(brokerId.toString(), "b@b.com", "B", "R", UserRole.BROKER, "en");
+                brokerUser.setId(brokerId);
+                UserAccount clientUser = new UserAccount(clientId.toString(), "c@c.com", "C", "L", UserRole.CLIENT, "en");
+                clientUser.setId(clientId);
+
+                when(repository.findByDocumentId(documentId)).thenReturn(Optional.of(document));
+                when(transactionRepository.findByTransactionId(txId)).thenReturn(Optional.of(tx));
+                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(brokerUser));
+                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(clientUser));
+                when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
+                
+                // Mocks for notification logic
+                when(messageSource.getMessage(anyString(), any(), anyString(), any())).thenReturn("msg");
+
+                // Act
+                DocumentResponseDTO result = service.updateDocument(documentId, requestDTO, brokerId);
+
+                // Assert
+                // Immutable fields should remain original
+                assertThat(result.getDocType()).isEqualTo(DocumentTypeEnum.PAY_STUBS);
+                assertThat(result.getExpectedFrom()).isEqualTo(DocumentPartyEnum.CLIENT);
+                // Mutable fields should change
+                assertThat(result.getBrokerNotes()).isEqualTo("New Notes");
         }
 }

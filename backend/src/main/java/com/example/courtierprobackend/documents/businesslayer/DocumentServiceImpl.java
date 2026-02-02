@@ -119,6 +119,16 @@ public class DocumentServiceImpl implements DocumentService {
         @Override
         public List<DocumentResponseDTO> getAllDocumentsForUser(UUID userId) {
                 return repository.findByUserId(userId).stream()
+                                .filter(doc -> {
+                                        // If user is client, filter out DRAFT documents
+                                        Transaction tx = transactionRepository
+                                                        .findByTransactionId(doc.getTransactionRef().getTransactionId())
+                                                        .orElse(null);
+                                        if (tx != null && tx.getClientId().equals(userId)) {
+                                                return doc.getStatus() != DocumentStatusEnum.DRAFT;
+                                        }
+                                        return true;
+                                })
                                 .map(this::mapToResponseDTO)
                                 .collect(Collectors.toList());
         }
@@ -260,16 +270,24 @@ public class DocumentServiceImpl implements DocumentService {
                                 : o.toString().trim().toLowerCase();
 
                 // Build a candidate entity with merged values (normalized)
+                // PREVENT ACCIDENTAL CHANGES: For non-draft documents, docType and expectedFrom are immutable via update
+                boolean isDraft = document.getStatus() == DocumentStatusEnum.DRAFT;
+
                 DocumentTypeEnum candidateDocType = requestDTO.getDocType() != null ? requestDTO.getDocType()
                                 : document.getDocType();
+                if (!isDraft) candidateDocType = document.getDocType(); // Immutable if not draft
+
                 String candidateCustomTitle = normStr.apply(requestDTO.getCustomTitle()).isEmpty() ? null
                                 : requestDTO.getCustomTitle();
                 if (candidateCustomTitle == null && document.getCustomTitle() != null)
                         candidateCustomTitle = document.getCustomTitle();
+                
                 DocumentPartyEnum candidateExpectedFrom = requestDTO.getExpectedFrom() != null
                                 ? requestDTO.getExpectedFrom()
                                 : document.getExpectedFrom();
-                Boolean candidateVisibleToClient = requestDTO.getVisibleToClient() != null
+                if (!isDraft) candidateExpectedFrom = document.getExpectedFrom(); // Immutable if not draft
+
+                boolean candidateVisibleToClient = requestDTO.getVisibleToClient() != null
                                 ? requestDTO.getVisibleToClient()
                                 : document.isVisibleToClient();
                 String candidateBrokerNotes = normStr.apply(requestDTO.getBrokerNotes()).isEmpty() ? null
@@ -293,16 +311,16 @@ public class DocumentServiceImpl implements DocumentService {
 
                 // Only update fields if the normalized value is different from the current
                 // normalized value
-                if (!normEnum.apply(document.getDocType()).equals(normEnum.apply(requestDTO.getDocType()))) {
-                        document.setDocType(requestDTO.getDocType());
+                if (!normEnum.apply(document.getDocType()).equals(normEnum.apply(candidateDocType))) {
+                        document.setDocType(candidateDocType);
                 }
-                if (!normStr.apply(document.getCustomTitle()).equals(normStr.apply(requestDTO.getCustomTitle()))) {
+                if (!normStr.apply(document.getCustomTitle()).equals(normStr.apply(candidateCustomTitle))) {
                         // If both are null/empty, set to null for consistency
-                        String newVal = normStr.apply(requestDTO.getCustomTitle());
-                        document.setCustomTitle(newVal.isEmpty() ? null : requestDTO.getCustomTitle());
+                        String newVal = normStr.apply(candidateCustomTitle);
+                        document.setCustomTitle(newVal.isEmpty() ? null : candidateCustomTitle);
                 }
-                if (!normEnum.apply(document.getExpectedFrom()).equals(normEnum.apply(requestDTO.getExpectedFrom()))) {
-                        document.setExpectedFrom(requestDTO.getExpectedFrom());
+                if (!normEnum.apply(document.getExpectedFrom()).equals(normEnum.apply(candidateExpectedFrom))) {
+                        document.setExpectedFrom(candidateExpectedFrom);
                 }
                 if (requestDTO.getVisibleToClient() != null
                                 && document.isVisibleToClient() != requestDTO.getVisibleToClient()) {
@@ -429,6 +447,11 @@ public class DocumentServiceImpl implements DocumentService {
 
                 verifyBrokerOrCoManager(tx, userId,
                                 com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
+
+                if (document.getStatus() != DocumentStatusEnum.DRAFT) {
+                        throw new BadRequestException("Only draft documents can be deleted");
+                }
+                
                 repository.delete(document);
         }
 
