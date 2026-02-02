@@ -40,4 +40,13 @@ public interface DocumentService {
                         UUID brokerId);
 
         void sendDocumentReminder(UUID documentId, UUID brokerId);
+
+        /**
+         * Transitions a document from DRAFT to REQUESTED status.
+         * Sends email notification to the client and adds a timeline entry.
+         * @param documentId the document to send
+         * @param brokerId the broker making the request
+         * @return the updated document
+         */
+        DocumentResponseDTO sendDocumentRequest(UUID documentId, UUID brokerId);
 }

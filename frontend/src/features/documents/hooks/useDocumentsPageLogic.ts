@@ -13,8 +13,16 @@ export function useDocumentsPageLogic(transactionId: string) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { handleError } = useErrorHandler();
 
-    // Adapt signature to accept stage and conditionIds parameters
-    const handleRequestDocument = async (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string, conditionIds: string[] = [], dueDate?: Date) => {
+    // Adapt signature to accept stage, conditionIds, and status parameters
+    const handleRequestDocument = async (
+        docType: DocumentTypeEnum,
+        customTitle: string,
+        instructions: string,
+        stage: string,
+        conditionIds: string[] = [],
+        dueDate?: Date,
+        status?: 'DRAFT' | 'REQUESTED'
+    ) => {
         try {
             await createDocument.mutateAsync({
                 transactionId,
@@ -26,11 +34,15 @@ export function useDocumentsPageLogic(transactionId: string) {
                     brokerNotes: instructions, // Mapping instructions to brokerNotes for now
                     stage: stage,
                     conditionIds: conditionIds.length > 0 ? conditionIds : undefined,
-                    dueDate: dueDate
+                    dueDate: dueDate,
+                    status: status // Pass status to API (DRAFT or REQUESTED)
                 }
             });
             setIsModalOpen(false);
-            toast.success(t('success.documentRequested'));
+            const successMessage = status === 'DRAFT'
+                ? t('success.draftSaved', 'Document saved as draft')
+                : t('success.documentRequested');
+            toast.success(successMessage);
         } catch (error) {
             handleError(error);
             toast.error(t('errors.requestDocumentFailed', 'Failed to request document'));

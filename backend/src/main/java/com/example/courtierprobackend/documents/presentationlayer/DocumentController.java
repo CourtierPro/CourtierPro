@@ -137,4 +137,19 @@ public class DocumentController {
         UUID brokerId = UserContextUtils.resolveUserId(request, null);
         return ResponseEntity.ok(service.reviewDocument(transactionId, documentId, reviewDTO, brokerId));
     }
+
+    /**
+     * Transitions a draft document to REQUESTED status.
+     * Sends email notification to the client.
+     */
+    @PostMapping("/{documentId}/send")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<DocumentResponseDTO> sendDocumentRequest(
+            @PathVariable UUID transactionId,
+            @PathVariable UUID documentId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.sendDocumentRequest(documentId, brokerId));
+    }
 }

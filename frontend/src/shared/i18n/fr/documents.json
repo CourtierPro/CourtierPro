@@ -119,13 +119,17 @@
     "actions": {
         "cancel": "Annuler",
         "upload": "Téléverser",
-        "uploading": "Téléversement..."
+        "uploading": "Téléversement...",
+        "saveAsDraft": "Enregistrer comme brouillon",
+        "sendRequest": "Envoyer la demande"
     },
     "success": {
         "documentUploaded": "Document téléversé avec succès",
         "documentApproved": "Document approuvé avec succès",
         "revisionRequested": "Révision demandée avec succès",
-        "documentRequested": "Document demandé avec succès"
+        "documentRequested": "Document demandé avec succès",
+        "draftSaved": "Document enregistré comme brouillon",
+        "requestSent": "Demande de document envoyée au client"
     },
     "noPropertySelected": "Aucune propriété sélectionnée",
     "reupload": "Retéléverser",

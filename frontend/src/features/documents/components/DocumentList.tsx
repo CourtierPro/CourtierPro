@@ -11,8 +11,10 @@ interface DocumentListProps {
     onUpload?: (document: Document) => void;
     onReview?: (document: Document) => void;
     onEdit?: (document: Document) => void;
+    onSendRequest?: (document: Document) => void;
     focusDocumentId?: string | null;
     showBrokerNotes?: boolean;
+    isBroker?: boolean;
 }
 
 export function DocumentList({
@@ -20,8 +22,10 @@ export function DocumentList({
     onUpload,
     onReview,
     onEdit,
+    onSendRequest,
     focusDocumentId,
-    showBrokerNotes = true
+    showBrokerNotes = true,
+    isBroker = false
 }: DocumentListProps) {
     const { t } = useTranslation('transactions');
 
@@ -32,7 +36,15 @@ export function DocumentList({
         setCollapsedRows(prev => ({ ...prev, [status]: !prev[status] }));
     };
 
-    const statusOrder = [
+    // Status order: DRAFT only shown for brokers, at the top
+    const statusOrder = isBroker ? [
+        DocumentStatusEnum.DRAFT,
+        DocumentStatusEnum.REQUESTED,
+        DocumentStatusEnum.SUBMITTED,
+        DocumentStatusEnum.APPROVED,
+        DocumentStatusEnum.NEEDS_REVISION,
+        DocumentStatusEnum.REJECTED
+    ] : [
         DocumentStatusEnum.REQUESTED,
         DocumentStatusEnum.SUBMITTED,
         DocumentStatusEnum.APPROVED,
@@ -99,6 +111,7 @@ export function DocumentList({
                                             onUpload={onUpload}
                                             onReview={onReview}
                                             onEdit={onEdit}
+                                            onSendRequest={onSendRequest}
                                             isFocused={focusDocumentId === doc.documentId}
                                             showBrokerNotes={showBrokerNotes}
                                         />

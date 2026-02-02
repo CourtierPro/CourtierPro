@@ -16,7 +16,7 @@ import { UploadDocumentModal } from "@/features/documents/components/UploadDocum
 import { DocumentReviewModal } from "@/features/documents/components/DocumentReviewModal";
 import { DocumentList } from "@/features/documents/components/DocumentList";
 import { EditDocumentModal } from "@/features/documents/components/EditDocumentModal";
-import { useUpdateDocument } from "@/features/documents/api/mutations";
+import { useUpdateDocument, useSendDocumentRequest } from "@/features/documents/api/mutations";
 import { useTranslation } from "react-i18next";
 import { StageDropdownSelector } from '@/features/documents/components/StageDropdownSelector';
 import { useStageOptions } from '@/features/documents/hooks/useStageOptions';
@@ -80,11 +80,31 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
 
   const updateDocumentMutation = useUpdateDocument();
+  const sendDocumentRequestMutation = useSendDocumentRequest();
 
   const handleUploadClick = (document: Document) => {
     setSelectedDocument(document);
     setIsUploadModalOpen(true);
   };
+
+  // Send Request handler for draft documents
+  const handleSendDocumentRequest = useCallback(
+    (document: Document) => {
+      sendDocumentRequestMutation.mutate(
+        { transactionId, documentId: document.documentId },
+        {
+          onSuccess: () => {
+            toast.success(tDocuments('success.requestSent', 'Document request sent to client'));
+            refetch();
+          },
+          onError: () => {
+            toast.error(tDocuments('errors.sendRequestFailed', 'Failed to send request'));
+          }
+        }
+      );
+    },
+    [transactionId, sendDocumentRequestMutation, refetch, tDocuments]
+  );
 
   // Edit click handler
   const handleEditClick = useCallback(
@@ -221,10 +241,12 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
 
       <DocumentList
         documents={filteredDocuments}
-        onUpload={canUpload ? handleUploadClick : undefined}
+        onUpload={canUpload || canReview ? handleUploadClick : undefined}
         onReview={canReview ? handleReviewClick : undefined}
         onEdit={canReview && canEditDocuments ? handleEditClick : undefined}
+        onSendRequest={canReview ? handleSendDocumentRequest : undefined}
         focusDocumentId={focusDocumentId}
+        isBroker={role === 'broker'}
       />
 
       {/* Offer Documents Section */}

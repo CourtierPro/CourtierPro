@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { enUS, fr } from "date-fns/locale";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
-import { FileText, Upload, CheckCircle, Clock, File, Eye, Loader2 } from "lucide-react";
+import { FileText, Upload, CheckCircle, Clock, File, Eye, Loader2, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getDocumentDownloadUrl } from "@/features/documents/api/documentsApi";
 import { formatDocumentTitle } from "../utils/formatDocumentTitle";
@@ -18,11 +18,12 @@ interface DocumentCardProps {
     onUpload?: (document: Document, file?: File) => void;
     onReview?: (document: Document) => void;
     onEdit?: (document: Document) => void;
+    onSendRequest?: (document: Document) => void;
     isFocused?: boolean;
     showBrokerNotes?: boolean;
 }
 
-export function DocumentCard({ document, onUpload, onReview, onEdit, isFocused, showBrokerNotes = true }: DocumentCardProps) {
+export function DocumentCard({ document, onUpload, onReview, onEdit, onSendRequest, isFocused, showBrokerNotes = true }: DocumentCardProps) {
     const { t, i18n } = useTranslation('documents');
     const [isLoadingView, setIsLoadingView] = useState(false);
     const title = formatDocumentTitle(document, t);
@@ -36,6 +37,7 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, isFocused, 
             case DocumentStatusEnum.APPROVED: return "success";
             case DocumentStatusEnum.SUBMITTED: return "secondary";
             case DocumentStatusEnum.NEEDS_REVISION: return "destructive";
+            case DocumentStatusEnum.DRAFT: return "outline";
             default: return "secondary";
         }
     };
@@ -191,6 +193,14 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, isFocused, 
                                 </Button>
                             )}
 
+                            {/* Send Request button for DRAFT documents */}
+                            {document.status === DocumentStatusEnum.DRAFT && onSendRequest && (
+                                <Button size="sm" onClick={() => onSendRequest(document)} className="gap-2 bg-blue-500 hover:bg-blue-600">
+                                    <Send className="w-4 h-4" />
+                                    {t('sendRequest', 'Send Request')}
+                                </Button>
+                            )}
+
                             {document.status === DocumentStatusEnum.SUBMITTED && onReview && (
                                 <Button size="sm" onClick={() => onReview(document)} className="gap-2 bg-orange-500 hover:bg-orange-600">
                                     <CheckCircle className="w-4 h-4" />
@@ -198,7 +208,7 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, isFocused, 
                                 </Button>
                             )}
 
-                            {(document.status === DocumentStatusEnum.REQUESTED || document.status === DocumentStatusEnum.NEEDS_REVISION) && onUpload && (
+                            {(document.status === DocumentStatusEnum.REQUESTED || document.status === DocumentStatusEnum.NEEDS_REVISION || document.status === DocumentStatusEnum.DRAFT) && onUpload && (
                                 <Button size="sm" onClick={() => onUpload(document)} className="gap-2">
                                     <Upload className="w-4 h-4" />
                                     {document.status === DocumentStatusEnum.NEEDS_REVISION ? t('reupload') : t('upload')}

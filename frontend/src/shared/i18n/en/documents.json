@@ -118,13 +118,17 @@
     "actions": {
         "cancel": "Cancel",
         "upload": "Upload",
-        "uploading": "Uploading..."
+        "uploading": "Uploading...",
+        "saveAsDraft": "Save as Draft",
+        "sendRequest": "Send Request"
     },
     "success": {
         "documentUploaded": "Document uploaded successfully",
         "documentApproved": "Document approved successfully",
         "revisionRequested": "Revision requested successfully",
-        "documentRequested": "Document requested successfully"
+        "documentRequested": "Document requested successfully",
+        "draftSaved": "Document saved as draft",
+        "requestSent": "Document request sent to client"
     },
     "noPropertySelected": "No property selected",
     "reupload": "Re-upload",

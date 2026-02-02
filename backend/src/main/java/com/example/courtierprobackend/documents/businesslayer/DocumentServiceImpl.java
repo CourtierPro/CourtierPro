@@ -106,7 +106,12 @@ public class DocumentServiceImpl implements DocumentService {
 
                 verifyViewAccess(tx, userId);
 
+                // Check if user is a client (not the broker or a participant with broker access)
+                boolean isClient = tx.getClientId().equals(userId);
+
                 return repository.findByTransactionRef_TransactionId(transactionId).stream()
+                                // Filter out DRAFT documents for clients since they should not see drafts
+                                .filter(doc -> !isClient || doc.getStatus() != DocumentStatusEnum.DRAFT)
                                 .map(this::mapToResponseDTO)
                                 .collect(Collectors.toList());
         }
@@ -142,12 +147,22 @@ public class DocumentServiceImpl implements DocumentService {
                 verifyBrokerOrCoManager(tx, userId,
                                 com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
 
+                // Determine document status: use provided status if DRAFT or REQUESTED, else default to REQUESTED
+                DocumentStatusEnum status = DocumentStatusEnum.REQUESTED;
+                if (requestDTO.getStatus() != null) {
+                        if (requestDTO.getStatus() == DocumentStatusEnum.DRAFT 
+                                        || requestDTO.getStatus() == DocumentStatusEnum.REQUESTED) {
+                                status = requestDTO.getStatus();
+                        }
+                        // Other statuses are ignored, default to REQUESTED
+                }
+
                 Document document = new Document();
                 document.setDocumentId(UUID.randomUUID());
                 document.setTransactionRef(new TransactionRef(transactionId, tx.getClientId(), tx.getSide()));
                 document.setDocType(requestDTO.getDocType());
                 document.setCustomTitle(requestDTO.getCustomTitle());
-                document.setStatus(DocumentStatusEnum.REQUESTED);
+                document.setStatus(status);
                 document.setExpectedFrom(requestDTO.getExpectedFrom());
                 document.setVisibleToClient(
                                 requestDTO.getVisibleToClient() != null ? requestDTO.getVisibleToClient() : true);
@@ -171,49 +186,52 @@ public class DocumentServiceImpl implements DocumentService {
                         }
                 }
 
-                // Add timeline entry for document requested
-                timelineService.addEntry(
-                                transactionId,
-                                tx.getBrokerId(),
-                                TimelineEntryType.DOCUMENT_REQUESTED,
-                                "Document requested: " + requestDTO.getDocType(),
-                                requestDTO.getDocType() != null ? requestDTO.getDocType().toString() : null);
+                // Only send notifications and add timeline entry if not a draft
+                if (status != DocumentStatusEnum.DRAFT) {
+                        // Add timeline entry for document requested
+                        timelineService.addEntry(
+                                        transactionId,
+                                        tx.getBrokerId(),
+                                        TimelineEntryType.DOCUMENT_REQUESTED,
+                                        "Document requested: " + requestDTO.getDocType(),
+                                        requestDTO.getDocType() != null ? requestDTO.getDocType().toString() : null);
 
-                // Notify client via email
-                // Resolve Client and Broker robustly
-                UserAccount client = resolveUserAccount(tx.getClientId()).orElse(null);
-                UserAccount broker = resolveUserAccount(tx.getBrokerId()).orElse(null);
+                        // Notify client via email
+                        // Resolve Client and Broker robustly
+                        UserAccount client = resolveUserAccount(tx.getClientId()).orElse(null);
+                        UserAccount broker = resolveUserAccount(tx.getBrokerId()).orElse(null);
 
-                if (client != null && broker != null) {
-                        String documentName = requestDTO.getCustomTitle() != null ? requestDTO.getCustomTitle()
-                                        : requestDTO.getDocType().toString();
-                        String clientName = client.getFirstName() + " " + client.getLastName();
-                        String brokerName = broker.getFirstName() + " " + broker.getLastName();
-                        String docType = requestDTO.getDocType().toString();
-                        String clientLanguage = client.getPreferredLanguage();
+                        if (client != null && broker != null) {
+                                String documentName = requestDTO.getCustomTitle() != null ? requestDTO.getCustomTitle()
+                                                : requestDTO.getDocType().toString();
+                                String clientName = client.getFirstName() + " " + client.getLastName();
+                                String brokerName = broker.getFirstName() + " " + broker.getLastName();
+                                String docType = requestDTO.getDocType().toString();
+                                String clientLanguage = client.getPreferredLanguage();
 
-                        emailService.sendDocumentRequestedNotification(
-                                        client.getEmail(),
-                                        clientName,
-                                        brokerName,
-                                        documentName,
-                                        docType,
-                                        requestDTO.getBrokerNotes(),
-                                        clientLanguage);
+                                emailService.sendDocumentRequestedNotification(
+                                                client.getEmail(),
+                                                clientName,
+                                                brokerName,
+                                                documentName,
+                                                docType,
+                                                requestDTO.getBrokerNotes(),
+                                                clientLanguage);
 
-                        // In-app Notification for Client
-                        try {
-                                // Prepare old/new values for subtitle logic
-                                Locale locale = isFrench(clientLanguage) ? Locale.FRENCH : Locale.ENGLISH;
-                                String localizedDocType = messageSource.getMessage(
-                                                "document.type." + requestDTO.getDocType(), null,
-                                                requestDTO.getDocType().name(), locale);
-                                String displayDocName = requestDTO.getCustomTitle() != null
-                                                ? requestDTO.getCustomTitle()
-                                                : localizedDocType;
+                                // In-app Notification for Client
+                                try {
+                                        // Prepare old/new values for subtitle logic
+                                        Locale locale = isFrench(clientLanguage) ? Locale.FRENCH : Locale.ENGLISH;
+                                        String localizedDocType = messageSource.getMessage(
+                                                        "document.type." + requestDTO.getDocType(), null,
+                                                        requestDTO.getDocType().name(), locale);
+                                        String displayDocName = requestDTO.getCustomTitle() != null
+                                                        ? requestDTO.getCustomTitle()
+                                                        : localizedDocType;
 
-                        } catch (Exception e) {
-                                logger.error("Failed to send in-app notification for document request", e);
+                                } catch (Exception e) {
+                                        logger.error("Failed to send in-app notification for document request", e);
+                                }
                         }
                 }
 
@@ -786,6 +804,83 @@ public class DocumentServiceImpl implements DocumentService {
                                 document.getDocType().toString(),
                                 document.getBrokerNotes(),
                                 client.getPreferredLanguage());
+        }
+
+        @Transactional
+        @Override
+        public DocumentResponseDTO sendDocumentRequest(UUID documentId, UUID brokerId) {
+                Document document = repository.findByDocumentId(documentId)
+                                .orElseThrow(() -> new NotFoundException("Document not found: " + documentId));
+
+                Transaction tx = transactionRepository
+                                .findByTransactionId(document.getTransactionRef().getTransactionId())
+                                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+                verifyBrokerOrCoManager(tx, brokerId,
+                                com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
+
+                if (document.getStatus() != DocumentStatusEnum.DRAFT) {
+                        throw new BadRequestException("Only draft documents can be sent as requests");
+                }
+
+                // Transition to REQUESTED status
+                document.setStatus(DocumentStatusEnum.REQUESTED);
+                document.setLastUpdatedAt(LocalDateTime.now());
+                Document savedDocument = repository.save(document);
+
+                // Add timeline entry for document requested
+                timelineService.addEntry(
+                                tx.getTransactionId(),
+                                tx.getBrokerId(),
+                                TimelineEntryType.DOCUMENT_REQUESTED,
+                                "Document requested: " + document.getDocType(),
+                                document.getDocType() != null ? document.getDocType().toString() : null);
+
+                // Notify client via email
+                UserAccount client = resolveUserAccount(tx.getClientId()).orElse(null);
+                UserAccount broker = resolveUserAccount(tx.getBrokerId()).orElse(null);
+
+                if (client != null && broker != null) {
+                        String documentName = document.getCustomTitle() != null ? document.getCustomTitle()
+                                        : document.getDocType().toString();
+                        String clientName = client.getFirstName() + " " + client.getLastName();
+                        String brokerName = broker.getFirstName() + " " + broker.getLastName();
+                        String docType = document.getDocType().toString();
+                        String clientLanguage = client.getPreferredLanguage();
+
+                        emailService.sendDocumentRequestedNotification(
+                                        client.getEmail(),
+                                        clientName,
+                                        brokerName,
+                                        documentName,
+                                        docType,
+                                        document.getBrokerNotes(),
+                                        clientLanguage);
+
+                        // In-app Notification for Client
+                        try {
+                                Locale locale = isFrench(clientLanguage) ? Locale.FRENCH : Locale.ENGLISH;
+                                String localizedDocType = messageSource.getMessage(
+                                                "document.type." + document.getDocType(), null,
+                                                document.getDocType().name(), locale);
+                                String displayDocName = document.getCustomTitle() != null
+                                                ? document.getCustomTitle()
+                                                : localizedDocType;
+                                String title = messageSource.getMessage("notification.document.requested.title", null, locale);
+                                String message = messageSource.getMessage("notification.document.requested.message",
+                                                new Object[] { brokerName, displayDocName }, locale);
+                                notificationService.createNotification(
+                                                client.getId().toString(),
+                                                title,
+                                                message,
+                                                tx.getTransactionId().toString(),
+                                                com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REQUEST);
+                        } catch (Exception e) {
+                                logger.error("Failed to send in-app notification for document request", e);
+                        }
+                }
+
+                return mapToResponseDTO(savedDocument);
         }
 
         private boolean isFrench(String lang) {

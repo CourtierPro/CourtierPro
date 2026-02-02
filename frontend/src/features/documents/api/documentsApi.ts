@@ -10,6 +10,8 @@ export interface CreateDocumentDTO {
     stage: string;
     conditionIds?: string[];
     dueDate?: Date;
+    /** Optional status: 'DRAFT' or 'REQUESTED'. Defaults to 'REQUESTED' if not provided. */
+    status?: 'DRAFT' | 'REQUESTED';
 }
 
 export interface UpdateDocumentDTO {
@@ -138,4 +140,20 @@ export const reviewDocument = async (
 
 export const sendDocumentReminder = async (documentId: string): Promise<void> => {
     await axiosInstance.post(`/documents/${documentId}/remind`);
+};
+
+/**
+ * Transitions a draft document to REQUESTED status.
+ * Sends email notification to the client.
+ */
+export const sendDocumentRequest = async (
+    transactionId: string,
+    documentId: string
+): Promise<Document> => {
+    const response = await axiosInstance.post<Document>(
+        `/transactions/${transactionId}/documents/${documentId}/send`,
+        {},
+        { handleLocally: true }
+    );
+    return response.data;
 };

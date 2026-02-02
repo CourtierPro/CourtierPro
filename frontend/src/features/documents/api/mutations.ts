@@ -1,7 +1,7 @@
 import { updateDocument } from './documentsApi';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentKeys } from '@/features/documents/api/queries';
-import { createDocument, submitDocument, reviewDocument, sendDocumentReminder, type CreateDocumentDTO } from './documentsApi.ts';
+import { createDocument, submitDocument, reviewDocument, sendDocumentReminder, sendDocumentRequest, type CreateDocumentDTO } from './documentsApi.ts';
 
 import type { UpdateDocumentDTO } from './documentsApi';
 
@@ -100,5 +100,33 @@ export const useReviewDocument = () => {
 export const useSendDocumentReminder = () => {
     return useMutation({
         mutationFn: (documentId: string) => sendDocumentReminder(documentId),
+    });
+};
+
+/**
+ * Mutation hook to transition a draft document to REQUESTED status.
+ * Sends email notification to the client.
+ */
+export const useSendDocumentRequest = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ transactionId, documentId }: { transactionId: string; documentId: string }) =>
+            sendDocumentRequest(transactionId, documentId),
+        onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
+            queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
+            queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transactions', 'detail', transactionId, 'timeline'
+                ]
+            }); // Timeline broker
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transaction', transactionId, 'timeline', 'client'
+                ]
+            }); // Timeline client
+        },
     });
 };

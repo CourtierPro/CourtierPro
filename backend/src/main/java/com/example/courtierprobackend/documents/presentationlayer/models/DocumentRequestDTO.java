@@ -1,6 +1,7 @@
 package com.example.courtierprobackend.documents.presentationlayer.models;
 
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentPartyEnum;
+import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.StageEnum;
 import lombok.AllArgsConstructor;
@@ -29,4 +30,10 @@ public class DocumentRequestDTO {
     private List<UUID> conditionIds;
 
     private java.time.LocalDateTime dueDate;
+
+    /**
+     * Optional status for document creation. Allowed values: DRAFT, REQUESTED.
+     * Defaults to REQUESTED if not provided.
+     */
+    private DocumentStatusEnum status;
 }

@@ -2080,4 +2080,294 @@ class DocumentServiceImplTest {
                                 any(),
                                 eq("en"));
         }
+
+        // ========== Draft Workflow Tests ==========
+
+        @Test
+        void createDocument_WithDraftStatus_SkipsNotificationsAndTimelineEntry() {
+                // Arrange
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(clientId);
+
+                DocumentRequestDTO dto = new DocumentRequestDTO();
+                dto.setDocType(DocumentTypeEnum.PROOF_OF_FUNDS);
+                dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStatus(DocumentStatusEnum.DRAFT); // Set as DRAFT
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId))
+                                .thenReturn(java.util.Collections.emptyList());
+                when(repository.save(any(Document.class))).thenAnswer(inv -> {
+                        Document saved = inv.getArgument(0);
+                        saved.setDocumentId(UUID.randomUUID());
+                        return saved;
+                });
+
+                // Act
+                DocumentResponseDTO result = service.createDocument(transactionId, dto, brokerId);
+
+                // Assert
+                assertThat(result).isNotNull();
+                assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.DRAFT);
+
+                // Verify no email notifications sent
+                verify(emailService, never()).sendDocumentRequestedNotification(any(), any(), any(), any(), any(), any(), any());
+
+                // Verify no timeline entry added
+                verify(timelineService, never()).addEntry(any(), any(), any(), any(), any());
+
+                // Verify no in-app notification sent
+                verify(notificationService, never()).createNotification(any(), any(), any(), any(), any());
+        }
+
+        @Test
+        void createDocument_WithRequestedStatus_SendsNotifications() {
+                // Arrange
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(clientId);
+
+                DocumentRequestDTO dto = new DocumentRequestDTO();
+                dto.setDocType(DocumentTypeEnum.PROOF_OF_FUNDS);
+                dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
+                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStatus(DocumentStatusEnum.REQUESTED);
+
+                UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "John", "Doe",
+                                UserRole.CLIENT, "en");
+                client.setId(clientId);
+                UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Jane", "Smith",
+                                UserRole.BROKER, "en");
+                broker.setId(brokerId);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId))
+                                .thenReturn(java.util.Collections.emptyList());
+                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+                when(repository.save(any(Document.class))).thenAnswer(inv -> {
+                        Document saved = inv.getArgument(0);
+                        saved.setDocumentId(UUID.randomUUID());
+                        return saved;
+                });
+                lenient().when(messageSource.getMessage(anyString(), any(), anyString(), any(java.util.Locale.class)))
+                                .thenReturn("Localized Doc Type");
+                lenient().when(messageSource.getMessage(anyString(), any(), any(java.util.Locale.class)))
+                                .thenReturn("Notification Message");
+
+                // Act
+                DocumentResponseDTO result = service.createDocument(transactionId, dto, brokerId);
+
+                // Assert
+                assertThat(result).isNotNull();
+                assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.REQUESTED);
+
+                // Verify email notification sent
+                verify(emailService, atLeastOnce()).sendDocumentRequestedNotification(any(), any(), any(), any(), any(), any(), any());
+
+                // Verify timeline entry added
+                verify(timelineService, atLeastOnce()).addEntry(any(), any(), any(), any(), any());
+        }
+
+        @Test
+        void getDocumentsForTransaction_WhenClient_FiltersDraftDocuments() {
+                // Arrange
+                UUID transactionId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(clientId);
+
+                Document draftDoc = new Document();
+                draftDoc.setDocumentId(UUID.randomUUID());
+                draftDoc.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+                draftDoc.setDocType(DocumentTypeEnum.PROOF_OF_FUNDS);
+                draftDoc.setStatus(DocumentStatusEnum.DRAFT);
+                draftDoc.setVersions(new ArrayList<>());
+
+                Document requestedDoc = new Document();
+                requestedDoc.setDocumentId(UUID.randomUUID());
+                requestedDoc.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+                requestedDoc.setDocType(DocumentTypeEnum.ID_VERIFICATION);
+                requestedDoc.setStatus(DocumentStatusEnum.REQUESTED);
+                requestedDoc.setVersions(new ArrayList<>());
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(repository.findByTransactionRef_TransactionId(transactionId))
+                                .thenReturn(List.of(draftDoc, requestedDoc));
+
+                // Act - Client requests documents
+                List<DocumentResponseDTO> result = service.getDocumentsForTransaction(transactionId, clientId);
+
+                // Assert
+                assertThat(result).hasSize(1);
+                assertThat(result.get(0).getStatus()).isEqualTo(DocumentStatusEnum.REQUESTED);
+                assertThat(result.stream().noneMatch(d -> d.getStatus() == DocumentStatusEnum.DRAFT)).isTrue();
+        }
+
+        @Test
+        void getDocumentsForTransaction_WhenBroker_IncludesDraftDocuments() {
+                // Arrange
+                UUID transactionId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(clientId);
+
+                Document draftDoc = new Document();
+                draftDoc.setDocumentId(UUID.randomUUID());
+                draftDoc.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+                draftDoc.setDocType(DocumentTypeEnum.PROOF_OF_FUNDS);
+                draftDoc.setStatus(DocumentStatusEnum.DRAFT);
+                draftDoc.setVersions(new ArrayList<>());
+
+                Document requestedDoc = new Document();
+                requestedDoc.setDocumentId(UUID.randomUUID());
+                requestedDoc.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+                requestedDoc.setDocType(DocumentTypeEnum.ID_VERIFICATION);
+                requestedDoc.setStatus(DocumentStatusEnum.REQUESTED);
+                requestedDoc.setVersions(new ArrayList<>());
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(repository.findByTransactionRef_TransactionId(transactionId))
+                                .thenReturn(List.of(draftDoc, requestedDoc));
+
+                // Act - Broker requests documents
+                List<DocumentResponseDTO> result = service.getDocumentsForTransaction(transactionId, brokerId);
+
+                // Assert - Broker should see all documents including drafts
+                assertThat(result).hasSize(2);
+                assertThat(result.stream().anyMatch(d -> d.getStatus() == DocumentStatusEnum.DRAFT)).isTrue();
+        }
+
+        @Test
+        void sendDocumentRequest_WithDraftDocument_TransitionsToRequested() {
+                // Arrange
+                UUID documentId = UUID.randomUUID();
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(clientId);
+
+                Document draftDoc = new Document();
+                draftDoc.setDocumentId(documentId);
+                draftDoc.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+                draftDoc.setDocType(DocumentTypeEnum.PROOF_OF_FUNDS);
+                draftDoc.setStatus(DocumentStatusEnum.DRAFT);
+                draftDoc.setVersions(new ArrayList<>());
+
+                UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "John", "Doe",
+                                UserRole.CLIENT, "en");
+                client.setId(clientId);
+                UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Jane", "Smith",
+                                UserRole.BROKER, "en");
+                broker.setId(brokerId);
+
+                when(repository.findByDocumentId(documentId)).thenReturn(Optional.of(draftDoc));
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId))
+                                .thenReturn(java.util.Collections.emptyList());
+                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+                when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
+                when(messageSource.getMessage(anyString(), any(), anyString(), any(java.util.Locale.class)))
+                                .thenReturn("Localized Doc Type");
+                when(messageSource.getMessage(anyString(), any(), any(java.util.Locale.class)))
+                                .thenReturn("Notification Message");
+
+                // Act
+                DocumentResponseDTO result = service.sendDocumentRequest(documentId, brokerId);
+
+                // Assert
+                assertThat(result).isNotNull();
+                assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.REQUESTED);
+
+                // Verify email notification sent
+                verify(emailService).sendDocumentRequestedNotification(
+                                eq("client@test.com"),
+                                eq("John Doe"),
+                                eq("Jane Smith"),
+                                anyString(),
+                                eq("PROOF_OF_FUNDS"),
+                                any(),
+                                eq("en"));
+
+                // Verify timeline entry added
+                verify(timelineService).addEntry(eq(transactionId), eq(brokerId), any(), any(), any());
+
+                // Verify in-app notification sent
+                verify(notificationService).createNotification(
+                                eq(clientId.toString()),
+                                anyString(),
+                                anyString(),
+                                eq(transactionId.toString()),
+                                eq(com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REQUEST));
+        }
+
+        @Test
+        void sendDocumentRequest_WithNonDraftDocument_ThrowsBadRequestException() {
+                // Arrange
+                UUID documentId = UUID.randomUUID();
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(clientId);
+
+                Document requestedDoc = new Document();
+                requestedDoc.setDocumentId(documentId);
+                requestedDoc.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+                requestedDoc.setDocType(DocumentTypeEnum.PROOF_OF_FUNDS);
+                requestedDoc.setStatus(DocumentStatusEnum.REQUESTED); // Not a draft
+                requestedDoc.setVersions(new ArrayList<>());
+
+                when(repository.findByDocumentId(documentId)).thenReturn(Optional.of(requestedDoc));
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId))
+                                .thenReturn(java.util.Collections.emptyList());
+
+                // Act & Assert
+                assertThatThrownBy(() -> service.sendDocumentRequest(documentId, brokerId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("Only draft documents can be sent as requests");
+        }
+
+        @Test
+        void sendDocumentRequest_WithNotFoundDocument_ThrowsNotFoundException() {
+                // Arrange
+                UUID documentId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+
+                when(repository.findByDocumentId(documentId)).thenReturn(Optional.empty());
+
+                // Act & Assert
+                assertThatThrownBy(() -> service.sendDocumentRequest(documentId, brokerId))
+                                .isInstanceOf(NotFoundException.class)
+                                .hasMessageContaining("Document not found");
+        }
 }

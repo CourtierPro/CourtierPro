@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import DOMPurify from 'dompurify';
-import { Send, FileText, Calendar as CalendarIcon, ChevronDown, ChevronRight } from 'lucide-react';
+import { Send, FileText, Calendar as CalendarIcon, ChevronDown, ChevronRight, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -50,7 +50,7 @@ import { useParticipantPermissions } from '@/features/transactions/hooks/usePart
 interface RequestDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string, conditionIds: string[], dueDate?: Date) => void;
+  onSubmit: (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string, conditionIds: string[], dueDate?: Date, status?: 'DRAFT' | 'REQUESTED') => void;
   transactionType: 'buy' | 'sell';
   currentStage: string;
   transactionId: string;
@@ -155,17 +155,27 @@ export function RequestDocumentModal({
     }
   }, [selectedDocType]);
 
-  const onFormSubmit = (data: RequestDocumentFormValues) => {
+  const onFormSubmit = (data: RequestDocumentFormValues, status: 'DRAFT' | 'REQUESTED' = 'REQUESTED') => {
     onSubmit(
       data.docType,
       data.docType === DocumentTypeEnum.OTHER ? (data.customTitle?.trim() || '') : '',
       data.instructions?.trim() || '',
       data.stage,
       selectedConditionIds,
-      data.dueDate
+      data.dueDate,
+      status
     );
     setSelectedConditionIds([]);
     onClose();
+  };
+
+  const handleSaveAsDraft = () => {
+    const data = form.getValues();
+    if (form.formState.isValid) {
+      onFormSubmit(data, 'DRAFT');
+    } else {
+      form.trigger();
+    }
   };
 
   return (
@@ -381,6 +391,16 @@ export function RequestDocumentModal({
             <DialogFooter className="gap-4 sm:gap-4">
               <Button type="button" variant="outline" onClick={onClose}>
                 {t('cancel')}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleSaveAsDraft}
+                disabled={!form.formState.isValid}
+                className="gap-2"
+              >
+                <Save className="w-4 h-4" />
+                {t('actions.saveAsDraft', 'Save as Draft')}
               </Button>
               <Button type="submit" disabled={!form.formState.isValid} className="gap-2">
                 <Send className="w-4 h-4" />
