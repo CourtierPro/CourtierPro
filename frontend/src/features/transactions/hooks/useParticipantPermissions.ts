@@ -21,9 +21,19 @@ export function useParticipantPermissions(transactionId: string) {
     // Check if user is the primary broker (owner)
     const isPrimaryBroker = transaction?.brokerId === user.id;
 
+    // Check if user is the transaction's client
+    const isTransactionClient = transaction?.clientId === user.id;
+
     const permissions = currentParticipant?.permissions || [];
-    // If user is primary broker, allow BROKER role even if not in participants list
-    const role = isPrimaryBroker ? 'BROKER' : currentParticipant?.role;
+
+    // Determine role: primary broker > transaction client > participant role
+    let role = currentParticipant?.role;
+    if (isPrimaryBroker) {
+        role = 'BROKER';
+    } else if (isTransactionClient) {
+        // Client of this transaction - treat as BUYER for buy-side, SELLER for sell-side
+        role = transaction?.side === 'BUY_SIDE' ? 'BUYER' : 'SELLER';
+    }
 
     const checkPermission = (permission: ParticipantPermission) => {
         if (isPrimaryBroker) return true;
@@ -34,7 +44,9 @@ export function useParticipantPermissions(transactionId: string) {
                 'VIEW_DOCUMENTS',
                 'VIEW_PROPERTIES',
                 'VIEW_STAGE',
-                'VIEW_CONDITIONS'
+                'VIEW_CONDITIONS',
+                'VIEW_SEARCH_CRITERIA',
+                'EDIT_SEARCH_CRITERIA'
             ];
             if (defaultBuyerPermissions.includes(permission)) return true;
         }

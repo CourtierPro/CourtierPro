@@ -10,13 +10,22 @@
     "continue": "Continuer",
     "back": "Retour",
     "view": "Voir",
-    "refresh": "Rafraîchir"
+    "refresh": "Rafraîchir",
+    "retry": "Réessayer"
   },
   "status": {
     "loading": "Chargement...",
     "error": "Une erreur s'est produite",
     "success": "Succès",
     "empty": "Rien à afficher"
+  },
+  "error": {
+    "somethingWentWrong": "Une erreur s'est produite",
+    "unexpectedError": "Une erreur inattendue s'est produite",
+    "sessionExpired": "Session expirée. Veuillez vous reconnecter.",
+    "noPermission": "Vous n'avez pas la permission d'effectuer cette action.",
+    "serverError": "Une erreur serveur inattendue s'est produite.",
+    "serviceUnavailable": "Service temporairement indisponible. Veuillez réessayer plus tard."
   },
   "navigation": {
     "home": "Accueil",

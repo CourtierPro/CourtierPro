@@ -513,3 +513,35 @@ export function useDeleteOfferDocument() {
         },
     });
 }
+
+// ==================== SEARCH CRITERIA MUTATIONS ====================
+
+import { searchCriteriaKeys } from '@/features/transactions/api/queries';
+import type { SearchCriteriaRequestDTO, SearchCriteria } from '@/shared/api/types';
+
+export function useUpdateSearchCriteria() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, data }: { transactionId: string; data: SearchCriteriaRequestDTO }) => {
+            const res = await axiosInstance.put<SearchCriteria>(`/transactions/${transactionId}/search-criteria`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: searchCriteriaKeys.byTransaction(variables.transactionId) });
+        },
+    });
+}
+
+export function useDeleteSearchCriteria() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (transactionId: string) => {
+            await axiosInstance.delete(`/transactions/${transactionId}/search-criteria`);
+        },
+        onSuccess: (_data, transactionId) => {
+            queryClient.invalidateQueries({ queryKey: searchCriteriaKeys.byTransaction(transactionId) });
+        },
+    });
+}

@@ -96,6 +96,9 @@ class PropertyServiceUnitTest {
         @Mock
         private com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository documentConditionLinkRepository; // Added
 
+        @Mock
+        private com.example.courtierprobackend.transactions.datalayer.repositories.SearchCriteriaRepository searchCriteriaRepository; // Added
+
         @InjectMocks
         private TransactionServiceImpl service;
 
@@ -115,7 +118,8 @@ class PropertyServiceUnitTest {
                                 notificationService, timelineService, participantRepository, propertyRepository,
                                 offerRepository, conditionRepository,
                                 propertyOfferRepository, offerDocumentRepository, offerRevisionRepository,
-                                s3StorageService, documentRequestRepository, documentConditionLinkRepository);
+                                s3StorageService, documentRequestRepository, documentConditionLinkRepository,
+                                searchCriteriaRepository);
 
                 transactionId = UUID.randomUUID();
                 brokerId = UUID.randomUUID();

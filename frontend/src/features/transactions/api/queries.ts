@@ -366,3 +366,21 @@ export function useAllTransactionDocuments(transactionId: string, clientId?: str
     });
 }
 
+// ==================== SEARCH CRITERIA QUERIES ====================
+
+import type { SearchCriteria } from '@/shared/api/types';
+
+export const searchCriteriaKeys = {
+    byTransaction: (transactionId: string) => [...transactionKeys.detail(transactionId), 'searchCriteria'] as const,
+};
+
+export function useSearchCriteria(transactionId: string) {
+    return useQuery({
+        queryKey: searchCriteriaKeys.byTransaction(transactionId),
+        queryFn: async () => {
+            const res = await axiosInstance.get<SearchCriteria | null>(`/transactions/${transactionId}/search-criteria`);
+            return res.data;
+        },
+        enabled: !!transactionId,
+    });
+}
