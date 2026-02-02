@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchDocuments, fetchOutstandingDocuments } from './documentsApi';
-import type { DocumentRequest } from '../types';
+import type { Document } from '../types';
 import axiosInstance from '@/shared/api/axiosInstance';
 
 export const documentKeys = {
@@ -26,7 +26,7 @@ export function useDocumentStats(transactionId: string) {
     return useQuery({
         queryKey: documentKeys.stat(transactionId),
         queryFn: async () => {
-            const response = await axiosInstance.get<DocumentRequest[]>(`/transactions/${transactionId}/documents`);
+            const response = await axiosInstance.get<Document[]>(`/transactions/${transactionId}/documents`);
             const docs = response.data || [];
 
             const pending = docs.filter((d) => d.status === 'REQUESTED').length;
@@ -42,8 +42,6 @@ export function useDocumentStats(transactionId: string) {
         enabled: !!transactionId,
     });
 }
-
-export type { DocumentRequest as Document }; // Alias for compatibility if needed, but better to migrate
 
 export function useGetOutstandingDocuments() {
     return useQuery({

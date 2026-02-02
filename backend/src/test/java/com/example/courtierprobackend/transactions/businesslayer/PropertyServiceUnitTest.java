@@ -91,7 +91,7 @@ class PropertyServiceUnitTest {
         private com.example.courtierprobackend.infrastructure.storage.S3StorageService s3StorageService; // Added
 
         @Mock
-        private com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository documentRequestRepository; // Added
+        private com.example.courtierprobackend.documents.datalayer.DocumentRepository documentRequestRepository; // Added
 
         @Mock
         private com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository documentConditionLinkRepository; // Added

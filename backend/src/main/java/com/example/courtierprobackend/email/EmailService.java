@@ -3,7 +3,7 @@ package com.example.courtierprobackend.email;
 import com.example.courtierprobackend.shared.utils.StageTranslationUtil;
 import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
+import com.example.courtierprobackend.documents.datalayer.Document;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -109,7 +109,7 @@ public class EmailService {
         }
     }
 
-    public void sendDocumentSubmittedNotification(DocumentRequest request, String brokerEmail, String uploaderName,
+    public void sendDocumentSubmittedNotification(Document document, String brokerEmail, String uploaderName,
             String documentName, String docType, String brokerLanguage) {
         // Check broker's email notification preference
         var brokerOpt = userAccountRepository.findByEmail(brokerEmail);
@@ -159,7 +159,7 @@ public class EmailService {
                         .replace("{{documentName}}", escapeHtml(displayName))
                         .replace("{{documentType}}", escapeHtml(translatedDocType))
                         .replace("{{transactionId}}",
-                                escapeHtml(request.getTransactionRef().getTransactionId().toString()));
+                                escapeHtml(document.getTransactionRef().getTransactionId().toString()));
             } else {
                 String templatePath = isFrench
                         ? "email-templates/document_submitted_fr.html"
@@ -170,7 +170,7 @@ public class EmailService {
                         .replace("{{uploaderName}}", escapeHtml(uploaderName))
                         .replace("{{documentName}}", escapeHtml(displayName))
                         .replace("{{transactionId}}",
-                                escapeHtml(request.getTransactionRef().getTransactionId().toString()));
+                                escapeHtml(document.getTransactionRef().getTransactionId().toString()));
             }
 
             sendEmail(brokerEmail, subject, emailBody);
@@ -293,7 +293,7 @@ public class EmailService {
     }
 
     public void sendDocumentStatusUpdatedNotification(
-            DocumentRequest request,
+            Document document,
             String clientEmail,
             String clientName,
             String brokerName,
@@ -327,20 +327,20 @@ public class EmailService {
 
             // Prepare variable values for conditional blocks
             java.util.Map<String, String> variableValues = new java.util.HashMap<>();
-            variableValues.put("brokerNotes", request.getBrokerNotes());
+            variableValues.put("brokerNotes", document.getBrokerNotes());
 
             // Flags for decision-specific sections
-            boolean approved = request.getStatus() != null &&
-                    "APPROVED".equals(request.getStatus().toString());
-            boolean needsRevision = request.getStatus() != null &&
-                    "NEEDS_REVISION".equals(request.getStatus().toString());
+            boolean approved = document.getStatus() != null &&
+                    "APPROVED".equals(document.getStatus().toString());
+            boolean needsRevision = document.getStatus() != null &&
+                    "NEEDS_REVISION".equals(document.getStatus().toString());
             variableValues.put("isApproved", approved ? "true" : "");
             variableValues.put("isNeedsRevision", needsRevision ? "true" : "");
 
             // Process conditional blocks BEFORE converting to HTML
             bodyText = handleConditionalBlocks(bodyText, variableValues);
 
-            String translatedStatus = translateDocumentStatus(request.getStatus(), isFrench);
+            String translatedStatus = translateDocumentStatus(document.getStatus(), isFrench);
 
             String resolvedClientName = (clientName != null && !clientName.trim().isEmpty())
                     ? clientName
@@ -353,10 +353,10 @@ public class EmailService {
                     .replace("{{brokerName}}", escapeHtml(brokerName))
                     .replace("{{documentName}}", escapeHtml(displayName))
                     .replace("{{documentType}}", escapeHtml(translatedDocType))
-                    .replace("{{transactionId}}", escapeHtml(request.getTransactionRef().getTransactionId().toString()))
+                    .replace("{{transactionId}}", escapeHtml(document.getTransactionRef().getTransactionId().toString()))
                     .replace("{{status}}", escapeHtml(translatedStatus))
                     .replace("{{brokerNotes}}",
-                            request.getBrokerNotes() != null ? escapeHtml(request.getBrokerNotes()) : "");
+                            document.getBrokerNotes() != null ? escapeHtml(document.getBrokerNotes()) : "");
 
             sendEmail(clientEmail, subject, emailBody);
         } catch (MessagingException | UnsupportedEncodingException e) {

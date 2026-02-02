@@ -2,7 +2,7 @@ package com.example.courtierprobackend.email;
 
 import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
+import com.example.courtierprobackend.documents.datalayer.Document;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
@@ -168,7 +168,7 @@ class EmailServiceTest {
         var brokerLanguage = "fr";
         var transactionId = UUID.randomUUID();
         var transactionRef = new TransactionRef(transactionId, null, TransactionSide.BUY_SIDE);
-        var request = mock(DocumentRequest.class);
+        var request = mock(Document.class);
         when(request.getTransactionRef()).thenReturn(transactionRef);
 
         var brokerAccount = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
@@ -196,7 +196,7 @@ class EmailServiceTest {
         when(brokerAccount.isEmailNotificationsEnabled()).thenReturn(false);
         when(userAccountRepository.findByEmail(brokerEmail)).thenReturn(java.util.Optional.of(brokerAccount));
 
-        var request = mock(DocumentRequest.class);
+        var request = mock(Document.class);
 
         // Should not throw or send email
         emailService.sendDocumentSubmittedNotification(request, brokerEmail, "Uploader", "DocName", "Type", "en");

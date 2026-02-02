@@ -14,19 +14,19 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "submitted_documents")
+@Table(name = "document_versions")
 @Where(clause = "deleted_at IS NULL")
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class SubmittedDocument {
+public class DocumentVersion {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private UUID documentId; // Public ID for this specific submission
+    private UUID versionId; // Public ID for this specific version
 
     private LocalDateTime uploadedAt;
 
@@ -37,11 +37,10 @@ public class SubmittedDocument {
     private StorageObject storageObject;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "document_request_id")
-    private DocumentRequest documentRequest;
+    @JoinColumn(name = "document_id")
+    private Document document;
 
     // Soft delete fields
     private LocalDateTime deletedAt;
     private UUID deletedBy;
 }
-

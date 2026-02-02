@@ -7,7 +7,7 @@ import java.util.UUID;
 
 /**
  * Unified document DTO that aggregates documents from all sources:
- * - CLIENT_UPLOAD: Documents submitted by clients (from DocumentRequest/SubmittedDocument)
+ * - CLIENT_UPLOAD: Documents submitted by clients (from Document/DocumentVersion)
  * - OFFER_ATTACHMENT: Documents attached to sell-side offers
  * - PROPERTY_OFFER_ATTACHMENT: Documents attached to buy-side property offers
  */
@@ -32,7 +32,7 @@ public class UnifiedDocumentDTO {
     private String source;
     
     /**
-     * ID of the source entity (requestId, offerId, or propertyOfferId)
+     * ID of the source entity (documentId, offerId, or propertyOfferId)
      */
     private UUID sourceId;
     

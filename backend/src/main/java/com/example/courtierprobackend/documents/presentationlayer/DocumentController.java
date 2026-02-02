@@ -1,9 +1,9 @@
 package com.example.courtierprobackend.documents.presentationlayer;
 
-import com.example.courtierprobackend.documents.businesslayer.DocumentRequestService;
+import com.example.courtierprobackend.documents.businesslayer.DocumentService;
 import com.example.courtierprobackend.documents.datalayer.enums.UploadedByRefEnum;
-import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestRequestDTO;
-import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentResponseDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentReviewRequestDTO;
 import com.example.courtierprobackend.security.UserContextUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,15 +25,15 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/transactions/{transactionId}/documents")
 @RequiredArgsConstructor
-public class DocumentRequestController {
+public class DocumentController {
 
-    private final DocumentRequestService service;
+    private final DocumentService service;
 
     // -------- UserId extraction (internal UUID from UserContextFilter) --------
 
     @GetMapping
     @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
-    public ResponseEntity<List<DocumentRequestResponseDTO>> getDocuments(
+    public ResponseEntity<List<DocumentResponseDTO>> getDocuments(
             @PathVariable UUID transactionId,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt,
@@ -44,57 +44,57 @@ public class DocumentRequestController {
 
     @PostMapping
     @PreAuthorize("hasRole('BROKER')")
-    public ResponseEntity<DocumentRequestResponseDTO> createDocumentRequest(
+    public ResponseEntity<DocumentResponseDTO> createDocument(
             @PathVariable UUID transactionId,
-            @RequestBody DocumentRequestRequestDTO requestDTO,
+            @RequestBody DocumentRequestDTO requestDTO,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             HttpServletRequest request) {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(service.createDocumentRequest(transactionId, requestDTO, brokerId));
+                .body(service.createDocument(transactionId, requestDTO, brokerId));
     }
 
-    @GetMapping("/{requestId}")
+    @GetMapping("/{documentId}")
     @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
-    public ResponseEntity<DocumentRequestResponseDTO> getDocumentRequest(
+    public ResponseEntity<DocumentResponseDTO> getDocument(
             @PathVariable UUID transactionId,
-            @PathVariable UUID requestId,
+            @PathVariable UUID documentId,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request) {
         UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
-        return ResponseEntity.ok(service.getDocumentRequest(requestId, userId));
+        return ResponseEntity.ok(service.getDocument(documentId, userId));
     }
 
-    @PutMapping("/{requestId}")
+    @PutMapping("/{documentId}")
     @PreAuthorize("hasRole('BROKER')")
-    public ResponseEntity<DocumentRequestResponseDTO> updateDocumentRequest(
+    public ResponseEntity<DocumentResponseDTO> updateDocument(
             @PathVariable UUID transactionId,
-            @PathVariable UUID requestId,
-            @RequestBody DocumentRequestRequestDTO requestDTO,
+            @PathVariable UUID documentId,
+            @RequestBody DocumentRequestDTO requestDTO,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             HttpServletRequest request) {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
-        return ResponseEntity.ok(service.updateDocumentRequest(requestId, requestDTO, brokerId));
+        return ResponseEntity.ok(service.updateDocument(documentId, requestDTO, brokerId));
     }
 
-    @DeleteMapping("/{requestId}")
+    @DeleteMapping("/{documentId}")
     @PreAuthorize("hasRole('BROKER')")
-    public ResponseEntity<Void> deleteDocumentRequest(
+    public ResponseEntity<Void> deleteDocument(
             @PathVariable UUID transactionId,
-            @PathVariable UUID requestId,
+            @PathVariable UUID documentId,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             HttpServletRequest request) {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
-        service.deleteDocumentRequest(requestId, brokerId);
+        service.deleteDocument(documentId, brokerId);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{requestId}/submit")
+    @PostMapping("/{documentId}/submit")
     @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
-    public ResponseEntity<DocumentRequestResponseDTO> submitDocument(
+    public ResponseEntity<DocumentResponseDTO> submitDocument(
             @PathVariable UUID transactionId,
-            @PathVariable UUID requestId,
+            @PathVariable UUID documentId,
             @RequestParam("file") MultipartFile file,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt,
@@ -110,31 +110,31 @@ public class DocumentRequestController {
             }
         }
 
-        return ResponseEntity.ok(service.submitDocument(transactionId, requestId, file, userId, uploaderType));
+        return ResponseEntity.ok(service.submitDocument(transactionId, documentId, file, userId, uploaderType));
     }
 
-    @GetMapping("/{requestId}/documents/{documentId}/download")
+    @GetMapping("/{documentId}/versions/{versionId}/download")
     @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
     public ResponseEntity<Map<String, String>> getDocumentDownloadUrl(
             @PathVariable UUID transactionId,
-            @PathVariable UUID requestId,
             @PathVariable UUID documentId,
+            @PathVariable UUID versionId,
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request) {
         UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
-        String url = service.getDocumentDownloadUrl(requestId, documentId, userId);
+        String url = service.getDocumentDownloadUrl(documentId, versionId, userId);
         return ResponseEntity.ok(Map.of("url", url));
     }
 
-    @PatchMapping("/{requestId}/review")
+    @PatchMapping("/{documentId}/review")
     @PreAuthorize("hasRole('BROKER')")
-    public ResponseEntity<DocumentRequestResponseDTO> reviewDocument(
+    public ResponseEntity<DocumentResponseDTO> reviewDocument(
             @PathVariable UUID transactionId,
-            @PathVariable UUID requestId,
+            @PathVariable UUID documentId,
             @RequestBody @Valid DocumentReviewRequestDTO reviewDTO,
             HttpServletRequest request) {
         UUID brokerId = UserContextUtils.resolveUserId(request, null);
-        return ResponseEntity.ok(service.reviewDocument(transactionId, requestId, reviewDTO, brokerId));
+        return ResponseEntity.ok(service.reviewDocument(transactionId, documentId, reviewDTO, brokerId));
     }
 }

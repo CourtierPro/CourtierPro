@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/compo
 interface UploadDocumentModalProps {
   open: boolean;
   onClose: () => void;
-  requestId: string;
+  documentId: string;
   transactionId: string;
   documentTitle: string;
   docType?: string;
@@ -23,7 +23,7 @@ interface UploadDocumentModalProps {
 export function UploadDocumentModal({
   open,
   onClose,
-  requestId,
+  documentId,
   transactionId,
   documentTitle,
   docType,
@@ -92,7 +92,7 @@ export function UploadDocumentModal({
     setUploadProgress(0);
 
     try {
-      await submitDocument.mutateAsync({ transactionId, requestId, file });
+      await submitDocument.mutateAsync({ transactionId, documentId, file });
       setUploadProgress(100);
       toast.success(t("success.documentUploaded"));
 

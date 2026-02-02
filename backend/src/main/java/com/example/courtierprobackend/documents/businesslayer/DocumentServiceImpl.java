@@ -2,19 +2,19 @@ package com.example.courtierprobackend.documents.businesslayer;
 
 import com.example.courtierprobackend.documents.datalayer.enums.*;
 
-import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
+import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
-import com.example.courtierprobackend.documents.datalayer.SubmittedDocument;
+import com.example.courtierprobackend.documents.datalayer.Document;
+import com.example.courtierprobackend.documents.datalayer.DocumentVersion;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.UploadedBy;
 import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
 import com.example.courtierprobackend.email.EmailService;
-import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestRequestDTO;
-import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentResponseDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentReviewRequestDTO;
-import com.example.courtierprobackend.documents.presentationlayer.models.SubmittedDocumentResponseDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentVersionResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
@@ -41,13 +41,14 @@ import org.springframework.context.MessageSource;
 import java.util.Locale;
 import com.example.courtierprobackend.transactions.datalayer.DocumentConditionLink;
 import com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository;
+import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository;
 
 @Service
 @RequiredArgsConstructor
-public class DocumentRequestServiceImpl implements DocumentRequestService {
-        private static final Logger logger = LoggerFactory.getLogger(DocumentRequestServiceImpl.class);
+public class DocumentServiceImpl implements DocumentService {
+        private static final Logger logger = LoggerFactory.getLogger(DocumentServiceImpl.class);
 
-        private final DocumentRequestRepository repository;
+        private final DocumentRepository repository;
         private final S3StorageService storageService;
         private final EmailService emailService;
         private final NotificationService notificationService;
@@ -56,7 +57,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         private final TimelineService timelineService;
         private final MessageSource messageSource;
         private final DocumentConditionLinkRepository documentConditionLinkRepository;
-        private final com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository participantRepository;
+        private final TransactionParticipantRepository participantRepository;
 
         private void verifyViewAccess(Transaction tx, UUID userId) {
                 String userEmail = userAccountRepository.findById(userId)
@@ -99,7 +100,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         }
 
         @Override
-        public List<DocumentRequestResponseDTO> getDocumentsForTransaction(UUID transactionId, UUID userId) {
+        public List<DocumentResponseDTO> getDocumentsForTransaction(UUID transactionId, UUID userId) {
                 Transaction tx = transactionRepository.findByTransactionId(transactionId)
                                 .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
 
@@ -111,71 +112,60 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         }
 
         @Override
-        public List<DocumentRequestResponseDTO> getAllDocumentsForUser(UUID userId) {
+        public List<DocumentResponseDTO> getAllDocumentsForUser(UUID userId) {
                 return repository.findByUserId(userId).stream()
                                 .map(this::mapToResponseDTO)
                                 .collect(Collectors.toList());
         }
 
         @Override
-        public DocumentRequestResponseDTO getDocumentRequest(UUID requestId, UUID userId) {
-                DocumentRequest request = repository.findByRequestId(requestId)
-                                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+        public DocumentResponseDTO getDocument(UUID documentId, UUID userId) {
+                Document document = repository.findByDocumentId(documentId)
+                                .orElseThrow(() -> new NotFoundException("Document not found: " + documentId));
 
                 Transaction tx = transactionRepository
-                                .findByTransactionId(request.getTransactionRef().getTransactionId())
+                                .findByTransactionId(document.getTransactionRef().getTransactionId())
                                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
                 verifyViewAccess(tx, userId);
 
-                return mapToResponseDTO(request);
+                return mapToResponseDTO(document);
         }
 
         @Transactional
         @Override
-        public DocumentRequestResponseDTO createDocumentRequest(UUID transactionId,
-                        DocumentRequestRequestDTO requestDTO, UUID userId) {
+        public DocumentResponseDTO createDocument(UUID transactionId,
+                        DocumentRequestDTO requestDTO, UUID userId) {
                 Transaction tx = transactionRepository.findByTransactionId(transactionId)
                                 .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
 
                 verifyBrokerOrCoManager(tx, userId,
                                 com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
 
-                // Verify broker or co-manager access
-                // Since creating a request is managing documents, we require EDIT_DOCUMENTS
-                // But wait, the controller doesn't pass userId to createDocumentRequest!
-                // The controller uses @RequestBody RequestDTO.
-                // WE FOUND A BUG IN CONTROLLER TOO?
-                // DocumentRequestController line 49: createDocumentRequest(@PathVariable txId,
-                // @RequestBody dto)
-                // It does NOT resolve userId!
-                // I need to fix Controller first to pass userId!
-                // (Fixed in previous step)
-
-                DocumentRequest request = new DocumentRequest();
-                request.setRequestId(UUID.randomUUID());
-                request.setTransactionRef(new TransactionRef(transactionId, tx.getClientId(), tx.getSide()));
-                request.setDocType(requestDTO.getDocType());
-                request.setCustomTitle(requestDTO.getCustomTitle());
-                request.setStatus(DocumentStatusEnum.REQUESTED);
-                request.setExpectedFrom(requestDTO.getExpectedFrom());
-                request.setVisibleToClient(
+                Document document = new Document();
+                document.setDocumentId(UUID.randomUUID());
+                document.setTransactionRef(new TransactionRef(transactionId, tx.getClientId(), tx.getSide()));
+                document.setDocType(requestDTO.getDocType());
+                document.setCustomTitle(requestDTO.getCustomTitle());
+                document.setStatus(DocumentStatusEnum.REQUESTED);
+                document.setExpectedFrom(requestDTO.getExpectedFrom());
+                document.setVisibleToClient(
                                 requestDTO.getVisibleToClient() != null ? requestDTO.getVisibleToClient() : true);
-                request.setBrokerNotes(requestDTO.getBrokerNotes());
-                request.setLastUpdatedAt(LocalDateTime.now());
-                request.setCreatedAt(LocalDateTime.now());
+                document.setBrokerNotes(requestDTO.getBrokerNotes());
+                document.setLastUpdatedAt(LocalDateTime.now());
+                document.setCreatedAt(LocalDateTime.now());
                 // Add stage mapping
-                request.setStage(requestDTO.getStage());
-                request.setDueDate(requestDTO.getDueDate());
+                document.setStage(requestDTO.getStage());
+                document.setDueDate(requestDTO.getDueDate());
 
-                DocumentRequest savedRequest = repository.save(request);
+                Document savedDocument = repository.save(document);
 
                 // Save condition links if provided
                 if (requestDTO.getConditionIds() != null && !requestDTO.getConditionIds().isEmpty()) {
                         for (UUID conditionId : requestDTO.getConditionIds()) {
                                 DocumentConditionLink link = DocumentConditionLink.builder()
                                                 .conditionId(conditionId)
-                                                .documentRequestId(savedRequest.getRequestId())
+                                                .documentId(savedDocument.getDocumentId())
                                                 .build();
                                 documentConditionLinkRepository.save(link);
                         }
@@ -227,18 +217,18 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                         }
                 }
 
-                return mapToResponseDTO(savedRequest);
+                return mapToResponseDTO(savedDocument);
         }
 
         @Transactional
         @Override
-        public DocumentRequestResponseDTO updateDocumentRequest(UUID requestId, DocumentRequestRequestDTO requestDTO,
+        public DocumentResponseDTO updateDocument(UUID documentId, DocumentRequestDTO requestDTO,
                         UUID userId) {
-                DocumentRequest request = repository.findByRequestId(requestId)
-                                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+                Document document = repository.findByDocumentId(documentId)
+                                .orElseThrow(() -> new NotFoundException("Document not found: " + documentId));
 
                 Transaction tx = transactionRepository
-                                .findByTransactionId(request.getTransactionRef().getTransactionId())
+                                .findByTransactionId(document.getTransactionRef().getTransactionId())
                                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
                 verifyBrokerOrCoManager(tx, userId,
@@ -251,69 +241,69 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
 
                 // Build a candidate entity with merged values (normalized)
                 DocumentTypeEnum candidateDocType = requestDTO.getDocType() != null ? requestDTO.getDocType()
-                                : request.getDocType();
+                                : document.getDocType();
                 String candidateCustomTitle = normStr.apply(requestDTO.getCustomTitle()).isEmpty() ? null
                                 : requestDTO.getCustomTitle();
-                if (candidateCustomTitle == null && request.getCustomTitle() != null)
-                        candidateCustomTitle = request.getCustomTitle();
+                if (candidateCustomTitle == null && document.getCustomTitle() != null)
+                        candidateCustomTitle = document.getCustomTitle();
                 DocumentPartyEnum candidateExpectedFrom = requestDTO.getExpectedFrom() != null
                                 ? requestDTO.getExpectedFrom()
-                                : request.getExpectedFrom();
+                                : document.getExpectedFrom();
                 Boolean candidateVisibleToClient = requestDTO.getVisibleToClient() != null
                                 ? requestDTO.getVisibleToClient()
-                                : request.isVisibleToClient();
+                                : document.isVisibleToClient();
                 String candidateBrokerNotes = normStr.apply(requestDTO.getBrokerNotes()).isEmpty() ? null
                                 : requestDTO.getBrokerNotes();
-                if (candidateBrokerNotes == null && request.getBrokerNotes() != null)
-                        candidateBrokerNotes = request.getBrokerNotes();
-                StageEnum candidateStage = requestDTO.getStage() != null ? requestDTO.getStage() : request.getStage();
+                if (candidateBrokerNotes == null && document.getBrokerNotes() != null)
+                        candidateBrokerNotes = document.getBrokerNotes();
+                StageEnum candidateStage = requestDTO.getStage() != null ? requestDTO.getStage() : document.getStage();
 
                 // Compare normalized candidate to normalized current entity
-                boolean isIdentical = normEnum.apply(request.getDocType()).equals(normEnum.apply(candidateDocType)) &&
-                                normStr.apply(request.getCustomTitle()).equals(normStr.apply(candidateCustomTitle)) &&
-                                normEnum.apply(request.getExpectedFrom()).equals(normEnum.apply(candidateExpectedFrom))
+                boolean isIdentical = normEnum.apply(document.getDocType()).equals(normEnum.apply(candidateDocType)) &&
+                                normStr.apply(document.getCustomTitle()).equals(normStr.apply(candidateCustomTitle)) &&
+                                normEnum.apply(document.getExpectedFrom()).equals(normEnum.apply(candidateExpectedFrom))
                                 &&
-                                request.isVisibleToClient() == candidateVisibleToClient &&
-                                normStr.apply(request.getBrokerNotes()).equals(normStr.apply(candidateBrokerNotes)) &&
-                                normEnum.apply(request.getStage()).equals(normEnum.apply(candidateStage));
+                                document.isVisibleToClient() == candidateVisibleToClient &&
+                                normStr.apply(document.getBrokerNotes()).equals(normStr.apply(candidateBrokerNotes)) &&
+                                normEnum.apply(document.getStage()).equals(normEnum.apply(candidateStage));
                 if (isIdentical) {
-                        return mapToResponseDTO(request);
+                        return mapToResponseDTO(document);
                 }
                 // ...existing code for updating fields and triggering side effects...
 
                 // Only update fields if the normalized value is different from the current
                 // normalized value
-                if (!normEnum.apply(request.getDocType()).equals(normEnum.apply(requestDTO.getDocType()))) {
-                        request.setDocType(requestDTO.getDocType());
+                if (!normEnum.apply(document.getDocType()).equals(normEnum.apply(requestDTO.getDocType()))) {
+                        document.setDocType(requestDTO.getDocType());
                 }
-                if (!normStr.apply(request.getCustomTitle()).equals(normStr.apply(requestDTO.getCustomTitle()))) {
+                if (!normStr.apply(document.getCustomTitle()).equals(normStr.apply(requestDTO.getCustomTitle()))) {
                         // If both are null/empty, set to null for consistency
                         String newVal = normStr.apply(requestDTO.getCustomTitle());
-                        request.setCustomTitle(newVal.isEmpty() ? null : requestDTO.getCustomTitle());
+                        document.setCustomTitle(newVal.isEmpty() ? null : requestDTO.getCustomTitle());
                 }
-                if (!normEnum.apply(request.getExpectedFrom()).equals(normEnum.apply(requestDTO.getExpectedFrom()))) {
-                        request.setExpectedFrom(requestDTO.getExpectedFrom());
+                if (!normEnum.apply(document.getExpectedFrom()).equals(normEnum.apply(requestDTO.getExpectedFrom()))) {
+                        document.setExpectedFrom(requestDTO.getExpectedFrom());
                 }
                 if (requestDTO.getVisibleToClient() != null
-                                && request.isVisibleToClient() != requestDTO.getVisibleToClient()) {
-                        request.setVisibleToClient(requestDTO.getVisibleToClient());
+                                && document.isVisibleToClient() != requestDTO.getVisibleToClient()) {
+                        document.setVisibleToClient(requestDTO.getVisibleToClient());
                 }
-                if (!normStr.apply(request.getBrokerNotes()).equals(normStr.apply(requestDTO.getBrokerNotes()))) {
+                if (!normStr.apply(document.getBrokerNotes()).equals(normStr.apply(requestDTO.getBrokerNotes()))) {
                         String newVal = normStr.apply(requestDTO.getBrokerNotes());
-                        request.setBrokerNotes(newVal.isEmpty() ? null : requestDTO.getBrokerNotes());
+                        document.setBrokerNotes(newVal.isEmpty() ? null : requestDTO.getBrokerNotes());
                 }
-                if (!normEnum.apply(request.getStage()).equals(normEnum.apply(requestDTO.getStage()))) {
-                        request.setStage(requestDTO.getStage());
+                if (!normEnum.apply(document.getStage()).equals(normEnum.apply(requestDTO.getStage()))) {
+                        document.setStage(requestDTO.getStage());
                 }
-                if (requestDTO.getDueDate() != null && !requestDTO.getDueDate().equals(request.getDueDate())) {
-                        request.setDueDate(requestDTO.getDueDate());
+                if (requestDTO.getDueDate() != null && !requestDTO.getDueDate().equals(document.getDueDate())) {
+                        document.setDueDate(requestDTO.getDueDate());
                 }
 
                 // Only update lastUpdatedAt, save, and send notifications/timeline if something
                 // changed
-                request.setLastUpdatedAt(LocalDateTime.now());
-                DocumentRequest savedRequest = repository.save(request);
-                final UUID timelineTransactionId = savedRequest.getTransactionRef().getTransactionId();
+                document.setLastUpdatedAt(LocalDateTime.now());
+                Document savedDocument = repository.save(document);
+                final UUID timelineTransactionId = savedDocument.getTransactionRef().getTransactionId();
                 try {
                         Transaction txForTimeline = transactionRepository.findByTransactionId(timelineTransactionId)
                                         .orElseThrow(() -> new NotFoundException(
@@ -332,10 +322,10 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                         Locale locale = clientLanguage != null && clientLanguage.equalsIgnoreCase("fr") ? Locale.FRENCH
                                         : Locale.ENGLISH;
                         String localizedDocType = messageSource.getMessage(
-                                        "document.type." + savedRequest.getDocType(), null,
-                                        savedRequest.getDocType().name(), locale);
-                        String documentName = (savedRequest.getCustomTitle() != null
-                                        && !savedRequest.getCustomTitle().isEmpty()) ? savedRequest.getCustomTitle()
+                                        "document.type." + savedDocument.getDocType(), null,
+                                        savedDocument.getDocType().name(), locale);
+                        String documentName = (savedDocument.getCustomTitle() != null
+                                        && !savedDocument.getCustomTitle().isEmpty()) ? savedDocument.getCustomTitle()
                                                         : localizedDocType;
                         String brokerName = brokerForTimeline != null
                                         ? brokerForTimeline.getFirstName() + " " + brokerForTimeline.getLastName()
@@ -344,7 +334,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                         String note = String.format("document.details.updated.note|%s|%s", documentName, brokerName);
 
                         timelineService.addEntry(
-                                        savedRequest.getTransactionRef().getTransactionId(),
+                                        savedDocument.getTransactionRef().getTransactionId(),
                                         txForTimeline.getBrokerId(),
                                         TimelineEntryType.DOCUMENT_REQUEST_UPDATED,
                                         note, // note: key and params for frontend i18n
@@ -356,7 +346,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                         UserAccount broker = resolveUserAccount(txForTimeline.getBrokerId()).orElse(null);
                         if (client != null && broker != null) {
                                 String clientName = client.getFirstName() + " " + client.getLastName();
-                                String docType = savedRequest.getDocType().toString();
+                                String docType = savedDocument.getDocType().toString();
 
                                 // Email (distinct message for edit)
                                 emailService.sendDocumentEditedNotification(
@@ -369,10 +359,10 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
 
                                 // In-app notification (distinct message for edit)
                                 localizedDocType = messageSource.getMessage(
-                                                "document.type." + savedRequest.getDocType(), null,
-                                                savedRequest.getDocType().name(), locale);
-                                String displayDocName = savedRequest.getCustomTitle() != null
-                                                ? savedRequest.getCustomTitle()
+                                                "document.type." + savedDocument.getDocType(), null,
+                                                savedDocument.getDocType().name(), locale);
+                                String displayDocName = savedDocument.getCustomTitle() != null
+                                                ? savedDocument.getCustomTitle()
                                                 : localizedDocType;
                                 String title = messageSource.getMessage("notification.document.edited.title", null,
                                                 locale);
@@ -382,56 +372,56 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                                 client.getId().toString(),
                                                 title,
                                                 message,
-                                                savedRequest.getTransactionRef().getTransactionId().toString(),
+                                                savedDocument.getTransactionRef().getTransactionId().toString(),
                                                 com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REQUEST);
                         }
                 } catch (Exception e) {
-                        logger.warn("Could not add timeline entry or send notification/email for document request update",
+                        logger.warn("Could not add timeline entry or send notification/email for document update",
                                         e);
                 }
 
-                savedRequest = repository.save(request);
+                savedDocument = repository.save(document);
 
                 // Update condition links if provided
                 if (requestDTO.getConditionIds() != null) {
-                        documentConditionLinkRepository.deleteByDocumentRequestId(requestId);
+                        documentConditionLinkRepository.deleteByDocumentId(documentId);
                         for (UUID conditionId : requestDTO.getConditionIds()) {
                                 DocumentConditionLink link = DocumentConditionLink.builder()
                                                 .conditionId(conditionId)
-                                                .documentRequestId(savedRequest.getRequestId())
+                                                .documentId(savedDocument.getDocumentId())
                                                 .build();
                                 documentConditionLinkRepository.save(link);
                         }
                 }
 
-                return mapToResponseDTO(savedRequest);
+                return mapToResponseDTO(savedDocument);
         }
 
         @Transactional
         @Override
-        public void deleteDocumentRequest(UUID requestId, UUID userId) {
-                DocumentRequest request = repository.findByRequestId(requestId)
-                                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+        public void deleteDocument(UUID documentId, UUID userId) {
+                Document document = repository.findByDocumentId(documentId)
+                                .orElseThrow(() -> new NotFoundException("Document not found: " + documentId));
 
                 Transaction tx = transactionRepository
-                                .findByTransactionId(request.getTransactionRef().getTransactionId())
+                                .findByTransactionId(document.getTransactionRef().getTransactionId())
                                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
                 verifyBrokerOrCoManager(tx, userId,
                                 com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
-                repository.delete(request);
+                repository.delete(document);
         }
 
         @Transactional
         @Override
-        public DocumentRequestResponseDTO submitDocument(UUID transactionId, UUID requestId, MultipartFile file,
+        public DocumentResponseDTO submitDocument(UUID transactionId, UUID documentId, MultipartFile file,
                         UUID uploaderId, UploadedByRefEnum uploaderType) throws IOException {
-                DocumentRequest request = repository.findByRequestId(requestId)
-                                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+                Document document = repository.findByDocumentId(documentId)
+                                .orElseThrow(() -> new NotFoundException("Document not found: " + documentId));
 
-                if (!request.getTransactionRef().getTransactionId().equals(transactionId)) {
+                if (!document.getTransactionRef().getTransactionId().equals(transactionId)) {
                         throw new BadRequestException(
-                                        "Document request does not belong to transaction: " + transactionId);
+                                        "Document does not belong to transaction: " + transactionId);
                 }
 
                 Transaction tx = transactionRepository.findByTransactionId(transactionId)
@@ -439,36 +429,36 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
 
                 verifyEditAccess(tx, uploaderId);
 
-                StorageObject storageObject = storageService.uploadFile(file, transactionId, requestId);
+                StorageObject storageObject = storageService.uploadFile(file, transactionId, documentId);
 
                 UploadedBy uploadedBy = UploadedBy.builder()
                                 .uploaderType(uploaderType)
                                 .uploaderId(uploaderId)
-                                .party(request.getExpectedFrom())
+                                .party(document.getExpectedFrom())
                                 .build();
 
-                SubmittedDocument submission = SubmittedDocument.builder()
-                                .documentId(UUID.randomUUID())
+                DocumentVersion version = DocumentVersion.builder()
+                                .versionId(UUID.randomUUID())
                                 .uploadedAt(LocalDateTime.now())
                                 .uploadedBy(uploadedBy)
                                 .storageObject(storageObject)
-                                .documentRequest(request)
+                                .document(document)
                                 .build();
 
-                request.getSubmittedDocuments().add(submission);
-                request.setStatus(DocumentStatusEnum.SUBMITTED);
-                request.setLastUpdatedAt(LocalDateTime.now());
+                document.getVersions().add(version);
+                document.setStatus(DocumentStatusEnum.SUBMITTED);
+                document.setLastUpdatedAt(LocalDateTime.now());
 
-                DocumentRequest savedRequest = repository.save(request);
+                Document savedDocument = repository.save(document);
                 // Add timeline entry for document submitted
                 timelineService.addEntry(
                                 transactionId,
                                 uploaderId,
                                 TimelineEntryType.DOCUMENT_SUBMITTED,
                                 "Document submitted: "
-                                                + (savedRequest.getCustomTitle() != null ? savedRequest.getCustomTitle()
-                                                                : savedRequest.getDocType()),
-                                savedRequest.getDocType() != null ? savedRequest.getDocType().toString() : null);
+                                                + (savedDocument.getCustomTitle() != null ? savedDocument.getCustomTitle()
+                                                                : savedDocument.getDocType()),
+                                savedDocument.getDocType() != null ? savedDocument.getDocType().toString() : null);
 
                 // Notify broker
                 UserAccount broker = resolveUserAccount(tx.getBrokerId())
@@ -482,22 +472,22 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                         .orElse("Unknown Client");
                 }
 
-                String documentName = savedRequest.getCustomTitle() != null ? savedRequest.getCustomTitle()
-                                : savedRequest.getDocType().toString();
-                String docType = savedRequest.getDocType().toString();
+                String documentName = savedDocument.getCustomTitle() != null ? savedDocument.getCustomTitle()
+                                : savedDocument.getDocType().toString();
+                String docType = savedDocument.getDocType().toString();
                 String brokerLanguage = broker.getPreferredLanguage() != null ? broker.getPreferredLanguage() : "en";
 
-                emailService.sendDocumentSubmittedNotification(savedRequest, broker.getEmail(), uploaderName,
+                emailService.sendDocumentSubmittedNotification(savedDocument, broker.getEmail(), uploaderName,
                                 documentName, docType, brokerLanguage);
 
                 // In-app Notification for Broker
                 try {
                         Locale locale = isFrench(brokerLanguage) ? Locale.FRENCH : Locale.ENGLISH;
                         String localizedDocType = messageSource.getMessage(
-                                        "document.type." + savedRequest.getDocType(), null,
-                                        savedRequest.getDocType().name(), locale);
-                        String displayDocName = savedRequest.getCustomTitle() != null
-                                        ? savedRequest.getCustomTitle()
+                                        "document.type." + savedDocument.getDocType(), null,
+                                        savedDocument.getDocType().name(), locale);
+                        String displayDocName = savedDocument.getCustomTitle() != null
+                                        ? savedDocument.getCustomTitle()
                                         : localizedDocType;
 
                         String title = messageSource.getMessage("notification.document.submitted.title", null, locale);
@@ -513,70 +503,70 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                         logger.error("Failed to send in-app notification for document submission", e);
                 }
 
-                return mapToResponseDTO(savedRequest);
+                return mapToResponseDTO(savedDocument);
         }
 
-        private DocumentRequestResponseDTO mapToResponseDTO(DocumentRequest request) {
-                return DocumentRequestResponseDTO.builder()
-                                .requestId(request.getRequestId())
-                                .transactionRef(request.getTransactionRef())
-                                .docType(request.getDocType())
-                                .customTitle(request.getCustomTitle())
-                                .status(request.getStatus())
-                                .expectedFrom(request.getExpectedFrom())
-                                .submittedDocuments(
-                                                request.getSubmittedDocuments() != null
-                                                                ? request.getSubmittedDocuments().stream()
-                                                                                .map(this::mapToSubmittedDocumentDTO)
+        private DocumentResponseDTO mapToResponseDTO(Document document) {
+                return DocumentResponseDTO.builder()
+                                .documentId(document.getDocumentId())
+                                .transactionRef(document.getTransactionRef())
+                                .docType(document.getDocType())
+                                .customTitle(document.getCustomTitle())
+                                .status(document.getStatus())
+                                .expectedFrom(document.getExpectedFrom())
+                                .versions(
+                                                document.getVersions() != null
+                                                                ? document.getVersions().stream()
+                                                                                .map(this::mapToVersionDTO)
                                                                                 .collect(Collectors.toList())
                                                                 : null)
-                                .brokerNotes(request.getBrokerNotes())
-                                .lastUpdatedAt(request.getLastUpdatedAt())
-                                .visibleToClient(request.isVisibleToClient())
-                                .stage(request.getStage()) // Add stage field to response
+                                .brokerNotes(document.getBrokerNotes())
+                                .lastUpdatedAt(document.getLastUpdatedAt())
+                                .visibleToClient(document.isVisibleToClient())
+                                .stage(document.getStage()) // Add stage field to response
                                 .build();
         }
 
-        private SubmittedDocumentResponseDTO mapToSubmittedDocumentDTO(SubmittedDocument submission) {
-                return SubmittedDocumentResponseDTO.builder()
-                                .documentId(submission.getDocumentId())
-                                .uploadedAt(submission.getUploadedAt())
-                                .uploadedBy(submission.getUploadedBy())
-                                .storageObject(submission.getStorageObject())
+        private DocumentVersionResponseDTO mapToVersionDTO(DocumentVersion version) {
+                return DocumentVersionResponseDTO.builder()
+                                .versionId(version.getVersionId())
+                                .uploadedAt(version.getUploadedAt())
+                                .uploadedBy(version.getUploadedBy())
+                                .storageObject(version.getStorageObject())
                                 .build();
         }
 
         @Override
-        public String getDocumentDownloadUrl(UUID requestId, UUID documentId, UUID userId) {
-                DocumentRequest request = repository.findByRequestId(requestId)
-                                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+        public String getDocumentDownloadUrl(UUID documentId, UUID versionId, UUID userId) {
+                Document document = repository.findByDocumentId(documentId)
+                                .orElseThrow(() -> new NotFoundException("Document not found: " + documentId));
 
                 Transaction tx = transactionRepository
-                                .findByTransactionId(request.getTransactionRef().getTransactionId())
+                                .findByTransactionId(document.getTransactionRef().getTransactionId())
                                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
                 verifyViewAccess(tx, userId);
 
-                SubmittedDocument submittedDocument = request.getSubmittedDocuments().stream()
-                                .filter(doc -> doc.getDocumentId().equals(documentId))
+                DocumentVersion version = document.getVersions().stream()
+                                .filter(v -> v.getVersionId().equals(versionId))
                                 .findFirst()
                                 .orElseThrow(() -> new NotFoundException(
-                                                "Submitted document not found: " + documentId));
+                                                "Document version not found: " + versionId));
 
-                return storageService.generatePresignedUrl(submittedDocument.getStorageObject().getS3Key());
+                return storageService.generatePresignedUrl(version.getStorageObject().getS3Key());
         }
 
         @Transactional
         @Override
-        public DocumentRequestResponseDTO reviewDocument(UUID transactionId, UUID requestId,
+        public DocumentResponseDTO reviewDocument(UUID transactionId, UUID documentId,
                         DocumentReviewRequestDTO reviewDTO, UUID brokerId) {
                 // Verify broker access is done below after fetching transaction
                 // or we can fetch tx first.
 
-                DocumentRequest request = repository.findByRequestId(requestId)
-                                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+                Document document = repository.findByDocumentId(documentId)
+                                .orElseThrow(() -> new NotFoundException("Document not found: " + documentId));
 
-                if (!request.getTransactionRef().getTransactionId().equals(transactionId)) {
+                if (!document.getTransactionRef().getTransactionId().equals(transactionId)) {
                         throw new BadRequestException("Document does not belong to this transaction");
                 }
 
@@ -586,15 +576,15 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 verifyBrokerOrCoManager(tx, brokerId,
                                 com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
 
-                if (request.getStatus() != DocumentStatusEnum.SUBMITTED) {
+                if (document.getStatus() != DocumentStatusEnum.SUBMITTED) {
                         throw new BadRequestException("Only submitted documents can be reviewed");
                 }
 
-                request.setStatus(reviewDTO.getDecision());
-                request.setBrokerNotes(reviewDTO.getComments());
-                request.setLastUpdatedAt(LocalDateTime.now());
+                document.setStatus(reviewDTO.getDecision());
+                document.setBrokerNotes(reviewDTO.getComments());
+                document.setLastUpdatedAt(LocalDateTime.now());
 
-                DocumentRequest updated = repository.save(request);
+                Document updated = repository.save(document);
                 // Add timeline entry for document reviewed
                 TimelineEntryType timelineType;
                 if (reviewDTO.getDecision() == DocumentStatusEnum.NEEDS_REVISION) {
@@ -616,8 +606,7 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                                 updated.getDocType() != null ? updated.getDocType().toString() : null);
 
                 // Send email notification
-                // Send email notification
-                // Transaction tx is already fetched above at line 567
+                // Transaction tx is already fetched above
 
                 UserAccount client = resolveUserAccount(tx.getClientId()).orElse(null);
                 UserAccount broker = resolveUserAccount(tx.getBrokerId()).orElse(null);
@@ -706,12 +695,12 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         public java.util.List<com.example.courtierprobackend.documents.presentationlayer.models.OutstandingDocumentDTO> getOutstandingDocumentSummary(
                         UUID brokerId) {
                 // Pass current time to filter for overdue documents
-                List<DocumentRequest> requests = repository.findOutstandingDocumentsForBroker(brokerId,
+                List<Document> documents = repository.findOutstandingDocumentsForBroker(brokerId,
                                 LocalDateTime.now());
 
-                return requests.stream().map(req -> {
+                return documents.stream().map(doc -> {
                         Transaction tx = transactionRepository
-                                        .findByTransactionId(req.getTransactionRef().getTransactionId()).orElse(null);
+                                        .findByTransactionId(doc.getTransactionRef().getTransactionId()).orElse(null);
                         if (tx == null)
                                 return null;
 
@@ -732,15 +721,15 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                         }
 
                         Integer daysOutstanding = 0;
-                        if (req.getDueDate() != null) {
+                        if (doc.getDueDate() != null) {
                                 // Calculate days PAST due date
-                                daysOutstanding = (int) java.time.temporal.ChronoUnit.DAYS.between(req.getDueDate(),
+                                daysOutstanding = (int) java.time.temporal.ChronoUnit.DAYS.between(doc.getDueDate(),
                                                 LocalDateTime.now());
                         } else {
                                 // Fallback for legacy/migrated data without due date (though query excludes
                                 // them now)
-                                LocalDateTime startDate = req.getCreatedAt() != null ? req.getCreatedAt()
-                                                : req.getLastUpdatedAt();
+                                LocalDateTime startDate = doc.getCreatedAt() != null ? doc.getCreatedAt()
+                                                : doc.getLastUpdatedAt();
                                 if (startDate != null) {
                                         daysOutstanding = (int) java.time.temporal.ChronoUnit.DAYS.between(startDate,
                                                         LocalDateTime.now());
@@ -749,15 +738,15 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
 
                         return com.example.courtierprobackend.documents.presentationlayer.models.OutstandingDocumentDTO
                                         .builder()
-                                        .id(req.getRequestId())
-                                        .title(req.getCustomTitle() != null ? req.getCustomTitle()
-                                                        : req.getDocType().toString())
+                                        .id(doc.getDocumentId())
+                                        .title(doc.getCustomTitle() != null ? doc.getCustomTitle()
+                                                        : doc.getDocType().toString())
                                         .transactionAddress(address)
                                         .clientName(clientName)
                                         .clientEmail(clientEmail)
-                                        .dueDate(req.getDueDate())
+                                        .dueDate(doc.getDueDate())
                                         .daysOutstanding(daysOutstanding)
-                                        .status(req.getStatus().toString())
+                                        .status(doc.getStatus().toString())
                                         .build();
                 })
                                 .filter(java.util.Objects::nonNull)
@@ -765,19 +754,19 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
         }
 
         @Override
-        public void sendDocumentReminder(UUID requestId, UUID brokerId) {
-                DocumentRequest request = repository.findByRequestId(requestId)
-                                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+        public void sendDocumentReminder(UUID documentId, UUID brokerId) {
+                Document document = repository.findByDocumentId(documentId)
+                                .orElseThrow(() -> new NotFoundException("Document not found: " + documentId));
 
                 Transaction tx = transactionRepository
-                                .findByTransactionId(request.getTransactionRef().getTransactionId())
+                                .findByTransactionId(document.getTransactionRef().getTransactionId())
                                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
                 verifyBrokerOrCoManager(tx, brokerId,
                                 com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
 
-                if (request.getStatus() != DocumentStatusEnum.REQUESTED
-                                && request.getStatus() != DocumentStatusEnum.NEEDS_REVISION) {
+                if (document.getStatus() != DocumentStatusEnum.REQUESTED
+                                && document.getStatus() != DocumentStatusEnum.NEEDS_REVISION) {
                         throw new BadRequestException("Can only remind for outstanding documents");
                 }
 
@@ -786,16 +775,16 @@ public class DocumentRequestServiceImpl implements DocumentRequestService {
                 UserAccount broker = resolveUserAccount(tx.getBrokerId())
                                 .orElseThrow(() -> new NotFoundException("Broker not found"));
 
-                String documentName = request.getCustomTitle() != null ? request.getCustomTitle()
-                                : request.getDocType().toString();
+                String documentName = document.getCustomTitle() != null ? document.getCustomTitle()
+                                : document.getDocType().toString();
 
                 emailService.sendDocumentRequestedNotification(
                                 client.getEmail(),
                                 client.getFirstName() + " " + client.getLastName(),
                                 broker.getFirstName() + " " + broker.getLastName(),
                                 documentName,
-                                request.getDocType().toString(),
-                                request.getBrokerNotes(),
+                                document.getDocType().toString(),
+                                document.getBrokerNotes(),
                                 client.getPreferredLanguage());
         }
 

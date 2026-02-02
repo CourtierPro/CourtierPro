@@ -15,12 +15,12 @@ import { RequestDocumentModal } from "@/features/documents/components/RequestDoc
 import { UploadDocumentModal } from "@/features/documents/components/UploadDocumentModal";
 import { DocumentReviewModal } from "@/features/documents/components/DocumentReviewModal";
 import { DocumentList } from "@/features/documents/components/DocumentList";
-import { EditDocumentRequestModal } from "@/features/documents/components/EditDocumentRequestModal";
-import { useUpdateDocumentRequest } from "@/features/documents/api/mutations";
+import { EditDocumentModal } from "@/features/documents/components/EditDocumentModal";
+import { useUpdateDocument } from "@/features/documents/api/mutations";
 import { useTranslation } from "react-i18next";
 import { StageDropdownSelector } from '@/features/documents/components/StageDropdownSelector';
 import { useStageOptions } from '@/features/documents/hooks/useStageOptions';
-import { type DocumentRequest } from "@/features/documents/types";
+import { type Document } from "@/features/documents/types";
 import { getRoleFromUser } from "@/features/auth/roleUtils";
 import { useAllTransactionDocuments } from "@/features/transactions/api/queries";
 import { OutstandingDocumentsDashboard } from "@/features/documents/components/OutstandingDocumentsDashboard";
@@ -71,24 +71,24 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
   const stageOptions = [allStagesOption, ...rawStageOptions];
   const [selectedStage, setSelectedStage] = useState('');
 
-  const [selectedDocument, setSelectedDocument] = useState<DocumentRequest | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<DocumentRequest | null>(null);
+  const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<Document | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   // Edit modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingDocument, setEditingDocument] = useState<DocumentRequest | null>(null);
+  const [editingDocument, setEditingDocument] = useState<Document | null>(null);
 
-  const updateDocumentRequestMutation = useUpdateDocumentRequest();
+  const updateDocumentMutation = useUpdateDocument();
 
-  const handleUploadClick = (document: DocumentRequest) => {
+  const handleUploadClick = (document: Document) => {
     setSelectedDocument(document);
     setIsUploadModalOpen(true);
   };
 
   // Edit click handler
   const handleEditClick = useCallback(
-    (document: DocumentRequest) => {
+    (document: Document) => {
       setEditingDocument(document);
       setIsEditModalOpen(true);
     },
@@ -113,10 +113,10 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
         setEditingDocument(null);
         return;
       }
-      updateDocumentRequestMutation.mutate(
+      updateDocumentMutation.mutate(
         {
           transactionId: editingDocument.transactionRef.transactionId,
-          requestId: editingDocument.requestId,
+          documentId: editingDocument.documentId,
           data: {
             ...restFormValues,
             brokerNotes: instructions,
@@ -131,7 +131,7 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
         }
       );
     },
-    [editingDocument, updateDocumentRequestMutation, refetch, setIsEditModalOpen, setEditingDocument]
+    [editingDocument, updateDocumentMutation, refetch, setIsEditModalOpen, setEditingDocument]
   );
 
   const handleUploadSuccess = () => {
@@ -140,7 +140,7 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
     setSelectedDocument(null);
   };
 
-  const handleReviewClick = (document: DocumentRequest) => {
+  const handleReviewClick = (document: Document) => {
     setSelectedDocumentForReview(document);
     setIsReviewModalOpen(true);
   };
@@ -289,7 +289,7 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
         </Section>
       )}
       {editingDocument && (
-        <EditDocumentRequestModal
+        <EditDocumentModal
           isOpen={isEditModalOpen}
           onClose={() => {
             setIsEditModalOpen(false);
@@ -319,7 +319,7 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
         <UploadDocumentModal
           open={isUploadModalOpen}
           onClose={() => setIsUploadModalOpen(false)}
-          requestId={selectedDocument.requestId}
+          documentId={selectedDocument.documentId}
           transactionId={transactionId}
           documentTitle={selectedDocument.customTitle || tDocuments(`types.${selectedDocument.docType}`)}
           onSuccess={handleUploadSuccess}
@@ -338,5 +338,3 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
     </div>
   );
 }
-
-

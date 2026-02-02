@@ -127,7 +127,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final OfferDocumentRepository offerDocumentRepository;
     private final OfferRevisionRepository offerRevisionRepository;
     private final S3StorageService s3StorageService;
-    private final com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository documentRequestRepository;
+    private final com.example.courtierprobackend.documents.datalayer.DocumentRepository documentRepository;
     private final com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository documentConditionLinkRepository;
     private final SearchCriteriaRepository searchCriteriaRepository;
 
@@ -2712,30 +2712,30 @@ public class TransactionServiceImpl implements TransactionService {
 
         List<UnifiedDocumentDTO> allDocuments = new ArrayList<>();
 
-        // 1. Get DocumentRequests (client uploads) with their latest submitted document
-        List<com.example.courtierprobackend.documents.datalayer.DocumentRequest> docRequests = documentRequestRepository
+        // 1. Get Documents (client uploads) with their latest version
+        List<com.example.courtierprobackend.documents.datalayer.Document> documents = documentRepository
                 .findByTransactionRef_TransactionId(transactionId);
-        for (var docRequest : docRequests) {
-            // Only include if there's a submitted document
-            if (docRequest.getSubmittedDocuments() != null && !docRequest.getSubmittedDocuments().isEmpty()) {
-                // Get the latest submitted document
-                var latestSubmission = docRequest.getSubmittedDocuments().stream()
+        for (var doc : documents) {
+            // Only include if there's a submitted version
+            if (doc.getVersions() != null && !doc.getVersions().isEmpty()) {
+                // Get the latest version
+                var latestVersion = doc.getVersions().stream()
                         .max((a, b) -> a.getUploadedAt().compareTo(b.getUploadedAt()))
                         .orElse(null);
-                if (latestSubmission != null && latestSubmission.getStorageObject() != null) {
-                    String sourceName = docRequest.getCustomTitle() != null
-                            ? docRequest.getCustomTitle()
-                            : (docRequest.getDocType() != null ? docRequest.getDocType().name() : "Document");
+                if (latestVersion != null && latestVersion.getStorageObject() != null) {
+                    String sourceName = doc.getCustomTitle() != null
+                            ? doc.getCustomTitle()
+                            : (doc.getDocType() != null ? doc.getDocType().name() : "Document");
                     allDocuments.add(UnifiedDocumentDTO.builder()
-                            .documentId(latestSubmission.getDocumentId())
-                            .fileName(latestSubmission.getStorageObject().getFileName())
-                            .mimeType(latestSubmission.getStorageObject().getMimeType())
-                            .sizeBytes(latestSubmission.getStorageObject().getSizeBytes())
-                            .uploadedAt(latestSubmission.getUploadedAt())
+                            .documentId(latestVersion.getVersionId())
+                            .fileName(latestVersion.getStorageObject().getFileName())
+                            .mimeType(latestVersion.getStorageObject().getMimeType())
+                            .sizeBytes(latestVersion.getStorageObject().getSizeBytes())
+                            .uploadedAt(latestVersion.getUploadedAt())
                             .source("CLIENT_UPLOAD")
-                            .sourceId(docRequest.getRequestId())
+                            .sourceId(doc.getDocumentId())
                             .sourceName(sourceName)
-                            .status(docRequest.getStatus() != null ? docRequest.getStatus().name() : null)
+                            .status(doc.getStatus() != null ? doc.getStatus().name() : null)
                             .build());
                 }
             }

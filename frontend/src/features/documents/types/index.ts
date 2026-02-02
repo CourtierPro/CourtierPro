@@ -1,4 +1,5 @@
 export const DocumentStatusEnum = {
+    DRAFT: 'DRAFT',
     REQUESTED: 'REQUESTED',
     SUBMITTED: 'SUBMITTED',
     APPROVED: 'APPROVED',
@@ -49,15 +50,15 @@ export interface UploadedBy {
     externalName?: string;
 }
 
-export interface SubmittedDocument {
+export interface DocumentVersion {
     id: number;
-    documentId: string;
+    versionId: string;
     uploadedAt: string;
     uploadedBy: UploadedBy;
     storageObject: StorageObject;
 }
 
-export interface DocumentRequestCreateDTO {
+export interface DocumentCreateDTO {
     docType: DocumentTypeEnum;
     customTitle?: string;
     expectedFrom: DocumentPartyEnum;
@@ -68,7 +69,7 @@ export interface DocumentRequestCreateDTO {
     dueDate?: Date;
 }
 
-export interface DocumentRequestUpdateDTO {
+export interface DocumentUpdateDTO {
     docType?: DocumentTypeEnum;
     customTitle?: string;
     expectedFrom?: DocumentPartyEnum;
@@ -78,9 +79,10 @@ export interface DocumentRequestUpdateDTO {
     conditionIds?: string[];
     dueDate?: Date;
 }
-export interface DocumentRequest {
+
+export interface Document {
     id: number;
-    requestId: string;
+    documentId: string;
     transactionRef: {
         transactionId: string;
         clientId: string;
@@ -90,10 +92,10 @@ export interface DocumentRequest {
     customTitle?: string;
     status: DocumentStatusEnum;
     expectedFrom: DocumentPartyEnum;
-    submittedDocuments: SubmittedDocument[];
+    versions: DocumentVersion[];
     brokerNotes?: string;
     lastUpdatedAt?: string;
     visibleToClient: boolean;
-    stage: string; // Added to match backend and fix filtering
+    stage: string;
     dueDate?: string;
 }

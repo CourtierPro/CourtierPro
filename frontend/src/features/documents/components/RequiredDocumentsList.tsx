@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth0 } from "@auth0/auth0-react";
 import { fetchDocuments } from '../api/documentsApi';
-import { DocumentStatusEnum, type DocumentRequest } from '../types';
+import { DocumentStatusEnum, type Document } from '../types';
 import { DocumentList } from './DocumentList';
 import { UploadDocumentModal } from './UploadDocumentModal';
 import { DocumentReviewModal } from './DocumentReviewModal';
@@ -22,12 +22,12 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
     const { user } = useAuth0();
     const role = getRoleFromUser(user);
     const canReview = role === "broker";
-    const [selectedRequest, setSelectedRequest] = useState<DocumentRequest | null>(null);
+    const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [initialFile, setInitialFile] = useState<File | null>(null);
     const [currentFilter, setCurrentFilter] = useState<FilterStatus>('ALL');
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
-    const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<DocumentRequest | null>(null);
+    const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<Document | null>(null);
 
     const { data: documents, isLoading, error, refetch } = useQuery({
         queryKey: ['documents', transactionId],
@@ -49,8 +49,8 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
     if (isLoading) return <DocumentListSkeleton />;
     if (error) return <div>{t('errorLoadingDocuments')}</div>;
 
-    const handleUploadClick = (request: DocumentRequest, file?: File) => {
-        setSelectedRequest(request);
+    const handleUploadClick = (doc: Document, file?: File) => {
+        setSelectedDocument(doc);
         if (file) {
             // We need to pass this file to the modal. 
             // Since the modal controls its own file state, we might need a way to pass initialFile.
@@ -64,7 +64,7 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
     const handleUploadSuccess = () => {
         refetch();
         setIsUploadModalOpen(false);
-        setSelectedRequest(null);
+        setSelectedDocument(null);
         setInitialFile(null);
         confetti({
             particleCount: 100,
@@ -73,8 +73,8 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
         });
     };
 
-    const handleReviewClick = (document: DocumentRequest) => {
-        setSelectedDocumentForReview(document);
+    const handleReviewClick = (doc: Document) => {
+        setSelectedDocumentForReview(doc);
         setReviewModalOpen(true);
     };
 
@@ -100,14 +100,14 @@ export function RequiredDocumentsList({ transactionId }: RequiredDocumentsListPr
                 <DocumentList documents={filteredDocuments || []} onUpload={handleUploadClick} onReview={canReview ? handleReviewClick : undefined} />
             )}
 
-            {selectedRequest && (
+            {selectedDocument && (
                 <UploadDocumentModal
                     open={isUploadModalOpen}
                     onClose={() => setIsUploadModalOpen(false)}
-                    requestId={selectedRequest.requestId}
+                    documentId={selectedDocument.documentId}
                     transactionId={transactionId}
-                    documentTitle={formatDocumentTitle(selectedRequest, t)}
-                    docType={selectedRequest.docType}
+                    documentTitle={formatDocumentTitle(selectedDocument, t)}
+                    docType={selectedDocument.docType}
                     initialFile={initialFile}
                     onSuccess={handleUploadSuccess}
                 />

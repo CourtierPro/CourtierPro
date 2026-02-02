@@ -67,7 +67,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers(HttpMethod.POST, "/transactions/*/documents/*/submit")
                         .hasAnyRole("BROKER", "CLIENT")
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*/documents/*/download")
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*/versions/*/download")
                         .hasAnyRole("BROKER", "CLIENT")
 
                         // Timeline client endpoint

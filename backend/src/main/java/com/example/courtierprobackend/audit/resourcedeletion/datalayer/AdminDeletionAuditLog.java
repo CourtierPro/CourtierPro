@@ -54,7 +54,7 @@ public class AdminDeletionAuditLog {
 
     /**
      * JSON list of cascaded operations (linked resources also affected).
-     * Example: ["TimelineEntry:uuid", "SubmittedDocument:uuid"]
+     * Example: ["TimelineEntry:uuid", "DocumentVersion:uuid"]
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "cascaded_deletions", columnDefinition = "jsonb")
@@ -68,7 +68,8 @@ public class AdminDeletionAuditLog {
     public enum ResourceType {
         TRANSACTION,
         DOCUMENT_REQUEST,
-        SUBMITTED_DOCUMENT,
+        DOCUMENT,
+        DOCUMENT_VERSION,
         TIMELINE_ENTRY,
         APPOINTMENT
     }

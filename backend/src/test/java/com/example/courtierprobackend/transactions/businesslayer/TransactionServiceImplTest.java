@@ -100,7 +100,7 @@ class TransactionServiceImplTest {
         private com.example.courtierprobackend.infrastructure.storage.S3StorageService s3StorageService;
 
         @Mock
-        private com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository documentRequestRepository;
+        private com.example.courtierprobackend.documents.datalayer.DocumentRepository documentRequestRepository;
 
         @Mock
         private com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository documentConditionLinkRepository;
@@ -6762,8 +6762,8 @@ class TransactionServiceImplTest {
                 tx.setSide(TransactionSide.BUY_SIDE);
 
                 // Create a document request with null customTitle but a docType
-                com.example.courtierprobackend.documents.datalayer.DocumentRequest docRequest = new com.example.courtierprobackend.documents.datalayer.DocumentRequest();
-                docRequest.setRequestId(requestId);
+                com.example.courtierprobackend.documents.datalayer.Document docRequest = new com.example.courtierprobackend.documents.datalayer.Document();
+                docRequest.setDocumentId(requestId);
                 docRequest.setCustomTitle(null);
                 docRequest.setDocType(
                                 com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum.ID_VERIFICATION);
@@ -6779,13 +6779,13 @@ class TransactionServiceImplTest {
                                 .mimeType("application/pdf")
                                 .sizeBytes(1000L)
                                 .build();
-                com.example.courtierprobackend.documents.datalayer.SubmittedDocument submitted = com.example.courtierprobackend.documents.datalayer.SubmittedDocument
+                com.example.courtierprobackend.documents.datalayer.DocumentVersion submitted = com.example.courtierprobackend.documents.datalayer.DocumentVersion
                                 .builder()
-                                .documentId(docId)
+                                .versionId(docId)
                                 .uploadedAt(LocalDateTime.now())
                                 .storageObject(storage)
                                 .build();
-                docRequest.setSubmittedDocuments(List.of(submitted));
+                docRequest.setVersions(List.of(submitted));
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
                 when(documentRequestRepository.findByTransactionRef_TransactionId(transactionId))

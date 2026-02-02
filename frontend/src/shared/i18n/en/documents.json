@@ -10,6 +10,7 @@
     "Edit": "Edit",
     "edit": "Edit",
     "editDocumentRequest": "Edit Document Request",
+    "editDocument": "Edit Document",
     "title": "Documents",
     "subtitle": "Manage all your transaction documents in one place.",
     "requestDocument": "Request Document",
@@ -77,6 +78,7 @@
     "upload": "Upload",
     "lastUpdated": "Last updated",
     "status": {
+        "DRAFT": "Draft",
         "REQUESTED": "Requested",
         "SUBMITTED": "Submitted",
         "APPROVED": "Approved",

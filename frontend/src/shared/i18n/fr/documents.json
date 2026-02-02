@@ -10,6 +10,7 @@
     "Edit": "Modifier",
     "edit": "Modifier",
     "editDocumentRequest": "Modifier la demande de document",
+    "editDocument": "Modifier le document",
     "title": "Documents",
     "documentTitle": "Titre du document",
     "documentTitlePlaceholder": "ex. : Preuve de revenu supplémentaire",
@@ -78,6 +79,7 @@
     "upload": "Téléverser",
     "lastUpdated": "Dernière mise à jour",
     "status": {
+        "DRAFT": "Brouillon",
         "REQUESTED": "Demandé",
         "SUBMITTED": "Soumis",
         "APPROVED": "Approuvé",

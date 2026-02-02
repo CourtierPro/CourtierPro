@@ -1,4 +1,4 @@
-import type { DocumentRequest } from "@/features/documents/types";
+import type { Document } from "@/features/documents/types";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -7,7 +7,7 @@ import { useReviewDocument } from "@/features/documents/api/mutations";
 interface DocumentReviewModalProps {
   open: boolean;
   onClose: () => void;
-  document?: DocumentRequest;
+  document?: Document;
   transactionId: string;
   onSuccess?: () => void;
 }
@@ -59,7 +59,7 @@ export function DocumentReviewModal({
       try {
         await reviewMutation.mutateAsync({
           transactionId,
-          requestId: document.requestId,
+          documentId: document.documentId,
           decision: action,
           comments: comment || undefined,
         });
@@ -82,14 +82,14 @@ export function DocumentReviewModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" 
-        onClick={onClose} 
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
         aria-hidden="true"
       />
-      <div 
-        role="dialog" 
-        aria-modal="true" 
+      <div
+        role="dialog"
+        aria-modal="true"
         aria-labelledby="review-modal-title"
         className="relative w-full max-w-md bg-card dark:bg-card rounded-lg shadow-xl border border-border animate-slide-in-right"
       >
@@ -98,8 +98,8 @@ export function DocumentReviewModal({
           <h2 id="review-modal-title" className="text-lg font-semibold text-foreground">
             {t('modals.reviewDocument', 'Review Document')}
           </h2>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             aria-label="Close modal"
             className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
@@ -145,8 +145,8 @@ export function DocumentReviewModal({
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground mb-3">{t('modals.chooseAnAction')}</p>
               <div className="grid gap-3">
-                <button 
-                  onClick={handleApproveClick} 
+                <button
+                  onClick={handleApproveClick}
                   className="flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
                 >
                   <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -154,8 +154,8 @@ export function DocumentReviewModal({
                   </svg>
                   {t('modals.approve')}
                 </button>
-                <button 
-                  onClick={handleNeedsRevisionClick} 
+                <button
+                  onClick={handleNeedsRevisionClick}
                   className="flex items-center justify-center gap-2 rounded-md bg-amber-500 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
                 >
                   <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -191,15 +191,15 @@ export function DocumentReviewModal({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-muted/30">
-          <button 
-            onClick={action === null ? onClose : handleBack} 
+          <button
+            onClick={action === null ? onClose : handleBack}
             className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium text-foreground bg-secondary hover:bg-secondary/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             {t('modals.cancel')}
           </button>
           {action !== null && (
-            <button 
-              onClick={handleSubmit} 
+            <button
+              onClick={handleSubmit}
               disabled={reviewMutation.isPending || (action === 'NEEDS_REVISION' && !comment.trim())}
               className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
             >

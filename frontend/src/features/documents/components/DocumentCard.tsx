@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import { Section } from "@/shared/components/branded/Section";
-import { type DocumentRequest, DocumentStatusEnum, DocumentTypeEnum } from "@/features/documents/types";
+import { type Document, DocumentStatusEnum, DocumentTypeEnum } from "@/features/documents/types";
 import { format } from "date-fns";
 import { enUS, fr } from "date-fns/locale";
 import { Button } from "@/shared/components/ui/button";
@@ -14,10 +14,10 @@ import { formatDocumentTitle } from "../utils/formatDocumentTitle";
 import { toast } from "sonner";
 
 interface DocumentCardProps {
-    document: DocumentRequest;
-    onUpload?: (document: DocumentRequest, file?: File) => void;
-    onReview?: (document: DocumentRequest) => void;
-    onEdit?: (document: DocumentRequest) => void;
+    document: Document;
+    onUpload?: (document: Document, file?: File) => void;
+    onReview?: (document: Document) => void;
+    onEdit?: (document: Document) => void;
     isFocused?: boolean;
     showBrokerNotes?: boolean;
 }
@@ -53,16 +53,16 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, isFocused, 
     };
 
     const handleViewClick = async () => {
-        if (document.submittedDocuments.length === 0) return;
+        if (document.versions.length === 0) return;
 
-        const latestDoc = document.submittedDocuments[document.submittedDocuments.length - 1];
+        const latestDoc = document.versions[document.versions.length - 1];
         setIsLoadingView(true);
 
         try {
             const url = await getDocumentDownloadUrl(
                 document.transactionRef.transactionId,
-                document.requestId,
-                latestDoc.documentId
+                document.documentId,
+                latestDoc.versionId
             );
             window.open(url, '_blank');
         } catch {
@@ -174,7 +174,7 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, isFocused, 
                                     ✏️ {t('edit', 'Edit')}
                                 </Button>
                             )}
-                            {document.submittedDocuments.length > 0 && (
+                            {document.versions.length > 0 && (
                                 <Button
                                     size="sm"
                                     variant="outline"

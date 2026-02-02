@@ -14,17 +14,17 @@ public interface DocumentConditionLinkRepository extends JpaRepository<DocumentC
 
     List<DocumentConditionLink> findByPropertyOfferId(UUID propertyOfferId);
 
-    List<DocumentConditionLink> findByDocumentRequestId(UUID documentRequestId);
+    List<DocumentConditionLink> findByDocumentId(UUID documentId);
 
     void deleteByOfferId(UUID offerId);
 
     void deleteByPropertyOfferId(UUID propertyOfferId);
 
-    void deleteByDocumentRequestId(UUID documentRequestId);
+    void deleteByDocumentId(UUID documentId);
 
     void deleteByConditionIdAndOfferId(UUID conditionId, UUID offerId);
 
     void deleteByConditionIdAndPropertyOfferId(UUID conditionId, UUID propertyOfferId);
 
-    void deleteByConditionIdAndDocumentRequestId(UUID conditionId, UUID documentRequestId);
+    void deleteByConditionIdAndDocumentId(UUID conditionId, UUID documentId);
 }

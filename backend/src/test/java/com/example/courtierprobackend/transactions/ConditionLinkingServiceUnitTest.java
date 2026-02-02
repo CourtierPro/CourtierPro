@@ -5,7 +5,7 @@ import com.example.courtierprobackend.transactions.datalayer.*;
 import com.example.courtierprobackend.transactions.datalayer.dto.*;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
 import com.example.courtierprobackend.transactions.datalayer.repositories.*;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
+import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
@@ -48,7 +48,7 @@ class ConditionLinkingServiceUnitTest {
     @Mock private OfferDocumentRepository offerDocumentRepository;
     @Mock private OfferRevisionRepository offerRevisionRepository;
     @Mock private S3StorageService s3StorageService;
-    @Mock private DocumentRequestRepository documentRequestRepository;
+    @Mock private DocumentRepository documentRequestRepository;
     @Mock private DocumentConditionLinkRepository documentConditionLinkRepository;
     @Mock private SearchCriteriaRepository searchCriteriaRepository;
 

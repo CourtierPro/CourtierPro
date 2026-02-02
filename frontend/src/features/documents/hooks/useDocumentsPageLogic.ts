@@ -2,21 +2,21 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useDocuments } from '../api/queries';
-import { useRequestDocument } from '../api/mutations';
+import { useCreateDocument } from '../api/mutations';
 import { DocumentPartyEnum, DocumentTypeEnum } from '../types';
 import { useErrorHandler } from '@/shared/hooks/useErrorHandler';
 
 export function useDocumentsPageLogic(transactionId: string) {
     const { t } = useTranslation('documents');
     const { data: documents = [], isLoading, error: queryError, refetch } = useDocuments(transactionId);
-    const requestDocument = useRequestDocument();
+    const createDocument = useCreateDocument();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { handleError } = useErrorHandler();
 
     // Adapt signature to accept stage and conditionIds parameters
     const handleRequestDocument = async (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string, conditionIds: string[] = [], dueDate?: Date) => {
         try {
-            await requestDocument.mutateAsync({
+            await createDocument.mutateAsync({
                 transactionId,
                 data: {
                     docType: docType,

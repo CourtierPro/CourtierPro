@@ -21,13 +21,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "document_requests")
+@Table(name = "documents")
 @Where(clause = "deleted_at IS NULL")
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class DocumentRequest {
+public class Document {
     public boolean isVisibleToClient() {
         return visibleToClient;
     }
@@ -37,7 +37,7 @@ public class DocumentRequest {
     private Long id;
 
     @Column(unique = true)
-    private UUID requestId; // Public ID
+    private UUID documentId; // Public ID
 
     @Embedded
     private TransactionRef transactionRef;
@@ -62,9 +62,9 @@ public class DocumentRequest {
     @Enumerated(EnumType.STRING)
     private StageEnum stage;
 
-    @OneToMany(mappedBy = "documentRequest", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<SubmittedDocument> submittedDocuments = new ArrayList<>();
+    private List<DocumentVersion> versions = new ArrayList<>();
 
     private String brokerNotes;
 

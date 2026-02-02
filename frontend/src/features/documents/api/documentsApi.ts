@@ -1,7 +1,7 @@
 import { axiosInstance } from '@/shared/api/axiosInstance';
-import type { DocumentRequest, DocumentTypeEnum, DocumentPartyEnum } from '../types';
+import type { Document, DocumentTypeEnum, DocumentPartyEnum } from '../types';
 
-export interface CreateDocumentRequestDTO {
+export interface CreateDocumentDTO {
     docType: DocumentTypeEnum;
     customTitle?: string;
     expectedFrom: DocumentPartyEnum;
@@ -12,7 +12,7 @@ export interface CreateDocumentRequestDTO {
     dueDate?: Date;
 }
 
-export interface UpdateDocumentRequestDTO {
+export interface UpdateDocumentDTO {
     docType?: DocumentTypeEnum;
     customTitle?: string;
     expectedFrom?: DocumentPartyEnum;
@@ -32,20 +32,13 @@ export interface OutstandingDocumentDTO {
     status: string;
 }
 
-export const fetchDocuments = async (transactionId: string): Promise<DocumentRequest[]> => {
-    const response = await axiosInstance.get<DocumentRequest[]>(`/transactions/${transactionId}/documents`);
+export const fetchDocuments = async (transactionId: string): Promise<Document[]> => {
+    const response = await axiosInstance.get<Document[]>(`/transactions/${transactionId}/documents`);
     return response.data;
 };
 
-export const fetchAllDocuments = async (): Promise<DocumentRequest[]> => {
-    // Note: The backend endpoint is mapped as /transactions/{transactionId}/documents/all which is awkward.
-    // Wait, the controller has @RequestMapping("/transactions/{transactionId}/documents").
-    // So /all would be /transactions/{transactionId}/documents/all.
-    // But we want a global endpoint.
-    // I should have checked the controller mapping.
-    // The controller is scoped to a transaction. I should probably move the global endpoint or create a new controller.
-    // Let's check the controller again.
-    const response = await axiosInstance.get<DocumentRequest[]>('/documents');
+export const fetchAllDocuments = async (): Promise<Document[]> => {
+    const response = await axiosInstance.get<Document[]>('/documents');
     return response.data;
 };
 
@@ -54,11 +47,11 @@ export const fetchOutstandingDocuments = async (): Promise<OutstandingDocumentDT
     return response.data;
 };
 
-export const createDocumentRequest = async (
+export const createDocument = async (
     transactionId: string,
-    data: CreateDocumentRequestDTO
-): Promise<DocumentRequest> => {
-    const response = await axiosInstance.post<DocumentRequest>(
+    data: CreateDocumentDTO
+): Promise<Document> => {
+    const response = await axiosInstance.post<Document>(
         `/transactions/${transactionId}/documents`,
         data,
         { handleLocally: true }
@@ -66,46 +59,46 @@ export const createDocumentRequest = async (
     return response.data;
 };
 
-export const getDocumentRequest = async (
+export const getDocument = async (
     transactionId: string,
-    requestId: string
-): Promise<DocumentRequest> => {
-    const response = await axiosInstance.get<DocumentRequest>(
-        `/transactions/${transactionId}/documents/${requestId}`
+    documentId: string
+): Promise<Document> => {
+    const response = await axiosInstance.get<Document>(
+        `/transactions/${transactionId}/documents/${documentId}`
     );
     return response.data;
 };
 
-export const updateDocumentRequest = async (
+export const updateDocument = async (
     transactionId: string,
-    requestId: string,
-    data: UpdateDocumentRequestDTO
-): Promise<DocumentRequest> => {
-    const response = await axiosInstance.put<DocumentRequest>(
-        `/transactions/${transactionId}/documents/${requestId}`,
+    documentId: string,
+    data: UpdateDocumentDTO
+): Promise<Document> => {
+    const response = await axiosInstance.put<Document>(
+        `/transactions/${transactionId}/documents/${documentId}`,
         data,
         { handleLocally: true }
     );
     return response.data;
 };
 
-export const deleteDocumentRequest = async (
+export const deleteDocument = async (
     transactionId: string,
-    requestId: string
+    documentId: string
 ): Promise<void> => {
-    await axiosInstance.delete(`/transactions/${transactionId}/documents/${requestId}`, { handleLocally: true });
+    await axiosInstance.delete(`/transactions/${transactionId}/documents/${documentId}`, { handleLocally: true });
 };
 
 export const submitDocument = async (
     transactionId: string,
-    requestId: string,
+    documentId: string,
     file: File
-): Promise<DocumentRequest> => {
+): Promise<Document> => {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await axiosInstance.post<DocumentRequest>(
-        `/transactions/${transactionId}/documents/${requestId}/submit`,
+    const response = await axiosInstance.post<Document>(
+        `/transactions/${transactionId}/documents/${documentId}/submit`,
         formData,
         {
             headers: {
@@ -119,11 +112,11 @@ export const submitDocument = async (
 
 export const getDocumentDownloadUrl = async (
     transactionId: string,
-    requestId: string,
-    documentId: string
+    documentId: string,
+    versionId: string
 ): Promise<string> => {
     const response = await axiosInstance.get<{ url: string }>(
-        `/transactions/${transactionId}/documents/${requestId}/documents/${documentId}/download`
+        `/transactions/${transactionId}/documents/${documentId}/versions/${versionId}/download`
     );
     return response.data.url;
 };
@@ -131,18 +124,18 @@ export const getDocumentDownloadUrl = async (
 
 export const reviewDocument = async (
     transactionId: string,
-    requestId: string,
+    documentId: string,
     decision: 'APPROVED' | 'NEEDS_REVISION',
     comments?: string
-): Promise<DocumentRequest> => {
-    const response = await axiosInstance.patch<DocumentRequest>(
-        `/transactions/${transactionId}/documents/${requestId}/review`,
+): Promise<Document> => {
+    const response = await axiosInstance.patch<Document>(
+        `/transactions/${transactionId}/documents/${documentId}/review`,
         { decision, comments },
         { handleLocally: true }
     );
     return response.data;
 };
 
-export const sendDocumentReminder = async (requestId: string): Promise<void> => {
-    await axiosInstance.post(`/documents/${requestId}/remind`);
+export const sendDocumentReminder = async (documentId: string): Promise<void> => {
+    await axiosInstance.post(`/documents/${documentId}/remind`);
 };

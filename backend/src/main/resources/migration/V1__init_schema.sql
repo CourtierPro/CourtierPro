@@ -138,11 +138,11 @@ CREATE INDEX IF NOT EXISTS idx_timeline_entries_transaction ON timeline_entries(
 CREATE INDEX IF NOT EXISTS idx_timeline_entries_deleted_at ON timeline_entries(deleted_at);
 
 -- =============================================================================
--- DOCUMENT REQUESTS
+-- DOCUMENTS
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS document_requests (
+CREATE TABLE IF NOT EXISTS documents (
     id BIGSERIAL PRIMARY KEY,
-    request_id UUID UNIQUE,
+    document_id UUID UNIQUE,
     -- Embedded TransactionRef
     transaction_id UUID,
     client_id UUID,
@@ -166,26 +166,26 @@ CREATE TABLE IF NOT EXISTS document_requests (
     deleted_by UUID
 );
 
-CREATE INDEX IF NOT EXISTS idx_document_requests_request_id ON document_requests(request_id);
-CREATE INDEX IF NOT EXISTS idx_document_requests_transaction ON document_requests(transaction_id);
-CREATE INDEX IF NOT EXISTS idx_document_requests_status ON document_requests(status);
-CREATE INDEX IF NOT EXISTS idx_document_requests_deleted_at ON document_requests(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_documents_document_id ON documents(document_id);
+CREATE INDEX IF NOT EXISTS idx_documents_transaction ON documents(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
+CREATE INDEX IF NOT EXISTS idx_documents_deleted_at ON documents(deleted_at);
 
 -- Search Indexes
 -- Search Indexes
--- CREATE INDEX IF NOT EXISTS idx_document_requests_custom_title_trgm 
---     ON document_requests USING GIN (custom_title gin_trgm_ops);
--- CREATE INDEX IF NOT EXISTS idx_document_requests_broker_notes_trgm 
---     ON document_requests USING GIN (broker_notes gin_trgm_ops);
+-- CREATE INDEX IF NOT EXISTS idx_documents_custom_title_trgm 
+--     ON documents USING GIN (custom_title gin_trgm_ops);
+-- CREATE INDEX IF NOT EXISTS idx_documents_broker_notes_trgm 
+--     ON documents USING GIN (broker_notes gin_trgm_ops);
 
 -- =============================================================================
--- SUBMITTED DOCUMENTS
+-- DOCUMENT VERSIONS
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS submitted_documents (
+CREATE TABLE IF NOT EXISTS document_versions (
     id BIGSERIAL PRIMARY KEY,
-    document_id UUID,
+    version_id UUID,
     uploaded_at TIMESTAMP,
-    document_request_id BIGINT REFERENCES document_requests(id) ON DELETE CASCADE,
+    document_id BIGINT REFERENCES documents(id) ON DELETE CASCADE,
     -- Embedded UploadedBy
     uploader_type VARCHAR(50),
     party VARCHAR(50),
@@ -201,9 +201,9 @@ CREATE TABLE IF NOT EXISTS submitted_documents (
     deleted_by UUID
 );
 
-CREATE INDEX IF NOT EXISTS idx_submitted_documents_request ON submitted_documents(document_request_id);
-CREATE INDEX IF NOT EXISTS idx_submitted_documents_document_id ON submitted_documents(document_id);
-CREATE INDEX IF NOT EXISTS idx_submitted_documents_deleted_at ON submitted_documents(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_document_versions_document ON document_versions(document_id);
+CREATE INDEX IF NOT EXISTS idx_document_versions_version_id ON document_versions(version_id);
+CREATE INDEX IF NOT EXISTS idx_document_versions_deleted_at ON document_versions(deleted_at);
 
 -- =============================================================================
 -- NOTIFICATIONS
@@ -602,7 +602,7 @@ CREATE TABLE IF NOT EXISTS document_conditions (
     condition_id UUID NOT NULL,
     offer_id UUID,
     property_offer_id UUID,
-    document_request_id UUID,
+    document_id UUID,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     
     CONSTRAINT fk_document_conditions_condition 
@@ -617,26 +617,26 @@ CREATE TABLE IF NOT EXISTS document_conditions (
         FOREIGN KEY (property_offer_id) 
         REFERENCES property_offers(property_offer_id)
         ON DELETE CASCADE,
-    CONSTRAINT fk_document_conditions_request 
-        FOREIGN KEY (document_request_id) 
-        REFERENCES document_requests(request_id)
+    CONSTRAINT fk_document_conditions_document 
+        FOREIGN KEY (document_id) 
+        REFERENCES documents(document_id)
         ON DELETE CASCADE,
-    -- Exactly one of offer_id, property_offer_id, document_request_id must be set
+    -- Exactly one of offer_id, property_offer_id, document_id must be set
     CONSTRAINT chk_document_conditions_one_source
         CHECK (
-            (offer_id IS NOT NULL AND property_offer_id IS NULL AND document_request_id IS NULL) OR
-            (offer_id IS NULL AND property_offer_id IS NOT NULL AND document_request_id IS NULL) OR
-            (offer_id IS NULL AND property_offer_id IS NULL AND document_request_id IS NOT NULL)
+            (offer_id IS NOT NULL AND property_offer_id IS NULL AND document_id IS NULL) OR
+            (offer_id IS NULL AND property_offer_id IS NOT NULL AND document_id IS NULL) OR
+            (offer_id IS NULL AND property_offer_id IS NULL AND document_id IS NOT NULL)
         ),
     -- Prevent duplicate links
     CONSTRAINT uq_document_conditions_unique_link
-        UNIQUE (condition_id, offer_id, property_offer_id, document_request_id)
+        UNIQUE (condition_id, offer_id, property_offer_id, document_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_document_conditions_condition_id ON document_conditions(condition_id);
 CREATE INDEX IF NOT EXISTS idx_document_conditions_offer_id ON document_conditions(offer_id);
 CREATE INDEX IF NOT EXISTS idx_document_conditions_property_offer_id ON document_conditions(property_offer_id);
-CREATE INDEX IF NOT EXISTS idx_document_conditions_document_request_id ON document_conditions(document_request_id);
+CREATE INDEX IF NOT EXISTS idx_document_conditions_document_id ON document_conditions(document_id);
 
 -- =============================================================================
 -- SYSTEM ALERTS

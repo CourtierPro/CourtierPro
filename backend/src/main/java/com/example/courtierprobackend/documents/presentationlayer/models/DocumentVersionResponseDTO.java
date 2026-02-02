@@ -14,8 +14,8 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SubmittedDocumentResponseDTO {
-    private UUID documentId;
+public class DocumentVersionResponseDTO {
+    private UUID versionId;
     private LocalDateTime uploadedAt;
     private UploadedBy uploadedBy;
     private StorageObject storageObject;

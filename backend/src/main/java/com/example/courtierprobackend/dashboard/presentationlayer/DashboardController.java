@@ -3,7 +3,7 @@ package com.example.courtierprobackend.dashboard.presentationlayer;
 import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
 import com.example.courtierprobackend.dashboard.datalayer.TimelineEntrySeen;
 import com.example.courtierprobackend.dashboard.datalayer.TimelineEntrySeenRepository;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
+import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
 import com.example.courtierprobackend.security.UserContextUtils;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionService;
@@ -45,7 +45,7 @@ public class DashboardController {
 
     private final TransactionRepository transactionRepository;
     private final UserAccountRepository userRepository;
-    private final DocumentRequestRepository documentRequestRepository;
+    private final DocumentRepository documentRepository;
     private final PropertyOfferRepository propertyOfferRepository;
     private final OfferRepository offerRepository;
     private final PropertyRepository propertyRepository;
@@ -110,7 +110,7 @@ public class DashboardController {
                 .map(Transaction::getTransactionId)
                 .collect(Collectors.toSet());
         
-        int pendingDocumentReviews = (int) documentRequestRepository.findAll().stream()
+        int pendingDocumentReviews = (int) documentRepository.findAll().stream()
                 .filter(doc -> doc.getTransactionRef() != null 
                         && activeTransactionIds.contains(doc.getTransactionRef().getTransactionId())
                         && doc.getStatus() == DocumentStatusEnum.SUBMITTED)
@@ -314,7 +314,7 @@ public class DashboardController {
         Map<UUID, Transaction> transactionMap = transactionRepository.findAllByBrokerId(brokerId).stream()
                 .collect(Collectors.toMap(Transaction::getTransactionId, t -> t, (a, b) -> a));
 
-        List<PendingDocumentDTO> pendingDocs = documentRequestRepository.findAll().stream()
+        List<PendingDocumentDTO> pendingDocs = documentRepository.findAll().stream()
                 .filter(doc -> doc.getTransactionRef() != null 
                         && activeTransactionIds.contains(doc.getTransactionRef().getTransactionId())
                         && doc.getStatus() == DocumentStatusEnum.SUBMITTED)
@@ -325,7 +325,7 @@ public class DashboardController {
                             ? tx.getPropertyAddress().getStreet() : "";
                     
                     return PendingDocumentDTO.builder()
-                            .requestId(doc.getRequestId())
+                            .documentId(doc.getDocumentId())
                             .transactionId(doc.getTransactionRef().getTransactionId())
                             .clientName(clientName)
                             .documentType(doc.getDocType() != null ? doc.getDocType().name() : "OTHER")
@@ -334,7 +334,7 @@ public class DashboardController {
                             .propertyAddress(propertyAddress)
                             .build();
                 })
-                .sorted(Comparator.comparing(PendingDocumentDTO::getSubmittedAt, Comparator.nullsLast(Comparator.naturalOrder())))
+                .sorted(Comparator.comparing((PendingDocumentDTO dto) -> dto.getSubmittedAt(), Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
 
         return ResponseEntity.ok(pendingDocs);

@@ -4,13 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { Play } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { DocumentCard } from "./DocumentCard";
-import { type DocumentRequest, DocumentStatusEnum } from "@/features/documents/types";
+import { type Document, DocumentStatusEnum } from "@/features/documents/types";
 
 interface DocumentListProps {
-    documents: DocumentRequest[];
-    onUpload?: (document: DocumentRequest) => void;
-    onReview?: (document: DocumentRequest) => void;
-    onEdit?: (document: DocumentRequest) => void;
+    documents: Document[];
+    onUpload?: (document: Document) => void;
+    onReview?: (document: Document) => void;
+    onEdit?: (document: Document) => void;
     focusDocumentId?: string | null;
     showBrokerNotes?: boolean;
 }
@@ -94,12 +94,12 @@ export function DocumentList({
                                 {statusDocs.length > 0 ? (
                                     statusDocs.map((doc) => (
                                         <DocumentCard
-                                            key={doc.requestId}
+                                            key={doc.documentId}
                                             document={doc}
                                             onUpload={onUpload}
                                             onReview={onReview}
                                             onEdit={onEdit}
-                                            isFocused={focusDocumentId === doc.requestId}
+                                            isFocused={focusDocumentId === doc.documentId}
                                             showBrokerNotes={showBrokerNotes}
                                         />
                                     ))
