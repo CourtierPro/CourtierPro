@@ -27,7 +27,7 @@ import { requestDocumentSchema, type RequestDocumentFormValues } from '@/shared/
 import { getStageLabel } from '@/shared/utils/stages';
 import { useTransactionStages } from '@/features/transactions/hooks/useTransactionStages';
 
-interface EditDocumentRequestModalProps {
+interface EditDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: RequestDocumentFormValues) => void;
@@ -35,13 +35,13 @@ interface EditDocumentRequestModalProps {
   initialValues: RequestDocumentFormValues;
 }
 
-export function EditDocumentRequestModal({
+export function EditDocumentModal({
   isOpen,
   onClose,
   onSubmit,
   transactionType,
   initialValues,
-}: EditDocumentRequestModalProps) {
+}: EditDocumentModalProps) {
   const { t, i18n } = useTranslation('documents');
   const { t: tTx } = useTranslation('transactions');
   const customTitleInputRef = useRef<HTMLInputElement>(null);
@@ -110,7 +110,7 @@ export function EditDocumentRequestModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t('editDocumentRequest')}</DialogTitle>
+          <DialogTitle>{t('editDocument')}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-6 py-4">

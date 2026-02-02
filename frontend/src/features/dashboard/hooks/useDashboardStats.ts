@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useClientTransactions } from '@/features/transactions/api/queries';
 import { fetchAllDocuments } from '@/features/documents/api/documentsApi';
-import type { DocumentRequest } from '@/features/documents/types';
+import type { Document } from '@/features/documents/types';
 import { documentKeys } from '@/features/documents/api/queries';
 import { axiosInstance } from '@/shared/api/axiosInstance';
 
@@ -40,7 +40,7 @@ import { useState, useMemo } from 'react';
 
 export function useClientDashboardStats(clientId: string) {
     const { data: transactions = [], isLoading: isLoadingTransactions, error: errorTransactions } = useClientTransactions(clientId);
-    const { data: allDocuments = [], isLoading: isLoadingDocuments, error: errorDocuments } = useQuery<DocumentRequest[]>({
+    const { data: allDocuments = [], isLoading: isLoadingDocuments, error: errorDocuments } = useQuery<Document[]>({
         queryKey: documentKeys.all,
         queryFn: fetchAllDocuments,
     });

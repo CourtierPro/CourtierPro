@@ -10,6 +10,7 @@
     "Edit": "Modifier",
     "edit": "Modifier",
     "editDocumentRequest": "Modifier la demande de document",
+    "editDocument": "Modifier le document",
     "title": "Documents",
     "documentTitle": "Titre du document",
     "documentTitlePlaceholder": "ex. : Preuve de revenu supplémentaire",
@@ -17,6 +18,11 @@
     "transactionDocumentsPageSubtitle": "Gérez tous vos documents de transaction en un seul endroit.",
     "subtitle": "Gérez tous vos documents de transaction en un seul endroit.",
     "requestDocument": "Demander un document",
+    "uploadForClient": "Téléverser pour le client",
+    "flow": {
+        "REQUEST": "Demande",
+        "UPLOAD": "Partagé"
+    },
     "noDocuments": "Aucun document",
     "noDocumentsTitle": "Aucun document trouvé",
     "noDocumentsDesc": "Vous n'avez pas encore téléversé de documents. Commencez par créer une transaction.",
@@ -78,6 +84,7 @@
     "upload": "Téléverser",
     "lastUpdated": "Dernière mise à jour",
     "status": {
+        "DRAFT": "Brouillon",
         "REQUESTED": "Demandé",
         "SUBMITTED": "Soumis",
         "APPROVED": "Approuvé",
@@ -87,7 +94,9 @@
         "viewFailed": "Échec du chargement du document",
         "uploadFailed": "Échec du téléversement",
         "fileTooLarge": "Le fichier est trop volumineux (max 25 Mo)",
-        "reviewFailed": "Erreur lors de la soumission de l'avis. Veuillez réessayer."
+        "reviewFailed": "Erreur lors de la soumission de l'avis. Veuillez réessayer.",
+        "shareFailed": "Échec du partage du document",
+        "deleteFailed": "Échec de la suppression du brouillon"
     },
     "globalTitle": "Mes documents",
     "globalSubtitle": "Consultez et gérez tous vos documents pour toutes vos transactions.",
@@ -114,16 +123,33 @@
     "supportedFormats": "Formats supportés",
     "clickToSelectFile": "Cliquez pour sélectionner un fichier",
     "maxSize": "Taille max : {{size}}",
+    "uploadForClientModal": {
+        "title": "Téléverser pour le client",
+        "description": "Téléversez un document pour que le client puisse y accéder. Le document sera immédiatement disponible pour le client.",
+        "infoText": "Ce document sera partagé avec le client et marqué comme soumis.",
+        "selectFile": "Fichier du document"
+    },
     "actions": {
         "cancel": "Annuler",
         "upload": "Téléverser",
-        "uploading": "Téléversement..."
+        "uploading": "Téléversement...",
+        "share": "Partager",
+        "uploadAndShare": "Téléverser et partager",
+        "saveAsDraft": "Enregistrer comme brouillon",
+        "sendRequest": "Envoyer la demande",
+        "updateFile": "Modifier le fichier",
+        "delete": "Supprimer",
+        "deleting": "Suppression..."
     },
     "success": {
         "documentUploaded": "Document téléversé avec succès",
         "documentApproved": "Document approuvé avec succès",
         "revisionRequested": "Révision demandée avec succès",
-        "documentRequested": "Document demandé avec succès"
+        "documentRequested": "Document demandé avec succès",
+        "draftSaved": "Document enregistré comme brouillon",
+        "requestSent": "Demande de document envoyée au client",
+        "documentShared": "Document partagé avec le client",
+        "draftDeleted": "Brouillon supprimé avec succès"
     },
     "noPropertySelected": "Aucune propriété sélectionnée",
     "reupload": "Retéléverser",
@@ -132,5 +158,7 @@
     "pickDate": "Choisir une date",
     "advancedOptions": "Options avancées (Conditions liées)",
     "dueToday": "Dû aujourd'hui",
-    "noOutstandingDocuments": "Aucun document en retard. Vous êtes à jour !"
+    "noOutstandingDocuments": "Aucun document en retard. Vous êtes à jour !",
+    "confirmDeleteDraft": "Êtes-vous sûr de vouloir supprimer ce brouillon ?",
+    "confirmShareDraft": "Êtes-vous sûr de vouloir partager ce document avec le client ? Il leur sera immédiatement visible."
 }

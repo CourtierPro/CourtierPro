@@ -1,4 +1,5 @@
 export const DocumentStatusEnum = {
+    DRAFT: 'DRAFT',
     REQUESTED: 'REQUESTED',
     SUBMITTED: 'SUBMITTED',
     APPROVED: 'APPROVED',
@@ -35,6 +36,12 @@ export const DocumentTypeEnum = {
 } as const;
 export type DocumentTypeEnum = typeof DocumentTypeEnum[keyof typeof DocumentTypeEnum];
 
+export const DocumentFlowEnum = {
+    REQUEST: 'REQUEST',
+    UPLOAD: 'UPLOAD',
+} as const;
+export type DocumentFlowEnum = typeof DocumentFlowEnum[keyof typeof DocumentFlowEnum];
+
 export interface StorageObject {
     s3Key: string;
     fileName: string;
@@ -49,15 +56,15 @@ export interface UploadedBy {
     externalName?: string;
 }
 
-export interface SubmittedDocument {
+export interface DocumentVersion {
     id: number;
-    documentId: string;
+    versionId: string;
     uploadedAt: string;
     uploadedBy: UploadedBy;
     storageObject: StorageObject;
 }
 
-export interface DocumentRequestCreateDTO {
+export interface DocumentCreateDTO {
     docType: DocumentTypeEnum;
     customTitle?: string;
     expectedFrom: DocumentPartyEnum;
@@ -66,9 +73,11 @@ export interface DocumentRequestCreateDTO {
     stage: string;
     conditionIds?: string[];
     dueDate?: Date;
+    status?: DocumentStatusEnum;
+    flow?: DocumentFlowEnum;
 }
 
-export interface DocumentRequestUpdateDTO {
+export interface DocumentUpdateDTO {
     docType?: DocumentTypeEnum;
     customTitle?: string;
     expectedFrom?: DocumentPartyEnum;
@@ -77,10 +86,12 @@ export interface DocumentRequestUpdateDTO {
     stage?: string;
     conditionIds?: string[];
     dueDate?: Date;
+    flow?: DocumentFlowEnum;
 }
-export interface DocumentRequest {
+
+export interface Document {
     id: number;
-    requestId: string;
+    documentId: string;
     transactionRef: {
         transactionId: string;
         clientId: string;
@@ -90,10 +101,11 @@ export interface DocumentRequest {
     customTitle?: string;
     status: DocumentStatusEnum;
     expectedFrom: DocumentPartyEnum;
-    submittedDocuments: SubmittedDocument[];
+    versions: DocumentVersion[];
     brokerNotes?: string;
     lastUpdatedAt?: string;
     visibleToClient: boolean;
-    stage: string; // Added to match backend and fix filtering
+    stage: string;
     dueDate?: string;
+    flow: DocumentFlowEnum;
 }

@@ -1,9 +1,9 @@
 package com.example.courtierprobackend.documents.presentationlayer;
 
-import com.example.courtierprobackend.documents.businesslayer.DocumentRequestService;
+import com.example.courtierprobackend.documents.businesslayer.DocumentService;
 import com.example.courtierprobackend.documents.datalayer.enums.UploadedByRefEnum;
-import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestRequestDTO;
-import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentResponseDTO;
 import com.example.courtierprobackend.security.UserContextFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,20 +27,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for DocumentRequestController.
+ * Unit tests for DocumentController.
  * Updated to use HttpServletRequest with internal UUID from UserContextFilter.
  */
 @ExtendWith(MockitoExtension.class)
-class DocumentRequestControllerUnitTest {
+class DocumentControllerUnitTest {
 
         @Mock
-        private DocumentRequestService service;
+        private DocumentService service;
 
-        private DocumentRequestController controller;
+        private DocumentController controller;
 
         @BeforeEach
         void setUp() {
-                controller = new DocumentRequestController(service);
+                controller = new DocumentController(service);
         }
 
         // ========== resolveUserId Tests ==========
@@ -52,12 +52,12 @@ class DocumentRequestControllerUnitTest {
                 UUID internalId = UUID.randomUUID();
                 MockHttpServletRequest request = createRequestWithInternalId(internalId);
 
-                DocumentRequestResponseDTO doc = DocumentRequestResponseDTO.builder().requestId(UUID.randomUUID())
+                DocumentResponseDTO doc = DocumentResponseDTO.builder().documentId(UUID.randomUUID())
                                 .build();
                 when(service.getDocumentsForTransaction(txId, internalId)).thenReturn(List.of(doc));
 
                 // Act
-                ResponseEntity<List<DocumentRequestResponseDTO>> response = controller.getDocuments(txId, null, null,
+                ResponseEntity<List<DocumentResponseDTO>> response = controller.getDocuments(txId, null, null,
                                 request);
 
                 // Assert
@@ -74,12 +74,12 @@ class DocumentRequestControllerUnitTest {
                 String headerId = headerUuid.toString();
                 MockHttpServletRequest request = new MockHttpServletRequest();
 
-                DocumentRequestResponseDTO doc = DocumentRequestResponseDTO.builder().requestId(UUID.randomUUID())
+                DocumentResponseDTO doc = DocumentResponseDTO.builder().documentId(UUID.randomUUID())
                                 .build();
                 when(service.getDocumentsForTransaction(txId, headerUuid)).thenReturn(List.of(doc));
 
                 // Act
-                ResponseEntity<List<DocumentRequestResponseDTO>> response = controller.getDocuments(txId, headerId,
+                ResponseEntity<List<DocumentResponseDTO>> response = controller.getDocuments(txId, headerId,
                                 null, request);
 
                 // Assert
@@ -100,78 +100,78 @@ class DocumentRequestControllerUnitTest {
                                 .hasMessageContaining("Unable to resolve user id");
         }
 
-        // ========== createDocumentRequest Tests ==========
+        // ========== createDocument Tests ==========
 
         @Test
-        void createDocumentRequest_ReturnsCreatedResponse() {
+        void createDocument_ReturnsCreatedResponse() {
                 // Arrange
                 UUID txId = UUID.randomUUID();
-                DocumentRequestRequestDTO requestDTO = new DocumentRequestRequestDTO();
+                DocumentRequestDTO requestDTO = new DocumentRequestDTO();
 
-                UUID newReqId = UUID.randomUUID();
-                DocumentRequestResponseDTO responseDTO = DocumentRequestResponseDTO.builder()
-                                .requestId(newReqId)
+                UUID newDocId = UUID.randomUUID();
+                DocumentResponseDTO responseDTO = DocumentResponseDTO.builder()
+                                .documentId(newDocId)
                                 .build();
 
-                when(service.createDocumentRequest(eq(txId), eq(requestDTO), any(UUID.class))).thenReturn(responseDTO);
+                when(service.createDocument(eq(txId), eq(requestDTO), any(UUID.class))).thenReturn(responseDTO);
 
                 // Act
                 // Use a request with internal ID to ensure resolveUserId works
                 UUID internalId = UUID.randomUUID();
                 MockHttpServletRequest request = createRequestWithInternalId(internalId);
-                ResponseEntity<DocumentRequestResponseDTO> response = controller.createDocumentRequest(txId, requestDTO,
+                ResponseEntity<DocumentResponseDTO> response = controller.createDocument(txId, requestDTO,
                                 null, request);
 
                 // Assert
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-                assertThat(response.getBody().getRequestId()).isEqualTo(newReqId);
+                assertThat(response.getBody().getDocumentId()).isEqualTo(newDocId);
         }
 
-        // ========== getDocumentRequest Tests ==========
+        // ========== getDocument Tests ==========
 
         @Test
-        void getDocumentRequest_WithValidAccess_ReturnsDocument() {
+        void getDocument_WithValidAccess_ReturnsDocument() {
                 // Arrange
                 UUID txId = UUID.randomUUID();
-                UUID reqId = UUID.randomUUID();
+                UUID docId = UUID.randomUUID();
                 UUID internalId = UUID.randomUUID();
                 MockHttpServletRequest request = createRequestWithInternalId(internalId);
 
-                DocumentRequestResponseDTO responseDTO = DocumentRequestResponseDTO.builder()
-                                .requestId(reqId)
+                DocumentResponseDTO responseDTO = DocumentResponseDTO.builder()
+                                .documentId(docId)
                                 .build();
-                when(service.getDocumentRequest(reqId, internalId)).thenReturn(responseDTO);
+                when(service.getDocument(docId, internalId)).thenReturn(responseDTO);
 
                 // Act
-                ResponseEntity<DocumentRequestResponseDTO> response = controller.getDocumentRequest(txId, reqId, null,
+                ResponseEntity<DocumentResponseDTO> response = controller.getDocument(txId, docId, null,
                                 null, request);
 
                 // Assert
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-                assertThat(response.getBody().getRequestId()).isEqualTo(reqId);
+                assertThat(response.getBody().getDocumentId()).isEqualTo(docId);
         }
 
-        // ========== updateDocumentRequest Tests ==========
+        // ========== updateDocument Tests ==========
 
         @Test
-        void updateDocumentRequest_ReturnsUpdatedDocument() {
+        void updateDocument_ReturnsUpdatedDocument() {
                 // Arrange
                 UUID txId = UUID.randomUUID();
-                UUID reqId = UUID.randomUUID();
-                DocumentRequestRequestDTO requestDTO = new DocumentRequestRequestDTO();
+                UUID docId = UUID.randomUUID();
+                DocumentRequestDTO requestDTO = new DocumentRequestDTO();
                 requestDTO.setCustomTitle("Updated Title");
 
-                DocumentRequestResponseDTO responseDTO = DocumentRequestResponseDTO.builder()
-                                .requestId(reqId)
+                DocumentResponseDTO responseDTO = DocumentResponseDTO.builder()
+                                .documentId(docId)
                                 .customTitle("Updated Title")
                                 .build();
                 UUID internalId = UUID.randomUUID();
                 MockHttpServletRequest request = createRequestWithInternalId(internalId);
 
-                when(service.updateDocumentRequest(eq(reqId), eq(requestDTO), any(UUID.class))).thenReturn(responseDTO);
+                when(service.updateDocument(eq(docId), eq(requestDTO), any(UUID.class))).thenReturn(responseDTO);
 
                 // Act
-                ResponseEntity<DocumentRequestResponseDTO> response = controller.updateDocumentRequest(txId, reqId,
+                ResponseEntity<DocumentResponseDTO> response = controller.updateDocument(txId, docId,
                                 requestDTO, null, request);
 
                 // Assert
@@ -179,22 +179,22 @@ class DocumentRequestControllerUnitTest {
                 assertThat(response.getBody().getCustomTitle()).isEqualTo("Updated Title");
         }
 
-        // ========== deleteDocumentRequest Tests ==========
+        // ========== deleteDocument Tests ==========
 
         @Test
-        void deleteDocumentRequest_ReturnsNoContent() {
+        void deleteDocument_ReturnsNoContent() {
                 // Arrange
                 UUID txId = UUID.randomUUID();
-                UUID reqId = UUID.randomUUID();
+                UUID docId = UUID.randomUUID();
 
                 // Act
                 UUID internalId = UUID.randomUUID();
                 MockHttpServletRequest request = createRequestWithInternalId(internalId);
 
                 // Act
-                ResponseEntity<Void> response = controller.deleteDocumentRequest(txId, reqId, null, request);
+                ResponseEntity<Void> response = controller.deleteDocument(txId, docId, null, request);
 
-                verify(service).deleteDocumentRequest(reqId, internalId);
+                verify(service).deleteDocument(docId, internalId);
 
                 // Assert
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
@@ -206,7 +206,7 @@ class DocumentRequestControllerUnitTest {
         void submitDocument_AsClient_SetsClientUploaderType() throws IOException {
                 // Arrange
                 UUID txId = UUID.randomUUID();
-                UUID reqId = UUID.randomUUID();
+                UUID docId = UUID.randomUUID();
                 UUID internalId = UUID.randomUUID();
                 String userId = internalId.toString();
                 Jwt jwt = createJwt(userId); // No BROKER role
@@ -214,26 +214,26 @@ class DocumentRequestControllerUnitTest {
                 MockMultipartFile file = new MockMultipartFile("file", "doc.pdf", "application/pdf",
                                 "content".getBytes());
 
-                DocumentRequestResponseDTO responseDTO = DocumentRequestResponseDTO.builder()
-                                .requestId(reqId)
+                DocumentResponseDTO responseDTO = DocumentResponseDTO.builder()
+                                .documentId(docId)
                                 .build();
-                when(service.submitDocument(txId, reqId, file, internalId, UploadedByRefEnum.CLIENT))
+                when(service.submitDocument(txId, docId, file, internalId, UploadedByRefEnum.CLIENT))
                                 .thenReturn(responseDTO);
 
                 // Act
-                ResponseEntity<DocumentRequestResponseDTO> response = controller.submitDocument(
-                                txId, reqId, file, null, jwt, request);
+                ResponseEntity<DocumentResponseDTO> response = controller.submitDocument(
+                                txId, docId, file, null, jwt, request);
 
                 // Assert
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-                verify(service).submitDocument(txId, reqId, file, internalId, UploadedByRefEnum.CLIENT);
+                verify(service).submitDocument(txId, docId, file, internalId, UploadedByRefEnum.CLIENT);
         }
 
         @Test
         void submitDocument_AsBroker_SetsBrokerUploaderType() throws IOException {
                 // Arrange
                 UUID txId = UUID.randomUUID();
-                UUID reqId = UUID.randomUUID();
+                UUID docId = UUID.randomUUID();
                 UUID internalId = UUID.randomUUID();
                 Jwt jwt = Jwt.withTokenValue("token")
                                 .header("alg", "RS256")
@@ -246,45 +246,45 @@ class DocumentRequestControllerUnitTest {
                 MockMultipartFile file = new MockMultipartFile("file", "doc.pdf", "application/pdf",
                                 "content".getBytes());
 
-                DocumentRequestResponseDTO responseDTO = DocumentRequestResponseDTO.builder()
-                                .requestId(reqId)
+                DocumentResponseDTO responseDTO = DocumentResponseDTO.builder()
+                                .documentId(docId)
                                 .build();
-                when(service.submitDocument(txId, reqId, file, internalId, UploadedByRefEnum.BROKER))
+                when(service.submitDocument(txId, docId, file, internalId, UploadedByRefEnum.BROKER))
                                 .thenReturn(responseDTO);
 
                 // Act
-                ResponseEntity<DocumentRequestResponseDTO> response = controller.submitDocument(
-                                txId, reqId, file, null, jwt, request);
+                ResponseEntity<DocumentResponseDTO> response = controller.submitDocument(
+                                txId, docId, file, null, jwt, request);
 
                 // Assert
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-                verify(service).submitDocument(txId, reqId, file, internalId, UploadedByRefEnum.BROKER);
+                verify(service).submitDocument(txId, docId, file, internalId, UploadedByRefEnum.BROKER);
         }
 
         @Test
         void submitDocument_WithHeaderId_UsesHeaderForUserId() throws IOException {
                 // Arrange
                 UUID txId = UUID.randomUUID();
-                UUID reqId = UUID.randomUUID();
+                UUID docId = UUID.randomUUID();
                 UUID headerUuid = UUID.randomUUID();
                 String headerId = headerUuid.toString();
                 MockHttpServletRequest request = new MockHttpServletRequest();
                 MockMultipartFile file = new MockMultipartFile("file", "doc.pdf", "application/pdf",
                                 "content".getBytes());
 
-                DocumentRequestResponseDTO responseDTO = DocumentRequestResponseDTO.builder()
-                                .requestId(reqId)
+                DocumentResponseDTO responseDTO = DocumentResponseDTO.builder()
+                                .documentId(docId)
                                 .build();
-                when(service.submitDocument(txId, reqId, file, headerUuid, UploadedByRefEnum.CLIENT))
+                when(service.submitDocument(txId, docId, file, headerUuid, UploadedByRefEnum.CLIENT))
                                 .thenReturn(responseDTO);
 
                 // Act
-                ResponseEntity<DocumentRequestResponseDTO> response = controller.submitDocument(
-                                txId, reqId, file, headerId, null, request);
+                ResponseEntity<DocumentResponseDTO> response = controller.submitDocument(
+                                txId, docId, file, headerId, null, request);
 
                 // Assert
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-                verify(service).submitDocument(txId, reqId, file, headerUuid, UploadedByRefEnum.CLIENT);
+                verify(service).submitDocument(txId, docId, file, headerUuid, UploadedByRefEnum.CLIENT);
         }
 
         // ========== getDocumentDownloadUrl Tests ==========
@@ -293,17 +293,17 @@ class DocumentRequestControllerUnitTest {
         void getDocumentDownloadUrl_ReturnsUrlInMap() {
                 // Arrange
                 UUID txId = UUID.randomUUID();
-                UUID reqId = UUID.randomUUID();
                 UUID docId = UUID.randomUUID();
+                UUID versionId = UUID.randomUUID();
                 UUID internalId = UUID.randomUUID();
                 MockHttpServletRequest request = createRequestWithInternalId(internalId);
 
-                when(service.getDocumentDownloadUrl(reqId, docId, internalId))
+                when(service.getDocumentDownloadUrl(docId, versionId, internalId))
                                 .thenReturn("https://presigned.url/doc.pdf");
 
                 // Act
                 ResponseEntity<Map<String, String>> response = controller.getDocumentDownloadUrl(
-                                txId, reqId, docId, null, null, request);
+                                txId, docId, versionId, null, null, request);
 
                 // Assert
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -314,22 +314,22 @@ class DocumentRequestControllerUnitTest {
         void getDocumentDownloadUrl_WithHeader_UsesHeaderForUserId() {
                 // Arrange
                 UUID txId = UUID.randomUUID();
-                UUID reqId = UUID.randomUUID();
                 UUID docId = UUID.randomUUID();
+                UUID versionId = UUID.randomUUID();
                 UUID headerUuid = UUID.randomUUID();
-                String headerId = headerUuid.toString(); // Valid UUID string
+                String headerId = headerUuid.toString();
                 MockHttpServletRequest request = new MockHttpServletRequest();
 
-                when(service.getDocumentDownloadUrl(reqId, docId, UUID.fromString(headerId)))
+                when(service.getDocumentDownloadUrl(docId, versionId, UUID.fromString(headerId)))
                                 .thenReturn("https://presigned.url/doc.pdf");
 
                 // Act
                 ResponseEntity<Map<String, String>> response = controller.getDocumentDownloadUrl(
-                                txId, reqId, docId, headerId, null, request);
+                                txId, docId, versionId, headerId, null, request);
 
                 // Assert
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-                verify(service).getDocumentDownloadUrl(reqId, docId, UUID.fromString(headerId));
+                verify(service).getDocumentDownloadUrl(docId, versionId, UUID.fromString(headerId));
         }
 
         // ========== Helper Methods ==========

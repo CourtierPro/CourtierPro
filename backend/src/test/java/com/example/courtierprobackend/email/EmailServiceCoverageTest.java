@@ -2,7 +2,7 @@ package com.example.courtierprobackend.email;
 
 import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
+import com.example.courtierprobackend.documents.datalayer.Document;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
@@ -80,7 +80,7 @@ class EmailServiceCoverageTest {
         
         when(userAccountRepository.findByEmail(brokerEmail)).thenReturn(Optional.of(broker));
 
-        DocumentRequest req = new DocumentRequest();
+        Document req = new Document();
         
         emailService.sendDocumentSubmittedNotification(req, brokerEmail, "Uploader", "Doc", "Other", "en");
 
@@ -142,7 +142,7 @@ class EmailServiceCoverageTest {
         OrganizationSettingsResponseModel settings = new OrganizationSettingsResponseModel(); // null fields
         when(organizationSettingsService.getSettings()).thenReturn(settings);
         
-        DocumentRequest req = new DocumentRequest();
+        Document req = new Document();
         req.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), null));
 
         // Use reflection to switch provider to SES to easily mock the send behavior
@@ -164,7 +164,7 @@ class EmailServiceCoverageTest {
                 .build());
          when(organizationSettingsService.getSettings()).thenReturn(OrganizationSettingsResponseModel.builder().build());
             
-        DocumentRequest req = new DocumentRequest();
+        Document req = new Document();
         req.setBrokerNotes("Notes");
         req.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE));
         

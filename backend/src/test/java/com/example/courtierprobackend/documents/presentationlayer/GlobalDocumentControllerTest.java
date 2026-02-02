@@ -1,7 +1,7 @@
 package com.example.courtierprobackend.documents.presentationlayer;
 
-import com.example.courtierprobackend.documents.businesslayer.DocumentRequestService;
-import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
+import com.example.courtierprobackend.documents.businesslayer.DocumentService;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentResponseDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.OutstandingDocumentDTO;
 import com.example.courtierprobackend.security.UserContextFilter;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.*;
 class GlobalDocumentControllerTest {
 
     @Mock
-    private DocumentRequestService service;
+    private DocumentService service;
 
     private GlobalDocumentController controller;
 
@@ -41,13 +41,13 @@ class GlobalDocumentControllerTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR, userId);
 
-        List<DocumentRequestResponseDTO> docs = List.of(
-                DocumentRequestResponseDTO.builder().requestId(UUID.randomUUID()).build(),
-                DocumentRequestResponseDTO.builder().requestId(UUID.randomUUID()).build());
+        List<DocumentResponseDTO> docs = List.of(
+                DocumentResponseDTO.builder().documentId(UUID.randomUUID()).build(),
+                DocumentResponseDTO.builder().documentId(UUID.randomUUID()).build());
         when(service.getAllDocumentsForUser(userId)).thenReturn(docs);
 
         // Act
-        ResponseEntity<List<DocumentRequestResponseDTO>> response = controller.getAllDocumentsForUser(request);
+        ResponseEntity<List<DocumentResponseDTO>> response = controller.getAllDocumentsForUser(request);
 
         // Assert
         assertThat(response.getBody()).hasSize(2);
@@ -63,7 +63,7 @@ class GlobalDocumentControllerTest {
         when(service.getAllDocumentsForUser(userId)).thenReturn(List.of());
 
         // Act
-        ResponseEntity<List<DocumentRequestResponseDTO>> response = controller.getAllDocumentsForUser(request);
+        ResponseEntity<List<DocumentResponseDTO>> response = controller.getAllDocumentsForUser(request);
 
         // Assert
         assertThat(response.getBody()).isEmpty();
@@ -108,15 +108,15 @@ class GlobalDocumentControllerTest {
     @Test
     void sendReminder_Success() {
         UUID userId = UUID.randomUUID();
-        UUID reqId = UUID.randomUUID();
+        UUID docId = UUID.randomUUID();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR, userId);
 
-        doNothing().when(service).sendDocumentReminder(reqId, userId);
+        doNothing().when(service).sendDocumentReminder(docId, userId);
 
-        ResponseEntity<Void> response = controller.sendReminder(reqId, request);
+        ResponseEntity<Void> response = controller.sendReminder(docId, request);
 
         assertThat(response.getStatusCodeValue()).isEqualTo(200);
-        verify(service).sendDocumentReminder(reqId, userId);
+        verify(service).sendDocumentReminder(docId, userId);
     }
 }

@@ -1,7 +1,7 @@
 package com.example.courtierprobackend.documents.presentationlayer;
 
-import com.example.courtierprobackend.documents.businesslayer.DocumentRequestService;
-import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestResponseDTO;
+import com.example.courtierprobackend.documents.businesslayer.DocumentService;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentResponseDTO;
 import com.example.courtierprobackend.security.UserContextUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -20,10 +20,10 @@ import java.util.UUID;
 @PreAuthorize("isAuthenticated()")
 public class GlobalDocumentController {
 
-    private final DocumentRequestService service;
+    private final DocumentService service;
 
     @GetMapping
-    public ResponseEntity<List<DocumentRequestResponseDTO>> getAllDocumentsForUser(HttpServletRequest request) {
+    public ResponseEntity<List<DocumentResponseDTO>> getAllDocumentsForUser(HttpServletRequest request) {
         UUID internalId = UserContextUtils.resolveUserId(request);
         return ResponseEntity.ok(service.getAllDocumentsForUser(internalId));
     }

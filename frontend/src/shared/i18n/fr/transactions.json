@@ -507,6 +507,7 @@
   },
   "awaitingReview": "En attente d'examen",
   "documentStatus": {
+    "draft": "Brouillon",
     "requested": "Demandé",
     "submitted": "Soumis",
     "approved": "Approuvé",

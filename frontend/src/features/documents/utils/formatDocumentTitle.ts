@@ -1,7 +1,7 @@
-import type { DocumentRequest } from "../types";
+import type { Document } from "../types";
 import type { TFunction } from "i18next";
 
-export const formatDocumentTitle = (document: DocumentRequest, t: TFunction): string => {
+export const formatDocumentTitle = (document: Document, t: TFunction): string => {
     const type = document.docType;
     const custom = document.customTitle?.trim();
 

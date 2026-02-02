@@ -14,7 +14,7 @@ import java.util.UUID;
 @Builder
 public class PendingDocumentDTO {
     
-    private UUID requestId;
+    private UUID documentId;
     private UUID transactionId;
     private String clientName;
     private String documentType;

@@ -10,9 +10,15 @@
     "Edit": "Edit",
     "edit": "Edit",
     "editDocumentRequest": "Edit Document Request",
+    "editDocument": "Edit Document",
     "title": "Documents",
     "subtitle": "Manage all your transaction documents in one place.",
     "requestDocument": "Request Document",
+    "uploadForClient": "Upload for Client",
+    "flow": {
+        "REQUEST": "Request",
+        "UPLOAD": "Shared"
+    },
     "noDocuments": "No documents",
     "noDocumentsTitle": "No documents found",
     "noDocumentsDesc": "You haven't uploaded any documents yet. Start by creating a transaction.",
@@ -77,6 +83,7 @@
     "upload": "Upload",
     "lastUpdated": "Last updated",
     "status": {
+        "DRAFT": "Draft",
         "REQUESTED": "Requested",
         "SUBMITTED": "Submitted",
         "APPROVED": "Approved",
@@ -86,7 +93,9 @@
         "viewFailed": "Failed to load document",
         "uploadFailed": "Upload failed",
         "fileTooLarge": "File is too large (max 25MB)",
-        "reviewFailed": "Error submitting review. Please try again."
+        "reviewFailed": "Error submitting review. Please try again.",
+        "shareFailed": "Failed to share document",
+        "deleteFailed": "Failed to delete draft"
     },
     "globalTitle": "My Documents",
     "globalSubtitle": "View and manage all your documents across transactions.",
@@ -113,16 +122,33 @@
     "supportedFormats": "Supported formats",
     "clickToSelectFile": "Click to select file",
     "maxSize": "Max size: {{size}}",
+    "uploadForClientModal": {
+        "title": "Upload for Client",
+        "description": "Upload a document for the client to access. The document will be immediately available to the client.",
+        "infoText": "This document will be shared with the client and marked as submitted.",
+        "selectFile": "Document File"
+    },
     "actions": {
         "cancel": "Cancel",
         "upload": "Upload",
-        "uploading": "Uploading..."
+        "uploading": "Uploading...",
+        "share": "Share",
+        "uploadAndShare": "Upload & Share",
+        "saveAsDraft": "Save as Draft",
+        "sendRequest": "Send Request",
+        "updateFile": "Update File",
+        "delete": "Delete",
+        "deleting": "Deleting..."
     },
     "success": {
         "documentUploaded": "Document uploaded successfully",
         "documentApproved": "Document approved successfully",
         "revisionRequested": "Revision requested successfully",
-        "documentRequested": "Document requested successfully"
+        "documentRequested": "Document requested successfully",
+        "draftSaved": "Document saved as draft",
+        "requestSent": "Document request sent to client",
+        "documentShared": "Document shared with client",
+        "draftDeleted": "Draft deleted successfully"
     },
     "noPropertySelected": "No property selected",
     "reupload": "Re-upload",
@@ -131,5 +157,7 @@
     "pickDate": "Pick a date",
     "advancedOptions": "Advanced Options (Linked Conditions)",
     "dueToday": "Due Today",
-    "noOutstandingDocuments": "No outstanding documents. You're all caught up!"
+    "noOutstandingDocuments": "No outstanding documents. You're all caught up!",
+    "confirmDeleteDraft": "Are you sure you want to delete this draft?",
+    "confirmShareDraft": "Are you sure you want to share this document with the client? It will be immediately visible to them."
 }

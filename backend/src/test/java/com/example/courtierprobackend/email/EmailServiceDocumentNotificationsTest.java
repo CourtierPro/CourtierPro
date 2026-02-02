@@ -1,7 +1,7 @@
 package com.example.courtierprobackend.email;
 
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
+import com.example.courtierprobackend.documents.datalayer.Document;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
@@ -27,7 +27,7 @@ class EmailServiceDocumentNotificationsTest {
         when(userRepo.findByEmail(anyString())).thenReturn(java.util.Optional.of(userAccount));
         var transactionRef = mock(TransactionRef.class);
         when(transactionRef.getTransactionId()).thenReturn(UUID.randomUUID());
-        var request = mock(DocumentRequest.class);
+        var request = mock(Document.class);
         when(request.getTransactionRef()).thenReturn(transactionRef);
 
         // 1. English, subject/body present
@@ -162,7 +162,7 @@ class EmailServiceDocumentNotificationsTest {
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
 
         var transactionRef = new TransactionRef(UUID.randomUUID(), null, TransactionSide.BUY_SIDE);
-        var request = mock(DocumentRequest.class);
+        var request = mock(Document.class);
         when(request.getTransactionRef()).thenReturn(transactionRef);
         when(request.getBrokerNotes()).thenReturn("Notes");
 
@@ -233,7 +233,7 @@ class EmailServiceDocumentNotificationsTest {
         doThrow(new jakarta.mail.MessagingException("fail")).when(service).sendEmail(anyString(), anyString(), anyString());
 
         var transactionRef = new TransactionRef(UUID.randomUUID(), null, TransactionSide.BUY_SIDE);
-        var request = mock(DocumentRequest.class);
+        var request = mock(Document.class);
         when(request.getTransactionRef()).thenReturn(transactionRef);
         when(request.getStatus()).thenReturn(DocumentStatusEnum.APPROVED);
 

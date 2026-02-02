@@ -78,7 +78,7 @@ export function DocumentChecklistModal({
                 const title = doc.customTitle || t(`types.${doc.docType}`);
                 return (
                   <li
-                    key={doc.requestId}
+                    key={doc.documentId}
                     className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
                   >
                     {getStatusIcon(doc.status)}

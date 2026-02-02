@@ -3,6 +3,7 @@ package com.example.courtierprobackend.documents.datalayer;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentPartyEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
+import com.example.courtierprobackend.documents.datalayer.enums.DocumentFlowEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.StageEnum;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
 import com.example.courtierprobackend.transactions.datalayer.enums.BuyerStage;
@@ -21,13 +22,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "document_requests")
+@Table(name = "documents")
 @Where(clause = "deleted_at IS NULL")
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class DocumentRequest {
+public class Document {
     public boolean isVisibleToClient() {
         return visibleToClient;
     }
@@ -37,7 +38,7 @@ public class DocumentRequest {
     private Long id;
 
     @Column(unique = true)
-    private UUID requestId; // Public ID
+    private UUID documentId; // Public ID
 
     @Embedded
     private TransactionRef transactionRef;
@@ -62,9 +63,13 @@ public class DocumentRequest {
     @Enumerated(EnumType.STRING)
     private StageEnum stage;
 
-    @OneToMany(mappedBy = "documentRequest", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Enumerated(EnumType.STRING)
     @Builder.Default
-    private List<SubmittedDocument> submittedDocuments = new ArrayList<>();
+    private DocumentFlowEnum flow = DocumentFlowEnum.REQUEST;
+
+    @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<DocumentVersion> versions = new ArrayList<>();
 
     private String brokerNotes;
 

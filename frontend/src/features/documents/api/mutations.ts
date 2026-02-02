@@ -1,14 +1,15 @@
-import { updateDocumentRequest } from './documentsApi';
+import { updateDocument } from './documentsApi';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentKeys } from '@/features/documents/api/queries';
-import { createDocumentRequest, submitDocument, reviewDocument, sendDocumentReminder, type CreateDocumentRequestDTO } from './documentsApi.ts';
+import { createDocument, submitDocument, reviewDocument, sendDocumentReminder, sendDocumentRequest, deleteDocument, uploadFileToDocument, shareDocumentWithClient, type CreateDocumentDTO } from './documentsApi.ts';
 
-import type { UpdateDocumentRequestDTO } from './documentsApi';
-export function useUpdateDocumentRequest() {
+import type { UpdateDocumentDTO } from './documentsApi';
+
+export function useUpdateDocument() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async ({ transactionId, requestId, data }: { transactionId: string; requestId: string; data: UpdateDocumentRequestDTO }) => {
-            return updateDocumentRequest(transactionId, requestId, data);
+        mutationFn: async ({ transactionId, documentId, data }: { transactionId: string; documentId: string; data: UpdateDocumentDTO }) => {
+            return updateDocument(transactionId, documentId, data);
         },
         onSuccess: (_, { transactionId }) => {
             queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
@@ -19,12 +20,12 @@ export function useUpdateDocumentRequest() {
 }
 
 
-export function useRequestDocument() {
+export function useCreateDocument() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ transactionId, data }: { transactionId: string; data: CreateDocumentRequestDTO }) =>
-            createDocumentRequest(transactionId, data),
+        mutationFn: ({ transactionId, data }: { transactionId: string; data: CreateDocumentDTO }) =>
+            createDocument(transactionId, data),
         onSuccess: (_, { transactionId }) => {
             queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
@@ -47,8 +48,8 @@ export function useSubmitDocument() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ transactionId, requestId, file }: { transactionId: string; requestId: string; file: File }) =>
-            submitDocument(transactionId, requestId, file),
+        mutationFn: ({ transactionId, documentId, file }: { transactionId: string; documentId: string; file: File }) =>
+            submitDocument(transactionId, documentId, file),
         onSuccess: (_, { transactionId }) => {
             queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
@@ -67,16 +68,34 @@ export function useSubmitDocument() {
     });
 }
 
+/**
+ * Mutation hook to upload a file to a document without changing its status.
+ * Used for attaching files to draft documents.
+ */
+export function useUploadFileToDocument() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ transactionId, documentId, file }: { transactionId: string; documentId: string; file: File }) =>
+            uploadFileToDocument(transactionId, documentId, file),
+        onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
+            queryClient.invalidateQueries({ queryKey: ['documents'] });
+        },
+    });
+}
+
+
 export const useReviewDocument = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ transactionId, requestId, decision, comments }: {
+        mutationFn: ({ transactionId, documentId, decision, comments }: {
             transactionId: string;
-            requestId: string;
+            documentId: string;
             decision: 'APPROVED' | 'NEEDS_REVISION';
             comments?: string;
-        }) => reviewDocument(transactionId, requestId, decision, comments),
+        }) => reviewDocument(transactionId, documentId, decision, comments),
         onSuccess: (_, { transactionId }) => {
             queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
@@ -98,7 +117,90 @@ export const useReviewDocument = () => {
 
 export const useSendDocumentReminder = () => {
     return useMutation({
-        mutationFn: (requestId: string) => sendDocumentReminder(requestId),
+        mutationFn: (documentId: string) => sendDocumentReminder(documentId),
     });
 };
 
+/**
+ * Mutation hook to transition a draft document to REQUESTED status.
+ * Sends email notification to the client.
+ */
+export const useSendDocumentRequest = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ transactionId, documentId }: { transactionId: string; documentId: string }) =>
+            sendDocumentRequest(transactionId, documentId),
+        onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
+            queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
+            queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transactions', 'detail', transactionId, 'timeline'
+                ]
+            }); // Timeline broker
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transaction', transactionId, 'timeline', 'client'
+                ]
+            }); // Timeline client
+        },
+    });
+};
+
+/**
+ * Mutation hook to delete a document (typically a draft).
+ * Only brokers with EDIT_DOCUMENTS permission can delete documents.
+ */
+export const useDeleteDocument = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ transactionId, documentId }: { transactionId: string; documentId: string }) =>
+            deleteDocument(transactionId, documentId),
+        onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
+            queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
+            queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transactions', 'detail', transactionId, 'timeline'
+                ]
+            }); // Timeline broker
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transaction', transactionId, 'timeline', 'client'
+                ]
+            }); // Timeline client
+        },
+    });
+};
+
+/**
+ * Mutation hook to share an UPLOAD flow draft document with the client.
+ * Transitions from DRAFT to SUBMITTED status.
+ */
+export const useShareDocumentWithClient = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ transactionId, documentId }: { transactionId: string; documentId: string }) =>
+            shareDocumentWithClient(transactionId, documentId),
+        onSuccess: (_, { transactionId }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
+            queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
+            queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transactions', 'detail', transactionId, 'timeline'
+                ]
+            }); // Timeline broker
+            queryClient.invalidateQueries({
+                queryKey: [
+                    'transaction', transactionId, 'timeline', 'client'
+                ]
+            }); // Timeline client
+        },
+    });
+};

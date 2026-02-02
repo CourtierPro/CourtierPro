@@ -33,7 +33,7 @@ export function PendingDocumentsCard({ className, maxItems = 5 }: PendingDocumen
 
     const handleDocumentClick = (doc: PendingDocument) => {
         // Navigate to transaction details with documents tab and focus on this document
-        navigate(`/transactions/${doc.transactionId}?tab=documents&focus=${doc.requestId}`);
+        navigate(`/transactions/${doc.transactionId}?tab=documents&focus=${doc.documentId}`);
     };
 
     if (isLoading) {
@@ -93,7 +93,7 @@ export function PendingDocumentsCard({ className, maxItems = 5 }: PendingDocumen
                 <div className="space-y-2">
                     {displayDocuments.map((doc) => (
                         <button
-                            key={doc.requestId}
+                            key={doc.documentId}
                             onClick={() => handleDocumentClick(doc)}
                             className={cn(
                                 "w-full flex items-center justify-between p-3 rounded-lg",

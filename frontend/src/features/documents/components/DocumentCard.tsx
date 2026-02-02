@@ -2,27 +2,30 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import { Section } from "@/shared/components/branded/Section";
-import { type DocumentRequest, DocumentStatusEnum, DocumentTypeEnum } from "@/features/documents/types";
+import { type Document, DocumentStatusEnum, DocumentTypeEnum, DocumentFlowEnum } from "@/features/documents/types";
 import { format } from "date-fns";
 import { enUS, fr } from "date-fns/locale";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
-import { FileText, Upload, CheckCircle, Clock, File, Eye, Loader2 } from "lucide-react";
+import { FileText, Upload, CheckCircle, Clock, File, Eye, Loader2, Send, Trash2, Share } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getDocumentDownloadUrl } from "@/features/documents/api/documentsApi";
 import { formatDocumentTitle } from "../utils/formatDocumentTitle";
 import { toast } from "sonner";
 
 interface DocumentCardProps {
-    document: DocumentRequest;
-    onUpload?: (document: DocumentRequest, file?: File) => void;
-    onReview?: (document: DocumentRequest) => void;
-    onEdit?: (document: DocumentRequest) => void;
+    document: Document;
+    onUpload?: (document: Document, file?: File) => void;
+    onReview?: (document: Document) => void;
+    onEdit?: (document: Document) => void;
+    onSendRequest?: (document: Document) => void;
+    onShare?: (document: Document) => void;
+    onDelete?: (document: Document) => void;
     isFocused?: boolean;
     showBrokerNotes?: boolean;
 }
 
-export function DocumentCard({ document, onUpload, onReview, onEdit, isFocused, showBrokerNotes = true }: DocumentCardProps) {
+export function DocumentCard({ document, onUpload, onReview, onEdit, onSendRequest, onShare, onDelete, isFocused, showBrokerNotes = true }: DocumentCardProps) {
     const { t, i18n } = useTranslation('documents');
     const [isLoadingView, setIsLoadingView] = useState(false);
     const title = formatDocumentTitle(document, t);
@@ -36,6 +39,7 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, isFocused, 
             case DocumentStatusEnum.APPROVED: return "success";
             case DocumentStatusEnum.SUBMITTED: return "secondary";
             case DocumentStatusEnum.NEEDS_REVISION: return "destructive";
+            case DocumentStatusEnum.DRAFT: return "outline";
             default: return "secondary";
         }
     };
@@ -53,16 +57,16 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, isFocused, 
     };
 
     const handleViewClick = async () => {
-        if (document.submittedDocuments.length === 0) return;
+        if (document.versions.length === 0) return;
 
-        const latestDoc = document.submittedDocuments[document.submittedDocuments.length - 1];
+        const latestDoc = document.versions[document.versions.length - 1];
         setIsLoadingView(true);
 
         try {
             const url = await getDocumentDownloadUrl(
                 document.transactionRef.transactionId,
-                document.requestId,
-                latestDoc.documentId
+                document.documentId,
+                latestDoc.versionId
             );
             window.open(url, '_blank');
         } catch {
@@ -164,9 +168,16 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, isFocused, 
                     </div>
 
                     <div className="flex flex-col items-end gap-3">
-                        <Badge variant={getStatusVariant(document.status)}>
-                            {t(`status.${document.status}`, document.status)}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                            {document.flow === DocumentFlowEnum.UPLOAD && document.status !== DocumentStatusEnum.DRAFT && (
+                                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 border-blue-200 dark:border-blue-700">
+                                    {t('flow.UPLOAD', 'Shared')}
+                                </Badge>
+                            )}
+                            <Badge variant={getStatusVariant(document.status)}>
+                                {t(`status.${document.status}`, document.status)}
+                            </Badge>
+                        </div>
 
                         <div className="flex gap-2">
                             {onEdit && (
@@ -174,7 +185,15 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, isFocused, 
                                     ✏️ {t('edit', 'Edit')}
                                 </Button>
                             )}
-                            {document.submittedDocuments.length > 0 && (
+
+                            {/* Delete button - only for DRAFT documents */}
+                            {document.status === DocumentStatusEnum.DRAFT && onDelete && (
+                                <Button size="sm" variant="outline" onClick={() => onDelete(document)} className="gap-2 text-destructive hover:bg-destructive hover:text-destructive-foreground">
+                                    <Trash2 className="w-4 h-4" />
+                                    {t('actions.delete', 'Delete')}
+                                </Button>
+                            )}
+                            {document.versions.length > 0 && (
                                 <Button
                                     size="sm"
                                     variant="outline"
@@ -191,6 +210,22 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, isFocused, 
                                 </Button>
                             )}
 
+                            {/* Send Request button - only for REQUEST flow DRAFT documents */}
+                            {document.status === DocumentStatusEnum.DRAFT && document.flow !== DocumentFlowEnum.UPLOAD && onSendRequest && (
+                                <Button size="sm" onClick={() => onSendRequest(document)} className="gap-2 bg-blue-500 hover:bg-blue-600">
+                                    <Send className="w-4 h-4" />
+                                    {t('sendRequest', 'Send Request')}
+                                </Button>
+                            )}
+
+                            {/* Share button - only for UPLOAD flow DRAFT documents */}
+                            {document.status === DocumentStatusEnum.DRAFT && document.flow === DocumentFlowEnum.UPLOAD && onShare && (
+                                <Button size="sm" onClick={() => onShare(document)} className="gap-2 bg-blue-500 hover:bg-blue-600">
+                                    <Share className="w-4 h-4" />
+                                    {t('actions.share', 'Share')}
+                                </Button>
+                            )}
+
                             {document.status === DocumentStatusEnum.SUBMITTED && onReview && (
                                 <Button size="sm" onClick={() => onReview(document)} className="gap-2 bg-orange-500 hover:bg-orange-600">
                                     <CheckCircle className="w-4 h-4" />
@@ -198,12 +233,34 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, isFocused, 
                                 </Button>
                             )}
 
-                            {(document.status === DocumentStatusEnum.REQUESTED || document.status === DocumentStatusEnum.NEEDS_REVISION) && onUpload && (
-                                <Button size="sm" onClick={() => onUpload(document)} className="gap-2">
-                                    <Upload className="w-4 h-4" />
-                                    {document.status === DocumentStatusEnum.NEEDS_REVISION ? t('reupload') : t('upload')}
-                                </Button>
-                            )}
+                            {/* Upload button logic based on flow and status */}
+                            {(() => {
+                                // For REQUEST flow: show Upload for REQUESTED, NEEDS_REVISION
+                                if (document.flow !== DocumentFlowEnum.UPLOAD) {
+                                    if ((document.status === DocumentStatusEnum.REQUESTED || document.status === DocumentStatusEnum.NEEDS_REVISION) && onUpload) {
+                                        return (
+                                            <Button size="sm" onClick={() => onUpload(document)} className="gap-2">
+                                                <Upload className="w-4 h-4" />
+                                                {document.status === DocumentStatusEnum.NEEDS_REVISION ? t('reupload') : t('upload')}
+                                            </Button>
+                                        );
+                                    }
+                                    return null;
+                                }
+
+                                // For UPLOAD flow: show Upload/Update for DRAFT status
+                                if (document.status === DocumentStatusEnum.DRAFT && onUpload) {
+                                    const hasFile = document.versions.length > 0;
+                                    return (
+                                        <Button size="sm" onClick={() => onUpload(document)} className="gap-2">
+                                            <Upload className="w-4 h-4" />
+                                            {hasFile ? t('actions.updateFile', 'Update File') : t('upload')}
+                                        </Button>
+                                    );
+                                }
+
+                                return null;
+                            })()}
                         </div>
                     </div >
                 </div >

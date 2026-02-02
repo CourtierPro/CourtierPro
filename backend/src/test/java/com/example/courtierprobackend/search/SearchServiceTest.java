@@ -1,7 +1,7 @@
 package com.example.courtierprobackend.search;
 
-import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
+import com.example.courtierprobackend.documents.datalayer.Document;
+import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
 import com.example.courtierprobackend.search.dto.SearchResultDTO;
@@ -33,7 +33,7 @@ class SearchServiceTest {
     @Mock
     private TransactionRepository transactionRepository;
     @Mock
-    private DocumentRequestRepository documentRequestRepository;
+    private DocumentRepository documentRequestRepository;
     @Mock
     private UserAccountRepository userAccountRepository;
     @Mock
@@ -153,7 +153,7 @@ class SearchServiceTest {
     void search_TextQuery_FindsDocumentsByTitle() {
         String query = "Promise";
         Transaction transaction = createTestTransaction(transactionId, brokerId, userId);
-        DocumentRequest document = createTestDocument(transactionId, "Promise to Purchase");
+        Document document = createTestDocument(transactionId, "Promise to Purchase");
         
         when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
         when(transactionRepository.searchTransactions(userId, query)).thenReturn(List.of());
@@ -203,14 +203,14 @@ class SearchServiceTest {
                 .build();
     }
 
-    private DocumentRequest createTestDocument(UUID txId, String customTitle) {
+    private Document createTestDocument(UUID txId, String customTitle) {
         TransactionRef txRef = TransactionRef.builder()
                 .transactionId(txId)
                 .clientId(userId)
                 .build();
         
-        return DocumentRequest.builder()
-                .requestId(UUID.randomUUID())
+        return Document.builder()
+                .documentId(UUID.randomUUID())
                 .transactionRef(txRef)
                 .docType(DocumentTypeEnum.PROMISE_TO_PURCHASE)
                 .customTitle(customTitle)
@@ -285,7 +285,7 @@ class SearchServiceTest {
     @Test
     void searchDocumentById_WhenNotRelated_ReturnsEmpty() {
         UUID docId = UUID.randomUUID();
-        DocumentRequest doc = createTestDocument(transactionId, "Doc");
+        Document doc = createTestDocument(transactionId, "Doc");
         
         // Fix: Ensure the document belongs to a different client so isClient check fails
         TransactionRef originalRef = doc.getTransactionRef();
@@ -299,7 +299,7 @@ class SearchServiceTest {
         // Transaction exists but user is neither client nor broker
         Transaction tx = createTestTransaction(transactionId, UUID.randomUUID(), UUID.randomUUID());
         
-        when(documentRequestRepository.findByRequestId(docId)).thenReturn(Optional.of(doc));
+        when(documentRequestRepository.findByDocumentId(docId)).thenReturn(Optional.of(doc));
         // Strict stubbing complains if we don't stub the call made with docId (searchById -> searchTransactionById -> findByTransactionId(docId))
         lenient().when(transactionRepository.findByTransactionId(docId)).thenReturn(Optional.empty());
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));

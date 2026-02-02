@@ -1,7 +1,7 @@
 package com.example.courtierprobackend.dashboard.presentationlayer;
 
-import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
+import com.example.courtierprobackend.documents.datalayer.Document;
+import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
@@ -48,7 +48,7 @@ class DashboardControllerTest {
         @Mock
         private AdminDeletionAuditRepository adminDeletionAuditRepository;
         @Mock
-        private DocumentRequestRepository documentRequestRepository;
+        private DocumentRepository documentRequestRepository;
         @Mock
         private PropertyOfferRepository propertyOfferRepository;
         @Mock
@@ -208,8 +208,8 @@ class DashboardControllerTest {
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
 
-        DocumentRequest doc1 = DocumentRequest.builder()
-                .requestId(UUID.randomUUID())
+        Document doc1 = Document.builder()
+                .documentId(UUID.randomUUID())
                 .transactionRef(TransactionRef.builder()
                         .transactionId(txId)
                         .clientId(clientId)
@@ -217,8 +217,8 @@ class DashboardControllerTest {
                         .build())
                 .status(DocumentStatusEnum.SUBMITTED)
                 .build();
-        DocumentRequest doc2 = DocumentRequest.builder()
-                .requestId(UUID.randomUUID())
+        Document doc2 = Document.builder()
+                .documentId(UUID.randomUUID())
                 .transactionRef(TransactionRef.builder()
                         .transactionId(txId)
                         .clientId(clientId)
@@ -441,8 +441,8 @@ class DashboardControllerTest {
         UserAccount client = new UserAccount("auth0|456", "client@test.com", "Jane", "Smith", UserRole.CLIENT, "en");
         when(userRepository.findById(clientId)).thenReturn(Optional.of(client));
 
-        DocumentRequest submittedDoc = DocumentRequest.builder()
-                .requestId(UUID.randomUUID())
+        Document submittedDoc = Document.builder()
+                .documentId(UUID.randomUUID())
                 .transactionRef(TransactionRef.builder()
                         .transactionId(txId)
                         .clientId(clientId)
@@ -478,8 +478,8 @@ class DashboardControllerTest {
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
 
-        DocumentRequest requestedDoc = DocumentRequest.builder()
-                .requestId(UUID.randomUUID())
+        Document requestedDoc = Document.builder()
+                .documentId(UUID.randomUUID())
                 .transactionRef(TransactionRef.builder()
                         .transactionId(txId)
                         .clientId(clientId)
@@ -487,8 +487,8 @@ class DashboardControllerTest {
                         .build())
                 .status(DocumentStatusEnum.REQUESTED)
                 .build();
-        DocumentRequest approvedDoc = DocumentRequest.builder()
-                .requestId(UUID.randomUUID())
+        Document approvedDoc = Document.builder()
+                .documentId(UUID.randomUUID())
                 .transactionRef(TransactionRef.builder()
                         .transactionId(txId)
                         .clientId(clientId)
@@ -525,8 +525,8 @@ class DashboardControllerTest {
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(activeTx, closedTx));
 
-        DocumentRequest closedTxDoc = DocumentRequest.builder()
-                .requestId(UUID.randomUUID())
+        Document closedTxDoc = Document.builder()
+                .documentId(UUID.randomUUID())
                 .transactionRef(TransactionRef.builder()
                         .transactionId(closedTxId)
                         .clientId(clientId)
@@ -1353,13 +1353,13 @@ class DashboardControllerTest {
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
 
-        DocumentRequest docWithNullRef = DocumentRequest.builder()
-                .requestId(UUID.randomUUID())
+        Document docWithNullRef = Document.builder()
+                .documentId(UUID.randomUUID())
                 .transactionRef(null)
                 .status(DocumentStatusEnum.SUBMITTED)
                 .build();
-        DocumentRequest validDoc = DocumentRequest.builder()
-                .requestId(UUID.randomUUID())
+        Document validDoc = Document.builder()
+                .documentId(UUID.randomUUID())
                 .transactionRef(TransactionRef.builder()
                         .transactionId(txId)
                         .clientId(clientId)
@@ -1397,8 +1397,8 @@ class DashboardControllerTest {
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
 
-        DocumentRequest doc = DocumentRequest.builder()
-                .requestId(UUID.randomUUID())
+        Document doc = Document.builder()
+                .documentId(UUID.randomUUID())
                 .transactionRef(TransactionRef.builder()
                         .transactionId(txId)
                         .clientId(clientId)
@@ -1436,8 +1436,8 @@ class DashboardControllerTest {
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
         when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(txId)).thenReturn(List.of());
 
-        DocumentRequest docWithNullRef = DocumentRequest.builder()
-                .requestId(UUID.randomUUID())
+        Document docWithNullRef = Document.builder()
+                .documentId(UUID.randomUUID())
                 .transactionRef(null)
                 .status(DocumentStatusEnum.SUBMITTED)
                 .build();
@@ -1748,8 +1748,8 @@ class DashboardControllerTest {
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
 
-        DocumentRequest doc = DocumentRequest.builder()
-                .requestId(UUID.randomUUID())
+        Document doc = Document.builder()
+                .documentId(UUID.randomUUID())
                 .docType(DocumentTypeEnum.BANK_STATEMENT)
                 .transactionRef(TransactionRef.builder()
                         .transactionId(txId)
