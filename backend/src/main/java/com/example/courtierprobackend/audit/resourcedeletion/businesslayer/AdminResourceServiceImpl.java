@@ -59,18 +59,12 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                 .map(t -> {
                     String clientEmail = t.getClientId() != null
                             ? userAccountRepository.findById(t.getClientId())
-                                    .map(u -> String.format("%s %s (%s)", 
-                                            u.getFirstName() != null ? u.getFirstName() : "", 
-                                            u.getLastName() != null ? u.getLastName() : "", 
-                                            u.getEmail()).trim())
+                                    .map(this::formatUserLabel)
                                     .orElse(null)
                             : null;
                     String brokerEmail = t.getBrokerId() != null
                             ? userAccountRepository.findById(t.getBrokerId())
-                                    .map(u -> String.format("%s %s (%s)", 
-                                            u.getFirstName() != null ? u.getFirstName() : "", 
-                                            u.getLastName() != null ? u.getLastName() : "", 
-                                            u.getEmail()).trim())
+                                    .map(this::formatUserLabel)
                                     .orElse(null)
                             : null;
                     String address = t.getPropertyAddress() != null
@@ -533,6 +527,17 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         } catch (JsonProcessingException e) {
             AdminResourceServiceImpl.log.error("Failed to serialize cascaded operations", e);
         }
+    }
+
+    private String formatUserLabel(com.example.courtierprobackend.user.dataaccesslayer.UserAccount u) {
+        String name = String.format("%s %s",
+                u.getFirstName() != null ? u.getFirstName() : "",
+                u.getLastName() != null ? u.getLastName() : "").trim();
+        
+        if (name.isEmpty()) {
+            return u.getEmail();
+        }
+        return String.format("%s (%s)", name, u.getEmail());
     }
 
     private String formatEnum(Enum<?> e) {

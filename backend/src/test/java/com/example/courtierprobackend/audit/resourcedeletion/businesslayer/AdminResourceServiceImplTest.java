@@ -930,8 +930,8 @@ class AdminResourceServiceImplTest {
                                 AdminDeletionAuditLog.ResourceType.TRANSACTION, false);
 
                 assertThat(result.getItems()).hasSize(1);
-                // Expecting " (onlyemail@test.com)" -> trimmed to "(onlyemail@test.com)"
-                assertThat(result.getItems().get(0).getClientEmail()).isEqualTo("(onlyemail@test.com)");
+                // Expecting "onlyemail@test.com" as names are missing
+                assertThat(result.getItems().get(0).getClientEmail()).isEqualTo("onlyemail@test.com");
         }
 
         @Test
