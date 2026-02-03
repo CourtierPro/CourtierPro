@@ -59,11 +59,19 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                 .map(t -> {
                     String clientEmail = t.getClientId() != null
                             ? userAccountRepository.findById(t.getClientId())
-                                    .map(u -> u.getEmail()).orElse(null)
+                                    .map(u -> String.format("%s %s (%s)", 
+                                            u.getFirstName() != null ? u.getFirstName() : "", 
+                                            u.getLastName() != null ? u.getLastName() : "", 
+                                            u.getEmail()).trim())
+                                    .orElse(null)
                             : null;
                     String brokerEmail = t.getBrokerId() != null
                             ? userAccountRepository.findById(t.getBrokerId())
-                                    .map(u -> u.getEmail()).orElse(null)
+                                    .map(u -> String.format("%s %s (%s)", 
+                                            u.getFirstName() != null ? u.getFirstName() : "", 
+                                            u.getLastName() != null ? u.getLastName() : "", 
+                                            u.getEmail()).trim())
+                                    .orElse(null)
                             : null;
                     String address = t.getPropertyAddress() != null
                             ? t.getPropertyAddress().getStreet() + ", " + t.getPropertyAddress().getCity()
@@ -80,8 +88,8 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                             .clientEmail(clientEmail)
                             .brokerId(t.getBrokerId())
                             .brokerEmail(brokerEmail)
-                            .status(t.getStatus() != null ? t.getStatus().name() : null)
-                            .side(t.getSide() != null ? t.getSide().name() : null)
+                            .status(t.getStatus() != null ? formatEnum(t.getStatus()) : null)
+                            .side(t.getSide() != null ? formatEnum(t.getSide()) : null)
                             .address(address)
                             .build();
                 })
@@ -116,7 +124,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                             .deletedBy(d.getDeletedBy())
                             .isDeleted(d.getDeletedAt() != null)
                             .transactionId(transactionId)
-                            .docType(d.getDocType() != null ? d.getDocType().name() : d.getCustomTitle())
+                            .docType(d.getDocType() != null ? formatEnum(d.getDocType()) : d.getCustomTitle())
                             .submittedDocCount(d.getVersions() != null ? d.getVersions().size() : 0)
                             .build();
                 })
@@ -152,7 +160,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
             linked.add(DeletionPreviewResponse.LinkedResource.builder()
                     .type("TIMELINE_ENTRY")
                     .id(null)
-                    .summary(entry.getType() != null ? entry.getType().name() : "Unknown Timeline Entry")
+                    .summary(entry.getType() != null ? formatEnum(entry.getType()) : "Unknown Timeline Entry")
                     .build());
         }
 
@@ -458,6 +466,9 @@ public class AdminResourceServiceImpl implements AdminResourceService {
     // Helper methods
 
     private String buildTransactionSummary(Transaction t) {
+        if (t.getSide() == com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE && t.getPropertyAddress() == null) {
+            return "No property selected";
+        }
         return t.getPropertyAddress() != null
                 ? t.getPropertyAddress().getStreet() + ", " + t.getPropertyAddress().getCity()
                 : "No address";
@@ -465,8 +476,8 @@ public class AdminResourceServiceImpl implements AdminResourceService {
 
     private String buildDocumentSummary(Document d) {
         String title = d.getCustomTitle() != null ? d.getCustomTitle()
-                : (d.getDocType() != null ? d.getDocType().name() : "Unknown");
-        return String.format("%s (%s)", title, d.getStatus() != null ? d.getStatus().name() : "UNKNOWN");
+                : (d.getDocType() != null ? formatEnum(d.getDocType()) : "Untitled Document");
+        return String.format("%s (%s)", title, d.getStatus() != null ? formatEnum(d.getStatus()) : "Unknown");
     }
 
     private String buildTransactionSnapshot(Transaction t) {
@@ -522,5 +533,23 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         } catch (JsonProcessingException e) {
             AdminResourceServiceImpl.log.error("Failed to serialize cascaded operations", e);
         }
+    }
+
+    private String formatEnum(Enum<?> e) {
+        if (e == null) return null;
+        String s = e.name().replace('_', ' ').toLowerCase(java.util.Locale.ROOT);
+        StringBuilder sb = new StringBuilder();
+        boolean nextTitleCase = true;
+
+        for (char c : s.toCharArray()) {
+            if (Character.isSpaceChar(c)) {
+                nextTitleCase = true;
+            } else if (nextTitleCase) {
+                c = Character.toTitleCase(c);
+                nextTitleCase = false;
+            }
+            sb.append(c);
+        }
+        return sb.toString();
     }
 }
