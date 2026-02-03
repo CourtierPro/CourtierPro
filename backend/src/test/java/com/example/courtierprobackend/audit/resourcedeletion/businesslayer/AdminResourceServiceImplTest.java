@@ -82,7 +82,15 @@ class AdminResourceServiceImplTest {
                 UUID txId = UUID.randomUUID();
                 Transaction tx = createTestTransaction(txId);
 
+                // Mock user repository response
+                com.example.courtierprobackend.user.dataaccesslayer.UserAccount client = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+                client.setEmail("client@test.com");
+                client.setFirstName("John");
+                client.setLastName("Doe");
+
                 when(transactionRepository.findAll()).thenReturn(List.of(tx));
+                when(userAccountRepository.findById(tx.getClientId())).thenReturn(Optional.of(client));
+                when(userAccountRepository.findById(tx.getBrokerId())).thenReturn(Optional.empty());
 
                 ResourceListResponse result = service.listResources(
                                 AdminDeletionAuditLog.ResourceType.TRANSACTION, false);
@@ -92,6 +100,11 @@ class AdminResourceServiceImplTest {
                 assertThat(result.getDeletedCount()).isEqualTo(0);
                 assertThat(result.getItems()).hasSize(1);
                 assertThat(result.getItems().get(0).getId()).isEqualTo(txId);
+                // Verify formatted enum
+                assertThat(result.getItems().get(0).getStatus()).isEqualTo("Active");
+                // Verify formatted user name
+                assertThat(result.getItems().get(0).getClientEmail()).isEqualTo("John Doe (client@test.com)");
+                assertThat(result.getItems().get(0).getBrokerEmail()).isNull();
         }
 
         @Test
@@ -117,6 +130,8 @@ class AdminResourceServiceImplTest {
                 assertThat(result.getResourceType()).isEqualTo("DOCUMENT_REQUEST");
                 assertThat(result.getTotalCount()).isEqualTo(1);
                 assertThat(result.getItems().get(0).getId()).isEqualTo(reqId);
+                // Verify formatted enum
+                assertThat(result.getItems().get(0).getDocType()).isEqualTo("Bank Statement");
         }
 
         @Test
@@ -155,6 +170,23 @@ class AdminResourceServiceImplTest {
                 assertThat(docItem.getSubmittedDocCount()).isEqualTo(0);
         }
 
+        @Test
+        void listResources_BuySideTransactionWithoutProperty_ReturnsCorrectSummary() {
+                UUID txId = UUID.randomUUID();
+                Transaction tx = createTestTransaction(txId);
+                tx.setSide(TransactionSide.BUY_SIDE);
+                tx.setPropertyAddress(null);
+
+                when(transactionRepository.findAll()).thenReturn(List.of(tx));
+
+                ResourceListResponse result = service.listResources(
+                                AdminDeletionAuditLog.ResourceType.TRANSACTION, false);
+
+                assertThat(result.getItems().get(0).getSummary()).isEqualTo("No property selected");
+                // Verify Side is also formatted
+                assertThat(result.getItems().get(0).getSide()).isEqualTo("Buy Side");
+        }
+
         // ========== previewDeletion Tests ==========
 
         @Test
@@ -179,6 +211,9 @@ class AdminResourceServiceImplTest {
                 assertThat(result.getResourceId()).isEqualTo(txId);
                 assertThat(result.getResourceType()).isEqualTo("TRANSACTION");
                 assertThat(result.getLinkedResources()).hasSizeGreaterThan(0);
+                // Verify formatted summaries in linked resources
+                assertThat(result.getLinkedResources())
+                        .anyMatch(r -> r.getSummary().contains("Bank Statement"));
                 assertThat(result.getS3FilesToDelete()).hasSize(1);
         }
 
@@ -211,6 +246,8 @@ class AdminResourceServiceImplTest {
                 assertThat(result.getResourceId()).isEqualTo(reqId);
                 assertThat(result.getResourceType()).isEqualTo("DOCUMENT_REQUEST");
                 assertThat(result.getLinkedResources()).hasSize(1);
+                // Verify formatted summary
+                assertThat(result.getResourceSummary()).contains("Bank Statement");
         }
 
         @Test
@@ -240,7 +277,7 @@ class AdminResourceServiceImplTest {
                                 AdminDeletionAuditLog.ResourceType.TRANSACTION, txId);
 
                 assertThat(result.getLinkedResources()).extracting("summary")
-                                .contains("Unknown Timeline Entry", "Unknown (UNKNOWN)", "Unknown file");
+                                .contains("Unknown Timeline Entry", "Untitled Document (Unknown)", "Unknown file");
         }
 
         // ========== deleteResource Tests ==========
@@ -836,11 +873,15 @@ class AdminResourceServiceImplTest {
                         new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
                 client.setId(clientId);
                 client.setEmail("client@test.com");
+                client.setFirstName("Alice");
+                client.setLastName("Client");
 
                 com.example.courtierprobackend.user.dataaccesslayer.UserAccount broker = 
                         new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
                 broker.setId(brokerId);
                 broker.setEmail("broker@test.com");
+                broker.setFirstName("Bob");
+                broker.setLastName("Broker");
 
                 when(transactionRepository.findAll()).thenReturn(List.of(tx));
                 when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
@@ -850,8 +891,8 @@ class AdminResourceServiceImplTest {
                                 AdminDeletionAuditLog.ResourceType.TRANSACTION, false);
 
                 assertThat(result.getItems()).hasSize(1);
-                assertThat(result.getItems().get(0).getClientEmail()).isEqualTo("client@test.com");
-                assertThat(result.getItems().get(0).getBrokerEmail()).isEqualTo("broker@test.com");
+                assertThat(result.getItems().get(0).getClientEmail()).isEqualTo("Alice Client (client@test.com)");
+                assertThat(result.getItems().get(0).getBrokerEmail()).isEqualTo("Bob Broker (broker@test.com)");
         }
 
         @Test
@@ -867,6 +908,30 @@ class AdminResourceServiceImplTest {
                                 AdminDeletionAuditLog.ResourceType.TRANSACTION, false);
 
                 assertThat(result.getItems().get(0).getSide()).isNull();
+        }
+
+        @Test
+        void listTransactions_WithUserWithoutName_FormatsEmailOnly() {
+                UUID txId = UUID.randomUUID();
+                Transaction tx = createTestTransaction(txId);
+                UUID clientId = UUID.randomUUID();
+                tx.setClientId(clientId);
+
+                com.example.courtierprobackend.user.dataaccesslayer.UserAccount client = 
+                        new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+                client.setId(clientId);
+                client.setEmail("onlyemail@test.com");
+                // FirstName and LastName are null
+
+                when(transactionRepository.findAll()).thenReturn(List.of(tx));
+                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+
+                ResourceListResponse result = service.listResources(
+                                AdminDeletionAuditLog.ResourceType.TRANSACTION, false);
+
+                assertThat(result.getItems()).hasSize(1);
+                // Expecting "onlyemail@test.com" as names are missing
+                assertThat(result.getItems().get(0).getClientEmail()).isEqualTo("onlyemail@test.com");
         }
 
         @Test
