@@ -5,7 +5,7 @@ skinparam state {
   ArrowColor Black
 }
 
-title State Transition Diagram: DocumentRequest Status
+title State Transition Diagram: Document Status
 
 [*] --> REQUESTED : Broker creates\ndocument request
 
@@ -56,17 +56,17 @@ note right of REQUESTED
   - Notify client of request
   
   **Invariants:**
-  - submittedDocuments is empty
+  - versions is empty
 end note
 
 note right of SUBMITTED
   **Entry Actions:**
-  - Create SubmittedDocument
+  - Create DocumentVersion
   - Upload file to Cloudflare R2
   - Notify broker
   
   **Invariants:**
-  - At least one SubmittedDocument exists
+  - At least one DocumentVersion exists
 end note
 
 note right of APPROVED

@@ -33,7 +33,7 @@ node "DigitalOcean Droplet\n[OS: Ubuntu Linux]" as DO_VM {
 ' ==========================
 node "External Services" as Ext {
   node "Auth0\n(Identity & Auth)" as Auth0
-  node "Amazon S3\n(Document Storage)" as S3
+  node "Cloudflare R2\n(Document Storage)" as R2
   node "Amazon SES\n(Email)" as SES
 }
 
@@ -51,7 +51,7 @@ Backend --> DB : JDBC/R2DBC (Internal Docker Network)
 ' External
 Browser --> Auth0 : Redirects for Login
 Backend --> Auth0 : Validates Tokens (OIDC)
-Backend --> S3 : Stores Documents
+Backend --> R2 : Stores Documents (S3-compatible)
 Backend --> SES : Sends Emails
 
 @enduml

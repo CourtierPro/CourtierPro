@@ -205,15 +205,15 @@ rectangle "CourtierPro Domain" as Domain {
   '======================
   package "Document Management" as DocumentBC <<Rectangle>> #LightGreen {
 
-    AGGREGATE_ROOT(DocumentRequest) #lightgreen {
-      requestId: UUID
+    AGGREGATE_ROOT(Document) #lightgreen {
+      documentId: UUID
       transactionRef: TransactionRef
       side: TransactionSideEnum
       docType: DocumentTypeEnum
       customTitle: String
       status: DocumentStatusEnum
       expectedFrom: DocumentPartyEnum
-      submittedDocuments: List<SubmittedDocument>
+      versions: List<DocumentVersion>
       brokerNotes: String
       lastUpdatedAt: DateTime
       visibleToClient: Boolean
@@ -225,10 +225,11 @@ rectangle "CourtierPro Domain" as Domain {
       side: TransactionSideEnum
     }
 
-    VALUE_OBJECT(StorageObjectRef) #Bisque {
+    VALUE_OBJECT(StorageObject) #Bisque {
       s3Key: String
       fileName: String
       mimeType: String
+      sizeBytes: Long
     }
 
     ENUM(DocumentPartyEnum) {
@@ -247,11 +248,11 @@ rectangle "CourtierPro Domain" as Domain {
       externalName: String?
     }
 
-    ENTITY(SubmittedDocument) #lightpink {
-      documentId: UUID
+    ENTITY(DocumentVersion) #lightpink {
+      versionId: UUID
       uploadedAt: DateTime
       uploadedBy: UploadedByRef
-      storageObject: StorageObjectRef
+      storageObject: StorageObject
     }
 
     ENUM(DocumentTypeEnum) {
@@ -279,20 +280,20 @@ rectangle "CourtierPro Domain" as Domain {
     }
 
     ' Intra-context links
-    DocumentRequest "1" *-- "1" TransactionRef
-    DocumentRequest "1" *-- "0..*" SubmittedDocument
-    SubmittedDocument "1" *-- "1" StorageObjectRef
+    Document "1" *-- "1" TransactionRef
+    Document "1" *-- "0..*" DocumentVersion
+    DocumentVersion "1" *-- "1" StorageObject
 
-    DocumentRequest --> DocumentTypeEnum
-    DocumentRequest --> DocumentStatusEnum
-    DocumentRequest --> DocumentPartyEnum
+    Document --> DocumentTypeEnum
+    Document --> DocumentStatusEnum
+    Document --> DocumentPartyEnum
 
-    SubmittedDocument --> DocumentPartyEnum
+    DocumentVersion --> DocumentPartyEnum
 
-    note bottom of DocumentRequest
+    note bottom of Document
       Invariants:
-      • Each DocumentRequest belongs to exactly one Transaction.
-      • Status transitions: REQUESTED→SUBMITTED→APPROVED/NEEDS_REVISION/REJECTED
+      • Each Document belongs to exactly one Transaction.
+      • Status transitions: DRAFT→REQUESTED→SUBMITTED→APPROVED/NEEDS_REVISION
       • Only visible documents shown to Client when visibleToClient=true.
     end note
   }
@@ -426,14 +427,14 @@ rectangle "CourtierPro Domain" as Domain {
   TransactionBC.PinnedTransaction --> UserBC.UserAccount : "Broker"
 
   ' DOCUMENT MANAGEMENT ↔ TRANSACTION MANAGEMENT
-  DocumentBC.DocumentRequest --> TransactionBC.Transaction
+  DocumentBC.Document --> TransactionBC.Transaction
 
   ' APPOINTMENT MANAGEMENT ↔ TRANSACTION MANAGEMENT
   AppointmentBC.Appointment --> TransactionBC.Transaction
   AppointmentBC.Appointment --> UserBC.UserAccount : "Participants"
 
   ' NOTIFICATIONS ↔ DOCUMENT / TRANSACTION / APPOINTMENT
-  NotificationsBC.Notification ..> DocumentBC.DocumentRequest : "Refers to"
+  NotificationsBC.Notification ..> DocumentBC.Document : "Refers to"
   NotificationsBC.Notification ..> TransactionBC.Transaction : "Refers to"
   NotificationsBC.Notification ..> AppointmentBC.Appointment : "Refers to"
   NotificationsBC.Notification --> UserBC.UserAccount : "Recipient"

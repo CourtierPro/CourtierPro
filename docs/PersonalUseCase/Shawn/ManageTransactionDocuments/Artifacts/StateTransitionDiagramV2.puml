@@ -5,7 +5,7 @@ skinparam state {
   ArrowColor Black
 }
 
-title State Transition Diagram: DocumentRequest Status
+title State Transition Diagram: Document Status
 
 [*] --> REQUESTED : Broker creates\ndocument request
 

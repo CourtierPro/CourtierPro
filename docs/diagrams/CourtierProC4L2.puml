@@ -18,7 +18,7 @@ AddElementTag("webApp", $bgColor="#e34f26", $fontColor="white", $legendText="Web
 
 AddRelTag("purple-line", $lineColor="purple", $legendText="API Calls (REST)")
 AddRelTag("blue-line", $lineColor="blue", $legendText="Auth / Sessions")
-AddRelTag("green-line", $lineColor="green", $legendText="Documents (S3)")
+AddRelTag("green-line", $lineColor="green", $legendText="Documents (R2)")
 AddRelTag("orange-line", $lineColor="orange", $legendText="Appointments (domain data)")
 AddRelTag("red-line", $lineColor="red", $legendText="Analytics (domain data)")
 
@@ -43,7 +43,7 @@ Person(admin, "Admin", "System administration and configuration (users, roles, t
 
 together {
 System_Ext(auth0, "Auth0", "Identity provider for authentication and OIDC tokens.")
-System_Ext(s3, "AWS S3", "Object storage for uploaded documents.")
+System_Ext(r2, "Cloudflare R2", "S3-compatible object storage for uploaded documents.")
 System_Ext(ses, "AWS SES", "Transactional emails for notifications.")
 }
 
@@ -61,7 +61,7 @@ Rel(backend_api, main_db, "Reads/Writes", "JDBC/R2DBC")
 
 Rel(backend_api, auth0, "OIDC", "HTTPS", $tags="blue-line")
 Rel(web_spa, auth0, "Login redirect", "HTTPS", $tags="blue-line")
-Rel(backend_api, s3, "S3 pre-signed ops", "HTTPS", $tags="green-line")
+Rel(backend_api, r2, "Pre-signed URLs (S3-compatible)", "HTTPS", $tags="green-line")
 Rel(backend_api, ses, "Transactional email", "HTTPS")
 
 SHOW_LEGEND()

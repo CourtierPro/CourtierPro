@@ -4,43 +4,43 @@
     title Business Layer
 
     package "Business Layer" #LightGreen {
-    interface DocumentRequestService {
-        + getDocumentsForTransaction(transactionId, userId): List<DocumentRequestResponseDTO>
-        + getDocumentRequest(requestId, userId): DocumentRequestResponseDTO
-        + createDocumentRequest(transactionId, dto): DocumentRequestResponseDTO
-        + updateDocumentRequest(requestId, dto): DocumentRequestResponseDTO
-        + deleteDocumentRequest(requestId): void
-        + submitDocument(transactionId, requestId, file, userId, type): DocumentRequestResponseDTO
-        + getAllDocumentsForUser(userId): List<DocumentRequestResponseDTO>
-        + getDocumentDownloadUrl(requestId, docId, userId): String
-        + reviewDocument(transactionId, requestId, dto, brokerId): DocumentRequestResponseDTO
+    interface DocumentService {
+        + getDocumentsForTransaction(transactionId, userId): List<DocumentResponseDTO>
+        + getDocument(documentId, userId): DocumentResponseDTO
+        + createDocument(transactionId, dto): DocumentResponseDTO
+        + updateDocument(documentId, dto): DocumentResponseDTO
+        + deleteDocument(documentId): void
+        + submitDocument(transactionId, documentId, file, userId, type): DocumentResponseDTO
+        + getAllDocumentsForUser(userId): List<DocumentResponseDTO>
+        + getDocumentDownloadUrl(documentId, versionId, userId): String
+        + reviewDocument(transactionId, documentId, dto, brokerId): DocumentResponseDTO
     }
     
-    class DocumentRequestServiceImpl {
-        - documentRequestRepository: DocumentRequestRepository
+    class DocumentServiceImpl {
+        - documentRepository: DocumentRepository
         - transactionRepository: TransactionRepository
         - userAccountRepository: UserAccountRepository
         - notificationService: NotificationService
         - s3StorageService: S3StorageService
         --
-        + getDocumentsForTransaction(transactionId, userId): List<DocumentRequestResponseDTO>
-        + createDocumentRequest(transactionId, dto): DocumentRequestResponseDTO
-        + submitDocument(transactionId, requestId, file, userId, type): DocumentRequestResponseDTO
-        + reviewDocument(transactionId, requestId, dto, brokerId): DocumentRequestResponseDTO
+        + getDocumentsForTransaction(transactionId, userId): List<DocumentResponseDTO>
+        + createDocument(transactionId, dto): DocumentResponseDTO
+        + submitDocument(transactionId, documentId, file, userId, type): DocumentResponseDTO
+        + reviewDocument(transactionId, documentId, dto, brokerId): DocumentResponseDTO
         - validateFile(file): void
-        - validateCanSubmit(request): void
-        - validateCanReview(request): void
-        - mapToDTO(entity): DocumentRequestResponseDTO
+        - validateCanSubmit(document): void
+        - validateCanReview(document): void
+        - mapToDTO(entity): DocumentResponseDTO
     }
     
     interface NotificationService {
-        + sendDocumentRequestNotification(request): void
-        + sendDocumentSubmittedNotification(request): void
-        + sendDocumentReviewedNotification(request, decision): void
+        + sendDocumentRequestNotification(document): void
+        + sendDocumentSubmittedNotification(document): void
+        + sendDocumentReviewedNotification(document, decision): void
     }
     
     ' Intra-package relationships
-    DocumentRequestServiceImpl ..|> DocumentRequestService : implements
+    DocumentServiceImpl ..|> DocumentService : implements
     }
 
     @enduml

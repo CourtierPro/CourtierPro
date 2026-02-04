@@ -10,46 +10,46 @@ PRESENTATION → BUSINESS
 --------------------------------------------------------------------------------
 | From                        | To                      | Relationship Type |
 |-----------------------------|-------------------------|-------------------|
-| DocumentRequestController   | DocumentRequestService  | uses (-->)        |
-| GlobalDocumentController    | DocumentRequestService  | uses (-->)        |
+| DocumentController        | DocumentService         | uses (-->)        |
+| GlobalDocumentController    | DocumentService         | uses (-->)        |
 
 --------------------------------------------------------------------------------
 BUSINESS → DATA
 --------------------------------------------------------------------------------
 | From                        | To                        | Relationship Type |
 |-----------------------------|---------------------------|-------------------|
-| DocumentRequestServiceImpl  | DocumentRequestRepository | uses (-->)        |
-| DocumentRequestServiceImpl  | TransactionRepository     | uses (-->)        |
-| DocumentRequestServiceImpl  | DocumentRequest           | manages (..>)     |
+| DocumentServiceImpl         | DocumentRepository        | uses (-->)        |
+| DocumentServiceImpl         | TransactionRepository     | uses (-->)        |
+| DocumentServiceImpl         | Document                  | manages (..>)     |
 
 --------------------------------------------------------------------------------
 BUSINESS → INFRASTRUCTURE
 --------------------------------------------------------------------------------
 | From                        | To                | Relationship Type |
 |-----------------------------|-------------------|-------------------|
-| DocumentRequestServiceImpl  | S3StorageService  | uses (-->)        |
+| DocumentServiceImpl         | S3StorageService          | uses (-->)        |
 
 --------------------------------------------------------------------------------
 BUSINESS → BUSINESS (Internal)
 --------------------------------------------------------------------------------
 | From                        | To                  | Relationship Type |
 |-----------------------------|---------------------|-------------------|
-| DocumentRequestServiceImpl  | NotificationService | uses (-->)        |
+| DocumentServiceImpl         | NotificationService       | uses (-->)        |
 
 --------------------------------------------------------------------------------
 BUSINESS → PRESENTATION (Return Types)
 --------------------------------------------------------------------------------
 | From                        | To                        | Relationship Type |
 |-----------------------------|---------------------------|-------------------|
-| DocumentRequestServiceImpl  | DocumentRequestResponseDTO| creates (..>)     |
+| DocumentServiceImpl         | DocumentResponseDTO       | creates (..>)     |
 
 --------------------------------------------------------------------------------
 DATA → ENUMS
 --------------------------------------------------------------------------------
 | From              | To                  | Relationship Type |
 |-------------------|---------------------|-------------------|
-| DocumentRequest   | DocumentTypeEnum    | uses (-->)        |
-| DocumentRequest   | DocumentStatusEnum  | uses (-->)        |
-| DocumentRequest   | DocumentPartyEnum   | uses (-->)        |
+| Document          | DocumentTypeEnum          | uses (-->)        |
+| Document          | DocumentStatusEnum        | uses (-->)        |
+| Document          | DocumentPartyEnum         | uses (-->)        |
 
 ================================================================================

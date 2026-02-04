@@ -40,7 +40,7 @@ System_Boundary(cp, "CourtierPro System") {
     Component(AdminUserRoutes, "AdminUserRoutes", "Route Group", "Routes /api/admin/users/** to backend_api")
     Component(ClientRoutes, "ClientRoutes", "Route Group", "Routes /api/v1/clients/** to backend_api")
     Component(TransactionRoutes, "TransactionRoutes", "Route Group", "Routes /api/v1/transactions/** to backend_api")
-    Component(DocumentRoutes, "DocumentRoutes", "Route Group", "Routes /api/v1/document-requests/** and /api/v1/documents/**")
+    Component(DocumentRoutes, "DocumentRoutes", "Route Group", "Routes /api/v1/transactions/{id}/documents/** and /documents/**")
     Component(AppointmentRoutes, "AppointmentRoutes", "Route Group", "Routes /api/v1/appointments/** to backend_api")
     Component(DashboardRoutes, "DashboardRoutes", "Route Group", "Routes /api/v1/dashboard/** to backend_api")
     Component(AnalyticsRoutes, "AnalyticsRoutes", "Route Group", "Routes /api/v1/analytics/** (Future)")
@@ -65,7 +65,7 @@ Rel(web_spa, UserMeRoute, "Calls /api/me", "JSON/REST/HTTPS", $tags="purple-line
 Rel(web_spa, AdminUserRoutes, "Calls /api/admin/users/**", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, ClientRoutes, "Calls /api/v1/clients/**", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, TransactionRoutes, "Calls /api/v1/transactions/**", "JSON/REST/HTTPS", $tags="purple-line")
-Rel(web_spa, DocumentRoutes, "Calls /api/v1/document-requests/**", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, DocumentRoutes, "Calls /api/v1/transactions/{id}/documents/**", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, AppointmentRoutes, "Calls /api/v1/appointments/**", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, DashboardRoutes, "Calls /api/v1/dashboard/**", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, AnalyticsRoutes, "Calls /api/v1/analytics/**", "JSON/REST/HTTPS", $tags="purple-line")
@@ -88,7 +88,7 @@ Rel(HealthRoutes, FilterChain, "passes through")
 Rel(FilterChain, backend_api, "Forwards to", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(FilterChain, auth0, "Validates JWTs via JWKS", "HTTPS", $tags="blue-line")
 
-Component(GatewayRoutes, "Public Gateway Route Patterns", "Reference Component", "<b>UserMeRoute</b> – /api/me\n<b>AdminUserRoutes</b> – /api/admin/users/**\n<b>ClientRoutes</b> – /api/v1/clients/**\n<b>TransactionRoutes</b> – /api/v1/transactions/**\n<b>DocumentRoutes</b> – /api/v1/document-requests/**\n<b>DashboardRoutes</b> – /api/v1/dashboard/**\n<b>AnalyticsRoutes</b> – /api/v1/analytics/** (Future)\n<b>NotificationRoutes</b> – /api/v1/notifications/**\n<b>SearchRoutes</b> – /api/v1/search/**")
+Component(GatewayRoutes, "Public Gateway Route Patterns", "Reference Component", "<b>UserMeRoute</b> – /api/me\n<b>AdminUserRoutes</b> – /api/admin/users/**\n<b>ClientRoutes</b> – /api/v1/clients/**\n<b>TransactionRoutes</b> – /api/v1/transactions/**\n<b>DocumentRoutes</b> – /api/v1/transactions/{id}/documents/**\n<b>DashboardRoutes</b> – /api/v1/dashboard/**\n<b>AnalyticsRoutes</b> – /api/v1/analytics/** (Future)\n<b>NotificationRoutes</b> – /api/v1/notifications/**\n<b>SearchRoutes</b> – /api/v1/search/**"))
 
 SHOW_LEGEND()
 @enduml

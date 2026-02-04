@@ -4,11 +4,11 @@ skinparam classAttributeIconSize 0
 title Data Layer
 
 package "Data Layer" #LightYellow {
-  interface DocumentRequestRepository {
-    + findByRequestId(requestId): Optional<DocumentRequest>
-    + findByTransactionRefTransactionId(transactionId): List<DocumentRequest>
-    + findByTransactionRefClientId(clientId): List<DocumentRequest>
-    + findByStatus(status): List<DocumentRequest>
+  interface DocumentRepository {
+    + findByDocumentId(documentId): Optional<Document>
+    + findByTransactionRefTransactionId(transactionId): List<Document>
+    + findByTransactionRefClientId(clientId): List<Document>
+    + findByStatus(status): List<Document>
     + countByStatus(status): Long
   }
   
@@ -17,9 +17,9 @@ package "Data Layer" #LightYellow {
     + findByClientId(clientId): List<Transaction>
   }
   
-  class DocumentRequest <<Entity>> {
+  class Document <<Entity>> {
     - id: Long
-    - requestId: UUID
+    - documentId: UUID
     - transactionRef: TransactionRef
     - docType: DocumentTypeEnum
     - customTitle: String
@@ -28,7 +28,7 @@ package "Data Layer" #LightYellow {
     - relatedBuyerStage: BuyerStage
     - relatedSellerStage: SellerStage
     - stage: StageEnum
-    - submittedDocuments: List<SubmittedDocument>
+    - versions: List<DocumentVersion>
     - brokerNotes: String
     - visibleToClient: boolean
     - lastUpdatedAt: LocalDateTime
@@ -39,13 +39,13 @@ package "Data Layer" #LightYellow {
     + getVisibleToClient(): boolean
   }
   
-  class SubmittedDocument <<Entity>> {
+  class DocumentVersion <<Entity>> {
     - id: Long
-    - documentId: UUID
+    - versionId: UUID
     - uploadedAt: LocalDateTime
     - uploadedBy: UploadedBy
     - storageObject: StorageObject
-    - documentRequest: DocumentRequest
+    - document: Document
     - deletedAt: LocalDateTime
     - deletedBy: UUID
   }
@@ -69,11 +69,11 @@ package "Data Layer" #LightYellow {
   }
   
   ' Intra-package relationships
-  DocumentRequestRepository ..> DocumentRequest : persists
-  DocumentRequest "1" *-- "1" TransactionRef : contains
-  DocumentRequest "1" *-- "0..*" SubmittedDocument : contains
-  SubmittedDocument "1" *-- "1" StorageObject : contains
-  SubmittedDocument "1" *-- "1" UploadedBy : contains
+  DocumentRepository ..> Document : persists
+  Document "1" *-- "1" TransactionRef : contains
+  Document "1" *-- "0..*" DocumentVersion : contains
+  DocumentVersion "1" *-- "1" StorageObject : contains
+  DocumentVersion "1" *-- "1" UploadedBy : contains
 }
 
 @enduml

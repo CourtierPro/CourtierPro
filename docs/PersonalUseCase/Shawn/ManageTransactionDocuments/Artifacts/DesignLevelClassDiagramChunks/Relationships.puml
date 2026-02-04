@@ -6,25 +6,25 @@ hide members
 title Design Level Class Diagram: Relationships Overview
 
 package "Presentation Layer" #LightBlue {
-  class DocumentRequestController
+  class DocumentController
   class GlobalDocumentController
-  class DocumentRequestRequestDTO
-  class DocumentRequestResponseDTO
+  class DocumentRequestDTO
+  class DocumentResponseDTO
   class DocumentReviewRequestDTO
-  class SubmittedDocumentDTO
+  class DocumentVersionDTO
 }
 
 package "Business Layer" #LightGreen {
-  interface DocumentRequestService
-  class DocumentRequestServiceImpl
+  interface DocumentService
+  class DocumentServiceImpl
   interface NotificationService
 }
 
 package "Data Layer" #LightYellow {
-  interface DocumentRequestRepository
+  interface DocumentRepository
   interface TransactionRepository
-  class DocumentRequest <<Entity>>
-  class SubmittedDocument <<Entity>>
+  class Document <<Entity>>
+  class DocumentVersion <<Entity>>
   class TransactionRef <<Value Object>>
   class StorageObject <<Value Object>>
   class UploadedBy <<Value Object>>
@@ -44,24 +44,30 @@ package "Enums" #LightGray {
 ' ==========================================
 ' PRESENTATION LAYER - Internal
 ' ==========================================
-DocumentRequestController ..> DocumentRequestRequestDTO : receives
-DocumentRequestController ..> DocumentRequestResponseDTO : returns
-DocumentRequestController ..> DocumentReviewRequestDTO : receives
-DocumentRequestResponseDTO ..> SubmittedDocumentDTO : contains
+' ==========================================
+' PRESENTATION LAYER - Internal
+' ==========================================
+DocumentController ..> DocumentRequestDTO : receives
+DocumentController ..> DocumentResponseDTO : returns
+DocumentController ..> DocumentReviewRequestDTO : receives
+DocumentResponseDTO ..> DocumentVersionDTO : contains
 
 ' ==========================================
 ' BUSINESS LAYER - Internal
 ' ==========================================
-DocumentRequestServiceImpl ..|> DocumentRequestService : implements
+DocumentServiceImpl ..|> DocumentService : implements
 
 ' ==========================================
 ' DATA LAYER - Internal
 ' ==========================================
-DocumentRequestRepository ..> DocumentRequest : persists
-DocumentRequest "1" *-- "1" TransactionRef : contains
-DocumentRequest "1" *-- "0..*" SubmittedDocument : contains
-SubmittedDocument "1" *-- "1" StorageObject : contains
-SubmittedDocument "1" *-- "1" UploadedBy : contains
+' ==========================================
+' DATA LAYER - Internal
+' ==========================================
+DocumentRepository ..> Document : persists
+Document "1" *-- "1" TransactionRef : contains
+Document "1" *-- "0..*" DocumentVersion : contains
+DocumentVersion "1" *-- "1" StorageObject : contains
+DocumentVersion "1" *-- "1" UploadedBy : contains
 
 ' ==========================================
 ' INFRASTRUCTURE LAYER - Internal
@@ -71,36 +77,36 @@ S3StorageServiceImpl ..|> S3StorageService : implements
 ' ==========================================
 ' CROSS-PACKAGE: Presentation → Business
 ' ==========================================
-DocumentRequestController --> DocumentRequestService : uses
-GlobalDocumentController --> DocumentRequestService : uses
+DocumentController --> DocumentService : uses
+GlobalDocumentController --> DocumentService : uses
 
 ' ==========================================
 ' CROSS-PACKAGE: Business → Data
 ' ==========================================
-DocumentRequestServiceImpl --> DocumentRequestRepository : uses
-DocumentRequestServiceImpl --> TransactionRepository : uses
-DocumentRequestServiceImpl ..> DocumentRequest : manages
+DocumentServiceImpl --> DocumentRepository : uses
+DocumentServiceImpl --> TransactionRepository : uses
+DocumentServiceImpl ..> Document : manages
 
 ' ==========================================
 ' CROSS-PACKAGE: Business → Infrastructure
 ' ==========================================
-DocumentRequestServiceImpl --> S3StorageService : uses
+DocumentServiceImpl --> S3StorageService : uses
 
 ' ==========================================
 ' CROSS-PACKAGE: Business → Business
 ' ==========================================
-DocumentRequestServiceImpl --> NotificationService : uses
+DocumentServiceImpl --> NotificationService : uses
 
 ' ==========================================
 ' CROSS-PACKAGE: Business → Presentation
 ' ==========================================
-DocumentRequestServiceImpl ..> DocumentRequestResponseDTO : creates
+DocumentServiceImpl ..> DocumentResponseDTO : creates
 
 ' ==========================================
 ' CROSS-PACKAGE: Data → Enums
 ' ==========================================
-DocumentRequest --> DocumentTypeEnum
-DocumentRequest --> DocumentStatusEnum
-DocumentRequest --> DocumentPartyEnum
+Document --> DocumentTypeEnum
+Document --> DocumentStatusEnum
+Document --> DocumentPartyEnum
 
 @enduml

@@ -13,7 +13,7 @@ System(courtierPro, "CourtierPro", "Bilingual broker–client management and com
 
 ' ==== EXTERNAL SERVICES ====
 System_Ext(auth0, "Auth0", "Identity provider used for authentication and role-based access (Client / Broker / Admin).")
-System_Ext(amazonS3, "Amazon S3", "Secure storage for client-submitted documents, broker-provided files, and other transaction-related artifacts.")
+System_Ext(cloudflareR2, "Cloudflare R2", "S3-compatible object storage for client-submitted documents, broker-provided files, and other transaction-related artifacts.")
 System_Ext(amazonSES, "Amazon SES", "Email delivery service used for status updates, document decisions, and appointment confirmations/reminders.")
 
 ' ==== RELATIONSHIPS (USERS <-> COURTIERPRO) ====
@@ -23,7 +23,7 @@ admin --> courtierPro  : "Manages user access, configures system settings, maint
 
 ' ==== RELATIONSHIPS (COURTIERPRO <-> EXTERNAL SERVICES) ====
 courtierPro --> auth0     : "Delegates authentication and enforces role-based access"
-courtierPro --> amazonS3  : "Stores and retrieves transaction documents and supporting files"
+courtierPro --> cloudflareR2  : "Stores and retrieves transaction documents and supporting files"
 courtierPro --> amazonSES : "Sends transactional emails (stage updates, document approval results, appointment confirmations)"
 
 ' --- spacing tweaks ---
