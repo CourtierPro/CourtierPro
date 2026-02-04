@@ -31,8 +31,8 @@ package "Data Layer" #LightYellow {
 }
 
 package "Infrastructure Layer" #LightCoral {
-  interface S3StorageService
-  class S3StorageServiceImpl
+  interface ObjectStorageService
+  class ObjectStorageServiceImpl
 }
 
 package "Enums" #LightGray {
@@ -72,7 +72,7 @@ DocumentVersion "1" *-- "1" UploadedBy : contains
 ' ==========================================
 ' INFRASTRUCTURE LAYER - Internal
 ' ==========================================
-S3StorageServiceImpl ..|> S3StorageService : implements
+ObjectStorageServiceImpl ..|> ObjectStorageService : implements
 
 ' ==========================================
 ' CROSS-PACKAGE: Presentation → Business
@@ -90,7 +90,7 @@ DocumentServiceImpl ..> Document : manages
 ' ==========================================
 ' CROSS-PACKAGE: Business → Infrastructure
 ' ==========================================
-DocumentServiceImpl --> S3StorageService : uses
+DocumentServiceImpl --> ObjectStorageService : uses
 
 ' ==========================================
 ' CROSS-PACKAGE: Business → Business

@@ -10,7 +10,7 @@ import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEn
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject;
 import com.example.courtierprobackend.email.EmailService;
-import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import com.example.courtierprobackend.infrastructure.storage.ObjectStorageService;
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionServiceImpl;
 import com.example.courtierprobackend.transactions.datalayer.*;
@@ -91,7 +91,7 @@ class UnifiedDocumentsServiceUnitTest {
     private OfferRevisionRepository offerRevisionRepository;
 
     @Mock
-    private S3StorageService s3StorageService;
+    private ObjectStorageService objectStorageService;
 
     @InjectMocks
     private TransactionServiceImpl service;

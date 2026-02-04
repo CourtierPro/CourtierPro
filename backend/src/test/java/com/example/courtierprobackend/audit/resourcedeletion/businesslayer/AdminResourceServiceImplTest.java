@@ -13,7 +13,7 @@ import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEn
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
-import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import com.example.courtierprobackend.infrastructure.storage.ObjectStorageService;
 import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntry;
@@ -50,7 +50,7 @@ class AdminResourceServiceImplTest {
         @Mock
         private AdminDeletionAuditRepository auditRepository;
         @Mock
-        private S3StorageService s3StorageService;
+        private ObjectStorageService objectStorageService;
         @Mock
         private UserAccountRepository userAccountRepository;
         @Mock
@@ -69,7 +69,7 @@ class AdminResourceServiceImplTest {
                                 documentRequestRepository,
                                 timelineEntryRepository,
                                 auditRepository,
-                                s3StorageService,
+                                objectStorageService,
                                 objectMapper,
                                 userAccountRepository,
                                 notificationService);
@@ -295,7 +295,7 @@ class AdminResourceServiceImplTest {
                 when(documentRequestRepository.findByDocumentIdIncludingDeleted(reqId)).thenReturn(Optional.of(docReq));
                 when(documentRequestRepository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
 
-                doThrow(new RuntimeException("S3 Error")).when(s3StorageService).deleteFile(anyString());
+                doThrow(new RuntimeException("S3 Error")).when(objectStorageService).deleteFile(anyString());
 
                 service.deleteResource(AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId, adminId);
 
@@ -378,7 +378,7 @@ class AdminResourceServiceImplTest {
 
                 service.deleteResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId);
 
-                verify(s3StorageService).deleteFile("path/to/file.pdf");
+                verify(objectStorageService).deleteFile("path/to/file.pdf");
                 assertThat(submittedDoc.getDeletedAt()).isNotNull();
                 assertThat(docReq.getDeletedAt()).isNotNull();
         }
@@ -425,7 +425,7 @@ class AdminResourceServiceImplTest {
                 when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
 
                 // Simulate S3 exception
-                doThrow(new RuntimeException("S3 Error")).when(s3StorageService).deleteFile(anyString());
+                doThrow(new RuntimeException("S3 Error")).when(objectStorageService).deleteFile(anyString());
 
                 service.deleteResource(AdminDeletionAuditLog.ResourceType.TRANSACTION, txId, adminId);
 
@@ -455,7 +455,7 @@ class AdminResourceServiceImplTest {
                 assertThat(docReq.getDeletedAt()).isNotNull();
                 assertThat(docReq.getDeletedBy()).isEqualTo(adminId);
                 assertThat(submittedDoc.getDeletedAt()).isNotNull();
-                verify(s3StorageService).deleteFile("path/to/file.pdf");
+                verify(objectStorageService).deleteFile("path/to/file.pdf");
                 verify(auditRepository).save(any(AdminDeletionAuditLog.class));
         }
 
@@ -698,7 +698,7 @@ class AdminResourceServiceImplTest {
                                 documentRequestRepository,
                                 timelineEntryRepository,
                                 auditRepository,
-                                s3StorageService,
+                                objectStorageService,
                                 mockMapper,
                                 userAccountRepository,
                                 notificationService);
@@ -739,7 +739,7 @@ class AdminResourceServiceImplTest {
                                 documentRequestRepository,
                                 timelineEntryRepository,
                                 auditRepository,
-                                s3StorageService,
+                                objectStorageService,
                                 mockMapper,
                                 userAccountRepository,
                                 notificationService);
@@ -823,7 +823,7 @@ class AdminResourceServiceImplTest {
                                 documentRequestRepository,
                                 timelineEntryRepository,
                                 auditRepository,
-                                s3StorageService,
+                                objectStorageService,
                                 mockMapper,
                                 userAccountRepository,
                                 notificationService);

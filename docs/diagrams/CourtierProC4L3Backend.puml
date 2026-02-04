@@ -57,7 +57,7 @@ System_Boundary(cp, "CourtierPro System") {
     Component(GlobalDocumentController, "GlobalDocumentController", "REST Controller", "/documents/** - download/view access")
     Component(DocumentService, "DocumentService", "Application Service", "Document & DocumentVersion workflows")
     Component(DocumentRepository, "DocumentRepository", "Spring Data Repository", "CRUD for Document aggregate")
-    Component(S3StorageService, "S3StorageService", "Infrastructure Adapter", "Pre-signed URLs and Cloudflare R2 interactions (S3-compatible)")
+    Component(ObjectStorageService, "ObjectStorageService", "Infrastructure Adapter", "Pre-signed URLs and Cloudflare R2 interactions (S3-compatible)")
 
     ' ==== APPOINTMENTS ====
     Component(AppointmentController, "AppointmentController", "REST Controller", "/api/v1/appointments/** – appointments")
@@ -130,7 +130,7 @@ Rel(TransactionService, TimelineService, "delegates stage changes")
 Rel(DocumentController, DocumentService, "calls")
 Rel(GlobalDocumentController, DocumentService, "calls")
 Rel(DocumentService, DocumentRepository, "uses")
-Rel(DocumentService, S3StorageService, "uses")
+Rel(DocumentService, ObjectStorageService, "uses")
 
 Rel(AppointmentController, AppointmentService, "calls")
 Rel(AppointmentService, AppointmentRepository, "uses")

@@ -12,7 +12,7 @@ import com.example.courtierprobackend.documents.presentationlayer.models.Documen
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentResponseDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.OutstandingDocumentDTO;
 import com.example.courtierprobackend.email.EmailService;
-import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import com.example.courtierprobackend.infrastructure.storage.ObjectStorageService;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
 import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
@@ -210,7 +210,7 @@ class DocumentServiceImplTest {
         @Mock
         private DocumentRepository repository;
         @Mock
-        private S3StorageService storageService;
+        private ObjectStorageService storageService;
         @Mock
         private EmailService emailService;
         @Mock

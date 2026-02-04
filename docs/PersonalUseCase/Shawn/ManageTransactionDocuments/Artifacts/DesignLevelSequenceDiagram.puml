@@ -10,7 +10,7 @@ participant "DocumentController\n<<REST Controller>>" as Controller
 participant "DocumentService\n<<Application Service>>" as Service
 participant "TransactionRepository\n<<Repository>>" as TxnRepo
 participant "DocumentRepository\n<<Repository>>" as DocRepo
-participant "S3StorageService\n<<Infrastructure>>" as S3
+participant "ObjectStorageService\n<<Infrastructure>>" as S3
 participant "NotificationService\n<<Application Service>>" as Notif
 database "PostgreSQL" as DB
 database "Cloudflare R2" as R2Store

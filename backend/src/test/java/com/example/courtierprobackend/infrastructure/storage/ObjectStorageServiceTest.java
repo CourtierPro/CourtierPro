@@ -30,7 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class S3StorageServiceTest {
+class ObjectStorageServiceTest {
 
     @Mock
     private S3Client s3Client;
@@ -39,17 +39,17 @@ class S3StorageServiceTest {
     private S3Presigner s3Presigner;
 
     @InjectMocks
-    private S3StorageService s3StorageService;
+    private ObjectStorageService objectStorageService;
 
     private final String BUCKET_NAME = "test-bucket";
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(s3StorageService, "bucketName", BUCKET_NAME);
+        ReflectionTestUtils.setField(objectStorageService, "bucketName", BUCKET_NAME);
     }
 
     @Test
-    void uploadFile_ShouldUploadToS3AndReturnMetadata() throws IOException {
+    void uploadFile_ShouldUploadAndReturnMetadata() throws IOException {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID requestId = UUID.randomUUID();
@@ -63,16 +63,16 @@ class S3StorageServiceTest {
         );
 
         // Act
-        StorageObject result = s3StorageService.uploadFile(file, transactionId, requestId);
+        StorageObject result = objectStorageService.uploadFile(file, transactionId, requestId);
 
-        // Assert - The service should still create a valid S3 key
+        // Assert - The service should still create a valid object key
         assertThat(result).isNotNull();
         assertThat(result.getFileName()).isNotNull();
         assertThat(result.getS3Key()).contains(String.format("documents/%s/%s/", transactionId, requestId));
     }
 
     @Test
-    void uploadFile_GeneratesUniqueS3Key() throws IOException {
+    void uploadFile_GeneratesUniqueObjectKey() throws IOException {
         // Arrange
         UUID transactionId = UUID.randomUUID();
         UUID requestId = UUID.randomUUID();
@@ -84,7 +84,7 @@ class S3StorageServiceTest {
         );
 
         // Act
-        StorageObject result = s3StorageService.uploadFile(file, transactionId, requestId);
+        StorageObject result = objectStorageService.uploadFile(file, transactionId, requestId);
 
         // Assert
         assertNotNull(result);
@@ -109,11 +109,11 @@ class S3StorageServiceTest {
         ArgumentCaptor<PutObjectRequest> captor = ArgumentCaptor.forClass(PutObjectRequest.class);
 
         // Act
-        StorageObject result = s3StorageService.uploadFile(file, transactionId, requestId);
+        StorageObject result = objectStorageService.uploadFile(file, transactionId, requestId);
 
         // Assert
         verify(s3Client).putObject(captor.capture(), any(RequestBody.class));
-        
+
         PutObjectRequest request = captor.getValue();
         assertEquals(BUCKET_NAME, request.bucket());
         assertEquals(result.getS3Key(), request.key());
@@ -123,78 +123,78 @@ class S3StorageServiceTest {
     @Test
     void generatePresignedUrl_ShouldReturnUrl() throws MalformedURLException {
         // Arrange
-        String s3Key = "documents/tx-123/req-456/file.pdf";
-        String expectedUrl = "https://test-bucket.s3.amazonaws.com/" + s3Key + "?signature=123";
+        String objectKey = "documents/tx-123/req-456/file.pdf";
+        String expectedUrl = "https://test-bucket.s3.amazonaws.com/" + objectKey + "?signature=123";
 
         PresignedGetObjectRequest presignedRequest = mock(PresignedGetObjectRequest.class);
         when(presignedRequest.url()).thenReturn(new URL(expectedUrl));
         when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presignedRequest);
 
         // Act
-        String result = s3StorageService.generatePresignedUrl(s3Key);
+        String result = objectStorageService.generatePresignedUrl(objectKey);
 
         // Assert
         assertEquals(expectedUrl, result);
 
         ArgumentCaptor<GetObjectPresignRequest> captor = ArgumentCaptor.forClass(GetObjectPresignRequest.class);
         verify(s3Presigner).presignGetObject(captor.capture());
-        
+
         GetObjectRequest objectRequest = captor.getValue().getObjectRequest();
         assertEquals(BUCKET_NAME, objectRequest.bucket());
-        assertEquals(s3Key, objectRequest.key());
+        assertEquals(objectKey, objectRequest.key());
     }
 
     @Test
     void generatePresignedUrl_WhenKeyIsNull_ShouldReturnNull() {
-        assertNull(s3StorageService.generatePresignedUrl(null));
-        assertNull(s3StorageService.generatePresignedUrl(""));
+        assertNull(objectStorageService.generatePresignedUrl(null));
+        assertNull(objectStorageService.generatePresignedUrl(""));
     }
 
     @Test
-    void deleteFile_ShouldDeleteFromS3() {
+    void deleteFile_ShouldDeleteFromStorage() {
         // Arrange
-        String s3Key = "documents/tx-123/req-456/file.pdf";
+        String objectKey = "documents/tx-123/req-456/file.pdf";
         ArgumentCaptor<DeleteObjectRequest> captor = ArgumentCaptor.forClass(DeleteObjectRequest.class);
 
         // Act
-        s3StorageService.deleteFile(s3Key);
+        objectStorageService.deleteFile(objectKey);
 
         // Assert
         verify(s3Client).deleteObject(captor.capture());
         DeleteObjectRequest request = captor.getValue();
         assertEquals(BUCKET_NAME, request.bucket());
-        assertEquals(s3Key, request.key());
+        assertEquals(objectKey, request.key());
     }
 
     @Test
-    void deleteFile_WhenKeyIsNull_ShouldNotCallS3() {
+    void deleteFile_WhenKeyIsNull_ShouldNotCallStorage() {
         // Act
-        s3StorageService.deleteFile(null);
-        s3StorageService.deleteFile("");
+        objectStorageService.deleteFile(null);
+        objectStorageService.deleteFile("");
 
         // Assert - S3 client should never be called
         verify(s3Client, never()).deleteObject(any(DeleteObjectRequest.class));
     }
 
     @Test
-    void deleteFile_WhenS3Fails_ShouldThrowRuntimeException() {
+    void deleteFile_WhenStorageFails_ShouldThrowRuntimeException() {
         // Arrange
-        String s3Key = "documents/tx-123/req-456/file.pdf";
+        String objectKey = "documents/tx-123/req-456/file.pdf";
         when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
-                .thenThrow(new RuntimeException("S3 error"));
+                .thenThrow(new RuntimeException("Storage error"));
 
         // Act & Assert
-        assertThrows(RuntimeException.class, () -> s3StorageService.deleteFile(s3Key));
+        assertThrows(RuntimeException.class, () -> objectStorageService.deleteFile(objectKey));
     }
+
     @Test
-    void generatePresignedUrl_WhenS3Fails_ShouldThrowRuntimeException() {
+    void generatePresignedUrl_WhenStorageFails_ShouldThrowRuntimeException() {
         // Arrange
-        String s3Key = "documents/tx-123/req-456/file.pdf";
+        String objectKey = "documents/tx-123/req-456/file.pdf";
         when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class)))
                 .thenThrow(new RuntimeException("Presign error"));
 
         // Act & Assert
-        assertThrows(RuntimeException.class, () -> s3StorageService.generatePresignedUrl(s3Key));
+        assertThrows(RuntimeException.class, () -> objectStorageService.generatePresignedUrl(objectKey));
     }
 }
-

@@ -9,7 +9,7 @@ import com.example.courtierprobackend.documents.datalayer.DocumentVersion;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.UploadedBy;
-import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import com.example.courtierprobackend.infrastructure.storage.ObjectStorageService;
 import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentResponseDTO;
@@ -49,7 +49,7 @@ public class DocumentServiceImpl implements DocumentService {
         private static final Logger logger = LoggerFactory.getLogger(DocumentServiceImpl.class);
 
         private final DocumentRepository repository;
-        private final S3StorageService storageService;
+        private final ObjectStorageService storageService;
         private final EmailService emailService;
         private final NotificationService notificationService;
         private final TransactionRepository transactionRepository;

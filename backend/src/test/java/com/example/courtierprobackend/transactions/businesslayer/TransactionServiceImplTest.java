@@ -97,7 +97,7 @@ class TransactionServiceImplTest {
         private com.example.courtierprobackend.transactions.datalayer.repositories.OfferRevisionRepository offerRevisionRepository;
 
         @Mock
-        private com.example.courtierprobackend.infrastructure.storage.S3StorageService s3StorageService;
+        private com.example.courtierprobackend.infrastructure.storage.ObjectStorageService objectStorageService;
 
         @Mock
         private com.example.courtierprobackend.documents.datalayer.DocumentRepository documentRequestRepository;
@@ -115,7 +115,7 @@ class TransactionServiceImplTest {
                                 notificationService, timelineService, participantRepository, propertyRepository,
                                 offerRepository, conditionRepository,
                                 propertyOfferRepository, offerDocumentRepository, offerRevisionRepository,
-                                s3StorageService, documentRequestRepository, documentConditionLinkRepository,
+                                objectStorageService, documentRequestRepository, documentConditionLinkRepository,
                                 searchCriteriaRepository);
                 lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
         }
@@ -3023,7 +3023,7 @@ class TransactionServiceImplTest {
 
                 when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
-                when(s3StorageService.uploadFile(any(), any(), any())).thenReturn(storageObject);
+                when(objectStorageService.uploadFile(any(), any(), any())).thenReturn(storageObject);
                 when(offerDocumentRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
                 // Act
@@ -3122,7 +3122,7 @@ class TransactionServiceImplTest {
 
                 when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
-                when(s3StorageService.uploadFile(any(), any(), any()))
+                when(objectStorageService.uploadFile(any(), any(), any()))
                                 .thenThrow(new java.io.IOException("Upload failed"));
 
                 // Act & Assert
@@ -3173,7 +3173,7 @@ class TransactionServiceImplTest {
                                 .thenReturn(Optional.of(propertyOffer));
                 when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
-                when(s3StorageService.uploadFile(any(), any(), any())).thenReturn(storageObject);
+                when(objectStorageService.uploadFile(any(), any(), any())).thenReturn(storageObject);
                 when(offerDocumentRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
                 // Act
@@ -3258,7 +3258,7 @@ class TransactionServiceImplTest {
                 when(offerDocumentRepository.findByDocumentId(documentId)).thenReturn(Optional.of(document));
                 when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
-                when(s3StorageService.generatePresignedUrl("test-s3-key"))
+                when(objectStorageService.generatePresignedUrl("test-s3-key"))
                                 .thenReturn("https://s3.example.com/presigned-url");
 
                 // Act
@@ -3303,7 +3303,7 @@ class TransactionServiceImplTest {
                                 .thenReturn(Optional.of(propertyOffer));
                 when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
-                when(s3StorageService.generatePresignedUrl("property-offer-s3-key"))
+                when(objectStorageService.generatePresignedUrl("property-offer-s3-key"))
                                 .thenReturn("https://s3.example.com/property-url");
 
                 // Act
@@ -3362,7 +3362,7 @@ class TransactionServiceImplTest {
                 transactionService.deleteOfferDocument(documentId, brokerId);
 
                 // Assert
-                verify(s3StorageService).deleteFile("delete-s3-key");
+                verify(objectStorageService).deleteFile("delete-s3-key");
                 verify(offerDocumentRepository).delete(document);
         }
 
@@ -3406,7 +3406,7 @@ class TransactionServiceImplTest {
                 transactionService.deleteOfferDocument(documentId, brokerId);
 
                 // Assert
-                verify(s3StorageService).deleteFile("property-delete-key");
+                verify(objectStorageService).deleteFile("property-delete-key");
                 verify(offerDocumentRepository).delete(document);
         }
 
@@ -5997,7 +5997,7 @@ class TransactionServiceImplTest {
                                 .thenReturn(Optional.of(propertyOffer));
                 when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
-                when(s3StorageService.generatePresignedUrl("s3/key")).thenReturn("https://presigned.url");
+                when(objectStorageService.generatePresignedUrl("s3/key")).thenReturn("https://presigned.url");
 
                 // Act
                 String result = transactionService.getOfferDocumentDownloadUrl(documentId, userId);
@@ -6048,7 +6048,7 @@ class TransactionServiceImplTest {
                 transactionService.deleteOfferDocument(documentId, brokerId);
 
                 // Assert
-                verify(s3StorageService).deleteFile("s3/key");
+                verify(objectStorageService).deleteFile("s3/key");
                 verify(offerDocumentRepository).delete(doc);
         }
 
@@ -6611,7 +6611,7 @@ class TransactionServiceImplTest {
                                 .thenReturn(Optional.of(propertyOffer));
                 when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
-                when(s3StorageService.generatePresignedUrl("test-key")).thenReturn("https://presigned-url.com");
+                when(objectStorageService.generatePresignedUrl("test-key")).thenReturn("https://presigned-url.com");
 
                 // Act
                 String result = transactionService.getOfferDocumentDownloadUrl(documentId, brokerId);
@@ -6663,7 +6663,7 @@ class TransactionServiceImplTest {
                 transactionService.deleteOfferDocument(documentId, brokerId);
 
                 // Assert
-                verify(s3StorageService).deleteFile("test-key");
+                verify(objectStorageService).deleteFile("test-key");
                 verify(offerDocumentRepository).delete(document);
         }
 

@@ -27,7 +27,7 @@ BUSINESS → INFRASTRUCTURE
 --------------------------------------------------------------------------------
 | From                        | To                | Relationship Type |
 |-----------------------------|-------------------|-------------------|
-| DocumentServiceImpl         | S3StorageService          | uses (-->)        |
+| DocumentServiceImpl         | ObjectStorageService          | uses (-->)        |
 
 --------------------------------------------------------------------------------
 BUSINESS → BUSINESS (Internal)

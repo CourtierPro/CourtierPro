@@ -14,7 +14,7 @@ import com.example.courtierprobackend.transactions.datalayer.repositories.*;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
-import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import com.example.courtierprobackend.infrastructure.storage.ObjectStorageService;
 import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -61,7 +61,7 @@ class SearchCriteriaServiceUnitTest {
     @Mock private PropertyOfferRepository propertyOfferRepository;
     @Mock private OfferDocumentRepository offerDocumentRepository;
     @Mock private OfferRevisionRepository offerRevisionRepository;
-    @Mock private S3StorageService s3StorageService;
+    @Mock private ObjectStorageService objectStorageService;
     @Mock private DocumentRepository documentRequestRepository;
     @Mock private DocumentConditionLinkRepository documentConditionLinkRepository;
     @Mock private SearchCriteriaRepository searchCriteriaRepository;
@@ -83,7 +83,7 @@ class SearchCriteriaServiceUnitTest {
                 transactionRepository, pinnedTransactionRepository, userAccountRepository,
                 emailService, notificationService, timelineService, participantRepository,
                 propertyRepository, offerRepository, conditionRepository, propertyOfferRepository,
-                offerDocumentRepository, offerRevisionRepository, s3StorageService,
+                offerDocumentRepository, offerRevisionRepository, objectStorageService,
                 documentRequestRepository, documentConditionLinkRepository, searchCriteriaRepository
         );
 

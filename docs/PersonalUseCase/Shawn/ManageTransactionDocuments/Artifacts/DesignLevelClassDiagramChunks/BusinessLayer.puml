@@ -21,7 +21,7 @@
         - transactionRepository: TransactionRepository
         - userAccountRepository: UserAccountRepository
         - notificationService: NotificationService
-        - s3StorageService: S3StorageService
+        - objectStorageService: ObjectStorageService
         --
         + getDocumentsForTransaction(transactionId, userId): List<DocumentResponseDTO>
         + createDocument(transactionId, dto): DocumentResponseDTO

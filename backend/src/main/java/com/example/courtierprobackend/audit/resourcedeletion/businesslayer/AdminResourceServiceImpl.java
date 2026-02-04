@@ -9,7 +9,7 @@ import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.documents.datalayer.Document;
 import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
 import com.example.courtierprobackend.documents.datalayer.DocumentVersion;
-import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import com.example.courtierprobackend.infrastructure.storage.ObjectStorageService;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntry;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntryRepository;
@@ -34,7 +34,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
     private final DocumentRepository documentRepository;
     private final TimelineEntryRepository timelineEntryRepository;
     private final AdminDeletionAuditRepository auditRepository;
-    private final S3StorageService s3StorageService;
+    private final ObjectStorageService objectStorageService;
     private final ObjectMapper objectMapper;
     private final UserAccountRepository userAccountRepository;
     private final com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
@@ -299,7 +299,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                 // Hard-delete S3 file
                 if (version.getStorageObject() != null && version.getStorageObject().getS3Key() != null) {
                     try {
-                        s3StorageService.deleteFile(version.getStorageObject().getS3Key());
+                        objectStorageService.deleteFile(version.getStorageObject().getS3Key());
                     } catch (Exception e) {
                         log.error("Failed to delete S3 file: {}", version.getStorageObject().getS3Key(), e);
                     }
@@ -339,7 +339,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         for (DocumentVersion version : document.getVersions()) {
             if (version.getStorageObject() != null && version.getStorageObject().getS3Key() != null) {
                 try {
-                    s3StorageService.deleteFile(version.getStorageObject().getS3Key());
+                    objectStorageService.deleteFile(version.getStorageObject().getS3Key());
                 } catch (Exception e) {
                     log.error("Failed to delete S3 file: {}", version.getStorageObject().getS3Key(), e);
                 }

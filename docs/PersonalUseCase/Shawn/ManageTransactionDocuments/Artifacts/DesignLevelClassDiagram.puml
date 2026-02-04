@@ -85,7 +85,7 @@ package "Business Layer" #LightGreen {
     - transactionRepository: TransactionRepository
     - userAccountRepository: UserAccountRepository
     - notificationService: NotificationService
-    - s3StorageService: S3StorageService
+    - objectStorageService: ObjectStorageService
     --
     + getDocumentsForTransaction(transactionId, userId): List<DocumentResponseDTO>
     + createDocument(transactionId, dto): DocumentResponseDTO
@@ -173,13 +173,13 @@ package "Data Layer" #LightYellow {
 }
 
 package "Infrastructure Layer" #LightCoral {
-  interface S3StorageService {
+  interface ObjectStorageService {
     + uploadFile(transactionId, documentId, file): StorageObject
     + getPreSignedUrl(s3Key, expirationMinutes): String
     + deleteFile(s3Key): void
   }
   
-  class S3StorageServiceImpl {
+  class ObjectStorageServiceImpl {
     - s3Client: S3Client  // Connects to Cloudflare R2 (S3-compatible)
     - bucketName: String
     --
@@ -237,7 +237,7 @@ DocumentServiceImpl ..|> DocumentService : implements
 DocumentServiceImpl --> DocumentRepository : uses
 DocumentServiceImpl --> TransactionRepository : uses
 DocumentServiceImpl --> NotificationService : uses
-DocumentServiceImpl --> S3StorageService : uses
+DocumentServiceImpl --> ObjectStorageService : uses
 DocumentServiceImpl ..> Document : manages
 DocumentServiceImpl ..> DocumentResponseDTO : creates
 
@@ -252,7 +252,7 @@ Document --> DocumentPartyEnum
 DocumentVersion "1" *-- "1" StorageObject : contains
 DocumentVersion "1" *-- "1" UploadedBy : contains
 
-S3StorageServiceImpl ..|> S3StorageService : implements
+ObjectStorageServiceImpl ..|> ObjectStorageService : implements
 
 DocumentResponseDTO ..> DocumentVersionDTO : contains
 

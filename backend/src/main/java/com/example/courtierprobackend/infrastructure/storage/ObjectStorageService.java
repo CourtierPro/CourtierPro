@@ -20,15 +20,15 @@ import java.time.Duration;
 import java.util.UUID;
 
 /**
- * Service for handling S3 file storage operations.
+ * Service for handling object storage operations using S3-compatible APIs.
  *
- * Persists files to the configured S3 bucket and manages presigned URLs
- * for secure file access.
+ * Supports any S3-compatible storage provider (AWS S3, Cloudflare R2, MinIO, etc.).
+ * Persists files to the configured bucket and manages presigned URLs for secure file access.
  */
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class S3StorageService {
+public class ObjectStorageService {
 
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
@@ -37,33 +37,33 @@ public class S3StorageService {
     private String bucketName;
 
     /**
-     * Uploads a file to S3 and returns storage metadata.
+     * Uploads a file to object storage and returns storage metadata.
      *
      * @param file          The file to upload
      * @param transactionId The transaction ID for organizing files
      * @param documentId    The document ID
-     * @return StorageObject containing the S3 key and file metadata
+     * @return StorageObject containing the object key and file metadata
      */
     public StorageObject uploadFile(MultipartFile file, UUID transactionId, UUID documentId) throws IOException {
         String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed";
         String uniqueId = UUID.randomUUID().toString();
         // Use a clean key structure: documents/{transactionId}/{documentId}/{uniqueId}_{filename}
-        String s3Key = String.format("documents/%s/%s/%s_%s", transactionId, documentId, uniqueId, originalFilename);
+        String objectKey = String.format("documents/%s/%s/%s_%s", transactionId, documentId, uniqueId, originalFilename);
 
-        log.info("Uploading file to S3. Bucket: {}, Key: {}", bucketName, s3Key);
+        log.info("Uploading file to object storage. Bucket: {}, Key: {}", bucketName, objectKey);
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
-                .key(s3Key)
+                .key(objectKey)
                 .contentType(file.getContentType())
                 .build();
 
         s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-        log.info("Upload successful. Key: {}", s3Key);
+        log.info("Upload successful. Key: {}", objectKey);
 
         return StorageObject.builder()
-                .s3Key(s3Key)
+                .s3Key(objectKey)
                 .fileName(originalFilename)
                 .mimeType(file.getContentType())
                 .sizeBytes(file.getSize())
@@ -73,18 +73,18 @@ public class S3StorageService {
     /**
      * Generates a presigned URL for downloading a file.
      *
-     * @param s3Key The S3 object key
+     * @param objectKey The object key
      * @return A presigned URL string valid for 15 minutes
      */
-    public String generatePresignedUrl(String s3Key) {
-        if (s3Key == null || s3Key.isEmpty()) {
+    public String generatePresignedUrl(String objectKey) {
+        if (objectKey == null || objectKey.isEmpty()) {
             return null;
         }
 
         try {
             GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                     .bucket(bucketName)
-                    .key(s3Key)
+                    .key(objectKey)
                     .build();
 
             GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
@@ -96,36 +96,34 @@ public class S3StorageService {
             return presignedRequest.url().toString();
 
         } catch (Exception e) {
-            log.error("Failed to generate presigned URL for key: {}", s3Key, e);
+            log.error("Failed to generate presigned URL for key: {}", objectKey, e);
             throw new RuntimeException("Could not generate download URL", e);
         }
     }
 
     /**
-     * Deletes a file from S3.
+     * Deletes a file from object storage.
      *
-     * @param s3Key The S3 object key to delete
+     * @param objectKey The object key to delete
      */
-    public void deleteFile(String s3Key) {
-        if (s3Key == null || s3Key.isEmpty()) {
-            log.warn("Attempted to delete file with null or empty S3 key");
+    public void deleteFile(String objectKey) {
+        if (objectKey == null || objectKey.isEmpty()) {
+            log.warn("Attempted to delete file with null or empty object key");
             return;
         }
 
         try {
             DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
                     .bucket(bucketName)
-                    .key(s3Key)
+                    .key(objectKey)
                     .build();
 
             s3Client.deleteObject(deleteRequest);
-            log.info("Deleted file from S3. Key: {}", s3Key);
+            log.info("Deleted file from object storage. Key: {}", objectKey);
 
         } catch (Exception e) {
-            log.error("Failed to delete file from S3. Key: {}", s3Key, e);
-            throw new RuntimeException("Could not delete file from S3", e);
+            log.error("Failed to delete file from object storage. Key: {}", objectKey, e);
+            throw new RuntimeException("Could not delete file from storage", e);
         }
     }
 }
-
-

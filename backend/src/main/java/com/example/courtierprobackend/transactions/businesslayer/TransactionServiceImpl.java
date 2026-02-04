@@ -81,7 +81,7 @@ import com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRe
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferRevisionResponseDTO;
-import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import com.example.courtierprobackend.infrastructure.storage.ObjectStorageService;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject;
 import com.example.courtierprobackend.transactions.datalayer.dto.UnifiedDocumentDTO;
 import com.example.courtierprobackend.transactions.datalayer.DocumentConditionLink;
@@ -134,7 +134,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final PropertyOfferRepository propertyOfferRepository;
     private final OfferDocumentRepository offerDocumentRepository;
     private final OfferRevisionRepository offerRevisionRepository;
-    private final S3StorageService s3StorageService;
+    private final ObjectStorageService objectStorageService;
     private final com.example.courtierprobackend.documents.datalayer.DocumentRepository documentRepository;
     private final com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository documentConditionLinkRepository;
     private final SearchCriteriaRepository searchCriteriaRepository;
@@ -2013,7 +2013,7 @@ public class TransactionServiceImpl implements TransactionService {
 
             // Upload to S3 using the storage service - use the returned StorageObject which
             // has the actual s3Key
-            StorageObject storageObject = s3StorageService.uploadFile(file, offer.getTransactionId(), offerId);
+            StorageObject storageObject = objectStorageService.uploadFile(file, offer.getTransactionId(), offerId);
 
             OfferDocument document = OfferDocument.builder()
                     .documentId(UUID.randomUUID())
@@ -2056,7 +2056,7 @@ public class TransactionServiceImpl implements TransactionService {
             String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed";
 
             // Upload to S3 - use the returned StorageObject which has the actual s3Key
-            StorageObject storageObject = s3StorageService.uploadFile(file, tx.getTransactionId(), propertyOfferId);
+            StorageObject storageObject = objectStorageService.uploadFile(file, tx.getTransactionId(), propertyOfferId);
 
             OfferDocument document = OfferDocument.builder()
                     .documentId(UUID.randomUUID())
@@ -2169,7 +2169,7 @@ public class TransactionServiceImpl implements TransactionService {
                     ParticipantPermission.VIEW_DOCUMENTS);
         }
 
-        return s3StorageService.generatePresignedUrl(document.getS3Key());
+        return objectStorageService.generatePresignedUrl(document.getS3Key());
     }
 
     @Override
@@ -2196,7 +2196,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // Delete from S3
-        s3StorageService.deleteFile(document.getS3Key());
+        objectStorageService.deleteFile(document.getS3Key());
 
         // Delete from database
         offerDocumentRepository.delete(document);
