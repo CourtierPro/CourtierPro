@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { enUS, fr } from "date-fns/locale";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
-import { FileText, Upload, CheckCircle, Clock, File, Eye, Loader2, Send, Trash2, Share } from "lucide-react";
+import { FileText, Upload, CheckCircle, Clock, File, Eye, Loader2, Send, Trash2, Share, PenLine } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getDocumentDownloadUrl } from "@/features/documents/api/documentsApi";
 import { formatDocumentTitle } from "../utils/formatDocumentTitle";
@@ -71,6 +71,25 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, onSendReque
             window.open(url, '_blank');
         } catch {
             toast.error(t('errors.viewFailed', 'Failed to load document'));
+        } finally {
+            setIsLoadingView(false);
+        }
+    };
+
+    const handleDownloadToSign = async () => {
+        const brokerVersions = document.versions.filter(v => v.uploadedBy.uploaderType === 'BROKER');
+        if (brokerVersions.length === 0) return;
+        const latestBrokerVersion = brokerVersions[brokerVersions.length - 1];
+        setIsLoadingView(true);
+        try {
+            const url = await getDocumentDownloadUrl(
+                document.transactionRef.transactionId,
+                document.documentId,
+                latestBrokerVersion.versionId
+            );
+            window.open(url, '_blank');
+        } catch {
+            toast.error(t('errors.viewFailed'));
         } finally {
             setIsLoadingView(false);
         }
@@ -169,6 +188,12 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, onSendReque
 
                     <div className="flex flex-col items-end gap-3">
                         <div className="flex items-center gap-2">
+                            {document.requiresSignature && (
+                                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300 border-amber-200 dark:border-amber-700 gap-1">
+                                    <PenLine className="w-3 h-3" />
+                                    {t('signatureRequired')}
+                                </Badge>
+                            )}
                             {document.flow === DocumentFlowEnum.UPLOAD && document.status !== DocumentStatusEnum.DRAFT && (
                                 <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 border-blue-200 dark:border-blue-700">
                                     {t('flow.UPLOAD', 'Shared')}
@@ -193,7 +218,8 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, onSendReque
                                     {t('actions.delete', 'Delete')}
                                 </Button>
                             )}
-                            {document.versions.length > 0 && (
+                            {document.versions.length > 0 &&
+                             !(document.requiresSignature && (document.status === DocumentStatusEnum.REQUESTED || document.status === DocumentStatusEnum.NEEDS_REVISION)) && (
                                 <Button
                                     size="sm"
                                     variant="outline"
@@ -230,6 +256,25 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, onSendReque
                                 <Button size="sm" onClick={() => onReview(document)} className="gap-2 bg-orange-500 hover:bg-orange-600">
                                     <CheckCircle className="w-4 h-4" />
                                     {t('review', 'Review')}
+                                </Button>
+                            )}
+
+                            {/* Download to Sign button - for signature requests in REQUESTED/NEEDS_REVISION status */}
+                            {document.requiresSignature && document.versions.length > 0 &&
+                             (document.status === DocumentStatusEnum.REQUESTED || document.status === DocumentStatusEnum.NEEDS_REVISION) && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleDownloadToSign}
+                                    disabled={isLoadingView}
+                                    className="gap-2"
+                                >
+                                    {isLoadingView ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <PenLine className="w-4 h-4" />
+                                    )}
+                                    {t('downloadToSign')}
                                 </Button>
                             )}
 

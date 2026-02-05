@@ -14,6 +14,8 @@ export interface CreateDocumentDTO {
     status?: 'DRAFT' | 'REQUESTED' | 'SUBMITTED';
     /** Optional flow type: 'REQUEST' or 'UPLOAD'. Defaults to 'REQUEST' if not provided. */
     flow?: DocumentFlowEnum;
+    /** Whether this document requires the client's signature */
+    requiresSignature?: boolean;
 }
 
 export interface UpdateDocumentDTO {

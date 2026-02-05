@@ -81,6 +81,9 @@ public class Document {
 
     private boolean visibleToClient;
 
+    @Builder.Default
+    private boolean requiresSignature = false;
+
     public boolean getVisibleToClient() {
         return visibleToClient;
     }

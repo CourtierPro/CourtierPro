@@ -32,4 +32,5 @@ public class DocumentResponseDTO {
     private boolean visibleToClient;
     private StageEnum stage;
     private DocumentFlowEnum flow;
+    private boolean requiresSignature;
 }

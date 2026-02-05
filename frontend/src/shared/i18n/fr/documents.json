@@ -119,6 +119,7 @@
     },
     "uploadingFor": "Téléversement pour",
     "dragAndDropOrClick": "Glisser-déposer ou cliquer pour sélectionner",
+    "dropFileHere": "Déposez le fichier ici",
     "dropToUpload": "Déposer le fichier pour téléverser",
     "supportedFormats": "Formats supportés",
     "clickToSelectFile": "Cliquez pour sélectionner un fichier",
@@ -160,5 +161,13 @@
     "dueToday": "Dû aujourd'hui",
     "noOutstandingDocuments": "Aucun document en retard. Vous êtes à jour !",
     "confirmDeleteDraft": "Êtes-vous sûr de vouloir supprimer ce brouillon ?",
-    "confirmShareDraft": "Êtes-vous sûr de vouloir partager ce document avec le client ? Il leur sera immédiatement visible."
+    "confirmShareDraft": "Êtes-vous sûr de vouloir partager ce document avec le client ? Il leur sera immédiatement visible.",
+    "requiresSignature": "Requiert la signature du client",
+    "requiresSignatureDescription": "Le client devra télécharger ce document, le signer et téléverser la version signée.",
+    "signatureRequired": "Signature requise",
+    "documentToSign": "Document à signer",
+    "signedVersion": "Version signée",
+    "downloadToSign": "Télécharger pour signer",
+    "uploadSigned": "Téléverser le document signé",
+    "signatureRequested": "Signature demandée"
 }

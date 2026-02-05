@@ -125,6 +125,18 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
     [transactionId, sendDocumentRequestMutation, refetch, tDocuments]
   );
 
+  // Send Request handler by documentId (used by RequestDocumentModal for signature flow)
+  const handleSendDocumentRequestById = useCallback(
+    async (documentId: string) => {
+      await sendDocumentRequestMutation.mutateAsync(
+        { transactionId, documentId },
+      );
+      toast.success(tDocuments('success.requestSent', 'Document request sent to client'));
+      refetch();
+    },
+    [transactionId, sendDocumentRequestMutation, refetch, tDocuments]
+  );
+
   // Delete handler for draft documents
   const handleDeleteDocument = useCallback(
     (document: Document) => {
@@ -419,6 +431,8 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleRequestDocument}
+        onUploadFile={handleUploadFileForDocument}
+        onSendDocumentRequest={handleSendDocumentRequestById}
         transactionType={transactionSide === 'BUY_SIDE' ? 'buy' : 'sell'}
         currentStage={currentStage || ''}
         transactionId={transactionId}

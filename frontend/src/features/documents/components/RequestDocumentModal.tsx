@@ -1,15 +1,17 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import DOMPurify from 'dompurify';
-import { Send, FileText, Calendar as CalendarIcon, ChevronDown, ChevronRight, Save } from 'lucide-react';
+import { Send, FileText, Calendar as CalendarIcon, ChevronDown, ChevronRight, Save, PenLine, Upload, X, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
+import { useDropzone, type FileRejection } from 'react-dropzone';
 
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Calendar } from '@/shared/components/ui/calendar';
+import { Progress } from '@/shared/components/ui/progress';
 import {
   Select,
   SelectContent,
@@ -38,9 +40,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/shared/components/ui/popover';
+import { Checkbox } from '@/shared/components/ui/checkbox';
 import { cn } from '@/shared/utils/utils';
 
-import { DocumentTypeEnum } from '@/features/documents/types';
+import { DocumentTypeEnum, DocumentFlowEnum } from '@/features/documents/types';
 import { useTransactionStages } from '@/features/transactions/hooks/useTransactionStages';
 import { getStageLabel } from '@/shared/utils/stages';
 import { requestDocumentSchema, type RequestDocumentFormValues } from '@/shared/schemas';
@@ -50,7 +53,9 @@ import { useParticipantPermissions } from '@/features/transactions/hooks/usePart
 interface RequestDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string, conditionIds: string[], dueDate?: Date, status?: 'DRAFT' | 'REQUESTED') => void;
+  onSubmit: (...args: [docType: DocumentTypeEnum, customTitle: string, instructions: string, stage: string, conditionIds: string[], dueDate?: Date, status?: 'DRAFT' | 'REQUESTED', flow?: DocumentFlowEnum, requiresSignature?: boolean]) => Promise<string | undefined> | void;
+  onUploadFile?: (documentId: string, file: File) => Promise<void>;
+  onSendDocumentRequest?: (documentId: string) => Promise<void>;
   transactionType: 'buy' | 'sell';
   currentStage: string;
   transactionId: string;
@@ -60,6 +65,8 @@ export function RequestDocumentModal({
   isOpen,
   onClose,
   onSubmit,
+  onUploadFile,
+  onSendDocumentRequest,
   transactionType,
   currentStage,
   transactionId,
@@ -71,6 +78,10 @@ export function RequestDocumentModal({
   const customTitleInputRef = useRef<HTMLInputElement>(null);
   const [selectedConditionIds, setSelectedConditionIds] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Fetch dynamic stages from backend
   const side = transactionType === 'buy' ? 'BUY_SIDE' : 'SELL_SIDE';
@@ -118,12 +129,64 @@ export function RequestDocumentModal({
       instructions: '',
       stage: currentStage,
       dueDate: undefined,
+      requiresSignature: false,
     },
   });
 
   const { reset, control } = form; // Removed unused imports
   const selectedDocType = useWatch({ control, name: 'docType' });
   const selectedStage = useWatch({ control, name: 'stage' });
+  const requiresSignature = useWatch({ control, name: 'requiresSignature' });
+
+  // Dropzone for signature document attachment
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    const selectedFile = acceptedFiles[0];
+    if (selectedFile) {
+      if (selectedFile.size > 25 * 1024 * 1024) {
+        setFileError(t('errors.fileTooLarge'));
+        setFile(null);
+      } else {
+        setFileError(null);
+        setFile(selectedFile);
+      }
+    }
+  }, [t]);
+
+  const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
+    onDrop,
+    onDropRejected: (fileRejections: FileRejection[]) => {
+      const rejection = fileRejections[0];
+      if (rejection.errors[0].code === 'file-invalid-type') {
+        setFileError(t('errors.invalidFileType', 'Invalid file type. Please upload PDF, JPG, or PNG.'));
+      } else {
+        setFileError(rejection.errors[0].message);
+      }
+    },
+    accept: {
+      'application/pdf': ['.pdf'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png']
+    },
+    maxFiles: 1,
+    multiple: false,
+    disabled: isUploading
+  });
+
+  const removeFile = () => {
+    setFile(null);
+    setFileError(null);
+  };
+
+  // Simulate progress when uploading
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (isUploading) {
+      interval = setInterval(() => {
+        setUploadProgress((prev) => (prev >= 90 ? 90 : prev + 10));
+      }, 500);
+    }
+    return () => clearInterval(interval);
+  }, [isUploading]);
 
   // Reset form state when modal opens
   useEffect(() => {
@@ -134,14 +197,17 @@ export function RequestDocumentModal({
         instructions: '',
         stage: currentStage,
         dueDate: undefined,
+        requiresSignature: false,
       });
     }
   }, [isOpen, currentStage, reset]);
 
   const handleOpenChange = (open: boolean) => {
-    if (!open) {
+    if (!open && !isUploading) {
       setSelectedConditionIds([]);
       setShowAdvanced(false);
+      setFile(null);
+      setFileError(null);
       onClose();
     }
   };
@@ -155,24 +221,71 @@ export function RequestDocumentModal({
     }
   }, [selectedDocType]);
 
-  const onFormSubmit = (data: RequestDocumentFormValues, status: 'DRAFT' | 'REQUESTED' = 'REQUESTED') => {
-    onSubmit(
-      data.docType,
-      data.docType === DocumentTypeEnum.OTHER ? (data.customTitle?.trim() || '') : '',
-      data.instructions?.trim() || '',
-      data.stage,
-      selectedConditionIds,
-      data.dueDate,
-      status
-    );
-    setSelectedConditionIds([]);
-    onClose();
+  const onFormSubmit = async (data: RequestDocumentFormValues, status: 'DRAFT' | 'REQUESTED' = 'REQUESTED') => {
+    const hasFileToUpload = data.requiresSignature && file && onUploadFile;
+
+    // If signature request with file, always create as DRAFT first, then upload, then optionally send
+    const createStatus = hasFileToUpload ? 'DRAFT' : status;
+
+    if (hasFileToUpload) {
+      setIsUploading(true);
+      setUploadProgress(0);
+    }
+
+    try {
+      const documentId = await onSubmit(
+        data.docType,
+        data.docType === DocumentTypeEnum.OTHER ? (data.customTitle?.trim() || '') : '',
+        data.instructions?.trim() || '',
+        data.stage,
+        selectedConditionIds,
+        data.dueDate,
+        createStatus,
+        undefined,
+        data.requiresSignature
+      );
+
+      // Upload file if signature request with file attached
+      if (hasFileToUpload && documentId) {
+        await onUploadFile(documentId, file);
+
+        // If user clicked "Send Request", transition DRAFT → REQUESTED
+        if (status === 'REQUESTED' && onSendDocumentRequest) {
+          await onSendDocumentRequest(documentId);
+        }
+
+        setUploadProgress(100);
+        setTimeout(() => {
+          setSelectedConditionIds([]);
+          setFile(null);
+          setIsUploading(false);
+          onClose();
+        }, 500);
+        return;
+      }
+
+      setSelectedConditionIds([]);
+      setFile(null);
+      onClose();
+    } catch {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   const handleSaveAsDraft = () => {
     const data = form.getValues();
     if (form.formState.isValid) {
       onFormSubmit(data, 'DRAFT');
+    } else {
+      form.trigger();
+    }
+  };
+
+  const handleSendRequest = () => {
+    const data = form.getValues();
+    if (form.formState.isValid) {
+      onFormSubmit(data, 'REQUESTED');
     } else {
       form.trigger();
     }
@@ -191,7 +304,7 @@ export function RequestDocumentModal({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => onFormSubmit(data, 'REQUESTED'))} className="space-y-6 py-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleSendRequest(); }} className="space-y-6 py-4">
 
             {/* Document Type Select */}
             <FormField
@@ -271,6 +384,98 @@ export function RequestDocumentModal({
                 </FormItem>
               )}
             />
+
+            {/* Requires Signature Checkbox */}
+            <FormField
+              control={form.control}
+              name="requiresSignature"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="flex items-center gap-2">
+                      <PenLine className="w-4 h-4" />
+                      {t('requiresSignature')}
+                    </FormLabel>
+                    <FormDescription>
+                      {t('requiresSignatureDescription')}
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            {/* File Dropzone (shown when requiresSignature is checked) */}
+            {requiresSignature && (
+              <div className="space-y-2">
+                <FormLabel>{t('documentToSign')}</FormLabel>
+                {!file ? (
+                  <div
+                    {...getRootProps()}
+                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer flex flex-col items-center gap-2
+                      ${isDragReject ? 'border-destructive bg-destructive/10' : isDragActive ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/50'}`}
+                  >
+                    <input {...getInputProps()} />
+                    <div className={`p-2 rounded-full ${isDragReject ? 'bg-destructive/10' : 'bg-muted'}`}>
+                      {isDragReject ? (
+                        <X className="w-5 h-5 text-destructive" />
+                      ) : (
+                        <Upload className="w-5 h-5 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div>
+                      <span className={`text-sm font-medium block ${isDragReject ? 'text-destructive' : 'text-foreground'}`}>
+                        {isDragReject ? t('errors.invalidFileType', 'Invalid file type') : (isDragActive ? t('dropFileHere', 'Drop file here') : t('dragAndDropOrClick'))}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {t('supportedFormats')} (PDF, JPG, PNG) • {t('maxSize', { size: '25MB' })}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border border-border rounded-lg p-3 relative">
+                    {!isUploading && (
+                      <button
+                        type="button"
+                        onClick={removeFile}
+                        className="absolute top-2 right-2 p-1 hover:bg-muted rounded-full text-muted-foreground"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <FileText className="w-6 h-6 text-primary" />
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                    </div>
+                    {isUploading && (
+                      <div className="mt-3 space-y-1">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{t('actions.uploading', 'Uploading...')}...</span>
+                          <span>{uploadProgress}%</span>
+                        </div>
+                        <Progress value={uploadProgress} className="h-2" />
+                      </div>
+                    )}
+                  </div>
+                )}
+                {fileError && (
+                  <div className="text-sm text-destructive bg-destructive/10 p-2 rounded flex items-center gap-2">
+                    <span className="block w-1.5 h-1.5 rounded-full bg-destructive" />
+                    {fileError}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               {/* Stage */}
@@ -389,22 +594,35 @@ export function RequestDocumentModal({
             </div>
 
             <DialogFooter className="gap-4 sm:gap-4">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isUploading}>
                 {t('cancel')}
               </Button>
               <Button
                 type="button"
                 variant="secondary"
                 onClick={handleSaveAsDraft}
-                disabled={!form.formState.isValid}
+                disabled={!form.formState.isValid || isUploading}
                 className="gap-2"
               >
                 <Save className="w-4 h-4" />
                 {t('actions.saveAsDraft', 'Save as Draft')}
               </Button>
-              <Button type="submit" disabled={!form.formState.isValid} className="gap-2">
-                <Send className="w-4 h-4" />
-                {t('sendRequest')}
+              <Button
+                type="submit"
+                disabled={!form.formState.isValid || isUploading || (requiresSignature && !file)}
+                className="gap-2"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {t('actions.uploading', 'Uploading...')}
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    {t('sendRequest')}
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </form>

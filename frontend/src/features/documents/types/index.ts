@@ -75,6 +75,7 @@ export interface DocumentCreateDTO {
     dueDate?: Date;
     status?: DocumentStatusEnum;
     flow?: DocumentFlowEnum;
+    requiresSignature?: boolean;
 }
 
 export interface DocumentUpdateDTO {
@@ -87,6 +88,7 @@ export interface DocumentUpdateDTO {
     conditionIds?: string[];
     dueDate?: Date;
     flow?: DocumentFlowEnum;
+    requiresSignature?: boolean;
 }
 
 export interface Document {
@@ -108,4 +110,5 @@ export interface Document {
     stage: string;
     dueDate?: string;
     flow: DocumentFlowEnum;
+    requiresSignature?: boolean;
 }

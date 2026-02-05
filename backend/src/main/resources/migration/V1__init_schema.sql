@@ -162,6 +162,8 @@ CREATE TABLE IF NOT EXISTS documents (
     stage VARCHAR(64),
     -- Flow type: REQUEST (client uploads) or UPLOAD (broker uploads)
     flow VARCHAR(50) DEFAULT 'REQUEST',
+    -- Whether the client must sign and return this document
+    requires_signature BOOLEAN DEFAULT false,
     -- Date columns (consolidated from V2)
     due_date TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

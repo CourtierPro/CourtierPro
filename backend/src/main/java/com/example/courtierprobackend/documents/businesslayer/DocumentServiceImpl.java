@@ -184,6 +184,9 @@ public class DocumentServiceImpl implements DocumentService {
                 document.setDueDate(requestDTO.getDueDate());
                 // Set flow type, default to REQUEST if not provided
                 document.setFlow(requestDTO.getFlow() != null ? requestDTO.getFlow() : DocumentFlowEnum.REQUEST);
+                // Set signature requirement
+                document.setRequiresSignature(
+                        requestDTO.getRequiresSignature() != null ? requestDTO.getRequiresSignature() : false);
 
                 Document savedDocument = repository.save(document);
 
@@ -228,7 +231,8 @@ public class DocumentServiceImpl implements DocumentService {
                                                 documentName,
                                                 docType,
                                                 requestDTO.getBrokerNotes(),
-                                                clientLanguage);
+                                                clientLanguage,
+                                                savedDocument.isRequiresSignature());
 
                                 // In-app Notification for Client
                                 try {
@@ -661,6 +665,7 @@ public class DocumentServiceImpl implements DocumentService {
                                 .visibleToClient(document.isVisibleToClient())
                                 .stage(document.getStage())
 				.flow(document.getFlow())
+				.requiresSignature(document.isRequiresSignature())
                                 .build();
         }
 
@@ -789,7 +794,9 @@ public class DocumentServiceImpl implements DocumentService {
                                                 category = com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_APPROVED;
                                         } else if (updated.getStatus() == DocumentStatusEnum.NEEDS_REVISION) {
                                                 titleKey = "notification.document.reviewed.title";
-                                                messageKey = "notification.document.reviewed.needs_revision";
+                                                messageKey = updated.isRequiresSignature()
+                                                                ? "notification.document.signature.needs_revision"
+                                                                : "notification.document.reviewed.needs_revision";
                                                 category = com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.DOCUMENT_REVISION;
                                         } else { // REJECTED
                                                 titleKey = "notification.document.rejected.title";
@@ -922,7 +929,8 @@ public class DocumentServiceImpl implements DocumentService {
                                 documentName,
                                 document.getDocType().toString(),
                                 document.getBrokerNotes(),
-                                client.getPreferredLanguage());
+                                client.getPreferredLanguage(),
+                                document.isRequiresSignature());
         }
 
         @Transactional
@@ -940,6 +948,13 @@ public class DocumentServiceImpl implements DocumentService {
 
                 if (document.getStatus() != DocumentStatusEnum.DRAFT) {
                         throw new BadRequestException("Only draft documents can be sent as requests");
+                }
+
+                // Validate: signature requests must have a source document attached
+                if (document.isRequiresSignature()
+                                && (document.getVersions() == null || document.getVersions().isEmpty())) {
+                        throw new BadRequestException(
+                                        "Source document must be attached before sending a signature request");
                 }
 
                 // Transition to REQUESTED status
@@ -974,7 +989,8 @@ public class DocumentServiceImpl implements DocumentService {
                                         documentName,
                                         docType,
                                         document.getBrokerNotes(),
-                                        clientLanguage);
+                                        clientLanguage,
+                                        document.isRequiresSignature());
 
                         // In-app Notification for Client
                         try {
@@ -985,8 +1001,14 @@ public class DocumentServiceImpl implements DocumentService {
                                 String displayDocName = document.getCustomTitle() != null
                                                 ? document.getCustomTitle()
                                                 : localizedDocType;
-                                String title = messageSource.getMessage("notification.document.requested.title", null, locale);
-                                String message = messageSource.getMessage("notification.document.requested.message",
+                                String titleKey = document.isRequiresSignature()
+                                                ? "notification.document.signature.requested.title"
+                                                : "notification.document.requested.title";
+                                String messageKey = document.isRequiresSignature()
+                                                ? "notification.document.signature.requested.message"
+                                                : "notification.document.requested.message";
+                                String title = messageSource.getMessage(titleKey, null, locale);
+                                String message = messageSource.getMessage(messageKey,
                                                 new Object[] { brokerName, displayDocName }, locale);
                                 notificationService.createNotification(
                                                 client.getId().toString(),

@@ -118,6 +118,7 @@
     },
     "uploadingFor": "Uploading for",
     "dragAndDropOrClick": "Drag and drop or click to select",
+    "dropFileHere": "Drop file here",
     "dropToUpload": "Drop file to upload",
     "supportedFormats": "Supported formats",
     "clickToSelectFile": "Click to select file",
@@ -159,5 +160,13 @@
     "dueToday": "Due Today",
     "noOutstandingDocuments": "No outstanding documents. You're all caught up!",
     "confirmDeleteDraft": "Are you sure you want to delete this draft?",
-    "confirmShareDraft": "Are you sure you want to share this document with the client? It will be immediately visible to them."
+    "confirmShareDraft": "Are you sure you want to share this document with the client? It will be immediately visible to them.",
+    "requiresSignature": "Requires client signature",
+    "requiresSignatureDescription": "The client will need to download this document, sign it, and upload the signed version.",
+    "signatureRequired": "Signature Required",
+    "documentToSign": "Document to Sign",
+    "signedVersion": "Signed Version",
+    "downloadToSign": "Download to Sign",
+    "uploadSigned": "Upload Signed Document",
+    "signatureRequested": "Signature requested"
 }

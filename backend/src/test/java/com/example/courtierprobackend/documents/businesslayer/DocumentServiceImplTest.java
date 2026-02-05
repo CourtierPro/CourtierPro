@@ -1040,7 +1040,7 @@ class DocumentServiceImplTest {
 
                 // Assert
                 verify(emailService, never()).sendDocumentRequestedNotification(anyString(), anyString(), anyString(),
-                                anyString(), anyString(), anyString(), anyString());
+                                anyString(), anyString(), anyString(), anyString(), anyBoolean());
                 verify(notificationService, never()).createNotification(anyString(), anyString(), anyString(),
                                 anyString(),
                                 any());
@@ -1217,7 +1217,8 @@ class DocumentServiceImplTest {
                                 captor.capture(),
                                 captor.capture(),
                                 captor.capture(),
-                                captor.capture());
+                                captor.capture(),
+                                anyBoolean());
                 java.util.List<String> args = captor.getAllValues();
                 org.junit.jupiter.api.Assertions.assertEquals("client@test.com", args.get(0));
                 org.junit.jupiter.api.Assertions.assertEquals("John Doe", args.get(1));
@@ -2029,7 +2030,8 @@ class DocumentServiceImplTest {
                                 anyString(),
                                 eq("PROOF_OF_FUNDS"),
                                 any(),
-                                eq("en"));
+                                eq("en"),
+                                anyBoolean());
         }
 
         // ========== Draft Workflow Tests ==========
@@ -2069,7 +2071,7 @@ class DocumentServiceImplTest {
                 assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.DRAFT);
 
                 // Verify no email notifications sent
-                verify(emailService, never()).sendDocumentRequestedNotification(any(), any(), any(), any(), any(), any(), any());
+                verify(emailService, never()).sendDocumentRequestedNotification(any(), any(), any(), any(), any(), any(), any(), anyBoolean());
 
                 // Verify no timeline entry added
                 verify(timelineService, never()).addEntry(any(), any(), any(), any(), any());
@@ -2126,7 +2128,7 @@ class DocumentServiceImplTest {
                 assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.REQUESTED);
 
                 // Verify email notification sent
-                verify(emailService, atLeastOnce()).sendDocumentRequestedNotification(any(), any(), any(), any(), any(), any(), any());
+                verify(emailService, atLeastOnce()).sendDocumentRequestedNotification(any(), any(), any(), any(), any(), any(), any(), anyBoolean());
 
                 // Verify timeline entry added
                 verify(timelineService, atLeastOnce()).addEntry(any(), any(), any(), any(), any());
@@ -2263,7 +2265,8 @@ class DocumentServiceImplTest {
                                 anyString(),
                                 eq("PROOF_OF_FUNDS"),
                                 any(),
-                                eq("en"));
+                                eq("en"),
+                                anyBoolean());
 
                 // Verify timeline entry added
                 verify(timelineService).addEntry(eq(transactionId), eq(brokerId), any(), any(), any());

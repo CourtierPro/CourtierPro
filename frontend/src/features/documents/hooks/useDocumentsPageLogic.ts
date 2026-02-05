@@ -23,7 +23,8 @@ export function useDocumentsPageLogic(transactionId: string) {
         conditionIds: string[] = [],
         dueDate?: Date,
         status?: 'DRAFT' | 'REQUESTED' | 'SUBMITTED',
-        flow?: DocumentFlowEnum
+        flow?: DocumentFlowEnum,
+        requiresSignature?: boolean
     ): Promise<string | undefined> => {
         try {
             const result = await createDocument.mutateAsync({
@@ -38,7 +39,8 @@ export function useDocumentsPageLogic(transactionId: string) {
                     conditionIds: conditionIds.length > 0 ? conditionIds : undefined,
                     dueDate: dueDate,
                     status: status, // Pass status to API (DRAFT, REQUESTED, or SUBMITTED)
-                    flow: flow // Pass flow to API (REQUEST or UPLOAD)
+                    flow: flow, // Pass flow to API (REQUEST or UPLOAD)
+                    requiresSignature: requiresSignature
                 }
             });
             setIsModalOpen(false);

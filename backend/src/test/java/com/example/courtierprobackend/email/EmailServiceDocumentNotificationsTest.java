@@ -95,11 +95,11 @@ class EmailServiceDocumentNotificationsTest {
             .documentRequestedBodyFr("Corps {{clientName}} {{brokerName}} {{documentName}} {{brokerNotes}}")
             .build();
         when(orgSettingsService.getSettings()).thenReturn(settings);
-        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "MORTGAGE_PRE_APPROVAL", "Notes", "en");
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "MORTGAGE_PRE_APPROVAL", "Notes", "en", false);
         verify(service, atLeastOnce()).sendEmail(anyString(), anyString(), anyString());
 
         // 2. French with null docType and documentName (lines 174, 177-178, 182)
-        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", null, null, null, "fr");
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", null, null, null, "fr", false);
 
         // 3. Null subject/body from settings (lines 187-188, 192, 200-202)
         OrganizationSettingsResponseModel nullSettings = OrganizationSettingsResponseModel.builder()
@@ -109,8 +109,8 @@ class EmailServiceDocumentNotificationsTest {
             .documentRequestedBodyFr(null)
             .build();
         when(orgSettingsService.getSettings()).thenReturn(nullSettings);
-        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "OTHER", "Notes", "en");
-        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "OTHER", null, "fr");
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "OTHER", "Notes", "en", false);
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "OTHER", null, "fr", false);
 
         // 4. Subject doesn't contain displayName - append
         OrganizationSettingsResponseModel noDisplayNameSubject = OrganizationSettingsResponseModel.builder()
@@ -118,15 +118,15 @@ class EmailServiceDocumentNotificationsTest {
             .documentRequestedBodyEn("Body {{clientName}}")
             .build();
         when(orgSettingsService.getSettings()).thenReturn(noDisplayNameSubject);
-        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "TYPE", null, "en");
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "TYPE", null, "en", false);
 
         // 5. Disabled notifications - early return (line 171)
         when(userAccount.isEmailNotificationsEnabled()).thenReturn(false);
-        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "TYPE", null, "en");
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "TYPE", null, "en", false);
 
         // 6. User not present - early return
         when(userRepo.findByEmail(anyString())).thenReturn(java.util.Optional.empty());
-        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "TYPE", null, "en");
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "TYPE", null, "en", false);
     }
 
     // ========== sendDocumentEditedNotification Tests ==========

@@ -182,7 +182,8 @@ public class EmailService {
     }
 
     public void sendDocumentRequestedNotification(String clientEmail, String clientName, String brokerName,
-            String documentName, String docType, String brokerNotes, String clientLanguage) {
+            String documentName, String docType, String brokerNotes, String clientLanguage,
+            boolean requiresSignature) {
         // Check client's email notification preference
         var clientOpt = userAccountRepository.findByEmail(clientEmail);
         if (!clientOpt.isPresent() || !clientOpt.get().isEmailNotificationsEnabled()) {
@@ -209,7 +210,13 @@ public class EmailService {
 
             // Fallback to defaults if not configured
             if (subject == null || subject.isBlank()) {
-                subject = isFrench ? ("Document demandé : " + displayName) : ("Document Requested: " + displayName);
+                if (requiresSignature) {
+                    subject = isFrench ? ("Signature demandée : " + displayName)
+                            : ("Signature Requested: " + displayName);
+                } else {
+                    subject = isFrench ? ("Document demandé : " + displayName)
+                            : ("Document Requested: " + displayName);
+                }
             } else {
                 // If subject from settings does not include displayName, append it
                 if (!subject.contains(displayName)) {
@@ -217,9 +224,15 @@ public class EmailService {
                 }
             }
             if (bodyText == null || bodyText.isBlank()) {
-                bodyText = isFrench
-                        ? "Bonjour {{clientName}}, {{brokerName}} a demandé le document {{documentName}}. Veuillez le soumettre dès que possible."
-                        : "Hello {{clientName}}, {{brokerName}} has requested the document {{documentName}}. Please submit it as soon as possible.";
+                if (requiresSignature) {
+                    bodyText = isFrench
+                            ? "Bonjour {{clientName}}, {{brokerName}} vous demande de signer le document {{documentName}}. Veuillez le télécharger, le signer, puis le téléverser sur CourtierPro."
+                            : "Hello {{clientName}}, {{brokerName}} has requested you sign the document {{documentName}}. Please download it, sign it, and upload the signed version to CourtierPro.";
+                } else {
+                    bodyText = isFrench
+                            ? "Bonjour {{clientName}}, {{brokerName}} a demandé le document {{documentName}}. Veuillez le soumettre dès que possible."
+                            : "Hello {{clientName}}, {{brokerName}} has requested the document {{documentName}}. Please submit it as soon as possible.";
+                }
             }
 
             // Prepare variable values for conditional blocks
