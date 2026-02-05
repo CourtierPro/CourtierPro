@@ -204,31 +204,32 @@ public class EmailService {
             // Get organization settings for templates and subject/body
             OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
 
-            String subject = isFrench ? settings.getDocumentRequestedSubjectFr()
-                    : settings.getDocumentRequestedSubjectEn();
-            String bodyText = isFrench ? settings.getDocumentRequestedBodyFr() : settings.getDocumentRequestedBodyEn();
+            String subject;
+            String bodyText;
 
-            // Fallback to defaults if not configured
-            if (subject == null || subject.isBlank()) {
-                if (requiresSignature) {
-                    subject = isFrench ? ("Signature demandée : " + displayName)
-                            : ("Signature Requested: " + displayName);
-                } else {
+            if (requiresSignature) {
+                // Signature requests always use signature-specific text
+                subject = isFrench ? ("Signature demandée : " + displayName)
+                        : ("Signature Requested: " + displayName);
+                bodyText = isFrench
+                        ? "Bonjour {{clientName}}, {{brokerName}} vous demande de signer le document {{documentName}}. Veuillez le télécharger, le signer, puis le téléverser sur CourtierPro."
+                        : "Hello {{clientName}}, {{brokerName}} has requested you sign the document {{documentName}}. Please download it, sign it, and upload the signed version to CourtierPro.";
+            } else {
+                subject = isFrench ? settings.getDocumentRequestedSubjectFr()
+                        : settings.getDocumentRequestedSubjectEn();
+                bodyText = isFrench ? settings.getDocumentRequestedBodyFr()
+                        : settings.getDocumentRequestedBodyEn();
+
+                // Fallback to defaults if not configured
+                if (subject == null || subject.isBlank()) {
                     subject = isFrench ? ("Document demandé : " + displayName)
                             : ("Document Requested: " + displayName);
-                }
-            } else {
-                // If subject from settings does not include displayName, append it
-                if (!subject.contains(displayName)) {
-                    subject += " : " + displayName;
-                }
-            }
-            if (bodyText == null || bodyText.isBlank()) {
-                if (requiresSignature) {
-                    bodyText = isFrench
-                            ? "Bonjour {{clientName}}, {{brokerName}} vous demande de signer le document {{documentName}}. Veuillez le télécharger, le signer, puis le téléverser sur CourtierPro."
-                            : "Hello {{clientName}}, {{brokerName}} has requested you sign the document {{documentName}}. Please download it, sign it, and upload the signed version to CourtierPro.";
                 } else {
+                    if (!subject.contains(displayName)) {
+                        subject += " : " + displayName;
+                    }
+                }
+                if (bodyText == null || bodyText.isBlank()) {
                     bodyText = isFrench
                             ? "Bonjour {{clientName}}, {{brokerName}} a demandé le document {{documentName}}. Veuillez le soumettre dès que possible."
                             : "Hello {{clientName}}, {{brokerName}} has requested the document {{documentName}}. Please submit it as soon as possible.";
