@@ -632,19 +632,13 @@ public class TransactionServiceImpl implements TransactionService {
 
         // Auto-Closing Logic
         if (tx.getSide() == TransactionSide.BUY_SIDE) {
-            if (tx.getBuyerStage() == BuyerStage.BUYER_OCCUPANCY) {
+            if (tx.getBuyerStage() == BuyerStage.BUYER_POSSESSION) {
                 tx.setStatus(TransactionStatus.CLOSED_SUCCESSFULLY);
-                tx.setClosedAt(LocalDateTime.now());
-            } else if (tx.getBuyerStage() == BuyerStage.BUYER_TERMINATED) {
-                tx.setStatus(TransactionStatus.TERMINATED_EARLY);
                 tx.setClosedAt(LocalDateTime.now());
             }
         } else if (tx.getSide() == TransactionSide.SELL_SIDE) {
-            if (tx.getSellerStage() == SellerStage.SELLER_HANDOVER_KEYS) {
+            if (tx.getSellerStage() == SellerStage.SELLER_HANDOVER) {
                 tx.setStatus(TransactionStatus.CLOSED_SUCCESSFULLY);
-                tx.setClosedAt(LocalDateTime.now());
-            } else if (tx.getSellerStage() == SellerStage.SELLER_TERMINATED) {
-                tx.setStatus(TransactionStatus.TERMINATED_EARLY);
                 tx.setClosedAt(LocalDateTime.now());
             }
         }
@@ -745,6 +739,87 @@ public class TransactionServiceImpl implements TransactionService {
         } catch (Exception e) {
             log.error("Failed to send notifications/emails for transaction {}", saved.getTransactionId(), e);
             // Do not rethrow, transaction is already saved
+        }
+
+        return EntityDtoUtil.toResponse(saved, lookupUserName(saved.getClientId()));
+    }
+
+    @Override
+    @Transactional
+    public TransactionResponseDTO terminateTransaction(UUID transactionId, String reason, UUID brokerId) {
+        if (reason == null || reason.isBlank()) {
+            throw new BadRequestException("Reason is required for termination.");
+        }
+        String trimmedReason = reason.trim();
+        if (trimmedReason.length() < 10 || trimmedReason.length() > 500) {
+            throw new BadRequestException("Reason must be between 10 and 500 characters.");
+        }
+
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_STAGE);
+
+        if (tx.getStatus() == TransactionStatus.CLOSED_SUCCESSFULLY ||
+                tx.getStatus() == TransactionStatus.TERMINATED_EARLY) {
+            throw new BadRequestException("Cannot terminate a closed or already terminated transaction.");
+        }
+
+        tx.setStatus(TransactionStatus.TERMINATED_EARLY);
+        tx.setClosedAt(LocalDateTime.now());
+        // Stage is intentionally NOT changed — it preserves where the transaction was
+
+        Transaction saved;
+        try {
+            saved = repo.save(tx);
+        } catch (OptimisticLockingFailureException e) {
+            throw new ConflictException("The transaction was updated by another user. Please refresh and try again.", e);
+        }
+
+        // Timeline entry
+        timelineService.addEntry(
+                transactionId,
+                brokerId,
+                TimelineEntryType.STATUS_CHANGE,
+                "Transaction terminated. Reason: " + trimmedReason,
+                null);
+
+        // Notifications
+        try {
+            Optional<UserAccount> clientOpt = userAccountRepository.findById(saved.getClientId());
+            Optional<UserAccount> brokerOpt = userAccountRepository.findById(brokerId);
+
+            if (clientOpt.isPresent() && brokerOpt.isPresent()) {
+                UserAccount client = clientOpt.get();
+                UserAccount broker = brokerOpt.get();
+
+                String clientName = (client.getFirstName() + " " + client.getLastName()).trim();
+                String brokerName = (broker.getFirstName() + " " + broker.getLastName()).trim();
+
+                String address = "Unknown Address";
+                if (saved.getPropertyAddress() != null && saved.getPropertyAddress().getStreet() != null) {
+                    address = saved.getPropertyAddress().getStreet();
+                }
+
+                String currentStage = saved.getSide() == TransactionSide.BUY_SIDE
+                        ? (saved.getBuyerStage() != null ? saved.getBuyerStage().name() : "")
+                        : (saved.getSellerStage() != null ? saved.getSellerStage().name() : "");
+
+                Map<String, Object> params = new HashMap<>();
+                params.put("stage", StageTranslationUtil.getTranslatedStage(currentStage, client.getPreferredLanguage()));
+                params.put("brokerName", brokerName);
+                params.put("propertyAddress", address);
+
+                notificationService.createNotification(
+                        client.getId().toString(),
+                        "notifications.transactionTerminated.title",
+                        "notifications.transactionTerminated.message",
+                        params,
+                        saved.getTransactionId().toString(),
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE);
+            }
+        } catch (Exception e) {
+            log.error("Failed to send notifications for terminated transaction {}", saved.getTransactionId(), e);
         }
 
         return EntityDtoUtil.toResponse(saved, lookupUserName(saved.getClientId()));

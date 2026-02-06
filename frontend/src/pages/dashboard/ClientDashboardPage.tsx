@@ -33,6 +33,10 @@ export function ClientDashboardPage() {
     kpis,
     isLoading,
   } = useClientDashboardStats(clientId);
+  const activeTransactions = useMemo(
+    () => transactions.filter((tx) => tx.status === 'ACTIVE'),
+    [transactions]
+  );
 
   const { data: notifications, isLoading: isNotificationsLoading } =
     useNotifications();
@@ -316,7 +320,7 @@ export function ClientDashboardPage() {
         title={t("client.myTransactions")}
         description={t("client.myTransactionsDesc")}
       >
-        {transactions.length === 0 ? (
+        {activeTransactions.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Inbox className="h-16 w-16 text-muted-foreground/50 mb-4" />
@@ -328,7 +332,7 @@ export function ClientDashboardPage() {
           </Card>
         ) : (
           <TransactionCarousel
-            transactions={transactions}
+            transactions={activeTransactions}
             getDocumentCounts={(transactionId) => ({
               documentCount: getDocumentCountByTransaction(transactionId),
               approvedDocumentCount: getApprovedDocumentCountByTransaction(transactionId),

@@ -67,7 +67,7 @@ class TransactionControllerIntegrationTest {
         TransactionRequestDTO dto = new TransactionRequestDTO();
         dto.setClientId(clientId);
         dto.setSide(TransactionSide.BUY_SIDE);
-        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        dto.setInitialStage("BUYER_FINANCIAL_PREPARATION");
 
         when(service.createTransaction(any())).thenReturn(EntityDtoUtil.toResponseStub(txId, clientId, brokerId));
 
@@ -82,7 +82,7 @@ class TransactionControllerIntegrationTest {
                 .andExpect(jsonPath("$.clientId").value(clientId.toString()))
                 .andExpect(jsonPath("$.brokerId").value(brokerId.toString()))
                 .andExpect(jsonPath("$.side").value("BUY_SIDE"))
-                .andExpect(jsonPath("$.currentStage").value("BUYER_PREQUALIFY_FINANCIALLY"))
+                .andExpect(jsonPath("$.currentStage").value("BUYER_FINANCIAL_PREPARATION"))
                 .andExpect(jsonPath("$.openedDate").isNotEmpty());
     }
 
@@ -92,7 +92,7 @@ class TransactionControllerIntegrationTest {
         TransactionRequestDTO dto = new TransactionRequestDTO();
         dto.setClientId(UUID.randomUUID());
         dto.setSide(TransactionSide.BUY_SIDE);
-        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        dto.setInitialStage("BUYER_FINANCIAL_PREPARATION");
 
         // With addFilters=false, UserContextFilter doesn't set the internal user ID.
         // When the broker header is missing and no internal ID exists, 
@@ -124,7 +124,7 @@ class TransactionControllerIntegrationTest {
         TransactionRequestDTO dto = new TransactionRequestDTO();
         dto.setClientId(UUID.randomUUID());
         dto.setSide(TransactionSide.BUY_SIDE);
-        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        dto.setInitialStage("BUYER_FINANCIAL_PREPARATION");
 
         when(service.createTransaction(any()))
                 .thenThrow(new BadRequestException("Bad input"));
@@ -144,7 +144,7 @@ class TransactionControllerIntegrationTest {
         TransactionRequestDTO dto = new TransactionRequestDTO();
         dto.setClientId(UUID.randomUUID());
         dto.setSide(TransactionSide.BUY_SIDE);
-        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        dto.setInitialStage("BUYER_FINANCIAL_PREPARATION");
 
         when(service.createTransaction(any()))
                 .thenThrow(new NotFoundException("Not found"));
@@ -164,7 +164,7 @@ class TransactionControllerIntegrationTest {
         TransactionRequestDTO dto = new TransactionRequestDTO();
         dto.setClientId(UUID.randomUUID());
         dto.setSide(TransactionSide.BUY_SIDE);
-        dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        dto.setInitialStage("BUYER_FINANCIAL_PREPARATION");
 
         when(service.createTransaction(any()))
                 .thenThrow(new BadRequestException("Duplicate transaction"));
@@ -183,12 +183,12 @@ class TransactionControllerIntegrationTest {
         UUID txId = UUID.randomUUID();
         UUID broker = UUID.randomUUID();
 
-        String payload = "{\"stage\": \"BUYER_OFFER_ACCEPTED\", \"note\": \"Moving fast!\"}";
+        String payload = "{\"stage\": \"BUYER_OFFER_AND_NEGOTIATION\", \"note\": \"Moving fast!\"}";
 
         when(service.updateTransactionStage(eq(txId), any(), eq(broker)))
                 .thenReturn(com.example.courtierprobackend.transactions.datalayer.dto.TransactionResponseDTO.builder()
                         .transactionId(txId)
-                        .currentStage("BUYER_OFFER_ACCEPTED")
+                        .currentStage("BUYER_OFFER_AND_NEGOTIATION")
                         .brokerId(broker)
                         .build());
 
@@ -199,7 +199,7 @@ class TransactionControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload)
         ).andExpect(status().isOk())
-         .andExpect(jsonPath("$.currentStage").value("BUYER_OFFER_ACCEPTED"));
+         .andExpect(jsonPath("$.currentStage").value("BUYER_OFFER_AND_NEGOTIATION"));
     }
 
     @Test

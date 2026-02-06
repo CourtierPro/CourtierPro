@@ -22,10 +22,24 @@ class StageEnumTest {
 
     @Test
     void enumContainsExpectedStages() {
-        assertThat(StageEnum.valueOf("BUYER_PREQUALIFY_FINANCIALLY")).isNotNull();
-        assertThat(StageEnum.valueOf("SELLER_TERMINATED")).isNotNull();
-        // Add a few more representative checks
-        assertThat(StageEnum.valueOf("BUYER_OFFER_ACCEPTED")).isNotNull();
-        assertThat(StageEnum.valueOf("SELLER_LISTING_PUBLISHED")).isNotNull();
+        // Buyer stages
+        assertThat(StageEnum.valueOf("BUYER_FINANCIAL_PREPARATION")).isNotNull();
+        assertThat(StageEnum.valueOf("BUYER_PROPERTY_SEARCH")).isNotNull();
+        assertThat(StageEnum.valueOf("BUYER_OFFER_AND_NEGOTIATION")).isNotNull();
+        assertThat(StageEnum.valueOf("BUYER_FINANCING_AND_CONDITIONS")).isNotNull();
+        assertThat(StageEnum.valueOf("BUYER_NOTARY_AND_SIGNING")).isNotNull();
+        assertThat(StageEnum.valueOf("BUYER_POSSESSION")).isNotNull();
+        // Seller stages
+        assertThat(StageEnum.valueOf("SELLER_INITIAL_CONSULTATION")).isNotNull();
+        assertThat(StageEnum.valueOf("SELLER_PUBLISH_LISTING")).isNotNull();
+        assertThat(StageEnum.valueOf("SELLER_OFFER_AND_NEGOTIATION")).isNotNull();
+        assertThat(StageEnum.valueOf("SELLER_FINANCING_AND_CONDITIONS")).isNotNull();
+        assertThat(StageEnum.valueOf("SELLER_NOTARY_AND_SIGNING")).isNotNull();
+        assertThat(StageEnum.valueOf("SELLER_HANDOVER")).isNotNull();
+    }
+
+    @Test
+    void enumHasExpectedCount() {
+        assertThat(StageEnum.values()).hasSize(12);
     }
 }

@@ -423,6 +423,7 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
             customTitle: editingDocument.customTitle || '',
             instructions: editingDocument.brokerNotes || '',
             stage: editingDocument.stage,
+            requiresSignature: editingDocument.requiresSignature ?? false,
           }}
         />
       )}

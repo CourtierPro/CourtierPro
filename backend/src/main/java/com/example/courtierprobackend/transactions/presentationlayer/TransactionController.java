@@ -22,6 +22,7 @@ import com.example.courtierprobackend.transactions.datalayer.dto.OfferRevisionRe
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.SearchCriteriaRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.SearchCriteriaResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.TerminateRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus;
 
 import com.example.courtierprobackend.security.UserContextUtils;
@@ -175,6 +176,20 @@ public class TransactionController {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
 
         TransactionResponseDTO updated = service.updateTransactionStage(transactionId, dto, brokerId);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/{transactionId}/terminate")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<TransactionResponseDTO> terminateTransaction(
+            @PathVariable UUID transactionId,
+            @Valid @RequestBody TerminateRequestDTO dto,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+
+        TransactionResponseDTO updated = service.terminateTransaction(transactionId, dto.getReason(), brokerId);
         return ResponseEntity.ok(updated);
     }
 

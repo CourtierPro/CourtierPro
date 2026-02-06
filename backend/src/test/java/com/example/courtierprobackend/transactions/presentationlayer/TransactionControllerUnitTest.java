@@ -46,12 +46,12 @@ class TransactionControllerUnitTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
 
         StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-        dto.setStage("BUYER_OFFER_ACCEPTED");
+        dto.setStage("BUYER_OFFER_AND_NEGOTIATION");
         dto.setNote("Note");
 
         TransactionResponseDTO resp = TransactionResponseDTO.builder()
                 .transactionId(txId)
-                .currentStage("BUYER_OFFER_ACCEPTED")
+                .currentStage("BUYER_OFFER_AND_NEGOTIATION")
                 .build();
 
         when(transactionService.updateTransactionStage(eq(txId), any(StageUpdateRequestDTO.class), eq(brokerUuid))).thenReturn(resp);
@@ -62,7 +62,7 @@ class TransactionControllerUnitTest {
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getCurrentStage()).isEqualTo("BUYER_OFFER_ACCEPTED");
+        assertThat(response.getBody().getCurrentStage()).isEqualTo("BUYER_OFFER_AND_NEGOTIATION");
         verify(transactionService).updateTransactionStage(eq(txId), any(StageUpdateRequestDTO.class), eq(brokerUuid));
     }
 
@@ -74,12 +74,12 @@ class TransactionControllerUnitTest {
         MockHttpServletRequest request = createRequestWithInternalId(internalId);
 
         StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-        dto.setStage("BUYER_OFFER_ACCEPTED");
+        dto.setStage("BUYER_OFFER_AND_NEGOTIATION");
         dto.setNote("Note");
 
         TransactionResponseDTO resp = TransactionResponseDTO.builder()
                 .transactionId(txId)
-                .currentStage("BUYER_OFFER_ACCEPTED")
+                .currentStage("BUYER_OFFER_AND_NEGOTIATION")
                 .build();
 
         when(transactionService.updateTransactionStage(eq(txId), any(StageUpdateRequestDTO.class), eq(internalId))).thenReturn(resp);
@@ -101,7 +101,7 @@ class TransactionControllerUnitTest {
         // No internal ID set
 
         StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-        dto.setStage("BUYER_OFFER_ACCEPTED");
+        dto.setStage("BUYER_OFFER_AND_NEGOTIATION");
 
         // Act & Assert
         assertThatThrownBy(() -> controller.updateTransactionStage(txId, dto, null, null, request))

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { getStagesForSide, getStageLabel } from '@/shared/utils/stages';
+import { getStagesForSide, getStageLabel, getStageDescription } from '@/shared/utils/stages';
 import { X, MessageSquare, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useForm, useWatch } from 'react-hook-form';
@@ -57,11 +57,6 @@ function StageUpdateForm({
   const { t, i18n } = useTranslation('transactions');
 
   const stageEnums = transactionSide === 'buy' ? getStagesForSide('BUY_SIDE') : getStagesForSide('SELL_SIDE');
-  const stageDescriptions =
-    transactionSide === 'buy'
-      ? (t('buyStageDescriptions', { returnObjects: true }) as string[])
-      : (t('sellStageDescriptions', { returnObjects: true }) as string[]);
-
   // Compute the default next stage (current stage + 1)
   const computeNextStage = (): string => {
     if (!currentStage) return '';
@@ -136,10 +131,8 @@ function StageUpdateForm({
 
   const isFinalStage = (stage: string) => {
     return [
-      'BUYER_OCCUPANCY',
-      'BUYER_TERMINATED',
-      'SELLER_HANDOVER_KEYS',
-      'SELLER_TERMINATED'
+      'BUYER_POSSESSION',
+      'SELLER_HANDOVER',
     ].includes(stage);
   };
 
@@ -274,7 +267,7 @@ function StageUpdateForm({
               </div>
               <p className="text-foreground text-sm">
                 {selectedStage && stageEnums.indexOf(selectedStage) >= 0
-                  ? stageDescriptions[stageEnums.indexOf(selectedStage)]
+                  ? getStageDescription(selectedStage, t, transactionSide === 'buy' ? 'BUY_SIDE' : 'SELL_SIDE')
                   : ''}
               </p>
             </div>

@@ -67,7 +67,7 @@ class DocumentServiceImplTest {
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
                 request.setStatus(DocumentStatusEnum.DRAFT);
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 DocumentRequestDTO dto = new DocumentRequestDTO();
                 dto.setDocType(DocumentTypeEnum.BANK_STATEMENT); // trigger update
@@ -178,7 +178,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(Boolean.TRUE);
                 request.setBrokerNotes("OriginalNotes");
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1146,7 +1146,7 @@ class DocumentServiceImplTest {
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
                 request.setStage(
-                                com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                                com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1156,7 +1156,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes("Notes");
-                dto.setStage(com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 Transaction tx = new Transaction();
                 tx.setBrokerId(brokerId);
@@ -1248,7 +1248,7 @@ class DocumentServiceImplTest {
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
                 request.setStatus(DocumentStatusEnum.DRAFT);
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1263,7 +1263,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes("Notes");
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
                 when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -1283,7 +1283,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1298,7 +1298,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes("Notes");
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
                 when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -1319,7 +1319,7 @@ class DocumentServiceImplTest {
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
                 request.setStatus(DocumentStatusEnum.DRAFT);
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1334,7 +1334,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.BROKER); // Different
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes("Notes");
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
                 when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -1354,7 +1354,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(false);
                 request.setBrokerNotes("Notes");
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1369,7 +1369,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true); // Different
                 dto.setBrokerNotes("Notes");
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
                 when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -1389,7 +1389,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes1");
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1404,7 +1404,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes("Notes2"); // Different
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
                 when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -1424,7 +1424,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1439,13 +1439,13 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes("Notes");
-                dto.setStage(StageEnum.BUYER_SHOP_FOR_PROPERTY); // Different
+                dto.setStage(StageEnum.BUYER_PROPERTY_SEARCH); // Different
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
                 when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
 
                 DocumentResponseDTO result = service.updateDocument(requestId, dto, brokerId);
-                assertThat(result.getStage()).isEqualTo(StageEnum.BUYER_SHOP_FOR_PROPERTY);
+                assertThat(result.getStage()).isEqualTo(StageEnum.BUYER_PROPERTY_SEARCH);
         }
 
         @Test
@@ -1459,7 +1459,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(true);
                 request.setBrokerNotes(null);
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1469,7 +1469,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes(""); // Empty string
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
 
@@ -1494,7 +1494,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("notes");
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1509,7 +1509,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes("NOTES"); // Different case
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
                 when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -2051,7 +2051,7 @@ class DocumentServiceImplTest {
                 DocumentRequestDTO dto = new DocumentRequestDTO();
                 dto.setDocType(DocumentTypeEnum.PROOF_OF_FUNDS);
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 dto.setStatus(DocumentStatusEnum.DRAFT); // Set as DRAFT
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
@@ -2095,7 +2095,7 @@ class DocumentServiceImplTest {
                 DocumentRequestDTO dto = new DocumentRequestDTO();
                 dto.setDocType(DocumentTypeEnum.PROOF_OF_FUNDS);
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 dto.setStatus(DocumentStatusEnum.REQUESTED);
 
                 UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "John", "Doe",

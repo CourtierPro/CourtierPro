@@ -25,6 +25,26 @@ export function useUpdateTransactionStage() {
     });
 }
 
+export function useTerminateTransaction() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, reason }: { transactionId: string; reason: string }) => {
+            const res = await axiosInstance.post(
+                `/transactions/${transactionId}/terminate`,
+                { reason }
+            );
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+            queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+        },
+    });
+}
+
 export function useSaveTransactionNotes() {
     const queryClient = useQueryClient();
 

@@ -561,7 +561,7 @@ class TransactionServiceImplTest {
                 UUID brokerUuid = UUID.randomUUID();
 
                 // Act
-                transactionService.getBrokerTransactions(brokerUuid, "ACTIVE", "BUY", "BUYER_PREQUALIFY_FINANCIALLY");
+                transactionService.getBrokerTransactions(brokerUuid, "ACTIVE", "BUY", "BUYER_FINANCIAL_PREPARATION");
 
                 // Assert
                 verify(transactionRepository).findAllByFilters(eq(brokerUuid), eq(TransactionStatus.ACTIVE), any(),
@@ -720,7 +720,7 @@ class TransactionServiceImplTest {
                 tx1.setClientId(clientUuid);
                 tx1.setBrokerId(broker1Uuid);
                 tx1.setSide(TransactionSide.BUY_SIDE);
-                tx1.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+                tx1.setBuyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION);
                 tx1.setStatus(TransactionStatus.ACTIVE);
 
                 Transaction tx2 = new Transaction();
@@ -829,7 +829,7 @@ class TransactionServiceImplTest {
                 tx.setBrokerId(brokerUuid);
                 tx.setClientId(UUID.randomUUID());
                 tx.setSide(TransactionSide.BUY_SIDE);
-                tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+                tx.setBuyerStage(BuyerStage.BUYER_PROPERTY_SEARCH);
                 tx.setStatus(TransactionStatus.ACTIVE);
                 tx.setCentrisNumber("TX-CENTRIS"); // Transaction's own centris
 
@@ -864,7 +864,7 @@ class TransactionServiceImplTest {
                 tx.setBrokerId(brokerUuid);
                 tx.setClientId(UUID.randomUUID());
                 tx.setSide(TransactionSide.BUY_SIDE);
-                tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+                tx.setBuyerStage(BuyerStage.BUYER_PROPERTY_SEARCH);
                 tx.setStatus(TransactionStatus.ACTIVE);
                 tx.setCentrisNumber("TX-CENTRIS");
 
@@ -899,7 +899,7 @@ class TransactionServiceImplTest {
                 tx.setBrokerId(brokerUuid);
                 tx.setClientId(UUID.randomUUID());
                 tx.setSide(TransactionSide.SELL_SIDE);
-                tx.setSellerStage(SellerStage.SELLER_LISTING_PUBLISHED);
+                tx.setSellerStage(SellerStage.SELLER_PUBLISH_LISTING);
                 tx.setStatus(TransactionStatus.ACTIVE);
                 tx.setCentrisNumber("SELL-CENTRIS");
 
@@ -954,12 +954,12 @@ class TransactionServiceImplTest {
                 tx.setTransactionId(transactionId);
                 tx.setBrokerId(brokerUuid);
                 tx.setSide(TransactionSide.BUY_SIDE);
-                tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+                tx.setBuyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION);
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
                 when(transactionRepository.save(any(Transaction.class))).thenReturn(tx);
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("BUYER_OFFER_ACCEPTED");
+                dto.setStage("BUYER_OFFER_AND_NEGOTIATION");
                 dto.setNote("note");
 
                 // Act
@@ -968,7 +968,7 @@ class TransactionServiceImplTest {
 
                 // Assert
                 assertThat(response).isNotNull();
-                assertThat(response.getCurrentStage()).isEqualTo("BUYER_OFFER_ACCEPTED");
+                assertThat(response.getCurrentStage()).isEqualTo("BUYER_OFFER_AND_NEGOTIATION");
                 verify(transactionRepository).save(any(Transaction.class));
                 verify(timelineService).addEntry(eq(transactionId), eq(brokerUuid), eq(TimelineEntryType.STAGE_CHANGE),
                                 isNull(), isNull(), any());
@@ -987,7 +987,7 @@ class TransactionServiceImplTest {
                 tx.setClientId(clientId);
                 tx.setBrokerId(brokerId);
                 tx.setSide(TransactionSide.BUY_SIDE);
-                tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+                tx.setBuyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION);
 
                 com.example.courtierprobackend.transactions.datalayer.PropertyAddress addr = new com.example.courtierprobackend.transactions.datalayer.PropertyAddress();
                 addr.setStreet("123 Test St");
@@ -999,7 +999,7 @@ class TransactionServiceImplTest {
                 savedTx.setClientId(clientId);
                 savedTx.setBrokerId(brokerId);
                 savedTx.setSide(TransactionSide.BUY_SIDE);
-                savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
+                savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_AND_NEGOTIATION);
                 savedTx.setPropertyAddress(addr);
                 // savedTx.setTimeline(new ArrayList<>());
 
@@ -1023,7 +1023,7 @@ class TransactionServiceImplTest {
                 when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("BUYER_OFFER_ACCEPTED");
+                dto.setStage("BUYER_OFFER_AND_NEGOTIATION");
 
                 // Act
                 transactionService.updateTransactionStage(transactionId, dto, brokerId);
@@ -1035,7 +1035,7 @@ class TransactionServiceImplTest {
                                 eq("Client User"),
                                 eq("Broker Agent"),
                                 eq("123 Test St"),
-                                eq("BUYER_OFFER_ACCEPTED"),
+                                eq("BUYER_OFFER_AND_NEGOTIATION"),
                                 eq("en"));
 
                 // 2. Verify In-App Notification created with i18n keys and params
@@ -1043,7 +1043,7 @@ class TransactionServiceImplTest {
                                 eq(clientId.toString()),
                                 eq("notifications.stageUpdate.title"),
                                 eq("notifications.stageUpdate.message"),
-                                argThat(params -> "Buyer Offer Accepted".equals(params.get("stage")) &&
+                                argThat(params -> "Buyer Offer And Negotiation".equals(params.get("stage")) &&
                                                 "Broker Agent".equals(params.get("brokerName")) &&
                                                 "123 Test St".equals(params.get("propertyAddress"))),
                                 eq(transactionId.toString()),
@@ -1062,7 +1062,7 @@ class TransactionServiceImplTest {
                 tx.setClientId(clientId);
                 tx.setBrokerId(brokerId);
                 tx.setSide(TransactionSide.BUY_SIDE);
-                tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+                tx.setBuyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION);
                 com.example.courtierprobackend.transactions.datalayer.PropertyAddress addr = new com.example.courtierprobackend.transactions.datalayer.PropertyAddress();
                 addr.setStreet("123 Rue Test");
                 tx.setPropertyAddress(addr);
@@ -1072,7 +1072,7 @@ class TransactionServiceImplTest {
                 savedTx.setClientId(clientId);
                 savedTx.setBrokerId(brokerId);
                 savedTx.setSide(TransactionSide.BUY_SIDE);
-                savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
+                savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_AND_NEGOTIATION);
                 savedTx.setPropertyAddress(addr);
                 // savedTx.setTimeline(new ArrayList<>());
 
@@ -1094,7 +1094,7 @@ class TransactionServiceImplTest {
                 when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("BUYER_OFFER_ACCEPTED");
+                dto.setStage("BUYER_OFFER_AND_NEGOTIATION");
 
                 // Act
                 transactionService.updateTransactionStage(transactionId, dto, brokerId);
@@ -1105,7 +1105,7 @@ class TransactionServiceImplTest {
                                 eq("Client User"),
                                 eq("Courtier Pro"),
                                 eq("123 Rue Test"),
-                                eq("BUYER_OFFER_ACCEPTED"),
+                                eq("BUYER_OFFER_AND_NEGOTIATION"),
                                 eq("fr"));
 
                 // 2. Verify In-App Notification created with i18n keys and params (French)
@@ -1113,7 +1113,7 @@ class TransactionServiceImplTest {
                                 eq(clientId.toString()),
                                 eq("notifications.stageUpdate.title"),
                                 eq("notifications.stageUpdate.message"),
-                                argThat(params -> "Offre Acceptée".equals(params.get("stage")) &&
+                                argThat(params -> "Offre et Négociation".equals(params.get("stage")) &&
                                                 "Courtier Pro".equals(params.get("brokerName")) &&
                                                 "123 Rue Test".equals(params.get("propertyAddress"))),
                                 eq(transactionId.toString()),
@@ -1132,7 +1132,7 @@ class TransactionServiceImplTest {
                 tx.setClientId(clientId);
                 tx.setBrokerId(brokerId);
                 tx.setSide(TransactionSide.BUY_SIDE);
-                tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+                tx.setBuyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION);
                 tx.setPropertyAddress(null); // NULL ADDRESS
 
                 Transaction savedTx = new Transaction();
@@ -1140,7 +1140,7 @@ class TransactionServiceImplTest {
                 savedTx.setClientId(clientId);
                 savedTx.setBrokerId(brokerId);
                 savedTx.setSide(TransactionSide.BUY_SIDE);
-                savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
+                savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_AND_NEGOTIATION);
                 savedTx.setPropertyAddress(null); // NULL ADDRESS
                 // savedTx.setTimeline(new ArrayList<>());
 
@@ -1161,7 +1161,7 @@ class TransactionServiceImplTest {
                 when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("BUYER_OFFER_ACCEPTED");
+                dto.setStage("BUYER_OFFER_AND_NEGOTIATION");
 
                 // Act
                 transactionService.updateTransactionStage(transactionId, dto, brokerId);
@@ -1189,7 +1189,7 @@ class TransactionServiceImplTest {
                 tx.setClientId(clientId);
                 tx.setBrokerId(brokerId);
                 tx.setSide(TransactionSide.BUY_SIDE);
-                tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+                tx.setBuyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION);
                 tx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
 
                 Transaction savedTx = new Transaction();
@@ -1197,7 +1197,7 @@ class TransactionServiceImplTest {
                 savedTx.setClientId(clientId);
                 savedTx.setBrokerId(brokerId);
                 savedTx.setSide(TransactionSide.BUY_SIDE);
-                savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED);
+                savedTx.setBuyerStage(BuyerStage.BUYER_OFFER_AND_NEGOTIATION);
                 savedTx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
                 // savedTx.setTimeline(new ArrayList<>());
 
@@ -1215,7 +1215,7 @@ class TransactionServiceImplTest {
                                 any(), any(), any());
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("BUYER_OFFER_ACCEPTED");
+                dto.setStage("BUYER_OFFER_AND_NEGOTIATION");
 
                 // Act
                 TransactionResponseDTO response = transactionService.updateTransactionStage(transactionId, dto,
@@ -1245,14 +1245,14 @@ class TransactionServiceImplTest {
                 savedTx.setTransactionId(transactionId);
                 savedTx.setBrokerId(brokerUuid);
                 savedTx.setSide(TransactionSide.SELL_SIDE);
-                savedTx.setSellerStage(SellerStage.SELLER_REVIEW_OFFERS);
+                savedTx.setSellerStage(SellerStage.SELLER_OFFER_AND_NEGOTIATION);
                 // Plus de setTimeline
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
                 when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("SELLER_REVIEW_OFFERS");
+                dto.setStage("SELLER_OFFER_AND_NEGOTIATION");
                 dto.setNote("note");
 
                 // Act
@@ -1261,7 +1261,7 @@ class TransactionServiceImplTest {
 
                 // Assert
                 assertThat(response).isNotNull();
-                assertThat(response.getCurrentStage()).isEqualTo("SELLER_REVIEW_OFFERS");
+                assertThat(response.getCurrentStage()).isEqualTo("SELLER_OFFER_AND_NEGOTIATION");
                 verify(transactionRepository).save(any(Transaction.class));
                 // Vérifie que l'audit timeline est bien appelé
                 verify(timelineService).addEntry(
@@ -1286,7 +1286,7 @@ class TransactionServiceImplTest {
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("BUYER_OFFER_ACCEPTED");
+                dto.setStage("BUYER_OFFER_AND_NEGOTIATION");
 
                 // Act & Assert
                 assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerUuid))
@@ -1326,12 +1326,12 @@ class TransactionServiceImplTest {
                 tx.setTransactionId(transactionId);
                 tx.setBrokerId(brokerUuid);
                 tx.setSide(TransactionSide.BUY_SIDE);
-                tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+                tx.setBuyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION);
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
                 when(transactionRepository.save(any(Transaction.class))).thenReturn(tx);
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("BUYER_FINANCING_FINALIZED");
+                dto.setStage("BUYER_FINANCING_AND_CONDITIONS");
                 dto.setNote(customNote);
 
                 // Act
@@ -1340,7 +1340,7 @@ class TransactionServiceImplTest {
 
                 // Assert
                 assertThat(response).isNotNull();
-                assertThat(response.getCurrentStage()).isEqualTo("BUYER_FINANCING_FINALIZED");
+                assertThat(response.getCurrentStage()).isEqualTo("BUYER_FINANCING_AND_CONDITIONS");
                 verify(transactionRepository).save(any(Transaction.class));
                 verify(timelineService).addEntry(eq(transactionId), eq(brokerUuid), eq(TimelineEntryType.STAGE_CHANGE),
                                 isNull(), isNull(), any());
@@ -1355,7 +1355,7 @@ class TransactionServiceImplTest {
                 tx.setTransactionId(transactionId);
                 tx.setBrokerId(brokerId);
                 tx.setSide(TransactionSide.BUY_SIDE);
-                tx.setBuyerStage(BuyerStage.BUYER_SECOND_NOTARY_APPOINTMENT);
+                tx.setBuyerStage(BuyerStage.BUYER_NOTARY_AND_SIGNING);
                 tx.setStatus(TransactionStatus.ACTIVE);
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
@@ -1363,7 +1363,7 @@ class TransactionServiceImplTest {
                                 .thenAnswer(invocation -> invocation.getArgument(0));
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("BUYER_OCCUPANCY");
+                dto.setStage("BUYER_POSSESSION");
 
                 // Act
                 transactionService.updateTransactionStage(transactionId, dto, brokerId);
@@ -1373,64 +1373,6 @@ class TransactionServiceImplTest {
                 assertThat(tx.getClosedAt()).isNotNull();
                 verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
                                 contains("CLOSED_SUCCESSFULLY"), isNull());
-        }
-
-        @Test
-        void updateTransactionStage_AutoTerminate_BuyerTerminated() {
-                // Arrange
-                UUID transactionId = UUID.randomUUID();
-                UUID brokerId = UUID.randomUUID();
-                Transaction tx = new Transaction();
-                tx.setTransactionId(transactionId);
-                tx.setBrokerId(brokerId);
-                tx.setSide(TransactionSide.BUY_SIDE);
-                tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
-                tx.setStatus(TransactionStatus.ACTIVE);
-
-                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
-                when(transactionRepository.save(any(Transaction.class)))
-                                .thenAnswer(invocation -> invocation.getArgument(0));
-
-                StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("BUYER_TERMINATED");
-
-                // Act
-                transactionService.updateTransactionStage(transactionId, dto, brokerId);
-
-                // Assert
-                assertThat(tx.getStatus()).isEqualTo(TransactionStatus.TERMINATED_EARLY);
-                assertThat(tx.getClosedAt()).isNotNull();
-                verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
-                                contains("TERMINATED_EARLY"), isNull());
-        }
-
-        @Test
-        void updateTransactionStage_AutoTerminate_SellerTerminated() {
-                // Arrange
-                UUID transactionId = UUID.randomUUID();
-                UUID brokerId = UUID.randomUUID();
-                Transaction tx = new Transaction();
-                tx.setTransactionId(transactionId);
-                tx.setBrokerId(brokerId);
-                tx.setSide(TransactionSide.SELL_SIDE);
-                tx.setSellerStage(SellerStage.SELLER_LISTING_PUBLISHED);
-                tx.setStatus(TransactionStatus.ACTIVE);
-
-                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
-                when(transactionRepository.save(any(Transaction.class)))
-                                .thenAnswer(invocation -> invocation.getArgument(0));
-
-                StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("SELLER_TERMINATED");
-
-                // Act
-                transactionService.updateTransactionStage(transactionId, dto, brokerId);
-
-                // Assert
-                assertThat(tx.getStatus()).isEqualTo(TransactionStatus.TERMINATED_EARLY);
-                assertThat(tx.getClosedAt()).isNotNull();
-                verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
-                                contains("TERMINATED_EARLY"), isNull());
         }
 
         @Test
@@ -1442,7 +1384,7 @@ class TransactionServiceImplTest {
                 tx.setTransactionId(transactionId);
                 tx.setBrokerId(brokerId);
                 tx.setSide(TransactionSide.SELL_SIDE);
-                tx.setSellerStage(SellerStage.SELLER_NOTARY_APPOINTMENT);
+                tx.setSellerStage(SellerStage.SELLER_NOTARY_AND_SIGNING);
                 tx.setStatus(TransactionStatus.ACTIVE);
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
@@ -1450,7 +1392,7 @@ class TransactionServiceImplTest {
                                 .thenAnswer(invocation -> invocation.getArgument(0));
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("SELLER_HANDOVER_KEYS");
+                dto.setStage("SELLER_HANDOVER");
 
                 // Act
                 transactionService.updateTransactionStage(transactionId, dto, brokerId);
@@ -1460,6 +1402,90 @@ class TransactionServiceImplTest {
                 assertThat(tx.getClosedAt()).isNotNull();
                 verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
                                 contains("CLOSED_SUCCESSFULLY"), isNull());
+        }
+
+        // ==================== terminateTransaction Tests ====================
+
+        @Test
+        void terminateTransaction_success() {
+                // Arrange
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(clientId);
+                tx.setSide(TransactionSide.BUY_SIDE);
+                tx.setBuyerStage(BuyerStage.BUYER_OFFER_AND_NEGOTIATION);
+                tx.setStatus(TransactionStatus.ACTIVE);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(transactionRepository.save(any(Transaction.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+
+                // Act
+                TransactionResponseDTO response = transactionService.terminateTransaction(
+                                transactionId, "Client changed their mind about purchasing", brokerId);
+
+                // Assert
+                assertThat(response).isNotNull();
+                assertThat(tx.getStatus()).isEqualTo(TransactionStatus.TERMINATED_EARLY);
+                assertThat(tx.getClosedAt()).isNotNull();
+                // Stage should be preserved
+                assertThat(tx.getBuyerStage()).isEqualTo(BuyerStage.BUYER_OFFER_AND_NEGOTIATION);
+                verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
+                                contains("terminated"), isNull());
+        }
+
+        @Test
+        void terminateTransaction_alreadyTerminated_throws() {
+                // Arrange
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setStatus(TransactionStatus.TERMINATED_EARLY);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+                // Act & Assert
+                assertThatThrownBy(() -> transactionService.terminateTransaction(
+                                transactionId, "Some valid reason for termination", brokerId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("Cannot terminate");
+        }
+
+        @Test
+        void terminateTransaction_reasonTooShort_throws() {
+                // Arrange
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setStatus(TransactionStatus.ACTIVE);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+                // Act & Assert
+                assertThatThrownBy(() -> transactionService.terminateTransaction(
+                                transactionId, "Short", brokerId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("between 10 and 500");
+        }
+
+        @Test
+        void terminateTransaction_noReason_throws() {
+                // Act & Assert
+                assertThatThrownBy(() -> transactionService.terminateTransaction(
+                                UUID.randomUUID(), "", UUID.randomUUID()))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("Reason is required");
         }
 
         @Test
@@ -1475,7 +1501,7 @@ class TransactionServiceImplTest {
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("BUYER_OCCUPANCY");
+                dto.setStage("BUYER_POSSESSION");
 
                 // Act & Assert
                 assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
@@ -1496,7 +1522,7 @@ class TransactionServiceImplTest {
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("BUYER_OCCUPANCY");
+                dto.setStage("BUYER_POSSESSION");
 
                 // Act & Assert
                 assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
@@ -1513,7 +1539,7 @@ class TransactionServiceImplTest {
                 tx.setTransactionId(transactionId);
                 tx.setBrokerId(brokerId);
                 tx.setSide(TransactionSide.BUY_SIDE);
-                tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+                tx.setBuyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION);
                 tx.setStatus(TransactionStatus.ACTIVE);
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
@@ -1522,7 +1548,7 @@ class TransactionServiceImplTest {
                                                 "Optimistic lock failed"));
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("BUYER_SHOP_FOR_PROPERTY");
+                dto.setStage("BUYER_PROPERTY_SEARCH");
 
                 // Act & Assert
                 assertThatThrownBy(() -> transactionService.updateTransactionStage(transactionId, dto, brokerId))
@@ -1542,14 +1568,14 @@ class TransactionServiceImplTest {
                 tx.setBrokerId(brokerId);
                 tx.setClientId(clientId);
                 tx.setSide(TransactionSide.BUY_SIDE);
-                tx.setBuyerStage(BuyerStage.BUYER_OFFER_ACCEPTED); // Previous stage (Ordinal > 0)
+                tx.setBuyerStage(BuyerStage.BUYER_OFFER_AND_NEGOTIATION); // Previous stage (Ordinal > 0)
                 tx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
 
                 Transaction savedTx = new Transaction();
                 savedTx.setTransactionId(transactionId);
                 savedTx.setBrokerId(brokerId);
                 savedTx.setSide(TransactionSide.BUY_SIDE);
-                savedTx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY); // New Stage (Ordinal 0)
+                savedTx.setBuyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION); // New Stage (Ordinal 0)
                 savedTx.setClientId(clientId);
                 savedTx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
 
@@ -1573,7 +1599,7 @@ class TransactionServiceImplTest {
                                 .thenReturn(Optional.of(mockBroker));
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("BUYER_PREQUALIFY_FINANCIALLY");
+                dto.setStage("BUYER_FINANCIAL_PREPARATION");
                 dto.setReason("Back to start");
 
                 // Act
@@ -1588,7 +1614,7 @@ class TransactionServiceImplTest {
                                 isNull(),
                                 isNull(),
                                 argThat(info -> "Back to start".equals(info.getReason()) &&
-                                                "BUYER_PREQUALIFY_FINANCIALLY".equals(info.getNewStage())));
+                                                "BUYER_FINANCIAL_PREPARATION".equals(info.getNewStage())));
 
                 // 2. Verify In-App Notification created with rollback i18n keys and params
                 verify(notificationService, times(1)).createNotification(
@@ -1614,7 +1640,7 @@ class TransactionServiceImplTest {
                 tx.setTransactionId(transactionId);
                 tx.setBrokerId(brokerId);
                 tx.setSide(TransactionSide.SELL_SIDE);
-                tx.setSellerStage(SellerStage.SELLER_HANDOVER_KEYS); // Late stage
+                tx.setSellerStage(SellerStage.SELLER_HANDOVER); // Late stage
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
 
@@ -1640,14 +1666,14 @@ class TransactionServiceImplTest {
                 tx.setBrokerId(brokerId);
                 tx.setClientId(clientId);
                 tx.setSide(TransactionSide.BUY_SIDE);
-                tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+                tx.setBuyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION);
                 tx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
 
                 Transaction savedTx = new Transaction();
                 savedTx.setTransactionId(transactionId);
                 savedTx.setBrokerId(brokerId);
                 savedTx.setSide(TransactionSide.BUY_SIDE);
-                savedTx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+                savedTx.setBuyerStage(BuyerStage.BUYER_PROPERTY_SEARCH);
                 savedTx.setPropertyAddress(new com.example.courtierprobackend.transactions.datalayer.PropertyAddress());
 
                 com.example.courtierprobackend.user.dataaccesslayer.UserAccount mockUser = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
@@ -1662,7 +1688,7 @@ class TransactionServiceImplTest {
                 when(userAccountRepository.findById(any())).thenReturn(Optional.of(mockUser));
 
                 StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
-                dto.setStage("BUYER_SHOP_FOR_PROPERTY");
+                dto.setStage("BUYER_PROPERTY_SEARCH");
                 // No reason provided
 
                 // Act
@@ -1852,7 +1878,7 @@ class TransactionServiceImplTest {
                 dto.setClientId(UUID.randomUUID());
                 dto.setBrokerId(UUID.randomUUID());
                 dto.setSide(TransactionSide.BUY_SIDE);
-                dto.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+                dto.setInitialStage("BUYER_FINANCIAL_PREPARATION");
 
                 var address = new com.example.courtierprobackend.transactions.datalayer.PropertyAddress();
                 address.setStreet("123 Main St");
@@ -2480,7 +2506,7 @@ class TransactionServiceImplTest {
                 tx.setTransactionId(transactionId);
                 tx.setBrokerId(brokerId);
                 tx.setSide(TransactionSide.BUY_SIDE);
-                tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+                tx.setBuyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION);
                 tx.setStatus(TransactionStatus.ACTIVE);
                 return tx;
         }
@@ -2745,20 +2771,20 @@ class TransactionServiceImplTest {
                 when(transactionRepository.findAllByFilters(eq(brokerId), eq(
                                 com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus.ACTIVE),
                                 eq(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE),
-                                eq(com.example.courtierprobackend.transactions.datalayer.enums.BuyerStage.BUYER_SUBMIT_OFFER),
+                                eq(com.example.courtierprobackend.transactions.datalayer.enums.BuyerStage.BUYER_OFFER_AND_NEGOTIATION),
                                 anyBoolean()))
                                 .thenReturn(List.of(new Transaction()));
 
                 // Act
                 List<TransactionResponseDTO> result = transactionService.getBrokerTransactions(brokerId, "ACTIVE",
-                                "BUYER_SUBMIT_OFFER", "BUY");
+                                "BUYER_OFFER_AND_NEGOTIATION", "BUY");
 
                 // Assert
                 assertThat(result).hasSize(1);
                 verify(transactionRepository).findAllByFilters(eq(brokerId), eq(
                                 com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus.ACTIVE),
                                 eq(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE),
-                                eq(com.example.courtierprobackend.transactions.datalayer.enums.BuyerStage.BUYER_SUBMIT_OFFER),
+                                eq(com.example.courtierprobackend.transactions.datalayer.enums.BuyerStage.BUYER_OFFER_AND_NEGOTIATION),
                                 anyBoolean());
         }
 

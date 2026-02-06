@@ -70,7 +70,7 @@ class TransactionControllerUnitTest {
         TransactionRequestDTO req = new TransactionRequestDTO();
         req.setClientId(clientId);
         req.setSide(TransactionSide.BUY_SIDE);
-        req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        req.setInitialStage("BUYER_FINANCIAL_PREPARATION");
 
         when(service.createTransaction(any()))
                 .thenReturn(EntityDtoUtil.toResponseStub(transactionId, clientId, brokerId));
@@ -87,7 +87,7 @@ class TransactionControllerUnitTest {
                 .andExpect(jsonPath("$.clientId").value(clientId.toString()))
                 .andExpect(jsonPath("$.brokerId").value(brokerId.toString()))
                 .andExpect(jsonPath("$.side").value("BUY_SIDE"))
-                .andExpect(jsonPath("$.currentStage").value("BUYER_PREQUALIFY_FINANCIALLY"))
+                .andExpect(jsonPath("$.currentStage").value("BUYER_FINANCIAL_PREPARATION"))
                 .andExpect(jsonPath("$.openedDate").isNotEmpty());
     }
 
@@ -97,7 +97,7 @@ class TransactionControllerUnitTest {
         TransactionRequestDTO req = new TransactionRequestDTO();
         req.setClientId(UUID.randomUUID());
         req.setSide(TransactionSide.BUY_SIDE);
-        req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        req.setInitialStage("BUYER_FINANCIAL_PREPARATION");
 
         // With addFilters=false, UserContextFilter doesn't set the internal user ID.
         // When the broker header is missing and no internal ID exists,
@@ -133,7 +133,7 @@ class TransactionControllerUnitTest {
         TransactionRequestDTO req = new TransactionRequestDTO();
         req.setClientId(UUID.randomUUID());
         req.setSide(TransactionSide.BUY_SIDE);
-        req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        req.setInitialStage("BUYER_FINANCIAL_PREPARATION");
 
         when(service.createTransaction(any()))
                 .thenThrow(new BadRequestException("Invalid transaction"));
@@ -155,7 +155,7 @@ class TransactionControllerUnitTest {
         TransactionRequestDTO req = new TransactionRequestDTO();
         req.setClientId(UUID.randomUUID());
         req.setSide(TransactionSide.BUY_SIDE);
-        req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        req.setInitialStage("BUYER_FINANCIAL_PREPARATION");
 
         when(service.createTransaction(any()))
                 .thenThrow(new NotFoundException("Transaction not found"));
@@ -177,7 +177,7 @@ class TransactionControllerUnitTest {
         TransactionRequestDTO req = new TransactionRequestDTO();
         req.setClientId(UUID.randomUUID());
         req.setSide(TransactionSide.BUY_SIDE);
-        req.setInitialStage("BUYER_PREQUALIFY_FINANCIALLY");
+        req.setInitialStage("BUYER_FINANCIAL_PREPARATION");
 
         when(service.createTransaction(any()))
                 .thenThrow(new BadRequestException("Duplicate transaction"));

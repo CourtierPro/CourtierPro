@@ -156,7 +156,7 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                                     if (!stage) return '';
                                                     const lowerStage = stage.toLowerCase();
                                                     const sideKey = lowerStage.startsWith('seller') ? 'sell' : 'buy';
-                                                    return t(`stages.${sideKey}.${lowerStage}`, { defaultValue: stage });
+                                                    return t(`stages.${sideKey}.${lowerStage}.name`, { defaultValue: stage });
                                                 };
                                                 return (
                                                     <p className="text-sm text-muted-foreground mt-1">
@@ -173,7 +173,7 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                                     if (!stage) return '';
                                                     const lowerStage = stage.toLowerCase();
                                                     const sideKey = lowerStage.startsWith('seller') ? 'sell' : 'buy';
-                                                    return t(`stages.${sideKey}.${lowerStage}`, { defaultValue: stage });
+                                                    return t(`stages.${sideKey}.${lowerStage}.name`, { defaultValue: stage });
                                                 };
                                                 return (
                                                     <div className="mt-1">

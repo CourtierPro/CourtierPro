@@ -170,6 +170,10 @@ export interface StageUpdateRequestDTO {
   reason?: string;
 }
 
+export interface TerminateRequestDTO {
+  reason: string;
+}
+
 // ==================== PROPERTY TYPES ====================
 
 export type PropertyStatus =
