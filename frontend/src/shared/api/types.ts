@@ -170,6 +170,19 @@ export interface StageUpdateRequestDTO {
   reason?: string;
 }
 
+export interface MissingAutoDraftItemDTO {
+  itemKey: string;
+  label: string;
+  docType: string;
+  flow: 'REQUEST' | 'UPLOAD';
+  requiresSignature: boolean;
+}
+
+export interface MissingAutoDraftsResponseDTO {
+  stage: string;
+  missingItems: MissingAutoDraftItemDTO[];
+}
+
 export interface TerminateRequestDTO {
   reason: string;
 }

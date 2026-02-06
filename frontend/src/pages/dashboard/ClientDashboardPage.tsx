@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/sha
 import { Button } from "@/shared/components/ui/button";
 import { useCurrentUser } from "@/features/auth/api/useCurrentUser";
 import { useTransactionOffers, useTransactionProperties } from "@/features/transactions/api/queries";
+import { getStageLabel } from "@/shared/utils/stages";
 
 export function ClientDashboardPage() {
   const { t } = useTranslation("dashboard");
@@ -63,6 +64,11 @@ export function ClientDashboardPage() {
       // Translate conditionType if present
       if (params.conditionType) {
         params.conditionType = tTransactions(`conditionTypes.${params.conditionType}`, { defaultValue: params.conditionType });
+      }
+      if (params.stage) {
+        const sideParam = params.transactionSide || params.side;
+        const stageSide = sideParam === 'BUY_SIDE' || sideParam === 'SELL_SIDE' ? sideParam : undefined;
+        params.stage = getStageLabel(params.stage, tTransactions, stageSide);
       }
       return tNotifications(notif.messageKey, params) || notif.message;
     }

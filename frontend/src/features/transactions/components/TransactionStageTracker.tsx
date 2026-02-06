@@ -156,11 +156,11 @@ export function TransactionStageTracker({ transaction, onUpdateStage, onTerminat
                         </Badge>
                     ) : !isTerminated && checkPermission('EDIT_STAGE') && (
                         <div className="flex gap-2 w-full sm:w-auto">
-                            <Button onClick={onUpdateStage} className="flex-1 sm:flex-none">
-                                {t('updateStage')}
-                            </Button>
                             <Button variant="destructive" onClick={onTerminate} className="flex-1 sm:flex-none">
                                 {t('terminateTransaction')}
+                            </Button>
+                            <Button onClick={onUpdateStage} className="flex-1 sm:flex-none">
+                                {t('updateStage')}
                             </Button>
                         </div>
                     )}

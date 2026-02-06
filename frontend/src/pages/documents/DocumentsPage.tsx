@@ -16,6 +16,7 @@ import { UploadForClientModal } from "@/features/documents/components/UploadForC
 import { UploadDocumentModal } from "@/features/documents/components/UploadDocumentModal";
 import { DocumentReviewModal } from "@/features/documents/components/DocumentReviewModal";
 import { DocumentList } from "@/features/documents/components/DocumentList";
+import { StageChecklistPanel } from "@/features/documents/components/StageChecklistPanel";
 import { EditDocumentModal } from "@/features/documents/components/EditDocumentModal";
 import { useUpdateDocument, useSendDocumentRequest, useDeleteDocument, useUploadFileToDocument, useShareDocumentWithClient } from "@/features/documents/api/mutations";
 import { useTranslation } from "react-i18next";
@@ -25,10 +26,12 @@ import { type Document } from "@/features/documents/types";
 import { getRoleFromUser } from "@/features/auth/roleUtils";
 import { useAllTransactionDocuments } from "@/features/transactions/api/queries";
 import { OutstandingDocumentsDashboard } from "@/features/documents/components/OutstandingDocumentsDashboard";
+import { formatDocumentTitle } from "@/features/documents/utils/formatDocumentTitle";
 import axiosInstance from "@/shared/api/axiosInstance";
 import { format } from "date-fns";
 import type { UnifiedDocument } from "@/shared/api/types";
 import { useParticipantPermissions } from "@/features/transactions/hooks/useParticipantPermissions";
+import { getErrorMessage } from "@/shared/utils/error-utils";
 
 interface DocumentsPageProps {
   transactionId: string;
@@ -59,6 +62,25 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
 
   const { checkPermission } = useParticipantPermissions(transactionId);
   const canEditDocuments = checkPermission('EDIT_DOCUMENTS');
+  const canToggleChecklist = role === 'broker' && canEditDocuments;
+
+  const getLocalizedSendRequestError = useCallback((error: unknown) => {
+    const fallback = tDocuments('errors.sendRequestFailed', 'Failed to send request');
+    const message = getErrorMessage(error, fallback);
+    const normalizedMessage = message.toLowerCase();
+
+    if (
+      normalizedMessage.includes('source document must be attached') &&
+      normalizedMessage.includes('signature request')
+    ) {
+      return tDocuments(
+        'errors.signatureSourceDocumentRequired',
+        'Please attach the source document before sending a signature request.'
+      );
+    }
+
+    return message;
+  }, [tDocuments]);
 
   // Fetch unified documents (includes offer attachments)
   const { data: allDocuments = [], isLoading: isLoadingAllDocs } = useAllTransactionDocuments(transactionId, clientId);
@@ -74,6 +96,7 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
 
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [uploadIntent, setUploadIntent] = useState<'upload' | 'uploadAndSendRequest'>('upload');
   const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<Document | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   // Edit modal state
@@ -90,8 +113,15 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
 
   const handleUploadClick = (document: Document) => {
     setSelectedDocument(document);
+    setUploadIntent('upload');
     setIsUploadModalOpen(true);
   };
+
+  const handleUploadAndSendRequestClick = useCallback((document: Document) => {
+    setSelectedDocument(document);
+    setUploadIntent('uploadAndSendRequest');
+    setIsUploadModalOpen(true);
+  }, []);
 
   // Handler for uploading file to an existing document without changing status (used by UploadForClientModal for drafts)
   const handleUploadFileForDocument = useCallback(
@@ -116,25 +146,64 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
             toast.success(tDocuments('success.requestSent', 'Document request sent to client'));
             refetch();
           },
-          onError: () => {
-            toast.error(tDocuments('errors.sendRequestFailed', 'Failed to send request'));
+          onError: (error) => {
+            toast.error(getLocalizedSendRequestError(error));
           }
         }
       );
     },
-    [transactionId, sendDocumentRequestMutation, refetch, tDocuments]
+    [transactionId, sendDocumentRequestMutation, refetch, tDocuments, getLocalizedSendRequestError]
   );
 
   // Send Request handler by documentId (used by RequestDocumentModal for signature flow)
   const handleSendDocumentRequestById = useCallback(
     async (documentId: string) => {
-      await sendDocumentRequestMutation.mutateAsync(
-        { transactionId, documentId },
-      );
-      toast.success(tDocuments('success.requestSent', 'Document request sent to client'));
+      try {
+        await sendDocumentRequestMutation.mutateAsync(
+          { transactionId, documentId },
+        );
+        toast.success(tDocuments('success.requestSent', 'Document request sent to client'));
+        refetch();
+      } catch (error) {
+        toast.error(getLocalizedSendRequestError(error));
+        throw error;
+      }
+    },
+    [transactionId, sendDocumentRequestMutation, refetch, tDocuments, getLocalizedSendRequestError]
+  );
+
+  const handleUploadAndSendRequestSubmit = useCallback(
+    async (file: File) => {
+      if (!selectedDocument) {
+        throw new Error(tDocuments('errors.sendRequestFailed', 'Failed to send request'));
+      }
+
+      await uploadFileToDocumentMutation.mutateAsync({
+        transactionId,
+        documentId: selectedDocument.documentId,
+        file,
+      });
+
+      try {
+        await sendDocumentRequestMutation.mutateAsync({
+          transactionId,
+          documentId: selectedDocument.documentId,
+        });
+      } catch (error) {
+        throw new Error(getLocalizedSendRequestError(error));
+      }
+
       refetch();
     },
-    [transactionId, sendDocumentRequestMutation, refetch, tDocuments]
+    [
+      selectedDocument,
+      tDocuments,
+      uploadFileToDocumentMutation,
+      transactionId,
+      sendDocumentRequestMutation,
+      getLocalizedSendRequestError,
+      refetch,
+    ]
   );
 
   // Delete handler for draft documents
@@ -248,6 +317,7 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
   const handleUploadSuccess = () => {
     refetch();
     setIsUploadModalOpen(false);
+    setUploadIntent('upload');
     setSelectedDocument(null);
   };
 
@@ -329,86 +399,98 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
       {/* Outstanding Documents Dashboard (Only visible to brokers) */}
       {role === 'broker' && <OutstandingDocumentsDashboard />}
 
-      {/* Stage dropdown selector */}
-      <StageDropdownSelector
-        stages={stageOptions}
-        selectedStage={selectedStage}
-        onSelectStage={setSelectedStage}
-      />
+      <div className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-6">
+        <StageChecklistPanel
+          transactionId={transactionId}
+          stageOptions={rawStageOptions}
+          currentStage={currentStage}
+          canToggle={canToggleChecklist}
+        />
 
-      <DocumentList
-        documents={filteredDocuments}
-        onUpload={canUpload || canReview ? handleUploadClick : undefined}
-        onReview={canReview ? handleReviewClick : undefined}
-        onEdit={canReview && canEditDocuments ? handleEditClick : undefined}
-        onSendRequest={canReview ? handleSendDocumentRequest : undefined}
-        onShare={canReview && canEditDocuments ? handleShareDocument : undefined}
-        onDelete={canReview && canEditDocuments ? handleDeleteDocument : undefined}
-        focusDocumentId={focusDocumentId}
-        isBroker={role === 'broker'}
-      />
-
-      {/* Offer Documents Section */}
-      {offerDocuments.length > 0 && (
-        <Section>
-          <SectionHeader
-            title={tTransactions('offerDocuments', 'Offer Documents')}
-            description={tTransactions('offerDocumentsDescription', 'Documents attached to offers and property offers')}
+        <div className="space-y-6">
+          {/* Stage dropdown selector */}
+          <StageDropdownSelector
+            stages={stageOptions}
+            selectedStage={selectedStage}
+            onSelectStage={setSelectedStage}
           />
-          <div className="space-y-2 mt-4">
-            {isLoadingAllDocs ? (
-              <LoadingState />
-            ) : (
-              offerDocuments.map((doc) => (
-                <div
-                  key={doc.documentId}
-                  className="flex items-center justify-between p-3 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{doc.fileName}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{doc.sourceName}</span>
-                        {doc.uploadedAt && (
-                          <>
-                            <span>•</span>
-                            <span>{format(new Date(doc.uploadedAt), 'MMM d, yyyy')}</span>
-                          </>
-                        )}
+
+          <DocumentList
+            documents={filteredDocuments}
+            onUpload={canUpload || canReview ? handleUploadClick : undefined}
+            onReview={canReview ? handleReviewClick : undefined}
+            onEdit={canReview && canEditDocuments ? handleEditClick : undefined}
+            onSendRequest={canReview ? handleSendDocumentRequest : undefined}
+            onUploadAndSendRequest={canReview ? handleUploadAndSendRequestClick : undefined}
+            onShare={canReview && canEditDocuments ? handleShareDocument : undefined}
+            onDelete={canReview && canEditDocuments ? handleDeleteDocument : undefined}
+            focusDocumentId={focusDocumentId}
+            isBroker={role === 'broker'}
+          />
+
+          {/* Offer Documents Section */}
+          {offerDocuments.length > 0 && (
+            <Section>
+              <SectionHeader
+                title={tTransactions('offerDocuments', 'Offer Documents')}
+                description={tTransactions('offerDocumentsDescription', 'Documents attached to offers and property offers')}
+              />
+              <div className="space-y-2 mt-4">
+                {isLoadingAllDocs ? (
+                  <LoadingState />
+                ) : (
+                  offerDocuments.map((doc) => (
+                    <div
+                      key={doc.documentId}
+                      className="flex items-center justify-between p-3 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{doc.fileName}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>{doc.sourceName}</span>
+                            {doc.uploadedAt && (
+                              <>
+                                <span>•</span>
+                                <span>{format(new Date(doc.uploadedAt), 'MMM d, yyyy')}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant={getSourceBadgeVariant(doc.source)} className="flex-shrink-0">
+                          <Tag className="w-3 h-3 mr-1" />
+                          {getSourceLabel(doc.source)}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1 ml-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleDownloadOfferDoc(doc)}
+                          title={tTransactions('view')}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleDownloadOfferDoc(doc)}
+                          title={tTransactions('download')}
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
-                    <Badge variant={getSourceBadgeVariant(doc.source)} className="flex-shrink-0">
-                      <Tag className="w-3 h-3 mr-1" />
-                      {getSourceLabel(doc.source)}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-1 ml-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleDownloadOfferDoc(doc)}
-                      title={tTransactions('view')}
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleDownloadOfferDoc(doc)}
-                      title={tTransactions('download')}
-                    >
-                      <Download className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </Section>
-      )}
+                  ))
+                )}
+              </div>
+            </Section>
+          )}
+        </div>
+      </div>
       {editingDocument && (
         <EditDocumentModal
           isOpen={isEditModalOpen}
@@ -454,10 +536,22 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
       {selectedDocument && (
         <UploadDocumentModal
           open={isUploadModalOpen}
-          onClose={() => setIsUploadModalOpen(false)}
+          onClose={() => {
+            setIsUploadModalOpen(false);
+            setUploadIntent('upload');
+            setSelectedDocument(null);
+          }}
           documentId={selectedDocument.documentId}
           transactionId={transactionId}
-          documentTitle={selectedDocument.customTitle || tDocuments(`types.${selectedDocument.docType}`)}
+          documentTitle={formatDocumentTitle(selectedDocument, tDocuments)}
+          docType={selectedDocument.docType}
+          onSubmitFile={uploadIntent === 'uploadAndSendRequest' ? handleUploadAndSendRequestSubmit : undefined}
+          submitLabel={uploadIntent === 'uploadAndSendRequest'
+            ? tDocuments('actions.uploadAndSendRequest', 'Upload and Send Request')
+            : undefined}
+          successMessage={uploadIntent === 'uploadAndSendRequest'
+            ? tDocuments('success.requestSent', 'Document request sent to client')
+            : undefined}
           onSuccess={handleUploadSuccess}
         />
       )}

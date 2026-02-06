@@ -77,15 +77,33 @@ public class ObjectStorageService {
      * @return A presigned URL string valid for 15 minutes
      */
     public String generatePresignedUrl(String objectKey) {
+        return generatePresignedUrl(objectKey, null);
+    }
+
+    /**
+     * Generates a presigned URL for downloading a file with an optional download filename.
+     *
+     * @param objectKey The object key
+     * @param downloadFileName Optional filename suggested to the browser for download
+     * @return A presigned URL string valid for 15 minutes
+     */
+    public String generatePresignedUrl(String objectKey, String downloadFileName) {
         if (objectKey == null || objectKey.isEmpty()) {
             return null;
         }
 
         try {
-            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+            GetObjectRequest.Builder getObjectRequestBuilder = GetObjectRequest.builder()
                     .bucket(bucketName)
-                    .key(objectKey)
-                    .build();
+                    .key(objectKey);
+
+            if (downloadFileName != null && !downloadFileName.isBlank()) {
+                String safeFileName = downloadFileName.replace("\"", "");
+                getObjectRequestBuilder.responseContentDisposition(
+                        "attachment; filename=\"" + safeFileName + "\"");
+            }
+
+            GetObjectRequest getObjectRequest = getObjectRequestBuilder.build();
 
             GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
                     .signatureDuration(Duration.ofMinutes(15))

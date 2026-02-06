@@ -1,7 +1,7 @@
 import { updateDocument } from './documentsApi';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentKeys } from '@/features/documents/api/queries';
-import { createDocument, submitDocument, reviewDocument, sendDocumentReminder, sendDocumentRequest, deleteDocument, uploadFileToDocument, shareDocumentWithClient, type CreateDocumentDTO } from './documentsApi.ts';
+import { createDocument, submitDocument, reviewDocument, sendDocumentReminder, sendDocumentRequest, deleteDocument, uploadFileToDocument, shareDocumentWithClient, updateChecklistManualState, type CreateDocumentDTO } from './documentsApi.ts';
 
 import type { UpdateDocumentDTO } from './documentsApi';
 
@@ -15,6 +15,7 @@ export function useUpdateDocument() {
             queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
             queryClient.invalidateQueries({ queryKey: ['documents', transactionId] });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({ queryKey: documentKeys.checklists() });
         },
     });
 }
@@ -30,6 +31,7 @@ export function useCreateDocument() {
             queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({ queryKey: documentKeys.checklists() });
             queryClient.invalidateQueries({
                 queryKey: [
                     'transactions', 'detail', transactionId, 'timeline'
@@ -54,6 +56,7 @@ export function useSubmitDocument() {
             queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({ queryKey: documentKeys.checklists() });
             queryClient.invalidateQueries({
                 queryKey: [
                     'transactions', 'detail', transactionId, 'timeline'
@@ -81,6 +84,7 @@ export function useUploadFileToDocument() {
         onSuccess: (_, { transactionId }) => {
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({ queryKey: documentKeys.checklists() });
         },
     });
 }
@@ -101,6 +105,7 @@ export const useReviewDocument = () => {
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
             queryClient.invalidateQueries({ queryKey: documentKeys.stat(transactionId) });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({ queryKey: documentKeys.checklists() });
             queryClient.invalidateQueries({
                 queryKey: [
                     'transactions', 'detail', transactionId, 'timeline'
@@ -135,6 +140,7 @@ export const useSendDocumentRequest = () => {
             queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({ queryKey: documentKeys.checklists() });
             queryClient.invalidateQueries({
                 queryKey: [
                     'transactions', 'detail', transactionId, 'timeline'
@@ -163,6 +169,7 @@ export const useDeleteDocument = () => {
             queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({ queryKey: documentKeys.checklists() });
             queryClient.invalidateQueries({
                 queryKey: [
                     'transactions', 'detail', transactionId, 'timeline'
@@ -191,6 +198,7 @@ export const useShareDocumentWithClient = () => {
             queryClient.invalidateQueries({ queryKey: documentKeys.outstanding() });
             queryClient.invalidateQueries({ queryKey: documentKeys.list(transactionId) });
             queryClient.invalidateQueries({ queryKey: ['documents'] });
+            queryClient.invalidateQueries({ queryKey: documentKeys.checklists() });
             queryClient.invalidateQueries({
                 queryKey: [
                     'transactions', 'detail', transactionId, 'timeline'
@@ -201,6 +209,28 @@ export const useShareDocumentWithClient = () => {
                     'transaction', transactionId, 'timeline', 'client'
                 ]
             }); // Timeline client
+        },
+    });
+};
+
+export const useUpdateChecklistManualState = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({
+            transactionId,
+            itemKey,
+            stage,
+            checked,
+        }: {
+            transactionId: string;
+            itemKey: string;
+            stage: string;
+            checked: boolean;
+        }) => updateChecklistManualState(transactionId, itemKey, stage, checked),
+        onSuccess: (_, { transactionId, stage }) => {
+            queryClient.invalidateQueries({ queryKey: documentKeys.checklist(transactionId, stage) });
+            queryClient.invalidateQueries({ queryKey: documentKeys.checklists() });
         },
     });
 };

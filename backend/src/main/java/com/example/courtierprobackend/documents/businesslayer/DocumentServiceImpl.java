@@ -3,6 +3,8 @@ package com.example.courtierprobackend.documents.businesslayer;
 import com.example.courtierprobackend.documents.datalayer.enums.*;
 
 import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
+import com.example.courtierprobackend.documents.datalayer.TransactionStageChecklistState;
+import com.example.courtierprobackend.documents.datalayer.TransactionStageChecklistStateRepository;
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
 import com.example.courtierprobackend.documents.datalayer.Document;
 import com.example.courtierprobackend.documents.datalayer.DocumentVersion;
@@ -15,6 +17,8 @@ import com.example.courtierprobackend.documents.presentationlayer.models.Documen
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentResponseDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentReviewRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentVersionResponseDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.StageChecklistItemDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.StageChecklistResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
@@ -33,6 +37,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Map;
 import java.util.stream.Collectors;
 import com.example.courtierprobackend.transactions.util.TransactionAccessUtils;
 import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
@@ -58,6 +63,7 @@ public class DocumentServiceImpl implements DocumentService {
         private final MessageSource messageSource;
         private final DocumentConditionLinkRepository documentConditionLinkRepository;
         private final TransactionParticipantRepository participantRepository;
+        private final TransactionStageChecklistStateRepository checklistStateRepository;
 
         private void verifyViewAccess(Transaction tx, UUID userId) {
                 String userEmail = userAccountRepository.findById(userId)
@@ -695,7 +701,12 @@ public class DocumentServiceImpl implements DocumentService {
                                 .orElseThrow(() -> new NotFoundException(
                                                 "Document version not found: " + versionId));
 
-                return storageService.generatePresignedUrl(version.getStorageObject().getS3Key());
+                String s3Key = version.getStorageObject().getS3Key();
+                String fileName = version.getStorageObject().getFileName();
+                if (fileName == null || fileName.isBlank()) {
+                        return storageService.generatePresignedUrl(s3Key);
+                }
+                return storageService.generatePresignedUrl(s3Key, fileName);
         }
 
         @Transactional
@@ -1099,6 +1110,141 @@ public class DocumentServiceImpl implements DocumentService {
                 }
 
                 return mapToResponseDTO(savedDocument);
+        }
+
+        private StageEnum parseStageForTransactionSide(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide side,
+                        String stage) {
+                if (stage == null || stage.isBlank()) {
+                        throw new BadRequestException("stage is required");
+                }
+                try {
+                        return StageDocumentTemplateRegistry.parseAndValidateStage(side, stage.trim());
+                } catch (IllegalArgumentException ex) {
+                        throw new BadRequestException("Invalid stage: " + stage);
+                }
+        }
+
+        private StageChecklistResponseDTO buildStageChecklist(Transaction tx, StageEnum stage) {
+                List<StageDocumentTemplateRegistry.TemplateSpec> templates = StageDocumentTemplateRegistry
+                                .templatesFor(tx.getSide(), stage);
+
+                List<Document> docsForStage = repository.findByTransactionRef_TransactionIdAndStage(tx.getTransactionId(), stage);
+                Map<String, Document> docsByTemplateKey = docsForStage.stream()
+                                .filter(doc -> doc.getTemplateKey() != null)
+                                .collect(Collectors.toMap(
+                                                Document::getTemplateKey,
+                                                doc -> doc,
+                                                (first, second) -> {
+                                                        LocalDateTime firstTs = first.getLastUpdatedAt();
+                                                        LocalDateTime secondTs = second.getLastUpdatedAt();
+                                                        if (firstTs == null) return second;
+                                                        if (secondTs == null) return first;
+                                                        return secondTs.isAfter(firstTs) ? second : first;
+                                                }));
+
+                List<TransactionStageChecklistState> states = checklistStateRepository
+                                .findByTransactionIdAndStage(tx.getTransactionId(), stage);
+                Map<String, TransactionStageChecklistState> stateByItemKey = states.stream()
+                                .collect(Collectors.toMap(TransactionStageChecklistState::getItemKey, s -> s));
+
+                List<TransactionStageChecklistState> dirtyStates = new java.util.ArrayList<>();
+                List<StageChecklistItemDTO> items = new java.util.ArrayList<>();
+
+                for (StageDocumentTemplateRegistry.TemplateSpec template : templates) {
+                        String templateKey = StageDocumentTemplateRegistry.templateKey(stage, template);
+                        Document matchedDoc = docsByTemplateKey.get(templateKey);
+                        boolean shouldAutoChecked = matchedDoc != null
+                                        && StageDocumentTemplateRegistry.isAutoChecked(template, matchedDoc.getStatus());
+
+                        TransactionStageChecklistState state = stateByItemKey.get(template.itemKey());
+                        if (state == null) {
+                                state = TransactionStageChecklistState.builder()
+                                                .transactionId(tx.getTransactionId())
+                                                .stage(stage)
+                                                .itemKey(template.itemKey())
+                                                .autoChecked(shouldAutoChecked)
+                                                .autoCheckedAt(shouldAutoChecked ? LocalDateTime.now() : null)
+                                                .build();
+                                stateByItemKey.put(template.itemKey(), state);
+                                dirtyStates.add(state);
+                        } else if (state.isAutoChecked() != shouldAutoChecked) {
+                                state.setAutoChecked(shouldAutoChecked);
+                                state.setAutoCheckedAt(shouldAutoChecked ? LocalDateTime.now() : null);
+                                dirtyStates.add(state);
+                        }
+
+                        boolean checked = state.getManualChecked() != null ? state.getManualChecked() : state.isAutoChecked();
+                        String source = state.getManualChecked() != null ? "MANUAL"
+                                        : (state.isAutoChecked() ? "AUTO" : "NONE");
+
+                        items.add(StageChecklistItemDTO.builder()
+                                        .itemKey(template.itemKey())
+                                        .label(template.label())
+                                        .docType(template.docType())
+                                        .flow(template.flow())
+                                        .requiresSignature(template.requiresSignature())
+                                        .checked(checked)
+                                        .source(source)
+                                        .documentId(matchedDoc != null ? matchedDoc.getDocumentId() : null)
+                                        .documentStatus(matchedDoc != null ? matchedDoc.getStatus() : null)
+                                        .build());
+                }
+
+                if (!dirtyStates.isEmpty()) {
+                        checklistStateRepository.saveAll(dirtyStates);
+                }
+
+                return StageChecklistResponseDTO.builder()
+                                .stage(stage.name())
+                                .items(items)
+                                .build();
+        }
+
+        @Override
+        public StageChecklistResponseDTO getStageChecklist(UUID transactionId, String stage, UUID userId) {
+                Transaction tx = transactionRepository.findByTransactionId(transactionId)
+                                .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
+
+                verifyViewAccess(tx, userId);
+                StageEnum stageEnum = parseStageForTransactionSide(tx.getSide(), stage);
+                return buildStageChecklist(tx, stageEnum);
+        }
+
+        @Override
+        @Transactional
+        public StageChecklistResponseDTO setChecklistManualState(UUID transactionId, String stage, String itemKey,
+                        boolean checked, UUID brokerId) {
+                if (itemKey == null || itemKey.isBlank()) {
+                        throw new BadRequestException("itemKey is required");
+                }
+
+                Transaction tx = transactionRepository.findByTransactionId(transactionId)
+                                .orElseThrow(() -> new NotFoundException("Transaction not found: " + transactionId));
+
+                verifyBrokerOrCoManager(tx, brokerId,
+                                com.example.courtierprobackend.transactions.datalayer.enums.ParticipantPermission.EDIT_DOCUMENTS);
+
+                StageEnum stageEnum = parseStageForTransactionSide(tx.getSide(), stage);
+                boolean knownItem = StageDocumentTemplateRegistry.templatesFor(tx.getSide(), stageEnum).stream()
+                                .anyMatch(template -> template.itemKey().equals(itemKey));
+                if (!knownItem) {
+                        throw new BadRequestException("Unknown checklist item '" + itemKey + "' for stage " + stageEnum);
+                }
+
+                TransactionStageChecklistState state = checklistStateRepository
+                                .findByTransactionIdAndStageAndItemKey(transactionId, stageEnum, itemKey)
+                                .orElse(TransactionStageChecklistState.builder()
+                                                .transactionId(transactionId)
+                                                .stage(stageEnum)
+                                                .itemKey(itemKey)
+                                                .build());
+
+                state.setManualChecked(checked);
+                state.setManualCheckedBy(brokerId);
+                state.setManualCheckedAt(LocalDateTime.now());
+                checklistStateRepository.save(state);
+
+                return buildStageChecklist(tx, stageEnum);
         }
 
         private boolean isFrench(String lang) {

@@ -39,6 +39,8 @@ public interface TransactionService {
 
     TransactionResponseDTO terminateTransaction(UUID transactionId, String reason, UUID brokerId);
 
+    MissingAutoDraftsResponseDTO getMissingAutoDrafts(UUID transactionId, String stage, UUID brokerId);
+
     TransactionResponseDTO getByTransactionId(UUID transactionId, UUID userId);
 
     void pinTransaction(UUID transactionId, UUID brokerId);

@@ -7104,4 +7104,261 @@ class TransactionServiceImplTest {
                 assertThat(result.stream().map(TransactionResponseDTO::getTransactionId))
                                 .containsExactlyInAnyOrder(tx1.getTransactionId(), tx2.getTransactionId());
         }
+
+        @Test
+        void createTransaction_AutoDraftGeneration_SkipsExistingTemplateKeys() {
+                TransactionRequestDTO dto = createValidBuyerTransactionDTO();
+                UUID transactionId = UUID.randomUUID();
+                Transaction savedTx = new Transaction();
+                savedTx.setTransactionId(transactionId);
+                savedTx.setClientId(dto.getClientId());
+                savedTx.setBrokerId(dto.getBrokerId());
+                savedTx.setSide(TransactionSide.BUY_SIDE);
+                savedTx.setBuyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION);
+
+                com.example.courtierprobackend.documents.businesslayer.StageDocumentTemplateRegistry.TemplateSpec firstTemplate = com.example.courtierprobackend.documents.businesslayer.StageDocumentTemplateRegistry
+                                .templatesFor(TransactionSide.BUY_SIDE,
+                                                com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_FINANCIAL_PREPARATION)
+                                .get(0);
+                String existingTemplateKey = com.example.courtierprobackend.documents.businesslayer.StageDocumentTemplateRegistry
+                                .templateKey(
+                                                com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_FINANCIAL_PREPARATION,
+                                                firstTemplate);
+
+                com.example.courtierprobackend.documents.datalayer.Document existingDoc = new com.example.courtierprobackend.documents.datalayer.Document();
+                existingDoc.setTemplateKey(existingTemplateKey);
+
+                when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(any(), any(), any()))
+                                .thenReturn(Optional.empty());
+                when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+                when(documentRequestRepository.findByTransactionRef_TransactionId(transactionId))
+                                .thenReturn(List.of(existingDoc));
+
+                transactionService.createTransaction(dto);
+
+                verify(documentRequestRepository).saveAll(argThat(docs -> {
+                        java.util.List<com.example.courtierprobackend.documents.datalayer.Document> list = new java.util.ArrayList<>();
+                        docs.forEach(list::add);
+                        return list.stream().noneMatch(doc -> existingTemplateKey.equals(doc.getTemplateKey()));
+                }));
+        }
+
+        @Test
+        void createTransaction_WhenSavedTransactionHasNoCurrentStage_SkipsAutoDraftGeneration() {
+                TransactionRequestDTO dto = createValidBuyerTransactionDTO();
+                UUID transactionId = UUID.randomUUID();
+                Transaction savedTx = new Transaction();
+                savedTx.setTransactionId(transactionId);
+                savedTx.setClientId(dto.getClientId());
+                savedTx.setBrokerId(dto.getBrokerId());
+                savedTx.setSide(TransactionSide.BUY_SIDE);
+                savedTx.setBuyerStage(null);
+
+                when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(any(), any(), any()))
+                                .thenReturn(Optional.empty());
+                when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+
+                transactionService.createTransaction(dto);
+
+                verify(documentRequestRepository, never()).findByTransactionRef_TransactionId(any());
+                verify(documentRequestRepository, never()).saveAll(anyList());
+        }
+
+        @Test
+        void getMissingAutoDrafts_WithBlankStage_ThrowsBadRequest() {
+                assertThatThrownBy(() -> transactionService.getMissingAutoDrafts(UUID.randomUUID(), "   ",
+                                UUID.randomUUID()))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("stage is required");
+        }
+
+        @Test
+        void getMissingAutoDrafts_WhenTransactionMissing_ThrowsNotFound() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> transactionService.getMissingAutoDrafts(transactionId,
+                                "BUYER_FINANCIAL_PREPARATION", brokerId))
+                                .isInstanceOf(NotFoundException.class)
+                                .hasMessageContaining("Transaction not found");
+        }
+
+        @Test
+        void getMissingAutoDrafts_WithInvalidStageForSide_ThrowsBadRequest() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(UUID.randomUUID());
+                tx.setSide(TransactionSide.BUY_SIDE);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+
+                assertThatThrownBy(() -> transactionService.getMissingAutoDrafts(transactionId, "SELLER_HANDOVER",
+                                brokerId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("not a valid buyer stage");
+        }
+
+        @Test
+        void getMissingAutoDrafts_WithExistingTemplateKey_ReturnsOnlyMissingItems() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                com.example.courtierprobackend.documents.datalayer.enums.StageEnum stage = com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_FINANCIAL_PREPARATION;
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(UUID.randomUUID());
+                tx.setSide(TransactionSide.BUY_SIDE);
+
+                com.example.courtierprobackend.documents.businesslayer.StageDocumentTemplateRegistry.TemplateSpec firstTemplate = com.example.courtierprobackend.documents.businesslayer.StageDocumentTemplateRegistry
+                                .templatesFor(TransactionSide.BUY_SIDE, stage).get(0);
+                String existingTemplateKey = com.example.courtierprobackend.documents.businesslayer.StageDocumentTemplateRegistry
+                                .templateKey(stage, firstTemplate);
+
+                com.example.courtierprobackend.documents.datalayer.Document existingDoc = new com.example.courtierprobackend.documents.datalayer.Document();
+                existingDoc.setTemplateKey(existingTemplateKey);
+                existingDoc.setStage(stage);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+                when(documentRequestRepository.findByTransactionRef_TransactionIdAndStage(transactionId, stage))
+                                .thenReturn(List.of(existingDoc));
+
+                var response = transactionService.getMissingAutoDrafts(transactionId, stage.name(), brokerId);
+
+                int templateCount = com.example.courtierprobackend.documents.businesslayer.StageDocumentTemplateRegistry
+                                .templatesFor(TransactionSide.BUY_SIDE, stage).size();
+                assertThat(response.getStage()).isEqualTo(stage.name());
+                assertThat(response.getMissingItems()).hasSize(templateCount - 1);
+                assertThat(response.getMissingItems().stream().map(item -> item.getItemKey()))
+                                .doesNotContain(firstTemplate.itemKey());
+        }
+
+        @Test
+        void updateTransactionStage_OnRollback_DeletesOnlyFutureAutoGeneratedDrafts() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(clientId);
+                tx.setSide(TransactionSide.BUY_SIDE);
+                tx.setStatus(TransactionStatus.ACTIVE);
+                tx.setBuyerStage(BuyerStage.BUYER_NOTARY_AND_SIGNING);
+
+                StageUpdateRequestDTO dto = new StageUpdateRequestDTO();
+                dto.setStage(BuyerStage.BUYER_PROPERTY_SEARCH.name());
+                dto.setReason("Rollback needed due to updated buyer strategy.");
+
+                com.example.courtierprobackend.documents.datalayer.Document futureAutoDraft = new com.example.courtierprobackend.documents.datalayer.Document();
+                futureAutoDraft.setDocumentId(UUID.randomUUID());
+                futureAutoDraft.setStage(com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_NOTARY_AND_SIGNING);
+                futureAutoDraft.setAutoGenerated(true);
+                futureAutoDraft.setStatus(com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum.DRAFT);
+
+                com.example.courtierprobackend.documents.datalayer.Document earlyAutoDraft = new com.example.courtierprobackend.documents.datalayer.Document();
+                earlyAutoDraft.setDocumentId(UUID.randomUUID());
+                earlyAutoDraft.setStage(com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_FINANCIAL_PREPARATION);
+                earlyAutoDraft.setAutoGenerated(true);
+                earlyAutoDraft.setStatus(com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum.DRAFT);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+                when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+                when(documentRequestRepository.findByTransactionRef_TransactionIdAndAutoGeneratedTrueAndStatus(
+                                transactionId,
+                                com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum.DRAFT))
+                                .thenReturn(List.of(futureAutoDraft, earlyAutoDraft));
+                when(documentRequestRepository.findByTransactionRef_TransactionId(transactionId)).thenReturn(List.of());
+
+                transactionService.updateTransactionStage(transactionId, dto, brokerId);
+
+                verify(documentRequestRepository).delete(futureAutoDraft);
+                verify(documentRequestRepository, never()).delete(earlyAutoDraft);
+        }
+
+        @Test
+        void createTransaction_WithSellerCurrentStage_GeneratesAutoDrafts() {
+                TransactionRequestDTO dto = createValidSellerTransactionDTO();
+                UUID transactionId = UUID.randomUUID();
+
+                Transaction savedTx = new Transaction();
+                savedTx.setTransactionId(transactionId);
+                savedTx.setClientId(dto.getClientId());
+                savedTx.setBrokerId(dto.getBrokerId());
+                savedTx.setSide(TransactionSide.SELL_SIDE);
+                savedTx.setSellerStage(SellerStage.SELLER_INITIAL_CONSULTATION);
+
+                when(transactionRepository.findByClientIdAndPropertyAddress_StreetAndStatus(any(), any(), any()))
+                                .thenReturn(Optional.empty());
+                when(transactionRepository.save(any(Transaction.class))).thenReturn(savedTx);
+                when(documentRequestRepository.findByTransactionRef_TransactionId(transactionId)).thenReturn(List.of());
+
+                transactionService.createTransaction(dto);
+
+                verify(documentRequestRepository).saveAll(anyList());
+        }
+
+        @Test
+        void getMissingAutoDrafts_WithUnsupportedSide_ThrowsBadRequest() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(UUID.randomUUID());
+                tx.setSide(null);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+
+                assertThatThrownBy(() -> transactionService.getMissingAutoDrafts(transactionId,
+                                "BUYER_FINANCIAL_PREPARATION", brokerId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("Unsupported transaction side");
+        }
+
+        @Test
+        void getOfferDocumentDownloadUrl_WithFilename_UsesFilenameAwarePresignedUrl() {
+                UUID documentId = UUID.randomUUID();
+                UUID offerId = UUID.randomUUID();
+                UUID transactionId = UUID.randomUUID();
+                UUID userId = UUID.randomUUID();
+
+                com.example.courtierprobackend.transactions.datalayer.OfferDocument document = com.example.courtierprobackend.transactions.datalayer.OfferDocument
+                                .builder()
+                                .documentId(documentId)
+                                .offerId(offerId)
+                                .s3Key("offer-key")
+                                .fileName("accepted-offer.pdf")
+                                .build();
+                Offer offer = Offer.builder()
+                                .offerId(offerId)
+                                .transactionId(transactionId)
+                                .build();
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(userId);
+                tx.setClientId(UUID.randomUUID());
+
+                when(offerDocumentRepository.findByDocumentId(documentId)).thenReturn(Optional.of(document));
+                when(offerRepository.findByOfferId(offerId)).thenReturn(Optional.of(offer));
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(objectStorageService.generatePresignedUrl("offer-key", "accepted-offer.pdf"))
+                                .thenReturn("https://s3.example.com/offer-with-filename");
+
+                String result = transactionService.getOfferDocumentDownloadUrl(documentId, userId);
+
+                assertThat(result).isEqualTo("https://s3.example.com/offer-with-filename");
+                verify(objectStorageService).generatePresignedUrl("offer-key", "accepted-offer.pdf");
+        }
 }

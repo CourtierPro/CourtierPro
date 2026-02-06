@@ -19,13 +19,25 @@ interface DocumentCardProps {
     onReview?: (document: Document) => void;
     onEdit?: (document: Document) => void;
     onSendRequest?: (document: Document) => void;
+    onUploadAndSendRequest?: (document: Document) => void;
     onShare?: (document: Document) => void;
     onDelete?: (document: Document) => void;
     isFocused?: boolean;
     showBrokerNotes?: boolean;
 }
 
-export function DocumentCard({ document, onUpload, onReview, onEdit, onSendRequest, onShare, onDelete, isFocused, showBrokerNotes = true }: DocumentCardProps) {
+export function DocumentCard({
+    document,
+    onUpload,
+    onReview,
+    onEdit,
+    onSendRequest,
+    onUploadAndSendRequest,
+    onShare,
+    onDelete,
+    isFocused,
+    showBrokerNotes = true
+}: DocumentCardProps) {
     const { t, i18n } = useTranslation('documents');
     const [isLoadingView, setIsLoadingView] = useState(false);
     const title = formatDocumentTitle(document, t);
@@ -33,6 +45,8 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, onSendReque
 
     const locale = i18n.language === 'fr' ? fr : enUS;
     const date = document.lastUpdatedAt ? format(new Date(document.lastUpdatedAt), 'PPP', { locale }) : '...';
+    const isDraftRequestFlow = document.status === DocumentStatusEnum.DRAFT && document.flow !== DocumentFlowEnum.UPLOAD;
+    const needsSourceDocumentBeforeSend = isDraftRequestFlow && document.requiresSignature && document.versions.length === 0;
 
     const getStatusVariant = (status: DocumentStatusEnum) => {
         switch (status) {
@@ -236,8 +250,16 @@ export function DocumentCard({ document, onUpload, onReview, onEdit, onSendReque
                                 </Button>
                             )}
 
-                            {/* Send Request button - only for REQUEST flow DRAFT documents */}
-                            {document.status === DocumentStatusEnum.DRAFT && document.flow !== DocumentFlowEnum.UPLOAD && onSendRequest && (
+                            {/* Upload and Send Request - for signature request drafts without attached source document */}
+                            {needsSourceDocumentBeforeSend && onUploadAndSendRequest && (
+                                <Button size="sm" onClick={() => onUploadAndSendRequest(document)} className="gap-2 bg-blue-500 hover:bg-blue-600">
+                                    <Upload className="w-4 h-4" />
+                                    {t('actions.uploadAndSendRequest', 'Upload and Send Request')}
+                                </Button>
+                            )}
+
+                            {/* Send Request button - only for REQUEST flow DRAFT documents that are ready to send */}
+                            {isDraftRequestFlow && !needsSourceDocumentBeforeSend && onSendRequest && (
                                 <Button size="sm" onClick={() => onSendRequest(document)} className="gap-2 bg-blue-500 hover:bg-blue-600">
                                     <Send className="w-4 h-4" />
                                     {t('sendRequest', 'Send Request')}

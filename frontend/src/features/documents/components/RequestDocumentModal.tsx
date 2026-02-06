@@ -49,6 +49,7 @@ import { getStageLabel } from '@/shared/utils/stages';
 import { requestDocumentSchema, type RequestDocumentFormValues } from '@/shared/schemas';
 import { ConditionSelector } from '@/features/transactions/components/ConditionSelector';
 import { useParticipantPermissions } from '@/features/transactions/hooks/useParticipantPermissions';
+import { getDocumentTypeOptions } from '@/features/documents/utils/documentTypeOptions';
 
 interface RequestDocumentModalProps {
   isOpen: boolean;
@@ -93,32 +94,7 @@ export function RequestDocumentModal({
     label: getStageLabel(stage, tTx, side)
   }));
 
-  // Define which documents are for which side
-  const buySideDocs = [
-    DocumentTypeEnum.MORTGAGE_PRE_APPROVAL,
-    DocumentTypeEnum.MORTGAGE_APPROVAL,
-    DocumentTypeEnum.PROOF_OF_FUNDS,
-    DocumentTypeEnum.ID_VERIFICATION,
-    DocumentTypeEnum.EMPLOYMENT_LETTER,
-    DocumentTypeEnum.PAY_STUBS,
-    DocumentTypeEnum.CREDIT_REPORT,
-    DocumentTypeEnum.PROMISE_TO_PURCHASE,
-    DocumentTypeEnum.INSPECTION_REPORT,
-    DocumentTypeEnum.INSURANCE_LETTER,
-    DocumentTypeEnum.BANK_STATEMENT,
-    DocumentTypeEnum.OTHER,
-  ];
-
-  const sellSideDocs = [
-    DocumentTypeEnum.CERTIFICATE_OF_LOCATION,
-    DocumentTypeEnum.ID_VERIFICATION,
-    DocumentTypeEnum.PROMISE_TO_PURCHASE,
-    DocumentTypeEnum.INSPECTION_REPORT,
-    DocumentTypeEnum.OTHER,
-  ];
-
-  const availableDocs = transactionType === 'buy' ? buySideDocs : sellSideDocs;
-  const docTypeOptions = availableDocs;
+  const docTypeOptions = getDocumentTypeOptions(transactionType);
 
   // Initialize form
   const form = useForm<RequestDocumentFormValues>({

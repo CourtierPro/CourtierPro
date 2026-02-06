@@ -31,6 +31,60 @@ export const SELLER_STAGES = [
 // -----------------------------
 export type TransactionSideEnum = 'BUY_SIDE' | 'SELL_SIDE';
 
+type StageSideKey = 'buy' | 'sell';
+
+function normalizeStageValue(value: string): string {
+  return value
+    .trim()
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .replace(/[^A-Za-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .replace(/_+/g, '_')
+    .toLowerCase();
+}
+
+function inferSideKeys(
+  normalizedValue: string,
+  side?: 'BUY_SIDE' | 'SELL_SIDE',
+): StageSideKey[] {
+  if (side === 'BUY_SIDE') return ['buy'];
+  if (side === 'SELL_SIDE') return ['sell'];
+  if (normalizedValue.startsWith('buyer_')) return ['buy'];
+  if (normalizedValue.startsWith('seller_')) return ['sell'];
+  return ['buy', 'sell'];
+}
+
+function buildStageCandidates(normalizedValue: string): string[] {
+  if (!normalizedValue) return [];
+  if (normalizedValue.startsWith('buyer_') || normalizedValue.startsWith('seller_')) {
+    return [normalizedValue];
+  }
+  return [normalizedValue, `buyer_${normalizedValue}`, `seller_${normalizedValue}`];
+}
+
+function findStageTranslation(
+  value: string,
+  t: TFunction<'transactions'>,
+  field: 'name' | 'description' | 'goal',
+  side?: 'BUY_SIDE' | 'SELL_SIDE',
+): string {
+  const normalizedValue = normalizeStageValue(value);
+  if (!normalizedValue) return '';
+
+  const candidates = buildStageCandidates(normalizedValue);
+  for (const candidate of candidates) {
+    const sideKeys = inferSideKeys(candidate, side);
+    for (const sideKey of sideKeys) {
+      const translation = t(`stages.${sideKey}.${candidate}.${field}`, { defaultValue: '' });
+      if (translation) {
+        return translation;
+      }
+    }
+  }
+
+  return '';
+}
+
 // -----------------------------
 // Stage selector by side
 // -----------------------------
@@ -47,7 +101,14 @@ export function getStagesForSide(side: string | undefined): string[] {
 export function enumToLabel(value?: string): string {
   if (!value || typeof value !== 'string') return 'Unknown';
 
-  const val = value.replace(/^BUYER_|^SELLER_/, '');
+  const val = value
+    .trim()
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .replace(/[^A-Za-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^(BUYER|SELLER)_/i, '');
+
   return val
     .split(/[_\s]+/)
     .filter(Boolean)
@@ -68,11 +129,7 @@ export function getStageLabel(
     return enumToLabel(value);
   }
 
-  const lowerValue = value.toLowerCase();
-  const sideKey = side === 'SELL_SIDE' || lowerValue.includes('seller') ? 'sell' : 'buy';
-  const translationKey = `stages.${sideKey}.${lowerValue}.name`;
-
-  const translation = t(translationKey, { defaultValue: '' });
+  const translation = findStageTranslation(value, t, 'name', side);
   return translation || enumToLabel(value);
 }
 
@@ -84,9 +141,7 @@ export function getStageDescription(
   t: TFunction<'transactions'>,
   side?: 'BUY_SIDE' | 'SELL_SIDE',
 ): string {
-  const lowerValue = value.toLowerCase();
-  const sideKey = side === 'SELL_SIDE' || lowerValue.includes('seller') ? 'sell' : 'buy';
-  return t(`stages.${sideKey}.${lowerValue}.description`, { defaultValue: '' });
+  return findStageTranslation(value, t, 'description', side);
 }
 
 // -----------------------------
@@ -97,9 +152,7 @@ export function getStageGoal(
   t: TFunction<'transactions'>,
   side?: 'BUY_SIDE' | 'SELL_SIDE',
 ): string {
-  const lowerValue = value.toLowerCase();
-  const sideKey = side === 'SELL_SIDE' || lowerValue.includes('seller') ? 'sell' : 'buy';
-  return t(`stages.${sideKey}.${lowerValue}.goal`, { defaultValue: '' });
+  return findStageTranslation(value, t, 'goal', side);
 }
 
 // -----------------------------

@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { getStagesForSide, getStageLabel, getStageDescription } from '@/shared/utils/stages';
 import { X, MessageSquare, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { fetchStageChecklist, type StageChecklistItemDTO } from '@/features/documents/api/documentsApi';
 
 import { Button } from '@/shared/components/ui/button';
 import { Textarea } from '@/shared/components/ui/textarea';
@@ -16,6 +17,15 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select';
 import { Dialog, DialogContent, DialogTitle } from "@/shared/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/shared/components/ui/alert-dialog';
 import {
   Form,
   FormControl,
@@ -48,13 +58,19 @@ export function StageUpdateModal(props: StageUpdateModalProps) {
 }
 
 function StageUpdateForm({
+  isOpen,
   onClose,
   transactionSide,
+  transactionId,
   currentStage,
   isLoading = false,
   onSubmit,
 }: StageUpdateModalProps) {
   const { t, i18n } = useTranslation('transactions');
+  const { t: tDocuments } = useTranslation('documents');
+  const [remainingChecklistItems, setRemainingChecklistItems] = useState<StageChecklistItemDTO[]>([]);
+  const [pendingSubmission, setPendingSubmission] = useState<StageUpdateFormValues | null>(null);
+  const [isCheckingChecklist, setIsCheckingChecklist] = useState(false);
 
   const stageEnums = transactionSide === 'buy' ? getStagesForSide('BUY_SIDE') : getStagesForSide('SELL_SIDE');
   // Compute the default next stage (current stage + 1)
@@ -97,6 +113,8 @@ function StageUpdateForm({
       currentStage: currentStage || '',
       stages: stageEnums,
     });
+    setRemainingChecklistItems([]);
+    setPendingSubmission(null);
   }, [reset, defaultNextStage, currentStage, stageEnums]);
 
   // Determine if it is a rollback
@@ -112,6 +130,19 @@ function StageUpdateForm({
   // Determine if same stage
   const isSameStage = currentStage === selectedStage;
 
+  useEffect(() => {
+    setRemainingChecklistItems([]);
+    setPendingSubmission(null);
+  }, [selectedStage]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setRemainingChecklistItems([]);
+      setPendingSubmission(null);
+      setIsCheckingChecklist(false);
+    }
+  }, [isOpen]);
+
   const handleSubmit = async (data: StageUpdateFormValues) => {
     try {
       if (onSubmit) {
@@ -120,12 +151,51 @@ function StageUpdateForm({
           return;
         }
 
+        if (remainingChecklistItems.length > 0 && pendingSubmission) {
+          return;
+        }
+
+        if (!pendingSubmission) {
+          setIsCheckingChecklist(true);
+          try {
+            const stageToCheck = currentStage || data.currentStage;
+            if (stageToCheck) {
+              const checklist = await fetchStageChecklist(transactionId, stageToCheck);
+              const remainingItems = (checklist.items || []).filter((item) => !item.checked);
+              if (remainingItems.length > 0) {
+                setRemainingChecklistItems(remainingItems);
+                setPendingSubmission(data);
+                return;
+              }
+            }
+          } catch (checklistError) {
+            console.error('Failed to check stage checklist', checklistError);
+          } finally {
+            setIsCheckingChecklist(false);
+          }
+        }
+
         // If rollback, validation is now handled by the Zod schema resolver
         await onSubmit(data.stage, data.note || '', data.reason);
       }
+      setRemainingChecklistItems([]);
+      setPendingSubmission(null);
       onClose();
     } catch (err) {
       console.error('Failed to update stage', err);
+      setIsCheckingChecklist(false);
+    }
+  };
+
+  const handleConfirmProceed = async () => {
+    if (!pendingSubmission || !onSubmit) return;
+    try {
+      await onSubmit(pendingSubmission.stage, pendingSubmission.note || '', pendingSubmission.reason);
+      setRemainingChecklistItems([]);
+      setPendingSubmission(null);
+      onClose();
+    } catch (err) {
+      console.error('Failed to update stage after confirmation', err);
     }
   };
 
@@ -135,6 +205,10 @@ function StageUpdateForm({
       'SELLER_HANDOVER',
     ].includes(stage);
   };
+
+  const getChecklistItemLabel = (item: StageChecklistItemDTO) => (
+    tDocuments(`types.${item.docType}`, { defaultValue: item.label })
+  );
 
   return (
     <Form {...form}>
@@ -357,13 +431,47 @@ function StageUpdateForm({
           </Button>
           <Button
             type="submit"
-            disabled={!form.formState.isValid || isSameStage || isLoading}
+            disabled={!form.formState.isValid || isSameStage || isLoading || isCheckingChecklist}
             className="flex-1"
           >
-            {isLoading ? t('updating') ?? 'Updating...' : t('updateTransactionStage')}
+            {isLoading || isCheckingChecklist ? t('updating') ?? 'Updating...' : t('updateTransactionStage')}
           </Button>
         </div>
       </form>
+
+      <AlertDialog
+        open={remainingChecklistItems.length > 0}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRemainingChecklistItems([]);
+            setPendingSubmission(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('missingDocumentWarningTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('missingDocumentWarningMessage')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+            {remainingChecklistItems.map((item) => (
+              <li key={item.itemKey}>{getChecklistItemLabel(item)}</li>
+            ))}
+          </ul>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoading}>{t('cancel')}</AlertDialogCancel>
+            <Button
+              type="button"
+              onClick={handleConfirmProceed}
+              disabled={isLoading}
+            >
+              {t('proceedAnyway')}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Form>
   );
 }
