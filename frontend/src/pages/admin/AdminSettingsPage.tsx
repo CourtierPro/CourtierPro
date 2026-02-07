@@ -30,6 +30,7 @@ type EmailTemplateType =
   | "invite" 
   | "documentSubmitted" 
   | "documentRequested" 
+  | "documentSignatureRequested"
   | "documentReview" 
   | "stageUpdate"
   | "propertyOfferMade"
@@ -41,6 +42,7 @@ const EMAIL_TEMPLATE_VARIABLES: Record<EmailTemplateType, string> = {
   invite: "{{name}}",
   documentSubmitted: "{{uploaderName}}, {{documentName}}, {{documentType}}, {{transactionId}}",
   documentRequested: "{{clientName}}, {{brokerName}}, {{documentName}}, {{documentType}}",
+  documentSignatureRequested: "{{clientName}}, {{brokerName}}, {{documentName}}, {{documentType}}, {{brokerNotes}}",
   documentReview: "{{brokerName}}, {{documentName}}, {{documentType}}, {{transactionId}}, {{status}}, {{brokerNotes}}",
   stageUpdate: "{{clientName}}, {{brokerName}}, {{transactionAddress}}, {{newStage}}",
   propertyOfferMade: "{{clientName}}, {{brokerName}}, {{propertyAddress}}, {{offerAmount}}, {{offerRound}}",
@@ -84,6 +86,10 @@ export function AdminSettingsPage() {
         label: getLabel("documentRequested"),
         variables: EMAIL_TEMPLATE_VARIABLES.documentRequested,
       },
+      documentSignatureRequested: {
+        label: getLabel("documentSignatureRequested"),
+        variables: EMAIL_TEMPLATE_VARIABLES.documentSignatureRequested,
+      },
       documentReview: {
         label: getLabel("documentReview"),
         variables: EMAIL_TEMPLATE_VARIABLES.documentReview,
@@ -126,6 +132,7 @@ export function AdminSettingsPage() {
       invite: { En: "inviteSubjectEn", Fr: "inviteSubjectFr" },
       documentSubmitted: { En: "documentSubmittedSubjectEn", Fr: "documentSubmittedSubjectFr" },
       documentRequested: { En: "documentRequestedSubjectEn", Fr: "documentRequestedSubjectFr" },
+      documentSignatureRequested: { En: "documentSignatureRequestedSubjectEn", Fr: "documentSignatureRequestedSubjectFr" },
       documentReview: { En: "documentReviewSubjectEn", Fr: "documentReviewSubjectFr" },
       stageUpdate: { En: "stageUpdateSubjectEn", Fr: "stageUpdateSubjectFr" },
       propertyOfferMade: { En: "propertyOfferMadeSubjectEn", Fr: "propertyOfferMadeSubjectFr" },
@@ -180,6 +187,10 @@ export function AdminSettingsPage() {
           documentRequestedBodyEn: data.documentRequestedBodyEn,
           documentRequestedSubjectFr: data.documentRequestedSubjectFr,
           documentRequestedBodyFr: data.documentRequestedBodyFr,
+          documentSignatureRequestedSubjectEn: data.documentSignatureRequestedSubjectEn,
+          documentSignatureRequestedBodyEn: data.documentSignatureRequestedBodyEn,
+          documentSignatureRequestedSubjectFr: data.documentSignatureRequestedSubjectFr,
+          documentSignatureRequestedBodyFr: data.documentSignatureRequestedBodyFr,
           documentReviewSubjectEn: data.documentReviewSubjectEn,
           documentReviewBodyEn: data.documentReviewBodyEn,
           documentReviewSubjectFr: data.documentReviewSubjectFr,
@@ -218,6 +229,7 @@ export function AdminSettingsPage() {
       invite: { En: "inviteBodyEn", Fr: "inviteBodyFr" },
       documentSubmitted: { En: "documentSubmittedBodyEn", Fr: "documentSubmittedBodyFr" },
       documentRequested: { En: "documentRequestedBodyEn", Fr: "documentRequestedBodyFr" },
+      documentSignatureRequested: { En: "documentSignatureRequestedBodyEn", Fr: "documentSignatureRequestedBodyFr" },
       documentReview: { En: "documentReviewBodyEn", Fr: "documentReviewBodyFr" },
       stageUpdate: { En: "stageUpdateBodyEn", Fr: "stageUpdateBodyFr" },
       propertyOfferMade: { En: "propertyOfferMadeBodyEn", Fr: "propertyOfferMadeBodyFr" },
@@ -255,6 +267,7 @@ export function AdminSettingsPage() {
     transactionId: "TX123456",
     clientName: "Alice Client",
     brokerName: "Bob Broker",
+    brokerNotes: "Please sign and upload by Friday.",
     propertyAddress: "123 Main St",
     offerAmount: "$500,000",
     offerRound: "1",
@@ -1116,4 +1129,3 @@ export function AdminSettingsPage() {
     </>
   );
 }
-

@@ -129,6 +129,41 @@ class EmailServiceDocumentNotificationsTest {
         service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "TYPE", null, "en", false);
     }
 
+    @Test
+    void sendDocumentRequestedNotification_signatureTemplates_useSettingsAndFallback() throws Exception {
+        var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
+        var userRepo = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository.class);
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, userRepo, null));
+        doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
+        var userAccount = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(userAccount.isEmailNotificationsEnabled()).thenReturn(true);
+        when(userRepo.findByEmail(anyString())).thenReturn(java.util.Optional.of(userAccount));
+
+        OrganizationSettingsResponseModel configuredSettings = OrganizationSettingsResponseModel.builder()
+            .documentSignatureRequestedSubjectEn("Signature Requested: Doc")
+            .documentSignatureRequestedBodyEn("Hello {{clientName}} [IF-brokerNotes]Note: {{brokerNotes}}[/IF-brokerNotes]")
+            .build();
+        when(orgSettingsService.getSettings()).thenReturn(configuredSettings);
+
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "OTHER", "Notes", "en", true);
+
+        verify(service).sendEmail(eq("to@x.com"), eq("Signature Requested: Doc"), contains("Note: Notes"));
+
+        clearInvocations(service);
+        doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
+
+        OrganizationSettingsResponseModel fallbackSettings = OrganizationSettingsResponseModel.builder()
+            .documentSignatureRequestedSubjectEn(null)
+            .documentSignatureRequestedBodyEn(null)
+            .build();
+        when(orgSettingsService.getSettings()).thenReturn(fallbackSettings);
+
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "OTHER", null, "en", true);
+
+        verify(service).sendEmail(eq("to@x.com"), eq("Signature Requested: Doc"),
+                contains("download, sign, and upload the signed document"));
+    }
+
     // ========== sendDocumentEditedNotification Tests ==========
 
     @Test

@@ -208,12 +208,25 @@ public class EmailService {
             String bodyText;
 
             if (requiresSignature) {
-                // Signature requests always use signature-specific text
-                subject = isFrench ? ("Signature demandée : " + displayName)
-                        : ("Signature Requested: " + displayName);
-                bodyText = isFrench
-                        ? "Bonjour {{clientName}}, {{brokerName}} vous demande de signer le document {{documentName}}. Veuillez le télécharger, le signer, puis le téléverser sur CourtierPro."
-                        : "Hello {{clientName}}, {{brokerName}} has requested you sign the document {{documentName}}. Please download it, sign it, and upload the signed version to CourtierPro.";
+                subject = isFrench ? settings.getDocumentSignatureRequestedSubjectFr()
+                        : settings.getDocumentSignatureRequestedSubjectEn();
+                bodyText = isFrench ? settings.getDocumentSignatureRequestedBodyFr()
+                        : settings.getDocumentSignatureRequestedBodyEn();
+
+                // Fallback to signature defaults if not configured
+                if (subject == null || subject.isBlank()) {
+                    subject = isFrench ? ("Signature demandée : " + displayName)
+                            : ("Signature Requested: " + displayName);
+                } else if (!subject.contains(displayName)) {
+                    subject += " : " + displayName;
+                }
+
+                if (bodyText == null || bodyText.isBlank()) {
+                    String templatePath = isFrench
+                            ? "email-templates/defaults/document_signature_requested_fr.txt"
+                            : "email-templates/defaults/document_signature_requested_en.txt";
+                    bodyText = loadTemplateFromClasspath(templatePath);
+                }
             } else {
                 subject = isFrench ? settings.getDocumentRequestedSubjectFr()
                         : settings.getDocumentRequestedSubjectEn();

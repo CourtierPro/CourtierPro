@@ -130,6 +130,11 @@ public class OrganizationSettingsServiceImpl implements OrganizationSettingsServ
                 .documentRequestedBodyEn(loadTemplate("document_requested_en.txt"))
                 .documentRequestedSubjectFr("Document demandé")
                 .documentRequestedBodyFr(loadTemplate("document_requested_fr.txt"))
+                // Document Signature Requested Template
+                .documentSignatureRequestedSubjectEn("Signature Requested")
+                .documentSignatureRequestedBodyEn(loadTemplate("document_signature_requested_en.txt"))
+                .documentSignatureRequestedSubjectFr("Signature demandée")
+                .documentSignatureRequestedBodyFr(loadTemplate("document_signature_requested_fr.txt"))
                 // Document Review Template
                 .documentReviewSubjectEn("Document Reviewed")
                 .documentReviewBodyEn(loadTemplate("document_review_en.txt"))

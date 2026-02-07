@@ -19,6 +19,11 @@ export interface UpdateOrganizationSettingsRequest {
   documentRequestedBodyEn?: string;
   documentRequestedSubjectFr?: string;
   documentRequestedBodyFr?: string;
+  // Document Signature Requested Template
+  documentSignatureRequestedSubjectEn?: string;
+  documentSignatureRequestedBodyEn?: string;
+  documentSignatureRequestedSubjectFr?: string;
+  documentSignatureRequestedBodyFr?: string;
   // Document Review Template
   documentReviewSubjectEn?: string;
   documentReviewBodyEn?: string;

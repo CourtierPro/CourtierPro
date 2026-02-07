@@ -93,7 +93,11 @@ class OrganizationSettingsServiceImplTest {
 
         // Assert
         assertThat(result.getDefaultLanguage()).isEqualTo("fr");
-        verify(repository).save(any());
+        verify(repository).save(argThat(savedSettings ->
+                "Signature Requested".equals(savedSettings.getDocumentSignatureRequestedSubjectEn()) &&
+                        "Signature demandée".equals(savedSettings.getDocumentSignatureRequestedSubjectFr()) &&
+                        savedSettings.getDocumentSignatureRequestedBodyEn() != null &&
+                        savedSettings.getDocumentSignatureRequestedBodyFr() != null));
     }
 
     @Test
@@ -326,4 +330,3 @@ class OrganizationSettingsServiceImplTest {
         );
     }
 }
-

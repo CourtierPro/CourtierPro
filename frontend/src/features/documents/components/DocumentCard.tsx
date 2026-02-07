@@ -93,7 +93,14 @@ export function DocumentCard({
     const handleDownloadToSign = async () => {
         const brokerVersions = document.versions.filter(v => v.uploadedBy.uploaderType === 'BROKER');
         if (brokerVersions.length === 0) return;
-        const latestBrokerVersion = brokerVersions[brokerVersions.length - 1];
+        const latestBrokerVersion = brokerVersions.reduce((latest, current) => {
+            const latestTimestamp = Date.parse(latest.uploadedAt);
+            const currentTimestamp = Date.parse(current.uploadedAt);
+
+            if (Number.isNaN(currentTimestamp)) return latest;
+            if (Number.isNaN(latestTimestamp) || currentTimestamp > latestTimestamp) return current;
+            return latest;
+        });
         setIsLoadingView(true);
         try {
             const url = await getDocumentDownloadUrl(

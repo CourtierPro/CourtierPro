@@ -135,6 +135,7 @@
         "invite": "Invitation / Configuration du mot de passe",
         "documentSubmitted": "Document soumis",
         "documentRequested": "Document demandé",
+        "documentSignatureRequested": "Demande de signature de document",
         "documentReview": "Révision du document",
         "stageUpdate": "Mise à jour de l'étape",
         "propertyOfferMade": "Offre immobilière soumise",
