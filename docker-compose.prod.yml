@@ -34,6 +34,7 @@ services:
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      TZ: America/Montreal
       JAVA_TOOL_OPTIONS: "-Djava.net.preferIPv4Stack=true"
       DB_HOST: db
       DB_PORT: 5432
