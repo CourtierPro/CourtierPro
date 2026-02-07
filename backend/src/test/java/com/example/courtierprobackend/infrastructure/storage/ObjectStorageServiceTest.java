@@ -177,14 +177,14 @@ class ObjectStorageServiceTest {
         when(presignedRequest.url()).thenReturn(new URL(expectedUrl));
         when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presignedRequest);
 
-        String result = objectStorageService.generatePresignedUrl(objectKey, "my\"file.pdf");
+        String result = objectStorageService.generatePresignedUrl(objectKey, "my\"fi;le\r\n\t.pdf");
 
         assertEquals(expectedUrl, result);
         ArgumentCaptor<GetObjectPresignRequest> captor = ArgumentCaptor.forClass(GetObjectPresignRequest.class);
         verify(s3Presigner).presignGetObject(captor.capture());
         GetObjectRequest objectRequest = captor.getValue().getObjectRequest();
         assertThat(objectRequest.responseContentDisposition())
-                .isEqualTo("attachment; filename=\"myfile.pdf\"");
+                .isEqualTo("attachment; filename=\"myfi_le.pdf\"");
     }
 
     @Test

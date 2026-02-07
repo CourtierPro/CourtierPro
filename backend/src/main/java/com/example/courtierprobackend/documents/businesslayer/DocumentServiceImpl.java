@@ -1147,7 +1147,6 @@ public class DocumentServiceImpl implements DocumentService {
                 Map<String, TransactionStageChecklistState> stateByItemKey = states.stream()
                                 .collect(Collectors.toMap(TransactionStageChecklistState::getItemKey, s -> s));
 
-                List<TransactionStageChecklistState> dirtyStates = new java.util.ArrayList<>();
                 List<StageChecklistItemDTO> items = new java.util.ArrayList<>();
 
                 for (StageDocumentTemplateRegistry.TemplateSpec template : templates) {
@@ -1157,25 +1156,10 @@ public class DocumentServiceImpl implements DocumentService {
                                         && StageDocumentTemplateRegistry.isAutoChecked(template, matchedDoc.getStatus());
 
                         TransactionStageChecklistState state = stateByItemKey.get(template.itemKey());
-                        if (state == null) {
-                                state = TransactionStageChecklistState.builder()
-                                                .transactionId(tx.getTransactionId())
-                                                .stage(stage)
-                                                .itemKey(template.itemKey())
-                                                .autoChecked(shouldAutoChecked)
-                                                .autoCheckedAt(shouldAutoChecked ? LocalDateTime.now() : null)
-                                                .build();
-                                stateByItemKey.put(template.itemKey(), state);
-                                dirtyStates.add(state);
-                        } else if (state.isAutoChecked() != shouldAutoChecked) {
-                                state.setAutoChecked(shouldAutoChecked);
-                                state.setAutoCheckedAt(shouldAutoChecked ? LocalDateTime.now() : null);
-                                dirtyStates.add(state);
-                        }
 
-                        boolean checked = state.getManualChecked() != null ? state.getManualChecked() : state.isAutoChecked();
-                        String source = state.getManualChecked() != null ? "MANUAL"
-                                        : (state.isAutoChecked() ? "AUTO" : "NONE");
+                        Boolean manualChecked = state != null ? state.getManualChecked() : null;
+                        boolean checked = manualChecked != null ? manualChecked : shouldAutoChecked;
+                        String source = manualChecked != null ? "MANUAL" : "AUTO";
 
                         items.add(StageChecklistItemDTO.builder()
                                         .itemKey(template.itemKey())
@@ -1188,10 +1172,6 @@ public class DocumentServiceImpl implements DocumentService {
                                         .documentId(matchedDoc != null ? matchedDoc.getDocumentId() : null)
                                         .documentStatus(matchedDoc != null ? matchedDoc.getStatus() : null)
                                         .build());
-                }
-
-                if (!dirtyStates.isEmpty()) {
-                        checklistStateRepository.saveAll(dirtyStates);
                 }
 
                 return StageChecklistResponseDTO.builder()

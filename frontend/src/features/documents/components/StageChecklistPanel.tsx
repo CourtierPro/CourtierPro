@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CheckSquare, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -43,65 +43,41 @@ export function StageChecklistPanel({
   canToggle,
 }: StageChecklistPanelProps) {
   const { t } = useTranslation('documents');
-  const [selectedStage, setSelectedStage] = useState<string>(currentStage || stageOptions[0]?.value || '');
-  const prevCurrentStageRef = useRef<string | undefined>(undefined);
+  const resolveDefaultStage = (): string => {
+    if (stageOptions.length === 0) return '';
+    if (currentStage && stageOptions.some((stage) => stage.value === currentStage)) {
+      return currentStage;
+    }
+    return stageOptions[0]?.value ?? '';
+  };
+
+  const [selectedStage, setSelectedStage] = useState<string>(() => resolveDefaultStage());
+  const selectedStageIsValid = stageOptions.some((stage) => stage.value === selectedStage);
+  const effectiveSelectedStage = selectedStageIsValid ? selectedStage : resolveDefaultStage();
   const [pendingAutoOverride, setPendingAutoOverride] = useState<{
     itemKey: string;
     checked: boolean;
   } | null>(null);
   const updateManualState = useUpdateChecklistManualState();
 
-  useEffect(() => {
-    if (stageOptions.length === 0) {
-      setSelectedStage('');
-      prevCurrentStageRef.current = currentStage;
-      return;
-    }
-
-    const currentIsValid = currentStage && stageOptions.some((stage) => stage.value === currentStage);
-    const currentStageChanged = currentStage !== prevCurrentStageRef.current;
-
-    if (currentStageChanged && currentIsValid) {
-      setSelectedStage(currentStage);
-      prevCurrentStageRef.current = currentStage;
-      return;
-    }
-
-    setSelectedStage((prev) => {
-      const prevIsValid = prev && stageOptions.some((stage) => stage.value === prev);
-      if (prevIsValid) {
-        return prev;
-      }
-
-      if (currentIsValid) {
-        return currentStage;
-      }
-
-      return stageOptions[0].value;
-    });
-
-    prevCurrentStageRef.current = currentStage;
-  }, [currentStage, stageOptions]);
-
-  const { data, isLoading, error } = useStageChecklist(transactionId, selectedStage);
+  const { data, isLoading, error } = useStageChecklist(transactionId, effectiveSelectedStage);
 
   const sourceLabelMap = useMemo(
     () => ({
       AUTO: t('checklistSourceAuto', 'Auto'),
       MANUAL: t('checklistSourceManual', 'Manual'),
-      NONE: t('checklistSourceNone', 'Not completed'),
     }),
     [t]
   );
 
   const applyToggle = (itemKey: string, checked: boolean) => {
-    if (!selectedStage) return;
+    if (!effectiveSelectedStage) return;
 
     updateManualState.mutate(
       {
         transactionId,
         itemKey,
-        stage: selectedStage,
+        stage: effectiveSelectedStage,
         checked,
       },
       {
@@ -113,7 +89,7 @@ export function StageChecklistPanel({
   };
 
   const handleToggle = (item: StageChecklistItemDTO, checked: boolean) => {
-    if (item.source === 'AUTO') {
+    if (item.source !== 'MANUAL') {
       setPendingAutoOverride({ itemKey: item.itemKey, checked });
       return;
     }
@@ -132,14 +108,14 @@ export function StageChecklistPanel({
       <CardHeader className="space-y-3">
         <div className="flex items-center gap-2">
           <CheckSquare className="w-5 h-5 text-primary" />
-          <CardTitle>{t('stageChecklistTitle', 'Stage Checklist')}</CardTitle>
+          <CardTitle>{t('stageChecklistTitle', 'Document Checklist')}</CardTitle>
         </div>
         <p className="text-sm text-muted-foreground">
           {t('stageChecklistDescription', 'Track required documents for each stage.')}
         </p>
         <div>
           <Label className="text-xs text-muted-foreground">{t('associatedStage', 'Associated Stage')}</Label>
-          <Select value={selectedStage} onValueChange={setSelectedStage}>
+          <Select value={effectiveSelectedStage} onValueChange={setSelectedStage}>
             <SelectTrigger className="mt-1">
               <SelectValue placeholder={t('selectStage', 'Select a stage')} />
             </SelectTrigger>
@@ -176,18 +152,43 @@ export function StageChecklistPanel({
         {!isLoading && !error && data?.items && data.items.length > 0 && (
           <div className="space-y-3">
             {data.items.map((item) => (
-              <div key={item.itemKey} className="rounded-md border border-border p-3 space-y-2">
+              <div
+                key={item.itemKey}
+                className="rounded-md border border-border p-3 space-y-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                role={canToggle ? 'button' : undefined}
+                tabIndex={canToggle ? 0 : -1}
+                onClick={() => {
+                  if (!canToggle || updateManualState.isPending) return;
+                  handleToggle(item, !item.checked);
+                }}
+                onKeyDown={(event) => {
+                  if (!canToggle || updateManualState.isPending) return;
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    handleToggle(item, !item.checked);
+                  }
+                }}
+              >
                 <div className="flex items-start gap-2">
                   <Checkbox
                     id={`checklist-${item.itemKey}`}
                     checked={item.checked}
                     onCheckedChange={(value) => handleToggle(item, Boolean(value))}
+                    onClick={(event) => event.stopPropagation()}
                     disabled={!canToggle || updateManualState.isPending}
                   />
                   <div className="flex-1 min-w-0">
-                    <label htmlFor={`checklist-${item.itemKey}`} className="text-sm font-medium cursor-pointer">
+                    <button
+                      type="button"
+                      className="text-sm font-medium cursor-pointer text-left"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleToggle(item, !item.checked);
+                      }}
+                      disabled={!canToggle || updateManualState.isPending}
+                    >
                       {getLocalizedDocumentTitle(t, { docType: item.docType, fallbackLabel: item.label })}
-                    </label>
+                    </button>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <Badge variant="outline" className="text-[10px]">
                         {item.flow === 'UPLOAD' ? t('flow.UPLOAD', 'Shared') : t('flow.REQUEST', 'Request')}

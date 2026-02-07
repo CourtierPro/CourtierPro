@@ -95,6 +95,12 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                                                 {t('timeline.by', { name: entry.transactionInfo.actorName })}
                                                             </span>
                                                         );
+                                                    } else if (entry.type === 'TRANSACTION_TERMINATED' && entry.actorName) {
+                                                        return (
+                                                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground ml-2">
+                                                                {t('timeline.by', { name: entry.actorName })}
+                                                            </span>
+                                                        );
                                                     } else if (entry.type.startsWith('PROPERTY_') && entry.transactionInfo?.actorName) {
                                                         return (
                                                             <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground ml-2">
@@ -188,6 +194,13 @@ export function ClientTransactionTimeline({ transactionId }: ClientTransactionTi
                                                     </div>
                                                 );
                                             })()}
+                                            {entry.type === 'TRANSACTION_TERMINATED' && (
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    {t('timeline.terminationReason', {
+                                                        reason: entry.transactionInfo?.reason || entry.note || '',
+                                                    })}
+                                                </p>
+                                            )}
                                             {/* Show info for PROPERTY events */}
                                             {entry.type.startsWith('PROPERTY_') && entry.transactionInfo && (
                                                 <p className="text-sm text-muted-foreground mt-1">

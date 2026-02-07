@@ -98,7 +98,10 @@ public class ObjectStorageService {
                     .key(objectKey);
 
             if (downloadFileName != null && !downloadFileName.isBlank()) {
-                String safeFileName = downloadFileName.replace("\"", "");
+                String safeFileName = downloadFileName
+                        .replace("\"", "")
+                        .replaceAll("[\\r\\n\\t]", "")
+                        .replaceAll("[;]", "_");
                 getObjectRequestBuilder.responseContentDisposition(
                         "attachment; filename=\"" + safeFileName + "\"");
             }

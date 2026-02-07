@@ -117,11 +117,11 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
     setIsUploadModalOpen(true);
   };
 
-  const handleUploadAndSendRequestClick = useCallback((document: Document) => {
+  const handleUploadAndSendRequestClick = (document: Document) => {
     setSelectedDocument(document);
     setUploadIntent('uploadAndSendRequest');
     setIsUploadModalOpen(true);
-  }, []);
+  };
 
   // Handler for uploading file to an existing document without changing status (used by UploadForClientModal for drafts)
   const handleUploadFileForDocument = useCallback(
@@ -401,6 +401,7 @@ export function DocumentsPage({ transactionId, focusDocumentId, isReadOnly = fal
 
       <div className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-6">
         <StageChecklistPanel
+          key={`${transactionId}:${currentStage ?? 'none'}`}
           transactionId={transactionId}
           stageOptions={rawStageOptions}
           currentStage={currentStage}

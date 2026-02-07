@@ -18,7 +18,7 @@ public class StageChecklistItemDTO {
     private boolean requiresSignature;
 
     private boolean checked;
-    private String source; // AUTO | MANUAL | NONE
+    private String source; // AUTO | MANUAL
 
     private UUID documentId;
     private DocumentStatusEnum documentStatus;

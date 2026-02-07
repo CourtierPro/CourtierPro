@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { getStagesForSide, getStageLabel, getStageDescription } from '@/shared/utils/stages';
 import { X, MessageSquare, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { fetchStageChecklist, type StageChecklistItemDTO } from '@/features/documents/api/documentsApi';
+import { documentKeys } from '@/features/documents/api/queries';
 
 import { Button } from '@/shared/components/ui/button';
 import { Textarea } from '@/shared/components/ui/textarea';
@@ -68,6 +70,7 @@ function StageUpdateForm({
 }: StageUpdateModalProps) {
   const { t, i18n } = useTranslation('transactions');
   const { t: tDocuments } = useTranslation('documents');
+  const queryClient = useQueryClient();
   const [remainingChecklistItems, setRemainingChecklistItems] = useState<StageChecklistItemDTO[]>([]);
   const [pendingSubmission, setPendingSubmission] = useState<StageUpdateFormValues | null>(null);
   const [isCheckingChecklist, setIsCheckingChecklist] = useState(false);
@@ -160,7 +163,10 @@ function StageUpdateForm({
           try {
             const stageToCheck = currentStage || data.currentStage;
             if (stageToCheck) {
-              const checklist = await fetchStageChecklist(transactionId, stageToCheck);
+              const checklist = await queryClient.fetchQuery({
+                queryKey: documentKeys.checklist(transactionId, stageToCheck),
+                queryFn: () => fetchStageChecklist(transactionId, stageToCheck),
+              });
               const remainingItems = (checklist.items || []).filter((item) => !item.checked);
               if (remainingItems.length > 0) {
                 setRemainingChecklistItems(remainingItems);

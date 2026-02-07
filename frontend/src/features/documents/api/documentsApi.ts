@@ -45,7 +45,7 @@ export interface StageChecklistItemDTO {
     flow: DocumentFlowEnum;
     requiresSignature: boolean;
     checked: boolean;
-    source: 'AUTO' | 'MANUAL' | 'NONE';
+    source: 'AUTO' | 'MANUAL';
     documentId?: string | null;
     documentStatus?: string | null;
 }

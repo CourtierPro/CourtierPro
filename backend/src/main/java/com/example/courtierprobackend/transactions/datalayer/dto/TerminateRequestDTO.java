@@ -10,4 +10,8 @@ public class TerminateRequestDTO {
     @NotBlank(message = "Reason is required for termination")
     @Size(min = 10, max = 500, message = "Reason must be between 10 and 500 characters")
     private String reason;
+
+    public void setReason(String reason) {
+        this.reason = reason == null ? null : reason.trim();
+    }
 }

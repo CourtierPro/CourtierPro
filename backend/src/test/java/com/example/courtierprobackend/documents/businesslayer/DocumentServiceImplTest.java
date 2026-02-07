@@ -2774,7 +2774,7 @@ class DocumentServiceImplTest {
                 assertThat(matchedItem.getDocumentId()).isEqualTo(matchedDoc.getDocumentId());
                 assertThat(result.getItems().stream().filter(item -> item.getDocumentId() == null).count())
                                 .isEqualTo(result.getItems().size() - 1L);
-                verify(checklistStateRepository).saveAll(anyList());
+                verify(checklistStateRepository, never()).saveAll(anyList());
         }
 
         @Test
@@ -2830,7 +2830,7 @@ class DocumentServiceImplTest {
                 assertThat(matchedItem.getDocumentId()).isEqualTo(newer.getDocumentId());
                 assertThat(matchedItem.getDocumentStatus()).isEqualTo(DocumentStatusEnum.APPROVED);
                 assertThat(matchedItem.getSource()).isEqualTo("AUTO");
-                verify(checklistStateRepository).saveAll(anyList());
+                verify(checklistStateRepository, never()).saveAll(anyList());
         }
 
         @Test
@@ -2988,6 +2988,7 @@ class DocumentServiceImplTest {
                 StageChecklistResponseDTO result = service.getStageChecklist(transactionId, stage.name(), userId);
 
                 assertThat(result.getItems()).allMatch(item -> item.getDocumentId() == null);
+                assertThat(result.getItems()).allMatch(item -> "AUTO".equals(item.getSource()));
         }
 
         @Test

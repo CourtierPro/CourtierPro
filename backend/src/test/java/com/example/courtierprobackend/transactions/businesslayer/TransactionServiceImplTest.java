@@ -2,6 +2,7 @@ package com.example.courtierprobackend.transactions.businesslayer;
 
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
 import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.value_object.TransactionInfo;
 import com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.dto.NoteRequestDTO;
@@ -1435,8 +1436,15 @@ class TransactionServiceImplTest {
                 assertThat(tx.getClosedAt()).isNotNull();
                 // Stage should be preserved
                 assertThat(tx.getBuyerStage()).isEqualTo(BuyerStage.BUYER_OFFER_AND_NEGOTIATION);
-                verify(timelineService).addEntry(eq(transactionId), eq(brokerId), eq(TimelineEntryType.STATUS_CHANGE),
-                                contains("terminated"), isNull());
+                verify(timelineService).addEntry(
+                                eq(transactionId),
+                                eq(brokerId),
+                                eq(TimelineEntryType.TRANSACTION_TERMINATED),
+                                eq("Client changed their mind about purchasing"),
+                                isNull(),
+                                argThat((TransactionInfo info) -> info != null
+                                                && "Client changed their mind about purchasing"
+                                                                .equals(info.getReason())));
         }
 
         @Test

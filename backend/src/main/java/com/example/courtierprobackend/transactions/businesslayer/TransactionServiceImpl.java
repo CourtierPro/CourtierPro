@@ -246,7 +246,7 @@ public class TransactionServiceImpl implements TransactionService {
             doc.setDocumentId(UUID.randomUUID());
             doc.setTransactionRef(new TransactionRef(tx.getTransactionId(), tx.getClientId(), tx.getSide()));
             doc.setDocType(template.docType());
-            doc.setCustomTitle(template.label());
+            doc.setCustomTitle(null);
             doc.setStatus(DocumentStatusEnum.DRAFT);
             doc.setExpectedFrom(StageDocumentTemplateRegistry.expectedFrom(tx.getSide(), template));
             doc.setVisibleToClient(true);
@@ -926,12 +926,17 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // Timeline entry
+        String terminationActorName = lookupUserName(brokerId);
         timelineService.addEntry(
                 transactionId,
                 brokerId,
-                TimelineEntryType.STATUS_CHANGE,
-                "Transaction terminated. Reason: " + trimmedReason,
-                null);
+                TimelineEntryType.TRANSACTION_TERMINATED,
+                trimmedReason,
+                null,
+                TransactionInfo.builder()
+                        .reason(trimmedReason)
+                        .actorName(terminationActorName)
+                        .build());
 
         // Notifications
         try {
