@@ -14,6 +14,8 @@ export interface CreateDocumentDTO {
     status?: 'DRAFT' | 'REQUESTED' | 'SUBMITTED';
     /** Optional flow type: 'REQUEST' or 'UPLOAD'. Defaults to 'REQUEST' if not provided. */
     flow?: DocumentFlowEnum;
+    /** Whether this document requires the client's signature */
+    requiresSignature?: boolean;
 }
 
 export interface UpdateDocumentDTO {
@@ -36,6 +38,23 @@ export interface OutstandingDocumentDTO {
     status: string;
 }
 
+export interface StageChecklistItemDTO {
+    itemKey: string;
+    label: string;
+    docType: DocumentTypeEnum;
+    flow: DocumentFlowEnum;
+    requiresSignature: boolean;
+    checked: boolean;
+    source: 'AUTO' | 'MANUAL';
+    documentId?: string | null;
+    documentStatus?: string | null;
+}
+
+export interface StageChecklistResponseDTO {
+    stage: string;
+    items: StageChecklistItemDTO[];
+}
+
 export const fetchDocuments = async (transactionId: string): Promise<Document[]> => {
     const response = await axiosInstance.get<Document[]>(`/transactions/${transactionId}/documents`);
     return response.data;
@@ -48,6 +67,31 @@ export const fetchAllDocuments = async (): Promise<Document[]> => {
 
 export const fetchOutstandingDocuments = async (): Promise<OutstandingDocumentDTO[]> => {
     const response = await axiosInstance.get<OutstandingDocumentDTO[]>('/documents/outstanding');
+    return response.data;
+};
+
+export const fetchStageChecklist = async (
+    transactionId: string,
+    stage: string
+): Promise<StageChecklistResponseDTO> => {
+    const response = await axiosInstance.get<StageChecklistResponseDTO>(
+        `/transactions/${transactionId}/documents/checklist`,
+        { params: { stage } }
+    );
+    return response.data;
+};
+
+export const updateChecklistManualState = async (
+    transactionId: string,
+    itemKey: string,
+    stage: string,
+    checked: boolean
+): Promise<StageChecklistResponseDTO> => {
+    const response = await axiosInstance.patch<StageChecklistResponseDTO>(
+        `/transactions/${transactionId}/documents/checklist/${itemKey}`,
+        { stage, checked },
+        { handleLocally: true }
+    );
     return response.data;
 };
 

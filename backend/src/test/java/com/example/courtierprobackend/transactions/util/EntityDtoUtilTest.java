@@ -37,10 +37,10 @@ class EntityDtoUtilTest {
         tx.setClientId(clientId);
         tx.setBrokerId(brokerId);
         tx.setSide(TransactionSide.BUY_SIDE);
-        tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+        tx.setBuyerStage(BuyerStage.BUYER_PROPERTY_SEARCH);
         tx.setStatus(TransactionStatus.ACTIVE);
         tx.setOpenedAt(LocalDateTime.of(2025, 1, 15, 10, 0));
-        
+
         PropertyAddress address = new PropertyAddress();
         address.setStreet("123 Main St");
         tx.setPropertyAddress(address);
@@ -53,7 +53,7 @@ class EntityDtoUtilTest {
         assertThat(result.getClientId()).isEqualTo(clientId);
         assertThat(result.getBrokerId()).isEqualTo(brokerId);
         assertThat(result.getSide()).isEqualTo(TransactionSide.BUY_SIDE);
-        assertThat(result.getCurrentStage()).isEqualTo("BUYER_SHOP_FOR_PROPERTY");
+        assertThat(result.getCurrentStage()).isEqualTo("BUYER_PROPERTY_SEARCH");
         assertThat(result.getStatus()).isEqualTo(TransactionStatus.ACTIVE);
         assertThat(result.getOpenedDate()).isEqualTo("2025-01-15");
         assertThat(result.getPropertyAddress().getStreet()).isEqualTo("123 Main St");
@@ -67,7 +67,7 @@ class EntityDtoUtilTest {
         tx.setClientId(UUID.randomUUID());
         tx.setBrokerId(UUID.randomUUID());
         tx.setSide(TransactionSide.BUY_SIDE);
-        tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+        tx.setBuyerStage(BuyerStage.BUYER_PROPERTY_SEARCH);
         tx.setStatus(TransactionStatus.ACTIVE);
         tx.setCentrisNumber("12345678"); // Transaction's own centris
 
@@ -86,7 +86,7 @@ class EntityDtoUtilTest {
         tx.setClientId(UUID.randomUUID());
         tx.setBrokerId(UUID.randomUUID());
         tx.setSide(TransactionSide.BUY_SIDE);
-        tx.setBuyerStage(BuyerStage.BUYER_SHOP_FOR_PROPERTY);
+        tx.setBuyerStage(BuyerStage.BUYER_PROPERTY_SEARCH);
         tx.setStatus(TransactionStatus.ACTIVE);
         tx.setCentrisNumber("12345678");
 
@@ -105,7 +105,7 @@ class EntityDtoUtilTest {
         tx.setClientId(UUID.randomUUID());
         tx.setBrokerId(UUID.randomUUID());
         tx.setSide(TransactionSide.SELL_SIDE);
-        tx.setSellerStage(SellerStage.SELLER_LISTING_PUBLISHED);
+        tx.setSellerStage(SellerStage.SELLER_PUBLISH_LISTING);
         tx.setStatus(TransactionStatus.ACTIVE);
         tx.setOpenedAt(LocalDateTime.of(2025, 2, 20, 14, 30));
 
@@ -113,7 +113,7 @@ class EntityDtoUtilTest {
         TransactionResponseDTO result = EntityDtoUtil.toResponse(tx, "Test Client");
 
         // Assert
-        assertThat(result.getCurrentStage()).isEqualTo("SELLER_LISTING_PUBLISHED");
+        assertThat(result.getCurrentStage()).isEqualTo("SELLER_PUBLISH_LISTING");
         assertThat(result.getOpenedDate()).isEqualTo("2025-02-20");
     }
 
@@ -180,7 +180,7 @@ class EntityDtoUtilTest {
         dto.setClientId(clientId);
         dto.setBrokerId(brokerId);
         dto.setSide(TransactionSide.BUY_SIDE);
-        
+
         PropertyAddress address = new PropertyAddress();
         address.setStreet("456 Oak Ave");
         dto.setPropertyAddress(address);
@@ -250,7 +250,7 @@ class EntityDtoUtilTest {
         TimelineEntry entry1 = TimelineEntry.builder()
             .type(TimelineEntryType.NOTE)
             .build();
-        
+
         TimelineEntry entry2 = TimelineEntry.builder()
             .type(TimelineEntryType.STAGE_CHANGE)
             .build();
@@ -290,14 +290,14 @@ class EntityDtoUtilTest {
     void updateBuyerStage_updatesBuyerStageAndClearsSellerStage() {
         // Arrange
         Transaction tx = new Transaction();
-        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+        tx.setBuyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION);
         tx.setSellerStage(SellerStage.SELLER_INITIAL_CONSULTATION);
 
         // Act
-        EntityDtoUtil.updateBuyerStage(tx, BuyerStage.BUYER_SUBMIT_OFFER);
+        EntityDtoUtil.updateBuyerStage(tx, BuyerStage.BUYER_OFFER_AND_NEGOTIATION);
 
         // Assert
-        assertThat(tx.getBuyerStage()).isEqualTo(BuyerStage.BUYER_SUBMIT_OFFER);
+        assertThat(tx.getBuyerStage()).isEqualTo(BuyerStage.BUYER_OFFER_AND_NEGOTIATION);
         assertThat(tx.getSellerStage()).isNull();
     }
 
@@ -307,14 +307,14 @@ class EntityDtoUtilTest {
     void updateSellerStage_updatesSellerStageAndClearsBuyerStage() {
         // Arrange
         Transaction tx = new Transaction();
-        tx.setBuyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY);
+        tx.setBuyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION);
         tx.setSellerStage(SellerStage.SELLER_INITIAL_CONSULTATION);
 
         // Act
-        EntityDtoUtil.updateSellerStage(tx, SellerStage.SELLER_ACCEPT_BEST_OFFER);
+        EntityDtoUtil.updateSellerStage(tx, SellerStage.SELLER_OFFER_AND_NEGOTIATION);
 
         // Assert
-        assertThat(tx.getSellerStage()).isEqualTo(SellerStage.SELLER_ACCEPT_BEST_OFFER);
+        assertThat(tx.getSellerStage()).isEqualTo(SellerStage.SELLER_OFFER_AND_NEGOTIATION);
         assertThat(tx.getBuyerStage()).isNull();
     }
 
@@ -370,7 +370,7 @@ class EntityDtoUtilTest {
         assertThat(result.getBrokerId()).isEqualTo(brokerId);
         assertThat(result.getSide()).isEqualTo(TransactionSide.BUY_SIDE);
         assertThat(result.getStatus()).isEqualTo(TransactionStatus.ACTIVE);
-        assertThat(result.getCurrentStage()).isEqualTo("BUYER_PREQUALIFY_FINANCIALLY");
+        assertThat(result.getCurrentStage()).isEqualTo("BUYER_FINANCIAL_PREPARATION");
         assertThat(result.getPropertyAddress()).isNull();
         assertThat(result.getOpenedDate()).isNotNull();
     }

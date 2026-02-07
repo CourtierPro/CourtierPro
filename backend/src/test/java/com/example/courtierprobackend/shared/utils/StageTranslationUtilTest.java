@@ -6,10 +6,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class StageTranslationUtilTest {
     @Test
     void getTranslatedStage_returnsFrenchAndEnglish() {
-        assertThat(StageTranslationUtil.getTranslatedStage("BUYER_PREQUALIFY_FINANCIALLY", "fr"))
-            .isEqualTo("Pré-qualification Financière");
-        assertThat(StageTranslationUtil.getTranslatedStage("BUYER_PREQUALIFY_FINANCIALLY", "en"))
-            .isEqualTo("Buyer Prequalify Financially");
+        assertThat(StageTranslationUtil.getTranslatedStage("BUYER_FINANCIAL_PREPARATION", "fr"))
+            .isEqualTo("Préparation Financière");
+        assertThat(StageTranslationUtil.getTranslatedStage("BUYER_FINANCIAL_PREPARATION", "en"))
+            .isEqualTo("Buyer Financial Preparation");
         assertThat(StageTranslationUtil.getTranslatedStage("", "fr")).isEqualTo("");
         assertThat(StageTranslationUtil.getTranslatedStage(null, "fr")).isEqualTo("");
     }
@@ -17,11 +17,11 @@ class StageTranslationUtilTest {
     @Test
     void constructNotificationMessage_formatsCorrectly() {
         assertThat(StageTranslationUtil.constructNotificationMessage(
-            "BUYER_PREQUALIFY_FINANCIALLY", "Jean", "123 Main", "fr"))
-            .contains("Pré-qualification Financière");
+            "BUYER_FINANCIAL_PREPARATION", "Jean", "123 Main", "fr"))
+            .contains("Préparation Financière");
         assertThat(StageTranslationUtil.constructNotificationMessage(
-            "BUYER_PREQUALIFY_FINANCIALLY", "John", "123 Main", "en"))
-            .contains("Buyer Prequalify Financially");
+            "BUYER_FINANCIAL_PREPARATION", "John", "123 Main", "en"))
+            .contains("Buyer Financial Preparation");
     }
 
     @Test

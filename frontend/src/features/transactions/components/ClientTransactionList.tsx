@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Filter } from 'lucide-react';
+import { Filter, CircleOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
@@ -22,6 +22,7 @@ interface ClientTransactionListProps {
 }
 
 export function ClientTransactionList({ onNavigate }: ClientTransactionListProps) {
+  const [viewMode, setViewMode] = useState<'active' | 'terminated'>('active');
   const [sideFilter, setSideFilter] = useState<'all' | 'buy' | 'sell'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY'>('ACTIVE');
   const [stageFilter, setStageFilter] = useState<string>('all');
@@ -39,9 +40,12 @@ export function ClientTransactionList({ onNavigate }: ClientTransactionListProps
   }, [language, i18n]);
 
   const filteredTransactions = useMemo(() => {
-    return transactions
+    const modeScopedTransactions = transactions
+      .filter((tx) => (viewMode === 'terminated' ? tx.status === 'TERMINATED_EARLY' : tx.status !== 'TERMINATED_EARLY'));
+
+    return modeScopedTransactions
       .filter((tx) => (sideFilter === 'all' ? true : sideFilter === 'buy' ? tx.side === 'BUY_SIDE' : tx.side === 'SELL_SIDE'))
-      .filter((tx) => (statusFilter === 'all' ? true : tx.status === statusFilter))
+      .filter((tx) => (viewMode === 'terminated' ? true : statusFilter === 'all' ? true : tx.status === statusFilter))
       .filter((tx) => {
         if (stageFilter === 'all') return true;
         const stageEnums = getStagesForSide(tx.side);
@@ -50,7 +54,7 @@ export function ClientTransactionList({ onNavigate }: ClientTransactionListProps
         const label = enumToLabel(stageEnums[idx]);
         return label === stageFilter;
       });
-  }, [transactions, sideFilter, statusFilter, stageFilter]);
+  }, [transactions, viewMode, sideFilter, statusFilter, stageFilter]);
 
   const sortedTransactions = useMemo(() => {
     return [...filteredTransactions].sort((a, b) => {
@@ -106,39 +110,71 @@ export function ClientTransactionList({ onNavigate }: ClientTransactionListProps
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t('title')} subtitle={t('subtitle')} />
-
-      <TransactionFilters
-        sideFilter={sideFilter}
-        statusFilter={statusFilter}
-        stageFilter={stageFilter}
-        sortBy={sortBy}
-        onSideFilterChange={(value) => {
-          setSideFilter(value);
-          if (value !== 'all') setStageFilter('all');
-          setCurrentPage(1);
-        }}
-        onStatusFilterChange={(value) => {
-          setStatusFilter(value);
-          setCurrentPage(1);
-        }}
-        onStageFilterChange={(value) => {
-          setStageFilter(value);
-          setCurrentPage(1);
-        }}
-        onSortByChange={(value) => {
-          setSortBy(value);
-          setCurrentPage(1);
-        }}
-        onResetFilters={handleResetFilters}
-        hasActiveFilters={hasActiveFilters}
+      <PageHeader
+        title={viewMode === 'terminated' ? t('terminatedTransactions') : t('title')}
+        subtitle={viewMode === 'terminated' ? t('terminatedSubtitle') : t('subtitle')}
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'active' ? "default" : "outline"}
+              onClick={() => {
+                setViewMode('active');
+                setCurrentPage(1);
+              }}
+              className="gap-2"
+            >
+              {t('viewActive')}
+            </Button>
+            <Button
+              variant={viewMode === 'terminated' ? "default" : "outline"}
+              onClick={() => {
+                setViewMode('terminated');
+                setCurrentPage(1);
+              }}
+              className="gap-2"
+            >
+              <CircleOff className="w-4 h-4" />
+              {t('viewTerminated')}
+            </Button>
+          </div>
+        }
       />
+
+      {viewMode === 'active' && (
+        <TransactionFilters
+          sideFilter={sideFilter}
+          statusFilter={statusFilter}
+          stageFilter={stageFilter}
+          sortBy={sortBy}
+          onSideFilterChange={(value) => {
+            setSideFilter(value);
+            if (value !== 'all') setStageFilter('all');
+            setCurrentPage(1);
+          }}
+          onStatusFilterChange={(value) => {
+            setStatusFilter(value);
+            setCurrentPage(1);
+          }}
+          onStageFilterChange={(value) => {
+            setStageFilter(value);
+            setCurrentPage(1);
+          }}
+          onSortByChange={(value) => {
+            setSortBy(value);
+            setCurrentPage(1);
+          }}
+          onResetFilters={handleResetFilters}
+          hasActiveFilters={hasActiveFilters}
+        />
+      )}
 
       {paginatedTransactions.length === 0 ? (
         <Section className="p-12 text-center">
           <Filter className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
-          <h2 className="mb-4 text-foreground font-medium">{t('noTransactions')}</h2>
-          <Button onClick={handleResetFilters}>{t('resetFilters')}</Button>
+          <h2 className="mb-4 text-foreground font-medium">{viewMode === 'terminated' ? t('noTerminatedTransactions') : t('noTransactions')}</h2>
+          {viewMode === 'active' && (
+            <Button onClick={handleResetFilters}>{t('resetFilters')}</Button>
+          )}
         </Section>
       ) : (
         <>

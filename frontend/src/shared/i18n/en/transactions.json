@@ -13,6 +13,10 @@
   "viewArchived": "View Archived",
   "viewActive": "View Active",
   "noArchivedTransactions": "No archived transactions",
+  "terminatedTransactions": "Terminated Transactions",
+  "terminatedSubtitle": "View terminated transactions",
+  "viewTerminated": "View Terminated",
+  "noTerminatedTransactions": "No terminated transactions",
   "archiveSuccess": "Transaction archived successfully",
   "unarchiveSuccess": "Transaction restored successfully",
   "archiveError": "Failed to archive transaction",
@@ -140,6 +144,7 @@
   "needsUpload": "Needs Upload",
   "revisionRequested": "Revision Requested",
   "updateTransactionStage": "Update Transaction Stage",
+  "updating": "Updating...",
   "selectStagePlaceholder": "Choose the next stage...",
   "stageDescriptionLabel": "Stage Description",
   "progressNote": "Progress Note",
@@ -150,44 +155,28 @@
   "rollbackReasonPlaceholder": "Please explain why you are reverting to a previous stage...",
   "rollbackWarningTitle": "Stage Rollback",
   "rollbackWarningMessage": "You are moving the transaction to a previous stage. A reason is required.",
+  "missingDocumentWarningTitle": "Incomplete document checklist",
+  "missingDocumentWarningMessage": "Some required documents for the current stage are still unchecked. You can continue, but those items remain outstanding.",
+  "proceedAnyway": "Proceed anyway",
   "reasonRequired": "Reason is required",
   "reasonTooShort": "Reason must be at least 10 characters",
   "reasonTooLong": "Reason cannot exceed 500 characters",
   "selectStageFirst": "Please select a stage to continue",
   "currentStageSelectedTitle": "Current Stage Selected",
   "currentStageSelectedMessage": "You have selected the stage the transaction is currently in. Please select a different stage to update.",
-  "stageDescriptions": [
-    "Your offer has been submitted to the seller. Awaiting response.",
-    "Congratulations! Your offer has been accepted. Moving to the next steps.",
-    "Property inspection is scheduled. We will review the inspection report together.",
-    "Your financing application is in progress. Stay in touch with your lender.",
-    "Legal documents are being reviewed by your lawyer.",
-    "Schedule your final property walkthrough before closing.",
-    "Preparing for the final closing. Almost there!",
-    "Transaction complete! Congratulations on your new property!"
-  ],
-  "buyStageDescriptions": [
-    "The buyer's offer has been submitted to the seller and is awaiting review and response.",
-    "Professional property inspection is scheduled or completed. Review findings with client.",
-    "Buyer is securing mortgage pre-approval or final approval from their financial institution.",
-    "Legal documents including purchase agreement are being reviewed by the buyer's lawyer.",
-    "Final property walkthrough scheduled to verify condition before closing.",
-    "All conditions met. Finalizing documents and preparing for ownership transfer.",
-    "Transaction successfully completed. Keys have been transferred to the new owner.",
-    "The buyer officially takes possession of the property after the notary confirms registration and funds transfer, and keys are handed over.",
-    "The transaction is formally canceled before closing due to unmet conditions, withdrawal, or mutual agreement, and the file is closed with no sale completed."
-  ],
-  "sellStageDescriptions": [
-    "Property is officially listed on the market and available for showings.",
-    "Active marketing campaign underway. Property is being promoted to potential buyers.",
-    "An offer has been received from a potential buyer and is under review.",
-    "Negotiating terms, conditions, and price with the potential buyer.",
-    "Seller has accepted an offer. Moving forward with buyer's due diligence period.",
-    "Legal documents are being reviewed and prepared by the seller's lawyer.",
-    "All conditions met. Finalizing sale documents and preparing for ownership transfer.",
-    "Sale successfully completed. Property ownership has been transferred to the buyer.",
-    "The transaction is formally canceled before closing due to unmet conditions, withdrawal, or mutual agreement, and the file is closed with no sale completed."
-  ],
+  "stageDescription": {
+    "goalLabel": "Goal:",
+    "previousStage": "Previous stage",
+    "nextStage": "Next stage"
+  },
+  "terminateTransaction": "Terminate Transaction",
+  "terminateConfirmTitle": "Terminate Transaction",
+  "terminateConfirmMessage": "This will permanently close the transaction. The stage will be preserved to show where the transaction was terminated.",
+  "terminateReason": "Reason for termination",
+  "terminateReasonPlaceholder": "Please explain why you are terminating this transaction...",
+  "terminateSuccess": "Transaction terminated successfully",
+  "errorTerminating": "Error terminating transaction",
+  "transactionTerminated": "Terminated",
   "transactionNotFound": "Transaction Not Found",
   "noTransactionId": "No transaction ID provided.",
   "goBack": "Go Back",
@@ -229,27 +218,68 @@
   "allStages": "All stages",
   "stages": {
     "buy": {
-      "buyer_prequalify_financially": "Prequalify Financially",
-      "buyer_shop_for_property": "Shop for Property",
-      "buyer_submit_offer": "Submit Offer",
-      "buyer_offer_accepted": "Offer Accepted",
-      "buyer_home_inspection": "Home Inspection",
-      "buyer_financing_finalized": "Financing Finalized",
-      "buyer_first_notary_appointment": "First Notary Appointment",
-      "buyer_second_notary_appointment": "Second Notary Appointment",
-      "buyer_occupancy": "Occupancy",
-      "buyer_terminated": "Buyer Terminated"
+      "buyer_financial_preparation": {
+        "name": "Financial Preparation",
+        "description": "Before beginning your search, you prepare your financial documents with your broker. These include a mortgage pre-approval, proof of income, confirmation of your down payment, and identification. This step helps determine your budget and strengthens your position when making offers.",
+        "goal": "Know your budget and demonstrate financial readiness."
+      },
+      "buyer_property_search": {
+        "name": "Property Search",
+        "description": "With your financing in place, you begin visiting properties that match your needs, preferences, and budget. Your broker provides listings, schedules visits, and helps you analyze neighborhoods, pricing, and market conditions. You will review documents such as the Seller's Declaration and Certificate of Location to better understand each property. Over time, you narrow down your options and select the property you want to pursue.",
+        "goal": "Identify and choose a suitable property to purchase."
+      },
+      "buyer_offer_and_negotiation": {
+        "name": "Offer and Negotiation",
+        "description": "Once you have chosen a property, your broker prepares a Promise to Purchase outlining your price, conditions, and timeline. Your offer is submitted to the seller and may be followed by counter-offers. Your broker helps you negotiate terms such as price, inclusions, possession date, and conditions. This stage may involve several exchanges before an agreement is reached. This stage ends when an offer is accepted and signed.",
+        "goal": "Negotiate and obtain an accepted offer."
+      },
+      "buyer_financing_and_conditions": {
+        "name": "Financing and Conditions",
+        "description": "After your offer is accepted, you must complete the conditions included in your Promise to Purchase. This usually involves arranging a home inspection and obtaining final mortgage approval. You will review the inspection report and confirm home insurance coverage. If issues arise, your broker will help you decide whether to renegotiate or proceed.",
+        "goal": "Confirm that the property and financing meet your expectations."
+      },
+      "buyer_notary_and_signing": {
+        "name": "Notary and Signing",
+        "description": "In Québec, the buyer chooses the notary. During this stage, you select a notary, submit your identification and documents, and prepare your down payment. The notary drafts the legal paperwork and schedules the signing. At the main appointment, you sign the mortgage deed and the Deed of Sale. The notary then registers the transaction.",
+        "goal": "Complete the legal purchase and sign the deed of sale."
+      },
+      "buyer_possession": {
+        "name": "Possession",
+        "description": "Once the notary confirms registration and payment, you receive the keys on the agreed possession date. You are now the legal owner of the property, and your transaction documents are archived for future reference.",
+        "goal": "Take possession of your new home."
+      }
     },
     "sell": {
-      "seller_initial_consultation": "Initial Consultation",
-      "seller_listing_published": "Listing Published",
-      "seller_review_offers": "Review Offers",
-      "seller_accept_best_offer": "Accept Best Offer",
-      "seller_conditions_met": "Conditions Met",
-      "seller_notary_coordination": "Notary Coordination",
-      "seller_notary_appointment": "Notary Appointment",
-      "seller_handover_keys": "Handover Keys",
-      "seller_terminated": "Seller Terminated"
+      "seller_initial_consultation": {
+        "name": "Initial Consultation",
+        "description": "Your selling journey begins with a meeting between you and your broker to discuss your goals, timeline, and expectations. During this step, you will review important documents such as the Comparative Market Analysis (CMA), which estimates your home's market value, and the Seller's Declaration, which discloses the condition of your property. You will also gather documents such as your Certificate of Location, tax bills, and mortgage information to ensure your file is complete and accurate.",
+        "goal": "Prepare your property and documents for listing."
+      },
+      "seller_publish_listing": {
+        "name": "Publish Listing",
+        "description": "Once your documents are ready, your broker lists your property on Centris and begins marketing it to potential buyers. This includes professional photos, property descriptions, and required disclosures. Your broker manages visits, inquiries, and communications, keeping you informed throughout the process.",
+        "goal": "Attract serious and qualified buyers."
+      },
+      "seller_offer_and_negotiation": {
+        "name": "Offer and Negotiation",
+        "description": "When buyers submit offers, they do so using a Promise to Purchase. Your broker will review each offer with you and explain the price, conditions, and timelines. If necessary, your broker will prepare counter-offers and help you negotiate better terms. This process may involve several back-and-forth exchanges until both parties agree on all conditions. Once the final version is signed, the offer becomes legally binding.",
+        "goal": "Negotiate and reach an accepted, signed agreement with a buyer."
+      },
+      "seller_financing_and_conditions": {
+        "name": "Financing and Conditions",
+        "description": "After an offer is accepted, the buyer must complete their conditions, usually financing approval and a home inspection. The buyer's lender confirms mortgage approval, and the inspector prepares a report on the property's condition. If issues arise, your broker will help resolve them. When all conditions are met or waived in writing, the sale becomes firm.",
+        "goal": "Confirm that the buyer can complete the purchase."
+      },
+      "seller_notary_and_signing": {
+        "name": "Notary and Signing",
+        "description": "Once the sale is firm, your broker works with the buyer's chosen notary to prepare the legal file. You will provide identification and property documents such as the Certificate of Location and mortgage balance statement. At the notary appointment, you sign the Deed of Sale, and the notary registers the transaction with Québec's Land Registry.",
+        "goal": "Legally transfer ownership through the notary."
+      },
+      "seller_handover": {
+        "name": "Handover",
+        "description": "After the notary confirms that the deed has been registered and funds have been transferred, you hand over the keys to the buyer on the agreed possession date. Your sale is now complete.",
+        "goal": "Complete the transaction and deliver possession."
+      }
     }
   },
   "timeline.submittedBy": "Submitted by {{name}}",
@@ -260,6 +290,7 @@
   "timeline.stageChangeNote": "Stage changed to {{stage}}.",
   "timeline.stageChangeNoteFull": "Stage changed: {{previousStage}} → {{newStage}}.",
   "timeline.stageRollbackNote": "Stage rolled back to {{stage}}.",
+  "timeline.terminationReason": "Reason: {{reason}}",
   "timeline.by": "by {{name}}",
   "timeline.propertyAdded": "Property added: {{address}}",
   "timeline.propertyUpdated": "Property updated: {{address}}",
@@ -342,6 +373,7 @@
     "CONDITION_REMOVED": "Condition Removed",
     "CONDITION_SATISFIED": "Condition Satisfied",
     "CONDITION_FAILED": "Condition Failed",
+    "TRANSACTION_TERMINATED": "Transaction Terminated",
     "APPOINTMENT_CONFIRMED": "Appointment Confirmed",
     "APPOINTMENT_CANCELLED": "Appointment Cancelled",
     "APPOINTMENT_DECLINED": "Appointment Declined",

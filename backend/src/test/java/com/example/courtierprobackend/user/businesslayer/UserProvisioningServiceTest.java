@@ -2,6 +2,7 @@ package com.example.courtierprobackend.user.businesslayer;
 
 import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
+import com.example.courtierprobackend.common.exceptions.InternalServerException;
 
 import com.example.courtierprobackend.user.mapper.UserMapper;
 import com.example.courtierprobackend.email.EmailService;
@@ -116,6 +117,25 @@ class UserProvisioningServiceTest {
         assertThat(result.get(0).getRole()).isEqualTo("CLIENT");
         assertThat(result.get(1).getRole()).isEqualTo("CLIENT");
         verify(userAccountRepository).findByRole(UserRole.CLIENT);
+    }
+
+    @Test
+    void getBrokers_ReturnsOnlyBrokers() {
+        UserAccount broker1 = new UserAccount("auth0|b1", "b1@test.com", "Broker", "One", UserRole.BROKER, "en");
+        UserAccount broker2 = new UserAccount("auth0|b2", "b2@test.com", "Broker", "Two", UserRole.BROKER, "fr");
+
+        UserResponse resp1 = UserResponse.builder().email("b1@test.com").role("BROKER").build();
+        UserResponse resp2 = UserResponse.builder().email("b2@test.com").role("BROKER").build();
+
+        when(userAccountRepository.findByRole(UserRole.BROKER)).thenReturn(List.of(broker1, broker2));
+        when(userMapper.toResponse(broker1)).thenReturn(resp1);
+        when(userMapper.toResponse(broker2)).thenReturn(resp2);
+
+        List<UserResponse> result = service.getBrokers();
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getRole()).isEqualTo("BROKER");
+        verify(userAccountRepository).findByRole(UserRole.BROKER);
     }
 
     @Test
@@ -493,5 +513,158 @@ class UserProvisioningServiceTest {
         verify(notificationService, never()).createNotification(
                 any(), any(), any(), any(), any(), any()
         );
+    }
+
+    @Test
+    void createUser_WhenRequestAndOrgLanguageBlank_FallsBackToEnglish() {
+        CreateUserRequest request = CreateUserRequest.builder()
+                .email("english@test.com")
+                .firstName("Eng")
+                .lastName("User")
+                .role("BROKER")
+                .preferredLanguage(null)
+                .build();
+
+        OrganizationSettingsResponseModel orgSettings = OrganizationSettingsResponseModel.builder()
+                .defaultLanguage("   ")
+                .build();
+
+        UserAccount savedUser = new UserAccount("auth0|eng", "english@test.com", "Eng", "User", UserRole.BROKER, null);
+        UserResponse response = UserResponse.builder().email("english@test.com").build();
+
+        when(organizationSettingsService.getSettings()).thenReturn(orgSettings);
+        when(auth0ManagementClient.createUser(anyString(), anyString(), anyString(), any(UserRole.class), eq("en")))
+                .thenReturn("auth0|eng");
+        when(auth0ManagementClient.createPasswordChangeTicket(anyString())).thenReturn("https://ticket");
+        when(emailService.sendPasswordSetupEmail(anyString(), anyString(), eq("en"))).thenReturn(true);
+        when(userMapper.toNewUserEntity(any(CreateUserRequest.class), anyString())).thenReturn(savedUser);
+        when(userAccountRepository.save(any(UserAccount.class))).thenReturn(savedUser);
+        when(userMapper.toResponse(savedUser)).thenReturn(response);
+
+        service.createUser(request);
+
+        verify(auth0ManagementClient).createUser("english@test.com", "Eng", "User", UserRole.BROKER, "en");
+        verify(emailService).sendPasswordSetupEmail("english@test.com", "https://ticket", "en");
+    }
+
+    @Test
+    void createUser_WhenMappedEntityLanguageBlank_SetsEffectiveLanguageBeforeSave() {
+        CreateUserRequest request = CreateUserRequest.builder()
+                .email("mapped@test.com")
+                .firstName("Mapped")
+                .lastName("User")
+                .role("BROKER")
+                .preferredLanguage("fr")
+                .build();
+
+        OrganizationSettingsResponseModel orgSettings = OrganizationSettingsResponseModel.builder()
+                .defaultLanguage("en")
+                .build();
+
+        UserAccount mapped = new UserAccount("auth0|mapped", "mapped@test.com", "Mapped", "User", UserRole.BROKER, " ");
+        UserResponse response = UserResponse.builder().email("mapped@test.com").preferredLanguage("fr").build();
+
+        when(organizationSettingsService.getSettings()).thenReturn(orgSettings);
+        when(auth0ManagementClient.createUser(anyString(), anyString(), anyString(), any(UserRole.class), anyString()))
+                .thenReturn("auth0|mapped");
+        when(auth0ManagementClient.createPasswordChangeTicket(anyString())).thenReturn("https://ticket");
+        when(emailService.sendPasswordSetupEmail(anyString(), anyString(), anyString())).thenReturn(true);
+        when(userMapper.toNewUserEntity(any(CreateUserRequest.class), anyString())).thenReturn(mapped);
+        when(userAccountRepository.save(any(UserAccount.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(userMapper.toResponse(any(UserAccount.class))).thenReturn(response);
+
+        service.createUser(request);
+
+        verify(userAccountRepository).save(argThat(user -> "fr".equals(user.getPreferredLanguage())));
+    }
+
+    @Test
+    void createUser_WhenPasswordSetupFails_DoesNotFailCreation() {
+        CreateUserRequest request = CreateUserRequest.builder()
+                .email("warn@test.com")
+                .firstName("Warn")
+                .lastName("User")
+                .role("BROKER")
+                .preferredLanguage("en")
+                .build();
+
+        OrganizationSettingsResponseModel orgSettings = OrganizationSettingsResponseModel.builder()
+                .defaultLanguage("en")
+                .build();
+        UserAccount savedUser = new UserAccount("auth0|warn", "warn@test.com", "Warn", "User", UserRole.BROKER, "en");
+        UserResponse response = UserResponse.builder().email("warn@test.com").build();
+
+        when(organizationSettingsService.getSettings()).thenReturn(orgSettings);
+        when(auth0ManagementClient.createUser(anyString(), anyString(), anyString(), any(UserRole.class), anyString()))
+                .thenReturn("auth0|warn");
+        when(auth0ManagementClient.createPasswordChangeTicket(anyString()))
+                .thenThrow(new RuntimeException("ticket failure"));
+        when(userMapper.toNewUserEntity(any(CreateUserRequest.class), anyString())).thenReturn(savedUser);
+        when(userAccountRepository.save(any(UserAccount.class))).thenReturn(savedUser);
+        when(userMapper.toResponse(savedUser)).thenReturn(response);
+
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> service.createUser(request));
+        verify(userAccountRepository).save(any(UserAccount.class));
+    }
+
+    @Test
+    void createUser_ClientRole_WhenWelcomeNotificationThrows_DoesNotFailCreation() {
+        CreateUserRequest request = CreateUserRequest.builder()
+                .email("notify-fail@test.com")
+                .firstName("Notify")
+                .lastName("Fail")
+                .role("CLIENT")
+                .preferredLanguage("en")
+                .build();
+
+        OrganizationSettingsResponseModel orgSettings = OrganizationSettingsResponseModel.builder()
+                .defaultLanguage("en")
+                .build();
+        UserAccount savedUser = new UserAccount("auth0|notify", "notify-fail@test.com", "Notify", "Fail", UserRole.CLIENT, "en");
+        UserResponse response = UserResponse.builder().email("notify-fail@test.com").build();
+
+        when(organizationSettingsService.getSettings()).thenReturn(orgSettings);
+        when(auth0ManagementClient.createUser(anyString(), anyString(), anyString(), any(UserRole.class), anyString()))
+                .thenReturn("auth0|notify");
+        when(auth0ManagementClient.createPasswordChangeTicket(anyString())).thenReturn("https://ticket");
+        when(emailService.sendPasswordSetupEmail(anyString(), anyString(), anyString())).thenReturn(true);
+        when(userMapper.toNewUserEntity(any(CreateUserRequest.class), anyString())).thenReturn(savedUser);
+        when(userAccountRepository.save(any(UserAccount.class))).thenReturn(savedUser);
+        when(userMapper.toResponse(savedUser)).thenReturn(response);
+        doThrow(new RuntimeException("notification failure")).when(notificationService)
+                .createNotification(anyString(), anyString(), anyString(), anyMap(), any(), any());
+
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> service.createUser(request));
+        verify(notificationService).createNotification(anyString(), anyString(), anyString(), anyMap(), any(), any());
+    }
+
+    @Test
+    void triggerPasswordReset_WhenPreferredLanguageNull_UsesOrgDefaultLanguage() {
+        UUID userId = UUID.randomUUID();
+        UserAccount user = new UserAccount("auth0|lang", "lang@test.com", "Lang", "User", UserRole.BROKER, null);
+
+        when(userAccountRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(auth0ManagementClient.createPasswordChangeTicket("auth0|lang")).thenReturn("https://ticket.lang");
+        when(organizationSettingsService.getSettings())
+                .thenReturn(OrganizationSettingsResponseModel.builder().defaultLanguage("fr").build());
+        when(emailService.sendPasswordSetupEmail("lang@test.com", "https://ticket.lang", "fr")).thenReturn(true);
+
+        service.triggerPasswordReset(userId);
+
+        verify(emailService).sendPasswordSetupEmail("lang@test.com", "https://ticket.lang", "fr");
+    }
+
+    @Test
+    void triggerPasswordReset_WhenTicketGenerationFails_ThrowsInternalServerException() {
+        UUID userId = UUID.randomUUID();
+        UserAccount user = new UserAccount("auth0|fail", "fail@test.com", "Fail", "User", UserRole.BROKER, "en");
+
+        when(userAccountRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(auth0ManagementClient.createPasswordChangeTicket("auth0|fail"))
+                .thenThrow(new RuntimeException("auth0 failure"));
+
+        assertThatThrownBy(() -> service.triggerPasswordReset(userId))
+                .isInstanceOf(InternalServerException.class)
+                .hasMessageContaining("Failed to trigger password reset");
     }
 }

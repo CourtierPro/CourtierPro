@@ -5,6 +5,8 @@ import com.example.courtierprobackend.documents.datalayer.enums.UploadedByRefEnu
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentResponseDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentReviewRequestDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.ChecklistToggleRequestDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.StageChecklistResponseDTO;
 import com.example.courtierprobackend.security.UserContextUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -127,6 +129,31 @@ public class DocumentController {
         return ResponseEntity.ok(Map.of("url", url));
     }
 
+    @GetMapping("/checklist")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<StageChecklistResponseDTO> getStageChecklist(
+            @PathVariable UUID transactionId,
+            @RequestParam("stage") String stage,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.getStageChecklist(transactionId, stage, userId));
+    }
+
+    @PatchMapping("/checklist/{itemKey}")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<StageChecklistResponseDTO> setChecklistManualState(
+            @PathVariable UUID transactionId,
+            @PathVariable String itemKey,
+            @Valid @RequestBody ChecklistToggleRequestDTO dto,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(
+                service.setChecklistManualState(transactionId, dto.getStage(), itemKey, dto.getChecked(), brokerId));
+    }
+
     @PatchMapping("/{documentId}/review")
     @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<DocumentResponseDTO> reviewDocument(
@@ -184,4 +211,3 @@ public class DocumentController {
         return ResponseEntity.ok(service.shareDocumentWithClient(documentId, brokerId));
     }
 }
-

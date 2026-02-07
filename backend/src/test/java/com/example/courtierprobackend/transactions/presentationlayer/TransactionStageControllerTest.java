@@ -68,16 +68,12 @@ class TransactionStageControllerTest {
 
         // Assert
         assertThat(buyerStages).contains(
-                "BUYER_PREQUALIFY_FINANCIALLY",
-                "BUYER_SHOP_FOR_PROPERTY",
-                "BUYER_SUBMIT_OFFER",
-                "BUYER_OFFER_ACCEPTED",
-                "BUYER_HOME_INSPECTION",
-                "BUYER_FINANCING_FINALIZED",
-                "BUYER_FIRST_NOTARY_APPOINTMENT",
-                "BUYER_SECOND_NOTARY_APPOINTMENT",
-                "BUYER_OCCUPANCY",
-                "BUYER_TERMINATED"
+                "BUYER_FINANCIAL_PREPARATION",
+                "BUYER_PROPERTY_SEARCH",
+                "BUYER_OFFER_AND_NEGOTIATION",
+                "BUYER_FINANCING_AND_CONDITIONS",
+                "BUYER_NOTARY_AND_SIGNING",
+                "BUYER_POSSESSION"
         );
     }
 
@@ -90,14 +86,11 @@ class TransactionStageControllerTest {
         // Assert
         assertThat(sellerStages).contains(
                 "SELLER_INITIAL_CONSULTATION",
-                "SELLER_LISTING_PUBLISHED",
-                "SELLER_REVIEW_OFFERS",
-                "SELLER_ACCEPT_BEST_OFFER",
-                "SELLER_CONDITIONS_MET",
-                "SELLER_NOTARY_COORDINATION",
-                "SELLER_NOTARY_APPOINTMENT",
-                "SELLER_HANDOVER_KEYS",
-                "SELLER_TERMINATED"
+                "SELLER_PUBLISH_LISTING",
+                "SELLER_OFFER_AND_NEGOTIATION",
+                "SELLER_FINANCING_AND_CONDITIONS",
+                "SELLER_NOTARY_AND_SIGNING",
+                "SELLER_HANDOVER"
         );
     }
 
@@ -108,8 +101,8 @@ class TransactionStageControllerTest {
         List<String> buyerStages = stages.get("BUYER_STAGES");
 
         // Assert - first and last stages should match enum order
-        assertThat(buyerStages.get(0)).isEqualTo("BUYER_PREQUALIFY_FINANCIALLY");
-        assertThat(buyerStages.get(buyerStages.size() - 1)).isEqualTo("BUYER_TERMINATED");
+        assertThat(buyerStages.get(0)).isEqualTo("BUYER_FINANCIAL_PREPARATION");
+        assertThat(buyerStages.get(buyerStages.size() - 1)).isEqualTo("BUYER_POSSESSION");
     }
 
     @Test
@@ -120,7 +113,6 @@ class TransactionStageControllerTest {
 
         // Assert - first and last stages should match enum order
         assertThat(sellerStages.get(0)).isEqualTo("SELLER_INITIAL_CONSULTATION");
-        assertThat(sellerStages.get(sellerStages.size() - 1)).isEqualTo("SELLER_TERMINATED");
+        assertThat(sellerStages.get(sellerStages.size() - 1)).isEqualTo("SELLER_HANDOVER");
     }
 }
-

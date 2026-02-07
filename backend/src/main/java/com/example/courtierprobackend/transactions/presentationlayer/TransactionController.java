@@ -22,6 +22,8 @@ import com.example.courtierprobackend.transactions.datalayer.dto.OfferRevisionRe
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.SearchCriteriaRequestDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.SearchCriteriaResponseDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.TerminateRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.MissingAutoDraftsResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.enums.ConditionStatus;
 
 import com.example.courtierprobackend.security.UserContextUtils;
@@ -176,6 +178,31 @@ public class TransactionController {
 
         TransactionResponseDTO updated = service.updateTransactionStage(transactionId, dto, brokerId);
         return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/{transactionId}/terminate")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<TransactionResponseDTO> terminateTransaction(
+            @PathVariable UUID transactionId,
+            @Valid @RequestBody TerminateRequestDTO dto,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+
+        TransactionResponseDTO updated = service.terminateTransaction(transactionId, dto.getReason(), brokerId);
+        return ResponseEntity.ok(updated);
+    }
+
+    @GetMapping("/{transactionId}/stages/{stage}/missing-auto-drafts")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<MissingAutoDraftsResponseDTO> getMissingAutoDrafts(
+            @PathVariable UUID transactionId,
+            @PathVariable String stage,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.getMissingAutoDrafts(transactionId, stage, brokerId));
     }
 
     @PostMapping("/{transactionId}/pin")
@@ -677,4 +704,3 @@ public class TransactionController {
         return ResponseEntity.noContent().build();
     }
 }
-

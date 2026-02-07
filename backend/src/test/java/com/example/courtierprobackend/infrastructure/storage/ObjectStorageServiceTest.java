@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -20,6 +21,7 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.io.IOException;
+import java.io.ByteArrayInputStream;
 import java.util.UUID;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -121,6 +123,22 @@ class ObjectStorageServiceTest {
     }
 
     @Test
+    void uploadFile_WhenOriginalFilenameIsNull_UsesUnnamedFallback() throws IOException {
+        UUID transactionId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.getOriginalFilename()).thenReturn(null);
+        when(file.getContentType()).thenReturn("application/pdf");
+        when(file.getInputStream()).thenReturn(new ByteArrayInputStream("content".getBytes()));
+        when(file.getSize()).thenReturn(7L);
+
+        StorageObject result = objectStorageService.uploadFile(file, transactionId, requestId);
+
+        assertThat(result.getFileName()).isEqualTo("unnamed");
+        assertThat(result.getS3Key()).endsWith("_unnamed");
+    }
+
+    @Test
     void generatePresignedUrl_ShouldReturnUrl() throws MalformedURLException {
         // Arrange
         String objectKey = "documents/tx-123/req-456/file.pdf";
@@ -148,6 +166,25 @@ class ObjectStorageServiceTest {
     void generatePresignedUrl_WhenKeyIsNull_ShouldReturnNull() {
         assertNull(objectStorageService.generatePresignedUrl(null));
         assertNull(objectStorageService.generatePresignedUrl(""));
+    }
+
+    @Test
+    void generatePresignedUrl_WithDownloadFileName_SetsContentDisposition() throws MalformedURLException {
+        String objectKey = "documents/tx-123/req-456/file.pdf";
+        String expectedUrl = "https://test-bucket.s3.amazonaws.com/" + objectKey + "?signature=abc";
+
+        PresignedGetObjectRequest presignedRequest = mock(PresignedGetObjectRequest.class);
+        when(presignedRequest.url()).thenReturn(new URL(expectedUrl));
+        when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presignedRequest);
+
+        String result = objectStorageService.generatePresignedUrl(objectKey, "my\"fi;le\r\n\t.pdf");
+
+        assertEquals(expectedUrl, result);
+        ArgumentCaptor<GetObjectPresignRequest> captor = ArgumentCaptor.forClass(GetObjectPresignRequest.class);
+        verify(s3Presigner).presignGetObject(captor.capture());
+        GetObjectRequest objectRequest = captor.getValue().getObjectRequest();
+        assertThat(objectRequest.responseContentDisposition())
+                .isEqualTo("attachment; filename=\"myfi_le.pdf\"");
     }
 
     @Test

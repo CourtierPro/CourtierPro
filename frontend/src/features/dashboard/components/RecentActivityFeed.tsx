@@ -85,7 +85,7 @@ export function RecentActivityFeed({ className }: RecentActivityFeedProps) {
         if (!stage) return '';
         const lowerStage = stage.toLowerCase();
         const sideKey = side === 'BUY_SIDE' ? 'buy' : 'sell';
-        return tTx(`stages.${sideKey}.${lowerStage}`, { defaultValue: stage });
+        return tTx(`stages.${sideKey}.${lowerStage}.name`, { defaultValue: stage });
     };
 
     const translateSide = (side: string) => {

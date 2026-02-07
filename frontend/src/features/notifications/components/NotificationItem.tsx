@@ -7,6 +7,7 @@ import { FileText, Bell, AlertCircle, CheckCircle, Info, Sparkles, XCircle, Home
 import { toast } from 'sonner';
 import { NotificationType, NotificationCategory, type NotificationResponseDTO } from '../api/notificationsApi';
 import { cn } from '@/shared/utils/utils';
+import { getStageLabel } from '@/shared/utils/stages';
 
 interface NotificationItemProps {
     notification: NotificationResponseDTO;
@@ -37,6 +38,11 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
             // Translate conditionType if present (e.g., "FINANCING" -> "Financing")
             if (params.conditionType) {
                 params.conditionType = tTransactions(`conditionTypes.${params.conditionType}`, { defaultValue: params.conditionType });
+            }
+            if (params.stage) {
+                const sideParam = params.transactionSide || params.side;
+                const stageSide = sideParam === 'BUY_SIDE' || sideParam === 'SELL_SIDE' ? sideParam : undefined;
+                params.stage = getStageLabel(params.stage, tTransactions, stageSide);
             }
 
             if (notification.titleKey) {
@@ -227,4 +233,3 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
         </Card>
     );
 }
-

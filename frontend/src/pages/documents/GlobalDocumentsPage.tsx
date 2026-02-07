@@ -15,8 +15,8 @@ import { DocumentList } from "@/features/documents/components/DocumentList";
 import { UploadDocumentModal } from "@/features/documents/components/UploadDocumentModal";
 import { DocumentReviewModal } from "@/features/documents/components/DocumentReviewModal";
 import { type Document } from "@/features/documents/types";
-import { toast } from "sonner";
 import { getRoleFromUser } from "@/features/auth/roleUtils";
+import { formatDocumentTitle } from "@/features/documents/utils/formatDocumentTitle";
 
 export function GlobalDocumentsPage() {
 
@@ -44,7 +44,6 @@ export function GlobalDocumentsPage() {
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
     const handleUploadSuccess = () => {
-        toast.success(t('uploadSuccess', 'Document uploaded successfully'));
         setIsUploadModalOpen(false);
         setSelectedDocument(null);
         queryClient.invalidateQueries({ queryKey: ['documents'] });
@@ -109,7 +108,8 @@ export function GlobalDocumentsPage() {
                     onClose={() => setIsUploadModalOpen(false)}
                     documentId={selectedDocument.documentId}
                     transactionId={selectedDocument.transactionRef.transactionId}
-                    documentTitle={selectedDocument.customTitle || selectedDocument.docType}
+                    documentTitle={formatDocumentTitle(selectedDocument, t)}
+                    docType={selectedDocument.docType}
                     onSuccess={handleUploadSuccess}
                 />
             )}

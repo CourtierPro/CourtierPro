@@ -1,4 +1,4 @@
-import { getStagesForSide, enumToLabel, resolveStageIndex, isTerminatedStage } from '@/shared/utils/stages';
+import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/shared/utils/stages';
 import { useTranslation } from 'react-i18next';
 import { useTransaction } from '@/features/transactions/api/queries';
 import { LoadingState } from '@/shared/components/branded/LoadingState';
@@ -27,7 +27,7 @@ export function TransactionSummary({ transactionId, isReadOnly = false }: Transa
   const stageEnums = getStagesForSide(transaction.side);
   const stages = stageEnums.map(enumToLabel);
   const stageIndex = resolveStageIndex(transaction.currentStage, stageEnums);
-  const isTerminated = isTerminatedStage(transaction.currentStage, stageEnums) || transaction.status === 'TERMINATED_EARLY';
+  const isTerminated = transaction.status === 'TERMINATED_EARLY';
   const displayStage = stageIndex >= 0 ? stageIndex + 1 : 1;
   const totalStages = ((transaction.totalStages ?? stages.length) || 1);
 

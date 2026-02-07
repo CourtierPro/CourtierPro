@@ -9,6 +9,7 @@ import { format, parseISO, isPast } from "date-fns";
 import { toast } from "sonner";
 import { type OutstandingDocumentDTO } from "../api/documentsApi";
 import { cn } from "@/shared/utils/utils";
+import { getLocalizedDocumentTitle } from "@/features/documents/utils/formatDocumentTitle";
 
 export function OutstandingDocumentsDashboard() {
     const { t } = useTranslation('documents');
@@ -118,7 +119,7 @@ export function OutstandingDocumentsDashboard() {
                                                 </Badge>
                                                 <div>
                                                     <p className="font-medium text-sm">
-                                                        {t(`types.${doc.title}`, { defaultValue: doc.title })}
+                                                        {getLocalizedDocumentTitle(t, { fallbackLabel: doc.title })}
                                                     </p>
                                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                         <span>{doc.clientName}</span>

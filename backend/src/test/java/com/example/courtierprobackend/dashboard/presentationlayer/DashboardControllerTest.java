@@ -608,7 +608,7 @@ class DashboardControllerTest {
                 .clientId(clientId)
                 .status(TransactionStatus.ACTIVE)
                 .side(TransactionSide.SELL_SIDE)
-                .sellerStage(SellerStage.SELLER_LISTING_PUBLISHED)
+                .sellerStage(SellerStage.SELLER_PUBLISH_LISTING)
                 .propertyAddress(new PropertyAddress("123 Main St", "Montreal", "QC", "H1A 1A1"))
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
@@ -647,7 +647,7 @@ class DashboardControllerTest {
         assertThat(content.get(0).getPropertyAddress()).isEqualTo("123 Main St");
         assertThat(content.get(0).getClientName()).isEqualTo("John Doe");
         assertThat(content.get(0).getSide()).isEqualTo("SELL_SIDE");
-        assertThat(content.get(0).getCurrentStage()).isEqualTo("SELLER_LISTING_PUBLISHED");
+        assertThat(content.get(0).getCurrentStage()).isEqualTo("SELLER_PUBLISH_LISTING");
         assertThat(content.get(0).getDocType()).isEqualTo("ID_VERIFICATION");
     }
 
@@ -662,7 +662,7 @@ class DashboardControllerTest {
                 .brokerId(brokerId)
                 .status(TransactionStatus.ACTIVE)
                 .side(TransactionSide.SELL_SIDE)
-                .sellerStage(SellerStage.SELLER_LISTING_PUBLISHED)
+                .sellerStage(SellerStage.SELLER_PUBLISH_LISTING)
                 .propertyAddress(null)
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
@@ -700,7 +700,7 @@ class DashboardControllerTest {
                 .clientId(clientId)
                 .status(TransactionStatus.ACTIVE)
                 .side(TransactionSide.BUY_SIDE)
-                .buyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY)
+                .buyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION)
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
 
@@ -733,7 +733,7 @@ class DashboardControllerTest {
         List<RecentActivityDTO> content = (List<RecentActivityDTO>) response.getBody().get("content");
         assertThat(content.get(0).getPropertyAddress()).isEqualTo("456 Buyer Ave");
         assertThat(content.get(0).getSide()).isEqualTo("BUY_SIDE");
-        assertThat(content.get(0).getCurrentStage()).isEqualTo("BUYER_PREQUALIFY_FINANCIALLY");
+        assertThat(content.get(0).getCurrentStage()).isEqualTo("BUYER_FINANCIAL_PREPARATION");
         assertThat(content.get(0).getClientName()).isEqualTo("Jane Smith");
     }
 
@@ -748,7 +748,7 @@ class DashboardControllerTest {
                 .brokerId(brokerId)
                 .status(TransactionStatus.ACTIVE)
                 .side(TransactionSide.BUY_SIDE)
-                .buyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY)
+                .buyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION)
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
         when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(txId)).thenReturn(List.of());
@@ -783,7 +783,7 @@ class DashboardControllerTest {
                 .brokerId(brokerId)
                 .status(TransactionStatus.ACTIVE)
                 .side(TransactionSide.BUY_SIDE)
-                .buyerStage(BuyerStage.BUYER_SUBMIT_OFFER)
+                .buyerStage(BuyerStage.BUYER_OFFER_AND_NEGOTIATION)
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
 
@@ -824,7 +824,7 @@ class DashboardControllerTest {
                 .brokerId(brokerId)
                 .status(TransactionStatus.ACTIVE)
                 .side(TransactionSide.SELL_SIDE)
-                .sellerStage(SellerStage.SELLER_LISTING_PUBLISHED)
+                .sellerStage(SellerStage.SELLER_PUBLISH_LISTING)
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
 
@@ -914,7 +914,7 @@ class DashboardControllerTest {
                 .brokerId(brokerId)
                 .status(TransactionStatus.ACTIVE)
                 .side(TransactionSide.SELL_SIDE)
-                .sellerStage(SellerStage.SELLER_ACCEPT_BEST_OFFER)
+                .sellerStage(SellerStage.SELLER_OFFER_AND_NEGOTIATION)
                 .propertyAddress(new PropertyAddress("789 Oak St", "Toronto", "ON", "M5V 1A1"))
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
@@ -922,7 +922,7 @@ class DashboardControllerTest {
         com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.value_object.TransactionInfo txInfo = 
             com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.value_object.TransactionInfo.builder()
                 .previousStage("SELLER_LISTING")
-                .newStage("SELLER_ACCEPT_BEST_OFFER")
+                .newStage("SELLER_OFFER_AND_NEGOTIATION")
                 .build();
 
         com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO entry = 
@@ -945,7 +945,7 @@ class DashboardControllerTest {
         List<RecentActivityDTO> content = (List<RecentActivityDTO>) response.getBody().get("content");
         assertThat(content.get(0).getTransactionInfo()).isNotNull();
         assertThat(content.get(0).getTransactionInfo().getPreviousStage()).isEqualTo("SELLER_LISTING");
-        assertThat(content.get(0).getTransactionInfo().getNewStage()).isEqualTo("SELLER_ACCEPT_BEST_OFFER");
+        assertThat(content.get(0).getTransactionInfo().getNewStage()).isEqualTo("SELLER_OFFER_AND_NEGOTIATION");
     }
 
     @Test
@@ -962,7 +962,7 @@ class DashboardControllerTest {
                 .clientId(clientId)
                 .status(TransactionStatus.ACTIVE)
                 .side(TransactionSide.SELL_SIDE)
-                .sellerStage(SellerStage.SELLER_LISTING_PUBLISHED)
+                .sellerStage(SellerStage.SELLER_PUBLISH_LISTING)
                 .propertyAddress(new PropertyAddress("100 Seller St", "Montreal", "QC", "H1A 1A1"))
                 .build();
         Transaction tx2 = Transaction.builder()
@@ -971,7 +971,7 @@ class DashboardControllerTest {
                 .clientId(clientId)
                 .status(TransactionStatus.ACTIVE)
                 .side(TransactionSide.BUY_SIDE)
-                .buyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY)
+                .buyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION)
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx1, tx2));
         when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(txId2)).thenReturn(List.of());
@@ -1025,7 +1025,7 @@ class DashboardControllerTest {
                 .clientId(clientId)
                 .status(TransactionStatus.ACTIVE)
                 .side(TransactionSide.SELL_SIDE)
-                .sellerStage(SellerStage.SELLER_LISTING_PUBLISHED)
+                .sellerStage(SellerStage.SELLER_PUBLISH_LISTING)
                 .propertyAddress(new PropertyAddress("123 Test St", "Ottawa", "ON", "K1A 1A1"))
                 .build();
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(List.of(tx));
@@ -1079,7 +1079,7 @@ class DashboardControllerTest {
                 .clientId(clientId)
                 .status(TransactionStatus.ACTIVE)
                 .side(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE)
-                .buyerStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY)
+                .buyerStage(BuyerStage.BUYER_FINANCIAL_PREPARATION)
                 .propertyAddress(new PropertyAddress("123 Main St", "Montreal", "QC", "H1A 1A1"))
                 .build();
         
@@ -1093,7 +1093,7 @@ class DashboardControllerTest {
 
         assertThat(response.getBody()).hasSize(1);
         assertThat(response.getBody().get(0).getSide()).isEqualTo("BUY_SIDE");
-        assertThat(response.getBody().get(0).getCurrentStage()).isEqualTo("BUYER_PREQUALIFY_FINANCIALLY");
+        assertThat(response.getBody().get(0).getCurrentStage()).isEqualTo("BUYER_FINANCIAL_PREPARATION");
         assertThat(response.getBody().get(0).getClientName()).isEqualTo("John Doe");
     }
 
@@ -1110,7 +1110,7 @@ class DashboardControllerTest {
                 .clientId(clientId)
                 .status(TransactionStatus.ACTIVE)
                 .side(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.SELL_SIDE)
-                .sellerStage(SellerStage.SELLER_ACCEPT_BEST_OFFER)
+                .sellerStage(SellerStage.SELLER_OFFER_AND_NEGOTIATION)
                 .propertyAddress(new PropertyAddress("456 Oak Ave", "Toronto", "ON", "M5V 1A1"))
                 .build();
         
@@ -1122,7 +1122,7 @@ class DashboardControllerTest {
 
         assertThat(response.getBody()).hasSize(1);
         assertThat(response.getBody().get(0).getSide()).isEqualTo("SELL_SIDE");
-        assertThat(response.getBody().get(0).getCurrentStage()).isEqualTo("SELLER_ACCEPT_BEST_OFFER");
+        assertThat(response.getBody().get(0).getCurrentStage()).isEqualTo("SELLER_OFFER_AND_NEGOTIATION");
         assertThat(response.getBody().get(0).getClientName()).isEmpty();
     }
 

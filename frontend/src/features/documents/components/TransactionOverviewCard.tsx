@@ -143,7 +143,14 @@ export function TransactionOverviewCard({
   const humanizeStageText = (val: string | number | undefined, side: string | undefined) => {
     if (val === undefined || val === null) return t("transaction.stageUnknown", "Stage");
     if (typeof val === "number") {
-      return t(`stages.${val}`, `Stage ${val}`);
+      const sideKey = side === "SELL_SIDE" ? "sell" : "buy";
+      const stages = getStagesForSide(side);
+      const idx = Math.max(0, Math.min(stages.length - 1, val - 1));
+      const stageEnum = stages[idx];
+      if (stageEnum) {
+        return t(`stages.${sideKey}.${stageEnum.toLowerCase()}.name`, { defaultValue: `Stage ${val}` });
+      }
+      return `Stage ${val}`;
     }
     return getStageLabel(String(val), tTx, side as "BUY_SIDE" | "SELL_SIDE" | undefined);
   };

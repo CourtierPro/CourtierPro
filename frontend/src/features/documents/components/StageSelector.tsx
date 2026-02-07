@@ -20,7 +20,10 @@ export const StageSelector: React.FC<StageSelectorProps> = ({ stages, selectedSt
           onClick={() => onSelectStage(stage)}
           className="capitalize"
         >
-          {getStageLabel ? getStageLabel(stage) : t(`stages.${stage}`, stage)}
+          {getStageLabel ? getStageLabel(stage) : (() => {
+            const sideKey = stage.toLowerCase().startsWith('seller') ? 'sell' : 'buy';
+            return t(`stages.${sideKey}.${stage.toLowerCase()}.name`, stage);
+          })()}
         </Button>
       ))}
     </div>

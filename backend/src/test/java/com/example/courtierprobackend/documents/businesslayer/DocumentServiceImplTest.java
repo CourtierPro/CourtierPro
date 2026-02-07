@@ -3,6 +3,7 @@ package com.example.courtierprobackend.documents.businesslayer;
 import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
 import com.example.courtierprobackend.documents.datalayer.Document;
 import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
+import com.example.courtierprobackend.documents.datalayer.TransactionStageChecklistState;
 import com.example.courtierprobackend.documents.datalayer.DocumentVersion;
 import com.example.courtierprobackend.documents.datalayer.enums.*;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject;
@@ -11,6 +12,7 @@ import com.example.courtierprobackend.documents.presentationlayer.models.Documen
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentReviewRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentResponseDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.OutstandingDocumentDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.StageChecklistResponseDTO;
 import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.infrastructure.storage.ObjectStorageService;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
@@ -33,6 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -67,7 +70,7 @@ class DocumentServiceImplTest {
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
                 request.setStatus(DocumentStatusEnum.DRAFT);
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 DocumentRequestDTO dto = new DocumentRequestDTO();
                 dto.setDocType(DocumentTypeEnum.BANK_STATEMENT); // trigger update
@@ -178,7 +181,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(Boolean.TRUE);
                 request.setBrokerNotes("OriginalNotes");
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -229,6 +232,8 @@ class DocumentServiceImplTest {
         private com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository documentConditionLinkRepository;
         @Mock
         private TransactionParticipantRepository participantRepository;
+        @Mock
+        private com.example.courtierprobackend.documents.datalayer.TransactionStageChecklistStateRepository checklistStateRepository;
 
         private DocumentServiceImpl service;
 
@@ -236,7 +241,7 @@ class DocumentServiceImplTest {
         void setUp() {
                 service = new DocumentServiceImpl(repository, storageService, emailService, notificationService,
                                 transactionRepository, userAccountRepository, timelineService, messageSource,
-                                documentConditionLinkRepository, participantRepository);
+                                documentConditionLinkRepository, participantRepository, checklistStateRepository);
         }
 
         // ========== getDocumentsForTransaction Tests ==========
@@ -1040,7 +1045,7 @@ class DocumentServiceImplTest {
 
                 // Assert
                 verify(emailService, never()).sendDocumentRequestedNotification(anyString(), anyString(), anyString(),
-                                anyString(), anyString(), anyString(), anyString());
+                                anyString(), anyString(), anyString(), anyString(), anyBoolean());
                 verify(notificationService, never()).createNotification(anyString(), anyString(), anyString(),
                                 anyString(),
                                 any());
@@ -1146,7 +1151,7 @@ class DocumentServiceImplTest {
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
                 request.setStage(
-                                com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                                com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1156,7 +1161,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes("Notes");
-                dto.setStage(com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(com.example.courtierprobackend.documents.datalayer.enums.StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 Transaction tx = new Transaction();
                 tx.setBrokerId(brokerId);
@@ -1217,7 +1222,8 @@ class DocumentServiceImplTest {
                                 captor.capture(),
                                 captor.capture(),
                                 captor.capture(),
-                                captor.capture());
+                                captor.capture(),
+                                anyBoolean());
                 java.util.List<String> args = captor.getAllValues();
                 org.junit.jupiter.api.Assertions.assertEquals("client@test.com", args.get(0));
                 org.junit.jupiter.api.Assertions.assertEquals("John Doe", args.get(1));
@@ -1247,7 +1253,7 @@ class DocumentServiceImplTest {
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
                 request.setStatus(DocumentStatusEnum.DRAFT);
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1262,7 +1268,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes("Notes");
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
                 when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -1282,7 +1288,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1297,7 +1303,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes("Notes");
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
                 when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -1318,7 +1324,7 @@ class DocumentServiceImplTest {
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
                 request.setStatus(DocumentStatusEnum.DRAFT);
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1333,7 +1339,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.BROKER); // Different
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes("Notes");
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
                 when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -1353,7 +1359,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(false);
                 request.setBrokerNotes("Notes");
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1368,7 +1374,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true); // Different
                 dto.setBrokerNotes("Notes");
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
                 when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -1388,7 +1394,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes1");
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1403,7 +1409,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes("Notes2"); // Different
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
                 when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -1423,7 +1429,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("Notes");
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1438,13 +1444,13 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes("Notes");
-                dto.setStage(StageEnum.BUYER_SHOP_FOR_PROPERTY); // Different
+                dto.setStage(StageEnum.BUYER_PROPERTY_SEARCH); // Different
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
                 when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
 
                 DocumentResponseDTO result = service.updateDocument(requestId, dto, brokerId);
-                assertThat(result.getStage()).isEqualTo(StageEnum.BUYER_SHOP_FOR_PROPERTY);
+                assertThat(result.getStage()).isEqualTo(StageEnum.BUYER_PROPERTY_SEARCH);
         }
 
         @Test
@@ -1458,7 +1464,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(true);
                 request.setBrokerNotes(null);
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1468,7 +1474,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes(""); // Empty string
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
 
@@ -1493,7 +1499,7 @@ class DocumentServiceImplTest {
                 request.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 request.setVisibleToClient(true);
                 request.setBrokerNotes("notes");
-                request.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                request.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 request.setTransactionRef(
                                 new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), TransactionSide.BUY_SIDE));
 
@@ -1508,7 +1514,7 @@ class DocumentServiceImplTest {
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
                 dto.setVisibleToClient(true);
                 dto.setBrokerNotes("NOTES"); // Different case
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
 
                 when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
                 when(repository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -2029,7 +2035,8 @@ class DocumentServiceImplTest {
                                 anyString(),
                                 eq("PROOF_OF_FUNDS"),
                                 any(),
-                                eq("en"));
+                                eq("en"),
+                                anyBoolean());
         }
 
         // ========== Draft Workflow Tests ==========
@@ -2049,7 +2056,7 @@ class DocumentServiceImplTest {
                 DocumentRequestDTO dto = new DocumentRequestDTO();
                 dto.setDocType(DocumentTypeEnum.PROOF_OF_FUNDS);
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 dto.setStatus(DocumentStatusEnum.DRAFT); // Set as DRAFT
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
@@ -2069,7 +2076,7 @@ class DocumentServiceImplTest {
                 assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.DRAFT);
 
                 // Verify no email notifications sent
-                verify(emailService, never()).sendDocumentRequestedNotification(any(), any(), any(), any(), any(), any(), any());
+                verify(emailService, never()).sendDocumentRequestedNotification(any(), any(), any(), any(), any(), any(), any(), anyBoolean());
 
                 // Verify no timeline entry added
                 verify(timelineService, never()).addEntry(any(), any(), any(), any(), any());
@@ -2093,7 +2100,7 @@ class DocumentServiceImplTest {
                 DocumentRequestDTO dto = new DocumentRequestDTO();
                 dto.setDocType(DocumentTypeEnum.PROOF_OF_FUNDS);
                 dto.setExpectedFrom(DocumentPartyEnum.CLIENT);
-                dto.setStage(StageEnum.BUYER_PREQUALIFY_FINANCIALLY);
+                dto.setStage(StageEnum.BUYER_FINANCIAL_PREPARATION);
                 dto.setStatus(DocumentStatusEnum.REQUESTED);
 
                 UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "John", "Doe",
@@ -2126,7 +2133,7 @@ class DocumentServiceImplTest {
                 assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.REQUESTED);
 
                 // Verify email notification sent
-                verify(emailService, atLeastOnce()).sendDocumentRequestedNotification(any(), any(), any(), any(), any(), any(), any());
+                verify(emailService, atLeastOnce()).sendDocumentRequestedNotification(any(), any(), any(), any(), any(), any(), any(), anyBoolean());
 
                 // Verify timeline entry added
                 verify(timelineService, atLeastOnce()).addEntry(any(), any(), any(), any(), any());
@@ -2263,7 +2270,8 @@ class DocumentServiceImplTest {
                                 anyString(),
                                 eq("PROOF_OF_FUNDS"),
                                 any(),
-                                eq("en"));
+                                eq("en"),
+                                anyBoolean());
 
                 // Verify timeline entry added
                 verify(timelineService).addEntry(eq(transactionId), eq(brokerId), any(), any(), any());
@@ -2626,5 +2634,419 @@ class DocumentServiceImplTest {
                 assertThat(result.getExpectedFrom()).isEqualTo(DocumentPartyEnum.CLIENT);
                 // Mutable fields should change
                 assertThat(result.getBrokerNotes()).isEqualTo("New Notes");
+        }
+
+        @Test
+        void shareDocumentWithClient_WhenNotificationLocalizationFails_StillSucceeds() {
+                UUID transactionId = UUID.randomUUID();
+                UUID documentId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(clientId);
+
+                Document document = new Document();
+                document.setDocumentId(documentId);
+                document.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+                document.setDocType(DocumentTypeEnum.OTHER);
+                document.setCustomTitle("Draft Doc");
+                document.setStatus(DocumentStatusEnum.DRAFT);
+                document.setFlow(DocumentFlowEnum.UPLOAD);
+
+                UserAccount broker = new UserAccount(brokerId.toString(), "broker@test.com", "Broker", "User",
+                                UserRole.BROKER, "en");
+                broker.setId(brokerId);
+                UserAccount client = new UserAccount(clientId.toString(), "client@test.com", "Client", "User",
+                                UserRole.CLIENT, "en");
+                client.setId(clientId);
+
+                when(repository.findByDocumentId(documentId)).thenReturn(Optional.of(document));
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.of(broker));
+                when(userAccountRepository.findById(clientId)).thenReturn(Optional.of(client));
+                when(repository.save(any(Document.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(messageSource.getMessage(anyString(), any(), anyString(), any(java.util.Locale.class)))
+                                .thenThrow(new RuntimeException("i18n failure"));
+
+                DocumentResponseDTO result = service.shareDocumentWithClient(documentId, brokerId);
+
+                assertThat(result.getStatus()).isEqualTo(DocumentStatusEnum.SUBMITTED);
+                verify(emailService).sendDocumentSubmittedNotification(any(Document.class), anyString(), anyString(),
+                                anyString(), anyString(), anyString());
+        }
+
+        @Test
+        void getStageChecklist_WhenTransactionNotFound_ThrowsNotFound() {
+                UUID transactionId = UUID.randomUUID();
+                UUID userId = UUID.randomUUID();
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> service.getStageChecklist(transactionId,
+                                StageEnum.BUYER_FINANCIAL_PREPARATION.name(), userId))
+                                .isInstanceOf(NotFoundException.class)
+                                .hasMessageContaining("Transaction not found");
+        }
+
+        @Test
+        void getStageChecklist_WithBlankStage_ThrowsBadRequest() {
+                UUID transactionId = UUID.randomUUID();
+                UUID userId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(userId);
+                tx.setClientId(UUID.randomUUID());
+                tx.setSide(TransactionSide.BUY_SIDE);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+
+                assertThatThrownBy(() -> service.getStageChecklist(transactionId, "   ", userId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("stage is required");
+        }
+
+        @Test
+        void getStageChecklist_WithInvalidStageForSide_ThrowsBadRequest() {
+                UUID transactionId = UUID.randomUUID();
+                UUID userId = UUID.randomUUID();
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(userId);
+                tx.setClientId(UUID.randomUUID());
+                tx.setSide(TransactionSide.BUY_SIDE);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+
+                assertThatThrownBy(() -> service.getStageChecklist(transactionId, StageEnum.SELLER_HANDOVER.name(),
+                                userId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("Invalid stage");
+        }
+
+        @Test
+        void getStageChecklist_WithNoExistingState_BuildsItemsAndPersistsDerivedState() {
+                UUID transactionId = UUID.randomUUID();
+                UUID userId = UUID.randomUUID();
+                StageEnum stage = StageEnum.BUYER_FINANCIAL_PREPARATION;
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(userId);
+                tx.setClientId(UUID.randomUUID());
+                tx.setSide(TransactionSide.BUY_SIDE);
+
+                StageDocumentTemplateRegistry.TemplateSpec firstTemplate = StageDocumentTemplateRegistry
+                                .templatesFor(TransactionSide.BUY_SIDE, stage).get(0);
+                String templateKey = StageDocumentTemplateRegistry.templateKey(stage, firstTemplate);
+
+                Document matchedDoc = new Document();
+                matchedDoc.setDocumentId(UUID.randomUUID());
+                matchedDoc.setTemplateKey(templateKey);
+                matchedDoc.setStage(stage);
+                matchedDoc.setStatus(DocumentStatusEnum.APPROVED);
+                matchedDoc.setLastUpdatedAt(LocalDateTime.now());
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+                when(repository.findByTransactionRef_TransactionIdAndStage(transactionId, stage))
+                                .thenReturn(List.of(matchedDoc));
+                when(checklistStateRepository.findByTransactionIdAndStage(transactionId, stage))
+                                .thenReturn(List.of());
+
+                StageChecklistResponseDTO result = service.getStageChecklist(transactionId, stage.name(), userId);
+
+                assertThat(result.getStage()).isEqualTo(stage.name());
+                assertThat(result.getItems()).hasSize(StageDocumentTemplateRegistry
+                                .templatesFor(TransactionSide.BUY_SIDE, stage).size());
+                var matchedItem = result.getItems().stream()
+                                .filter(item -> firstTemplate.itemKey().equals(item.getItemKey()))
+                                .findFirst()
+                                .orElseThrow();
+                assertThat(matchedItem.isChecked()).isTrue();
+                assertThat(matchedItem.getSource()).isEqualTo("AUTO");
+                assertThat(matchedItem.getDocumentId()).isEqualTo(matchedDoc.getDocumentId());
+                assertThat(result.getItems().stream().filter(item -> item.getDocumentId() == null).count())
+                                .isEqualTo(result.getItems().size() - 1L);
+                verify(checklistStateRepository, never()).saveAll(anyList());
+        }
+
+        @Test
+        void getStageChecklist_WithDuplicateTemplateDocuments_UsesMostRecentDocumentVersion() {
+                UUID transactionId = UUID.randomUUID();
+                UUID userId = UUID.randomUUID();
+                StageEnum stage = StageEnum.BUYER_FINANCIAL_PREPARATION;
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(userId);
+                tx.setClientId(UUID.randomUUID());
+                tx.setSide(TransactionSide.BUY_SIDE);
+
+                StageDocumentTemplateRegistry.TemplateSpec firstTemplate = StageDocumentTemplateRegistry
+                                .templatesFor(TransactionSide.BUY_SIDE, stage).get(0);
+                String templateKey = StageDocumentTemplateRegistry.templateKey(stage, firstTemplate);
+
+                Document older = new Document();
+                older.setDocumentId(UUID.randomUUID());
+                older.setTemplateKey(templateKey);
+                older.setStage(stage);
+                older.setStatus(DocumentStatusEnum.REQUESTED);
+                older.setLastUpdatedAt(LocalDateTime.now().minusDays(1));
+
+                Document newer = new Document();
+                newer.setDocumentId(UUID.randomUUID());
+                newer.setTemplateKey(templateKey);
+                newer.setStage(stage);
+                newer.setStatus(DocumentStatusEnum.APPROVED);
+                newer.setLastUpdatedAt(LocalDateTime.now());
+
+                TransactionStageChecklistState existingState = TransactionStageChecklistState.builder()
+                                .transactionId(transactionId)
+                                .stage(stage)
+                                .itemKey(firstTemplate.itemKey())
+                                .autoChecked(false)
+                                .build();
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+                when(repository.findByTransactionRef_TransactionIdAndStage(transactionId, stage))
+                                .thenReturn(List.of(older, newer));
+                when(checklistStateRepository.findByTransactionIdAndStage(transactionId, stage))
+                                .thenReturn(List.of(existingState));
+
+                StageChecklistResponseDTO result = service.getStageChecklist(transactionId, stage.name(), userId);
+
+                var matchedItem = result.getItems().stream()
+                                .filter(item -> firstTemplate.itemKey().equals(item.getItemKey()))
+                                .findFirst()
+                                .orElseThrow();
+                assertThat(matchedItem.getDocumentId()).isEqualTo(newer.getDocumentId());
+                assertThat(matchedItem.getDocumentStatus()).isEqualTo(DocumentStatusEnum.APPROVED);
+                assertThat(matchedItem.getSource()).isEqualTo("AUTO");
+                verify(checklistStateRepository, never()).saveAll(anyList());
+        }
+
+        @Test
+        void setChecklistManualState_WithBlankItemKey_ThrowsBadRequest() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+
+                assertThatThrownBy(() -> service.setChecklistManualState(transactionId,
+                                StageEnum.BUYER_FINANCIAL_PREPARATION.name(), "  ", true, brokerId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("itemKey is required");
+        }
+
+        @Test
+        void setChecklistManualState_WithUnknownItem_ThrowsBadRequest() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                StageEnum stage = StageEnum.BUYER_FINANCIAL_PREPARATION;
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(UUID.randomUUID());
+                tx.setSide(TransactionSide.BUY_SIDE);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+
+                assertThatThrownBy(() -> service.setChecklistManualState(transactionId, stage.name(),
+                                "unknown_item", true, brokerId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("Unknown checklist item");
+        }
+
+        @Test
+        void setChecklistManualState_WithExistingState_UpdatesAndReturnsManualSource() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                StageEnum stage = StageEnum.BUYER_FINANCIAL_PREPARATION;
+                String itemKey = "mortgage_pre_approval_letter";
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(UUID.randomUUID());
+                tx.setSide(TransactionSide.BUY_SIDE);
+
+                TransactionStageChecklistState state = TransactionStageChecklistState.builder()
+                                .transactionId(transactionId)
+                                .stage(stage)
+                                .itemKey(itemKey)
+                                .autoChecked(false)
+                                .build();
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+                when(checklistStateRepository.findByTransactionIdAndStageAndItemKey(transactionId, stage, itemKey))
+                                .thenReturn(Optional.of(state));
+                when(checklistStateRepository.findByTransactionIdAndStage(transactionId, stage))
+                                .thenReturn(List.of(state));
+                when(checklistStateRepository.save(any(TransactionStageChecklistState.class)))
+                                .thenAnswer(inv -> inv.getArgument(0));
+                when(repository.findByTransactionRef_TransactionIdAndStage(transactionId, stage)).thenReturn(List.of());
+
+                StageChecklistResponseDTO result = service.setChecklistManualState(transactionId, stage.name(), itemKey,
+                                true, brokerId);
+
+                var updatedItem = result.getItems().stream()
+                                .filter(item -> itemKey.equals(item.getItemKey()))
+                                .findFirst()
+                                .orElseThrow();
+                assertThat(updatedItem.isChecked()).isTrue();
+                assertThat(updatedItem.getSource()).isEqualTo("MANUAL");
+                verify(checklistStateRepository).save(state);
+        }
+
+        @Test
+        void getDocumentDownloadUrl_WithFilename_UsesFilenameAwarePresignedUrl() {
+                UUID requestId = UUID.randomUUID();
+                UUID versionId = UUID.randomUUID();
+                UUID userId = UUID.randomUUID();
+                UUID transactionId = UUID.randomUUID();
+                UUID clientId = UUID.randomUUID();
+
+                DocumentVersion submittedDoc = DocumentVersion.builder()
+                                .versionId(versionId)
+                                .storageObject(StorageObject.builder()
+                                                .s3Key("path/to/file.pdf")
+                                                .fileName("contract.pdf")
+                                                .build())
+                                .build();
+
+                Document request = new Document();
+                request.setDocumentId(requestId);
+                request.setTransactionRef(new TransactionRef(transactionId, clientId, TransactionSide.BUY_SIDE));
+                request.setVersions(List.of(submittedDoc));
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(userId);
+                tx.setClientId(UUID.randomUUID());
+
+                when(repository.findByDocumentId(requestId)).thenReturn(Optional.of(request));
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(storageService.generatePresignedUrl("path/to/file.pdf", "contract.pdf"))
+                                .thenReturn("https://presigned.url/with-filename");
+
+                String result = service.getDocumentDownloadUrl(requestId, versionId, userId);
+
+                assertThat(result).isEqualTo("https://presigned.url/with-filename");
+                verify(storageService).generatePresignedUrl("path/to/file.pdf", "contract.pdf");
+        }
+
+        @Test
+        void setChecklistManualState_WhenTransactionNotFound_ThrowsNotFound() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> service.setChecklistManualState(transactionId,
+                                StageEnum.BUYER_FINANCIAL_PREPARATION.name(),
+                                "mortgage_pre_approval_letter",
+                                true,
+                                brokerId))
+                                .isInstanceOf(NotFoundException.class)
+                                .hasMessageContaining("Transaction not found");
+        }
+
+        @Test
+        void getStageChecklist_IgnoresDocumentsWithoutTemplateKey() {
+                UUID transactionId = UUID.randomUUID();
+                UUID userId = UUID.randomUUID();
+                StageEnum stage = StageEnum.BUYER_FINANCIAL_PREPARATION;
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(userId);
+                tx.setClientId(UUID.randomUUID());
+                tx.setSide(TransactionSide.BUY_SIDE);
+
+                Document docWithNoKey = new Document();
+                docWithNoKey.setDocumentId(UUID.randomUUID());
+                docWithNoKey.setTemplateKey(null);
+                docWithNoKey.setStage(stage);
+                docWithNoKey.setStatus(DocumentStatusEnum.APPROVED);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+                when(repository.findByTransactionRef_TransactionIdAndStage(transactionId, stage))
+                                .thenReturn(List.of(docWithNoKey));
+                when(checklistStateRepository.findByTransactionIdAndStage(transactionId, stage))
+                                .thenReturn(List.of());
+
+                StageChecklistResponseDTO result = service.getStageChecklist(transactionId, stage.name(), userId);
+
+                assertThat(result.getItems()).allMatch(item -> item.getDocumentId() == null);
+                assertThat(result.getItems()).allMatch(item -> "AUTO".equals(item.getSource()));
+        }
+
+        @Test
+        void getStageChecklist_DuplicateTemplateDocsWithNullTimestamps_CoversComparatorBranches() {
+                UUID transactionId = UUID.randomUUID();
+                UUID userId = UUID.randomUUID();
+                StageEnum stage = StageEnum.BUYER_FINANCIAL_PREPARATION;
+
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(userId);
+                tx.setClientId(UUID.randomUUID());
+                tx.setSide(TransactionSide.BUY_SIDE);
+
+                StageDocumentTemplateRegistry.TemplateSpec firstTemplate = StageDocumentTemplateRegistry
+                                .templatesFor(TransactionSide.BUY_SIDE, stage).get(0);
+                String templateKey = StageDocumentTemplateRegistry.templateKey(stage, firstTemplate);
+
+                Document firstNullTimestamp = new Document();
+                firstNullTimestamp.setDocumentId(UUID.randomUUID());
+                firstNullTimestamp.setTemplateKey(templateKey);
+                firstNullTimestamp.setStatus(DocumentStatusEnum.REQUESTED);
+                firstNullTimestamp.setLastUpdatedAt(null);
+
+                Document secondWithTimestamp = new Document();
+                secondWithTimestamp.setDocumentId(UUID.randomUUID());
+                secondWithTimestamp.setTemplateKey(templateKey);
+                secondWithTimestamp.setStatus(DocumentStatusEnum.APPROVED);
+                secondWithTimestamp.setLastUpdatedAt(LocalDateTime.now());
+
+                Document secondNullTimestamp = new Document();
+                secondNullTimestamp.setDocumentId(UUID.randomUUID());
+                secondNullTimestamp.setTemplateKey(templateKey);
+                secondNullTimestamp.setStatus(DocumentStatusEnum.APPROVED);
+                secondNullTimestamp.setLastUpdatedAt(null);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+                when(checklistStateRepository.findByTransactionIdAndStage(transactionId, stage))
+                                .thenReturn(List.of());
+                when(repository.findByTransactionRef_TransactionIdAndStage(transactionId, stage))
+                                .thenReturn(List.of(firstNullTimestamp, secondWithTimestamp));
+
+                StageChecklistResponseDTO firstResult = service.getStageChecklist(transactionId, stage.name(), userId);
+                var firstItem = firstResult.getItems().stream()
+                                .filter(item -> firstTemplate.itemKey().equals(item.getItemKey()))
+                                .findFirst()
+                                .orElseThrow();
+                assertThat(firstItem.getDocumentId()).isEqualTo(secondWithTimestamp.getDocumentId());
+
+                when(repository.findByTransactionRef_TransactionIdAndStage(transactionId, stage))
+                                .thenReturn(List.of(secondWithTimestamp, secondNullTimestamp));
+
+                StageChecklistResponseDTO secondResult = service.getStageChecklist(transactionId, stage.name(), userId);
+                var secondItem = secondResult.getItems().stream()
+                                .filter(item -> firstTemplate.itemKey().equals(item.getItemKey()))
+                                .findFirst()
+                                .orElseThrow();
+                assertThat(secondItem.getDocumentId()).isEqualTo(secondWithTimestamp.getDocumentId());
         }
 }

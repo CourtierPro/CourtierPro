@@ -20,7 +20,7 @@ class EmailServiceStageUpdateTest {
                 .build();
         when(orgSettingsService.getSettings()).thenReturn(settings);
         
-        service.sendStageUpdateEmail("to@x.com", "Client", "Broker", "Addr", "BUYER_PREQUALIFY_FINANCIALLY", "en");
+        service.sendStageUpdateEmail("to@x.com", "Client", "Broker", "Addr", "BUYER_FINANCIAL_PREPARATION", "en");
         verify(service).sendEmail(anyString(), anyString(), anyString());
     }
 
@@ -39,7 +39,7 @@ class EmailServiceStageUpdateTest {
                 .build();
         when(orgSettingsService.getSettings()).thenReturn(settings);
         
-        service.sendStageUpdateEmail("to@x.com", "Client", "Broker", "Addr", "SELLER_ACCEPT_BEST_OFFER", "fr");
+        service.sendStageUpdateEmail("to@x.com", "Client", "Broker", "Addr", "SELLER_OFFER_AND_NEGOTIATION", "fr");
         verify(service, atLeastOnce()).sendEmail(anyString(), anyString(), anyString());
     }
 
@@ -58,8 +58,8 @@ class EmailServiceStageUpdateTest {
                 .build();
         when(orgSettingsService.getSettings()).thenReturn(nullSettings);
         
-        service.sendStageUpdateEmail("to@x.com", "Client", "Broker", "Addr", "BUYER_PREQUALIFY_FINANCIALLY", "en");
-        service.sendStageUpdateEmail("to@x.com", "Client", "Broker", "Addr", "BUYER_PREQUALIFY_FINANCIALLY", "fr");
+        service.sendStageUpdateEmail("to@x.com", "Client", "Broker", "Addr", "BUYER_FINANCIAL_PREPARATION", "en");
+        service.sendStageUpdateEmail("to@x.com", "Client", "Broker", "Addr", "BUYER_FINANCIAL_PREPARATION", "fr");
     }
 
     @Test

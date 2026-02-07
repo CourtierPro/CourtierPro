@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchDocuments, fetchOutstandingDocuments } from './documentsApi';
+import { fetchDocuments, fetchOutstandingDocuments, fetchStageChecklist } from './documentsApi';
 import type { Document } from '../types';
 import axiosInstance from '@/shared/api/axiosInstance';
 
@@ -12,6 +12,9 @@ export const documentKeys = {
     stats: () => [...documentKeys.all, 'stats'] as const,
     stat: (transactionId: string) => [...documentKeys.stats(), transactionId] as const,
     outstanding: () => [...documentKeys.all, 'outstanding'] as const,
+    checklists: () => [...documentKeys.all, 'checklist'] as const,
+    checklist: (transactionId: string, stage: string) =>
+        [...documentKeys.checklists(), transactionId, stage] as const,
 };
 
 export function useDocuments(transactionId: string) {
@@ -47,5 +50,13 @@ export function useGetOutstandingDocuments() {
     return useQuery({
         queryKey: documentKeys.outstanding(),
         queryFn: fetchOutstandingDocuments,
+    });
+}
+
+export function useStageChecklist(transactionId: string, stage?: string) {
+    return useQuery({
+        queryKey: documentKeys.checklist(transactionId, stage || ''),
+        queryFn: () => fetchStageChecklist(transactionId, stage || ''),
+        enabled: !!transactionId && !!stage,
     });
 }

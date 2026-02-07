@@ -2,8 +2,11 @@ package com.example.courtierprobackend.documents.presentationlayer;
 
 import com.example.courtierprobackend.documents.businesslayer.DocumentService;
 import com.example.courtierprobackend.documents.datalayer.enums.UploadedByRefEnum;
+import com.example.courtierprobackend.documents.presentationlayer.models.ChecklistToggleRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentResponseDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.DocumentReviewRequestDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.StageChecklistResponseDTO;
 import com.example.courtierprobackend.security.UserContextFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -330,6 +333,134 @@ class DocumentControllerUnitTest {
                 // Assert
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
                 verify(service).getDocumentDownloadUrl(docId, versionId, UUID.fromString(headerId));
+        }
+
+        @Test
+        void getStageChecklist_ReturnsChecklistResponse() {
+                UUID txId = UUID.randomUUID();
+                UUID internalId = UUID.randomUUID();
+                MockHttpServletRequest request = createRequestWithInternalId(internalId);
+                String stage = "BUYER_FINANCIAL_PREPARATION";
+
+                StageChecklistResponseDTO dto = StageChecklistResponseDTO.builder()
+                                .stage(stage)
+                                .items(List.of())
+                                .build();
+                when(service.getStageChecklist(txId, stage, internalId)).thenReturn(dto);
+
+                ResponseEntity<StageChecklistResponseDTO> response = controller.getStageChecklist(txId, stage, null,
+                                null, request);
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody().getStage()).isEqualTo(stage);
+                verify(service).getStageChecklist(txId, stage, internalId);
+        }
+
+        @Test
+        void setChecklistManualState_ForwardsPayloadAndPathVariables() {
+                UUID txId = UUID.randomUUID();
+                UUID internalId = UUID.randomUUID();
+                MockHttpServletRequest request = createRequestWithInternalId(internalId);
+                String itemKey = "mortgage_pre_approval_letter";
+
+                ChecklistToggleRequestDTO toggleDTO = new ChecklistToggleRequestDTO();
+                toggleDTO.setStage("BUYER_FINANCIAL_PREPARATION");
+                toggleDTO.setChecked(Boolean.TRUE);
+
+                StageChecklistResponseDTO responseDTO = StageChecklistResponseDTO.builder()
+                                .stage(toggleDTO.getStage())
+                                .items(List.of())
+                                .build();
+                when(service.setChecklistManualState(txId, toggleDTO.getStage(), itemKey, true, internalId))
+                                .thenReturn(responseDTO);
+
+                ResponseEntity<StageChecklistResponseDTO> response = controller.setChecklistManualState(txId, itemKey,
+                                toggleDTO, null, request);
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                verify(service).setChecklistManualState(txId, toggleDTO.getStage(), itemKey, true, internalId);
+        }
+
+        @Test
+        void reviewDocument_UsesResolvedBrokerId() {
+                UUID txId = UUID.randomUUID();
+                UUID docId = UUID.randomUUID();
+                UUID internalId = UUID.randomUUID();
+                MockHttpServletRequest request = createRequestWithInternalId(internalId);
+
+                DocumentReviewRequestDTO reviewDTO = new DocumentReviewRequestDTO();
+                reviewDTO.setDecision(com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum.APPROVED);
+
+                DocumentResponseDTO responseDTO = DocumentResponseDTO.builder()
+                                .documentId(docId)
+                                .build();
+                when(service.reviewDocument(txId, docId, reviewDTO, internalId)).thenReturn(responseDTO);
+
+                ResponseEntity<DocumentResponseDTO> response = controller.reviewDocument(txId, docId, reviewDTO,
+                                request);
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                verify(service).reviewDocument(txId, docId, reviewDTO, internalId);
+        }
+
+        @Test
+        void sendDocumentRequest_UsesResolvedBrokerId() {
+                UUID txId = UUID.randomUUID();
+                UUID docId = UUID.randomUUID();
+                UUID internalId = UUID.randomUUID();
+                MockHttpServletRequest request = createRequestWithInternalId(internalId);
+
+                DocumentResponseDTO responseDTO = DocumentResponseDTO.builder()
+                                .documentId(docId)
+                                .build();
+                when(service.sendDocumentRequest(docId, internalId)).thenReturn(responseDTO);
+
+                ResponseEntity<DocumentResponseDTO> response = controller.sendDocumentRequest(txId, docId, null,
+                                request);
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                verify(service).sendDocumentRequest(docId, internalId);
+        }
+
+        @Test
+        void uploadFileToDocument_UsesBrokerUploaderType() throws IOException {
+                UUID txId = UUID.randomUUID();
+                UUID docId = UUID.randomUUID();
+                UUID internalId = UUID.randomUUID();
+                MockHttpServletRequest request = createRequestWithInternalId(internalId);
+                MockMultipartFile file = new MockMultipartFile("file", "draft.pdf", "application/pdf",
+                                "content".getBytes());
+
+                DocumentResponseDTO responseDTO = DocumentResponseDTO.builder()
+                                .documentId(docId)
+                                .build();
+                when(service.uploadFileToDocument(txId, docId, file, internalId, UploadedByRefEnum.BROKER))
+                                .thenReturn(responseDTO);
+
+                ResponseEntity<DocumentResponseDTO> response = controller.uploadFileToDocument(txId, docId, file, null,
+                                request);
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                verify(service).uploadFileToDocument(txId, docId, file, internalId, UploadedByRefEnum.BROKER);
+        }
+
+        @Test
+        void shareDocumentWithClient_UsesResolvedBrokerId() {
+                UUID txId = UUID.randomUUID();
+                UUID docId = UUID.randomUUID();
+                UUID internalId = UUID.randomUUID();
+                MockHttpServletRequest request = createRequestWithInternalId(internalId);
+
+                DocumentResponseDTO responseDTO = DocumentResponseDTO.builder()
+                                .documentId(docId)
+                                .build();
+                when(service.shareDocumentWithClient(docId, internalId)).thenReturn(responseDTO);
+
+                ResponseEntity<DocumentResponseDTO> response = controller.shareDocumentWithClient(txId, docId, null,
+                                request);
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                verify(service).shareDocumentWithClient(docId, internalId);
         }
 
         // ========== Helper Methods ==========

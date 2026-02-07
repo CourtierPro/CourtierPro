@@ -9,27 +9,20 @@ public class StageTranslationUtil {
     }
     private static final Map<String, String> FRENCH_MAPPINGS = Map.ofEntries(
             // Buyer Stages
-            Map.entry("BUYER_PREQUALIFY_FINANCIALLY", "Pré-qualification Financière"),
-            Map.entry("BUYER_SHOP_FOR_PROPERTY", "Recherche de Propriété"),
-            Map.entry("BUYER_SUBMIT_OFFER", "Soumission d'Offre"),
-            Map.entry("BUYER_OFFER_ACCEPTED", "Offre Acceptée"),
-            Map.entry("BUYER_HOME_INSPECTION", "Inspection Immobilière"),
-            Map.entry("BUYER_FINANCING_FINALIZED", "Financement Finalisé"),
-            Map.entry("BUYER_FIRST_NOTARY_APPOINTMENT", "Premier Rendez-vous Notaire"),
-            Map.entry("BUYER_SECOND_NOTARY_APPOINTMENT", "Deuxième Rendez-vous Notaire"),
-            Map.entry("BUYER_OCCUPANCY", "Prise de Possession"),
-            Map.entry("BUYER_TERMINATED", "Transaction Terminée"),
+            Map.entry("BUYER_FINANCIAL_PREPARATION", "Préparation Financière"),
+            Map.entry("BUYER_PROPERTY_SEARCH", "Recherche de Propriété"),
+            Map.entry("BUYER_OFFER_AND_NEGOTIATION", "Offre et Négociation"),
+            Map.entry("BUYER_FINANCING_AND_CONDITIONS", "Financement et Conditions"),
+            Map.entry("BUYER_NOTARY_AND_SIGNING", "Notaire et Signature"),
+            Map.entry("BUYER_POSSESSION", "Possession"),
 
             // Seller Stages
             Map.entry("SELLER_INITIAL_CONSULTATION", "Consultation Initiale"),
-            Map.entry("SELLER_LISTING_PUBLISHED", "Inscription Publiée"),
-            Map.entry("SELLER_REVIEW_OFFERS", "Révision des Offres"),
-            Map.entry("SELLER_ACCEPT_BEST_OFFER", "Acceptation de la Meilleure Offre"),
-            Map.entry("SELLER_CONDITIONS_MET", "Conditions Remplies"),
-            Map.entry("SELLER_NOTARY_COORDINATION", "Coordination Notaire"),
-            Map.entry("SELLER_NOTARY_APPOINTMENT", "Rendez-vous Notaire"),
-            Map.entry("SELLER_HANDOVER_KEYS", "Remise des Clés"),
-            Map.entry("SELLER_TERMINATED", "Transaction Terminée"));
+            Map.entry("SELLER_PUBLISH_LISTING", "Publication de l'Inscription"),
+            Map.entry("SELLER_OFFER_AND_NEGOTIATION", "Offre et Négociation"),
+            Map.entry("SELLER_FINANCING_AND_CONDITIONS", "Financement et Conditions"),
+            Map.entry("SELLER_NOTARY_AND_SIGNING", "Notaire et Signature"),
+            Map.entry("SELLER_HANDOVER", "Remise des Clés"));
 
     public static String getTranslatedStage(String stageEnum, String languageCode) {
         if (stageEnum == null || stageEnum.isBlank()) {
