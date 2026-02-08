@@ -96,6 +96,28 @@ class BrokerControllerTest {
             }
         }
 
+        @Test
+        void getColleagues_ReturnsBrokerList() {
+            List<UserResponse> brokers = List.of(
+                    UserResponse.builder().id("b1-id").email("b1@test.com").role("BROKER").active(true).build(),
+                    UserResponse.builder().id("b2-id").email("b2@test.com").role("BROKER").active(true).build());
+            when(service.getBrokers()).thenReturn(brokers);
+
+            List<UserResponse> result = controller.getColleagues();
+
+            assertThat(result).hasSize(2);
+            verify(service).getBrokers();
+        }
+
+        @Test
+        void getColleagues_WhenServiceFails_WrapsInRuntimeException() {
+            when(service.getBrokers()).thenThrow(new RuntimeException("boom"));
+
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> controller.getColleagues())
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("Error fetching colleagues");
+        }
+
         @Nested
         @DisplayName("GET /api/broker/clients/{clientId}/transactions")
         class GetClientTransactionsTests {

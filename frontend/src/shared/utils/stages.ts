@@ -6,16 +6,12 @@ import type { TFunction } from 'i18next';
 // BUYER STAGES (backend-order)
 // -----------------------------
 export const BUYER_STAGES = [
-  'BUYER_PREQUALIFY_FINANCIALLY',
-  'BUYER_SHOP_FOR_PROPERTY',
-  'BUYER_SUBMIT_OFFER',
-  'BUYER_OFFER_ACCEPTED',
-  'BUYER_HOME_INSPECTION',
-  'BUYER_FINANCING_FINALIZED',
-  'BUYER_FIRST_NOTARY_APPOINTMENT',
-  'BUYER_SECOND_NOTARY_APPOINTMENT',
-  'BUYER_OCCUPANCY',
-  'BUYER_TERMINATED',
+  'BUYER_FINANCIAL_PREPARATION',
+  'BUYER_PROPERTY_SEARCH',
+  'BUYER_OFFER_AND_NEGOTIATION',
+  'BUYER_FINANCING_AND_CONDITIONS',
+  'BUYER_NOTARY_AND_SIGNING',
+  'BUYER_POSSESSION',
 ];
 
 // -----------------------------
@@ -23,43 +19,70 @@ export const BUYER_STAGES = [
 // -----------------------------
 export const SELLER_STAGES = [
   'SELLER_INITIAL_CONSULTATION',
-  'SELLER_LISTING_PUBLISHED',
-  'SELLER_REVIEW_OFFERS',
-  'SELLER_ACCEPT_BEST_OFFER',
-  'SELLER_CONDITIONS_MET',
-  'SELLER_NOTARY_COORDINATION',
-  'SELLER_NOTARY_APPOINTMENT',
-  'SELLER_HANDOVER_KEYS',
-  'SELLER_TERMINATED',
+  'SELLER_PUBLISH_LISTING',
+  'SELLER_OFFER_AND_NEGOTIATION',
+  'SELLER_FINANCING_AND_CONDITIONS',
+  'SELLER_NOTARY_AND_SIGNING',
+  'SELLER_HANDOVER',
 ];
-
-export const STAGE_DESCRIPTIONS: Record<string, string> = {
-  // SELLER
-  SELLER_INITIAL_CONSULTATION: "Broker gathers your goals and documents to prep the listing.",
-  SELLER_LISTING_PUBLISHED: "Property goes live on Centris with full disclosures and visit scheduling.",
-  SELLER_REVIEW_OFFERS: "You review and negotiate incoming offers.",
-  SELLER_ACCEPT_BEST_OFFER: "Signing creates a binding agreement and activates conditions.",
-  SELLER_CONDITIONS_MET: "Buyer completes financing + inspection, making the sale firm.",
-  SELLER_NOTARY_COORDINATION: "Broker sends required docs so the notary drafts the Act of Sale.",
-  SELLER_NOTARY_APPOINTMENT: "You sign the deed and the notary registers the transfer.",
-  SELLER_HANDOVER_KEYS: "After funds clear, you hand over the keys and the sale closes.",
-
-  // BUYER
-  BUYER_PREQUALIFY_FINANCIALLY: "Get mortgage pre-approval and proof of funds.",
-  BUYER_SHOP_FOR_PROPERTY: "Visit homes and review declarations with your broker.",
-  BUYER_SUBMIT_OFFER: "Submit your Promise to Purchase with conditions.",
-  BUYER_OFFER_ACCEPTED: "Both sides sign the final binding offer.",
-  BUYER_HOME_INSPECTION: "Inspector checks the home and you decide to proceed or renegotiate.",
-  BUYER_FINANCING_FINALIZED: "Lender issues final approval and insurance confirmation.",
-  BUYER_FIRST_NOTARY_APPOINTMENT: "Your notary starts drafting the legal paperwork.",
-  BUYER_SECOND_NOTARY_APPOINTMENT: "Sign mortgage deed + deed of sale to finalize ownership.",
-  BUYER_OCCUPANCY: "Once registered and funds transferred, you receive the keys.",
-};
 
 // -----------------------------
 // Transaction Side Enum
 // -----------------------------
 export type TransactionSideEnum = 'BUY_SIDE' | 'SELL_SIDE';
+
+type StageSideKey = 'buy' | 'sell';
+
+function normalizeStageValue(value: string): string {
+  return value
+    .trim()
+    .replace(/[^A-Za-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .replace(/_+/g, '_')
+    .toLowerCase();
+}
+
+function inferSideKeys(
+  normalizedValue: string,
+  side?: 'BUY_SIDE' | 'SELL_SIDE',
+): StageSideKey[] {
+  if (side === 'BUY_SIDE') return ['buy'];
+  if (side === 'SELL_SIDE') return ['sell'];
+  if (normalizedValue.startsWith('buyer_')) return ['buy'];
+  if (normalizedValue.startsWith('seller_')) return ['sell'];
+  return ['buy', 'sell'];
+}
+
+function buildStageCandidates(normalizedValue: string): string[] {
+  if (!normalizedValue) return [];
+  if (normalizedValue.startsWith('buyer_') || normalizedValue.startsWith('seller_')) {
+    return [normalizedValue];
+  }
+  return [normalizedValue, `buyer_${normalizedValue}`, `seller_${normalizedValue}`];
+}
+
+function findStageTranslation(
+  value: string,
+  t: TFunction<'transactions'>,
+  field: 'name' | 'description' | 'goal',
+  side?: 'BUY_SIDE' | 'SELL_SIDE',
+): string {
+  const normalizedValue = normalizeStageValue(value);
+  if (!normalizedValue) return '';
+
+  const candidates = buildStageCandidates(normalizedValue);
+  for (const candidate of candidates) {
+    const sideKeys = inferSideKeys(candidate, side);
+    for (const sideKey of sideKeys) {
+      const translation = t(`stages.${sideKey}.${candidate}.${field}`, { defaultValue: '' });
+      if (translation) {
+        return translation;
+      }
+    }
+  }
+
+  return '';
+}
 
 // -----------------------------
 // Stage selector by side
@@ -72,12 +95,19 @@ export function getStagesForSide(side: string | undefined): string[] {
 
 // -----------------------------
 // Convert enum string → UI label
-// BUYER_HOME_INSPECTION → "Home Inspection"
+// BUYER_FINANCIAL_PREPARATION → "Financial Preparation"
 // -----------------------------
 export function enumToLabel(value?: string): string {
   if (!value || typeof value !== 'string') return 'Unknown';
 
-  const val = value.replace(/^BUYER_|^SELLER_/, '');
+  const val = value
+    .trim()
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .replace(/[^A-Za-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^(BUYER|SELLER)_/i, '');
+
   return val
     .split(/[_\s]+/)
     .filter(Boolean)
@@ -98,13 +128,30 @@ export function getStageLabel(
     return enumToLabel(value);
   }
 
-  const lowerValue = value.toLowerCase();
-  const sideKey = side === 'SELL_SIDE' || lowerValue.includes('seller') ? 'sell' : 'buy';
-  const translationKey = `stages.${sideKey}.${lowerValue}`;
-  
-  // Try to get translation, fallback to enumToLabel if not found
-  const translation = t(translationKey, { defaultValue: '' });
+  const translation = findStageTranslation(value, t, 'name', side);
   return translation || enumToLabel(value);
+}
+
+// -----------------------------
+// Get translated stage description using i18n
+// -----------------------------
+export function getStageDescription(
+  value: string,
+  t: TFunction<'transactions'>,
+  side?: 'BUY_SIDE' | 'SELL_SIDE',
+): string {
+  return findStageTranslation(value, t, 'description', side);
+}
+
+// -----------------------------
+// Get translated stage goal using i18n
+// -----------------------------
+export function getStageGoal(
+  value: string,
+  t: TFunction<'transactions'>,
+  side?: 'BUY_SIDE' | 'SELL_SIDE',
+): string {
+  return findStageTranslation(value, t, 'goal', side);
 }
 
 // -----------------------------
@@ -142,18 +189,4 @@ export function resolveStageIndex(
   }
 
   return 0;
-}
-
-// -----------------------------
-// Termination check
-// -----------------------------
-export function isTerminatedStage(
-  currentStage: string | number | undefined,
-  stages: string[],
-): boolean {
-  if (typeof currentStage === 'string') {
-    return currentStage.endsWith('_TERMINATED');
-  }
-  const idx = resolveStageIndex(currentStage, stages);
-  return stages[idx]?.endsWith('_TERMINATED') ?? false;
 }

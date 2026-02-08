@@ -182,7 +182,8 @@ public class EmailService {
     }
 
     public void sendDocumentRequestedNotification(String clientEmail, String clientName, String brokerName,
-            String documentName, String docType, String brokerNotes, String clientLanguage) {
+            String documentName, String docType, String brokerNotes, String clientLanguage,
+            boolean requiresSignature) {
         // Check client's email notification preference
         var clientOpt = userAccountRepository.findByEmail(clientEmail);
         if (!clientOpt.isPresent() || !clientOpt.get().isEmailNotificationsEnabled()) {
@@ -203,23 +204,49 @@ public class EmailService {
             // Get organization settings for templates and subject/body
             OrganizationSettingsResponseModel settings = organizationSettingsService.getSettings();
 
-            String subject = isFrench ? settings.getDocumentRequestedSubjectFr()
-                    : settings.getDocumentRequestedSubjectEn();
-            String bodyText = isFrench ? settings.getDocumentRequestedBodyFr() : settings.getDocumentRequestedBodyEn();
+            String subject;
+            String bodyText;
 
-            // Fallback to defaults if not configured
-            if (subject == null || subject.isBlank()) {
-                subject = isFrench ? ("Document demandé : " + displayName) : ("Document Requested: " + displayName);
-            } else {
-                // If subject from settings does not include displayName, append it
-                if (!subject.contains(displayName)) {
+            if (requiresSignature) {
+                subject = isFrench ? settings.getDocumentSignatureRequestedSubjectFr()
+                        : settings.getDocumentSignatureRequestedSubjectEn();
+                bodyText = isFrench ? settings.getDocumentSignatureRequestedBodyFr()
+                        : settings.getDocumentSignatureRequestedBodyEn();
+
+                // Fallback to signature defaults if not configured
+                if (subject == null || subject.isBlank()) {
+                    subject = isFrench ? ("Signature demandée : " + displayName)
+                            : ("Signature Requested: " + displayName);
+                } else if (!subject.contains(displayName)) {
                     subject += " : " + displayName;
                 }
-            }
-            if (bodyText == null || bodyText.isBlank()) {
-                bodyText = isFrench
-                        ? "Bonjour {{clientName}}, {{brokerName}} a demandé le document {{documentName}}. Veuillez le soumettre dès que possible."
-                        : "Hello {{clientName}}, {{brokerName}} has requested the document {{documentName}}. Please submit it as soon as possible.";
+
+                if (bodyText == null || bodyText.isBlank()) {
+                    String templatePath = isFrench
+                            ? "email-templates/defaults/document_signature_requested_fr.txt"
+                            : "email-templates/defaults/document_signature_requested_en.txt";
+                    bodyText = loadTemplateFromClasspath(templatePath);
+                }
+            } else {
+                subject = isFrench ? settings.getDocumentRequestedSubjectFr()
+                        : settings.getDocumentRequestedSubjectEn();
+                bodyText = isFrench ? settings.getDocumentRequestedBodyFr()
+                        : settings.getDocumentRequestedBodyEn();
+
+                // Fallback to defaults if not configured
+                if (subject == null || subject.isBlank()) {
+                    subject = isFrench ? ("Document demandé : " + displayName)
+                            : ("Document Requested: " + displayName);
+                } else {
+                    if (!subject.contains(displayName)) {
+                        subject += " : " + displayName;
+                    }
+                }
+                if (bodyText == null || bodyText.isBlank()) {
+                    bodyText = isFrench
+                            ? "Bonjour {{clientName}}, {{brokerName}} a demandé le document {{documentName}}. Veuillez le soumettre dès que possible."
+                            : "Hello {{clientName}}, {{brokerName}} has requested the document {{documentName}}. Please submit it as soon as possible.";
+                }
             }
 
             // Prepare variable values for conditional blocks
@@ -570,14 +597,27 @@ public class EmailService {
             case "MORTGAGE_PRE_APPROVAL" -> isFrench ? "Pré-approbation hypothécaire" : "Mortgage Pre-Approval";
             case "MORTGAGE_APPROVAL" -> isFrench ? "Approbation hypothécaire" : "Mortgage Approval";
             case "PROOF_OF_FUNDS" -> isFrench ? "Preuve de fonds" : "Proof of Funds";
+            case "PROOF_OF_INCOME" -> isFrench ? "Preuve de revenu" : "Proof of Income";
             case "ID_VERIFICATION" -> isFrench ? "Vérification d'identité" : "ID Verification";
+            case "GOVERNMENT_ID_1" -> isFrench ? "Pièce d'identité gouvernementale 1" : "Government ID 1";
+            case "GOVERNMENT_ID_2" -> isFrench ? "Pièce d'identité gouvernementale 2" : "Government ID 2";
             case "EMPLOYMENT_LETTER" -> isFrench ? "Lettre d'emploi" : "Employment Letter";
             case "PAY_STUBS" -> isFrench ? "Talons de paie" : "Pay Stubs";
             case "CREDIT_REPORT" -> isFrench ? "Rapport de crédit" : "Credit Report";
+            case "BROKERAGE_CONTRACT" -> isFrench ? "Contrat de courtage" : "Brokerage Contract";
             case "CERTIFICATE_OF_LOCATION" -> isFrench ? "Certificat de localisation" : "Certificate of Location";
             case "PROMISE_TO_PURCHASE" -> isFrench ? "Promesse d'achat" : "Promise to Purchase";
+            case "ACCEPTED_PROMISE_TO_PURCHASE" -> isFrench ? "Promesse d'achat acceptée" : "Accepted Promise to Purchase";
+            case "ACKNOWLEDGED_SELLERS_DECLARATION" -> isFrench ? "Déclaration du vendeur reconnue" : "Acknowledged Seller's Declaration";
+            case "SELLERS_DECLARATION" -> isFrench ? "Déclaration du vendeur" : "Seller's Declaration";
             case "INSPECTION_REPORT" -> isFrench ? "Rapport d'inspection" : "Inspection Report";
             case "INSURANCE_LETTER" -> isFrench ? "Lettre d'assurance" : "Insurance Letter";
+            case "NOTARY_CONTACT_SHEET" -> isFrench ? "Fiche de contact du notaire" : "Notary Contact Sheet";
+            case "COMPARATIVE_MARKET_ANALYSIS" -> isFrench ? "Analyse comparative du marché" : "Comparative Market Analysis";
+            case "MUNICIPAL_TAX_BILLS" -> isFrench ? "Comptes de taxes municipales" : "Municipal Tax Bills";
+            case "MORTGAGE_BALANCE_STATEMENT" -> isFrench ? "État du solde hypothécaire" : "Mortgage Balance Statement";
+            case "SCHOOL_TAX_BILLS" -> isFrench ? "Comptes de taxes scolaires" : "School Tax Bills";
+            case "CURRENT_DEED_OF_SALE" -> isFrench ? "Acte de vente actuel" : "Current Deed of Sale";
             case "BANK_STATEMENT" -> isFrench ? "Relevé bancaire" : "Bank Statement";
             case "OTHER" -> isFrench ? "Autre" : "Other";
             default -> docType;

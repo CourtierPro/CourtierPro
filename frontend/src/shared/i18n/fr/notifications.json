@@ -35,6 +35,8 @@
     "notifications.stageUpdate.message": "{{brokerName}} a mis à jour l'étape à {{stage}} pour la propriété au {{propertyAddress}}.",
     "notifications.stageRollback.title": "Retour en arrière de l'étape",
     "notifications.stageRollback.message": "{{brokerName}} a effectué un retour en arrière de l'étape à {{stage}} pour la propriété au {{propertyAddress}}.",
+    "notifications.transactionTerminated.title": "Transaction résiliée",
+    "notifications.transactionTerminated.message": "{{brokerName}} a résilié la transaction à l'étape {{stage}} pour la propriété au {{propertyAddress}}.",
     "notifications.propertyOfferStatusChanged.title": "Statut de l'offre mis à jour",
     "notifications.propertyOfferStatusChanged.message": "Le statut de l'offre pour la propriété au {{address}} a été mis à jour à {{status}}.",
     "notifications.clientOfferDecision.title": "Décision du client reçue",

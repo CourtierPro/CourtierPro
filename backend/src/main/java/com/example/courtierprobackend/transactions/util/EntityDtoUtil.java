@@ -150,7 +150,7 @@ public class EntityDtoUtil {
                 .side(TransactionSide.BUY_SIDE)
                 .status(TransactionStatus.ACTIVE)
                 .propertyAddress(null)
-                .currentStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY.name())
+                .currentStage(BuyerStage.BUYER_FINANCIAL_PREPARATION.name())
                 .openedDate(LocalDate.now().toString())
                 .archived(false)
                 .archivedAt(null)

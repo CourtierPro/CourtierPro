@@ -4,6 +4,7 @@ import com.example.courtierprobackend.documents.datalayer.enums.UploadedByRefEnu
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentRequestDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentResponseDTO;
 import com.example.courtierprobackend.documents.presentationlayer.models.DocumentReviewRequestDTO;
+import com.example.courtierprobackend.documents.presentationlayer.models.StageChecklistResponseDTO;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -72,4 +73,13 @@ public interface DocumentService {
          * @return the updated document
          */
         DocumentResponseDTO shareDocumentWithClient(UUID documentId, UUID brokerId);
+
+        StageChecklistResponseDTO getStageChecklist(UUID transactionId, String stage, UUID userId);
+
+        StageChecklistResponseDTO setChecklistManualState(
+                        UUID transactionId,
+                        String stage,
+                        String itemKey,
+                        boolean checked,
+                        UUID brokerId);
 }

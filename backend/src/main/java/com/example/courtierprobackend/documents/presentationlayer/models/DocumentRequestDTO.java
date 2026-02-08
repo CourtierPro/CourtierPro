@@ -42,4 +42,10 @@ public class DocumentRequestDTO {
      * Flow type for the document. Defaults to REQUEST if not provided.
      */
     private DocumentFlowEnum flow;
+
+    /**
+     * Whether this document requires the client's signature.
+     * When true, the broker must attach a source document before sending the request.
+     */
+    private Boolean requiresSignature;
 }

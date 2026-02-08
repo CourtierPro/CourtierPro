@@ -12,6 +12,7 @@ interface DocumentListProps {
     onReview?: (document: Document) => void;
     onEdit?: (document: Document) => void;
     onSendRequest?: (document: Document) => void;
+    onUploadAndSendRequest?: (document: Document) => void;
     onShare?: (document: Document) => void;
     onDelete?: (document: Document) => void;
     focusDocumentId?: string | null;
@@ -25,6 +26,7 @@ export function DocumentList({
     onReview,
     onEdit,
     onSendRequest,
+    onUploadAndSendRequest,
     onShare,
     onDelete,
     focusDocumentId,
@@ -116,6 +118,7 @@ export function DocumentList({
                                             onReview={onReview}
                                             onEdit={onEdit}
                                             onSendRequest={onSendRequest}
+                                            onUploadAndSendRequest={onUploadAndSendRequest}
                                             onShare={onShare}
                                             onDelete={onDelete}
                                             isFocused={focusDocumentId === doc.documentId}

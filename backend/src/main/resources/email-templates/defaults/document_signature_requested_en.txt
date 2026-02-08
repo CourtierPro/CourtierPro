@@ -1,0 +1,19 @@
+[HEADING-LG]Signature Request[/HEADING-LG]
+
+Hi {{clientName}},
+
+Your broker [BOLD]{{brokerName}}[/BOLD] has requested you sign the following document:
+
+[BOX-gray]
+[BOLD]{{documentName}}[/BOLD]
+Type: {{documentType}}
+[/BOX-gray]
+
+[IF-brokerNotes]
+[BOX-gray]
+[BOLD]Important details:[/BOLD]
+{{brokerNotes}}
+[/BOX-gray]
+[/IF-brokerNotes]
+
+Please log in to CourtierPro to download, sign, and upload the signed document.

@@ -39,6 +39,8 @@ export function getEventIcon(type: TimelineEntry['type']) {
             return <XCircle className="w-5 h-5 text-red-500" />;
         case 'CONDITION_REMOVED':
             return <Trash2 className="w-5 h-5 text-red-500" />;
+        case 'TRANSACTION_TERMINATED':
+            return <XCircle className="w-5 h-5 text-red-500" />;
         case 'APPOINTMENT_CONFIRMED':
             return <CalendarCheck className="w-5 h-5 text-green-600" />;
         case 'APPOINTMENT_CANCELLED':

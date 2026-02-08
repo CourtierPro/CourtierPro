@@ -35,6 +35,12 @@ public class OrganizationSettingsResponseModel {
     private String documentRequestedSubjectFr;
     private String documentRequestedBodyFr;
 
+    // Document Signature Requested Template
+    private String documentSignatureRequestedSubjectEn;
+    private String documentSignatureRequestedBodyEn;
+    private String documentSignatureRequestedSubjectFr;
+    private String documentSignatureRequestedBodyFr;
+
     // Document Review Template
     private String documentReviewSubjectEn;
     private String documentReviewBodyEn;

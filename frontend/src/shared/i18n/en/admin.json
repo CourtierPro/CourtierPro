@@ -135,6 +135,7 @@
         "invite": "Invite / Password Setup",
         "documentSubmitted": "Document Submitted",
         "documentRequested": "Document Requested",
+        "documentSignatureRequested": "Document Signature Requested",
         "documentReview": "Document Review",
         "stageUpdate": "Stage Update",
         "propertyOfferMade": "Property Offer Made",

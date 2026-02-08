@@ -54,6 +54,17 @@ public class UpdateOrganizationSettingsRequestModel {
 
     private String documentRequestedBodyFr;
 
+    // Document Signature Requested Template
+    @Size(max = 255)
+    private String documentSignatureRequestedSubjectEn;
+
+    private String documentSignatureRequestedBodyEn;
+
+    @Size(max = 255)
+    private String documentSignatureRequestedSubjectFr;
+
+    private String documentSignatureRequestedBodyFr;
+
     // Document Review Template
     @Size(max = 255)
     private String documentReviewSubjectEn;

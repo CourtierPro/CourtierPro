@@ -97,7 +97,7 @@ class EmailServiceCoverageTest {
         
         when(userAccountRepository.findByEmail(clientEmail)).thenReturn(Optional.of(client));
 
-        emailService.sendDocumentRequestedNotification(clientEmail, "Client", "Broker", "Doc", "Type", "Notes", "en");
+        emailService.sendDocumentRequestedNotification(clientEmail, "Client", "Broker", "Doc", "Type", "Notes", "en", false);
     }
 
     @Test

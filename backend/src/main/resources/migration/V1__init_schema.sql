@@ -162,6 +162,11 @@ CREATE TABLE IF NOT EXISTS documents (
     stage VARCHAR(64),
     -- Flow type: REQUEST (client uploads) or UPLOAD (broker uploads)
     flow VARCHAR(50) DEFAULT 'REQUEST',
+    -- Whether the client must sign and return this document
+    requires_signature BOOLEAN DEFAULT false,
+    -- Auto-draft template tracking (stage template identity)
+    template_key VARCHAR(120),
+    auto_generated BOOLEAN NOT NULL DEFAULT false,
     -- Date columns (consolidated from V2)
     due_date TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -175,6 +180,7 @@ CREATE INDEX IF NOT EXISTS idx_documents_transaction ON documents(transaction_id
 CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
 CREATE INDEX IF NOT EXISTS idx_documents_deleted_at ON documents(deleted_at);
 CREATE INDEX IF NOT EXISTS idx_documents_flow ON documents(flow);
+CREATE INDEX IF NOT EXISTS idx_documents_transaction_template_key ON documents(transaction_id, template_key);
 
 -- Search Indexes
 -- Search Indexes
@@ -209,6 +215,28 @@ CREATE TABLE IF NOT EXISTS document_versions (
 CREATE INDEX IF NOT EXISTS idx_document_versions_document ON document_versions(document_id);
 CREATE INDEX IF NOT EXISTS idx_document_versions_version_id ON document_versions(version_id);
 CREATE INDEX IF NOT EXISTS idx_document_versions_deleted_at ON document_versions(deleted_at);
+
+-- =============================================================================
+-- TRANSACTION STAGE CHECKLIST STATE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS transaction_stage_checklist_state (
+    id BIGSERIAL PRIMARY KEY,
+    transaction_id UUID NOT NULL,
+    stage VARCHAR(64) NOT NULL,
+    item_key VARCHAR(120) NOT NULL,
+    manual_checked BOOLEAN,
+    manual_checked_by UUID,
+    manual_checked_at TIMESTAMP,
+    auto_checked BOOLEAN NOT NULL DEFAULT false,
+    auto_checked_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_tx_stage_item UNIQUE (transaction_id, stage, item_key),
+    CONSTRAINT fk_tx_stage_checklist_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_tx_stage_checklist_transaction ON transaction_stage_checklist_state(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_tx_stage_checklist_stage ON transaction_stage_checklist_state(stage);
 
 -- =============================================================================
 -- NOTIFICATIONS
@@ -281,6 +309,10 @@ CREATE TABLE IF NOT EXISTS organization_settings (
     document_requested_body_en TEXT,
     document_requested_subject_fr VARCHAR(255),
     document_requested_body_fr TEXT,
+    document_signature_requested_subject_en VARCHAR(255),
+    document_signature_requested_body_en TEXT,
+    document_signature_requested_subject_fr VARCHAR(255),
+    document_signature_requested_body_fr TEXT,
     document_review_subject_en VARCHAR(255),
     document_review_body_en TEXT,
     document_review_subject_fr VARCHAR(255),

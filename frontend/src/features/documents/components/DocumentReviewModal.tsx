@@ -1,8 +1,9 @@
-import type { Document } from "@/features/documents/types";
+import { DocumentTypeEnum, type Document } from "@/features/documents/types";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useReviewDocument } from "@/features/documents/api/mutations";
+import { getLocalizedDocumentTitle } from "@/features/documents/utils/formatDocumentTitle";
 
 interface DocumentReviewModalProps {
   open: boolean;
@@ -117,9 +118,11 @@ export function DocumentReviewModal({
             <div className="rounded-md bg-muted/50 p-4 space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground font-medium">{t('modals.documentType')}</span>
-                <span className="font-semibold text-foreground">{t(`types.${document.docType}`)}</span>
+                <span className="font-semibold text-foreground">
+                  {getLocalizedDocumentTitle(t, { docType: document.docType })}
+                </span>
               </div>
-              {document.customTitle && (
+              {document.docType === DocumentTypeEnum.OTHER && document.customTitle && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground font-medium">{t('documentTitle')}</span>
                   <span className="font-medium text-foreground">{document.customTitle}</span>

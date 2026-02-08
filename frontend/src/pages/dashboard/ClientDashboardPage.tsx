@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/sha
 import { Button } from "@/shared/components/ui/button";
 import { useCurrentUser } from "@/features/auth/api/useCurrentUser";
 import { useTransactionOffers, useTransactionProperties } from "@/features/transactions/api/queries";
+import { getStageLabel } from "@/shared/utils/stages";
 
 export function ClientDashboardPage() {
   const { t } = useTranslation("dashboard");
@@ -33,6 +34,10 @@ export function ClientDashboardPage() {
     kpis,
     isLoading,
   } = useClientDashboardStats(clientId);
+  const activeTransactions = useMemo(
+    () => transactions.filter((tx) => tx.status === 'ACTIVE'),
+    [transactions]
+  );
 
   const { data: notifications, isLoading: isNotificationsLoading } =
     useNotifications();
@@ -59,6 +64,11 @@ export function ClientDashboardPage() {
       // Translate conditionType if present
       if (params.conditionType) {
         params.conditionType = tTransactions(`conditionTypes.${params.conditionType}`, { defaultValue: params.conditionType });
+      }
+      if (params.stage) {
+        const sideParam = params.transactionSide || params.side;
+        const stageSide = sideParam === 'BUY_SIDE' || sideParam === 'SELL_SIDE' ? sideParam : undefined;
+        params.stage = getStageLabel(params.stage, tTransactions, stageSide);
       }
       return tNotifications(notif.messageKey, params) || notif.message;
     }
@@ -316,7 +326,7 @@ export function ClientDashboardPage() {
         title={t("client.myTransactions")}
         description={t("client.myTransactionsDesc")}
       >
-        {transactions.length === 0 ? (
+        {activeTransactions.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Inbox className="h-16 w-16 text-muted-foreground/50 mb-4" />
@@ -328,7 +338,7 @@ export function ClientDashboardPage() {
           </Card>
         ) : (
           <TransactionCarousel
-            transactions={transactions}
+            transactions={activeTransactions}
             getDocumentCounts={(transactionId) => ({
               documentCount: getDocumentCountByTransaction(transactionId),
               approvedDocumentCount: getApprovedDocumentCountByTransaction(transactionId),

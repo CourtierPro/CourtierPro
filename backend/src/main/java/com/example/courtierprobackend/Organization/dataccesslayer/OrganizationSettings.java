@@ -59,6 +59,19 @@ public class OrganizationSettings {
     @Column(name = "document_requested_body_fr", columnDefinition = "TEXT")
     private String documentRequestedBodyFr;
 
+    // Document Signature Requested Template
+    @Column(name = "document_signature_requested_subject_en", length = 255)
+    private String documentSignatureRequestedSubjectEn;
+
+    @Column(name = "document_signature_requested_body_en", columnDefinition = "TEXT")
+    private String documentSignatureRequestedBodyEn;
+
+    @Column(name = "document_signature_requested_subject_fr", length = 255)
+    private String documentSignatureRequestedSubjectFr;
+
+    @Column(name = "document_signature_requested_body_fr", columnDefinition = "TEXT")
+    private String documentSignatureRequestedBodyFr;
+
     // Document Review Template
     @Column(name = "document_review_subject_en", length = 255)
     private String documentReviewSubjectEn;
