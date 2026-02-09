@@ -4,7 +4,6 @@
     "noIncomingRequests": "Aucune demande entrante.",
     "upcomingConfirmed": "Rendez-vous confirmés à venir",
     "noConfirmed": "Aucun rendez-vous confirmé.",
-    "noConfirmed": "Aucun rendez-vous confirmé.",
     "requestAppointment": "Demander un rendez-vous",
     "subtitle": "Consultez et gérez vos rendez-vous à venir.",
     "appointmentType": "Type de rendez-vous",
@@ -98,5 +97,6 @@
     "close": "Fermer",
     "reschedule": "Replanifier",
     "originalTime": "Heure originale",
-    "onlyCancellerCanReschedule": "Seule la partie qui a annulé peut replanifier."
+    "onlyCancellerCanReschedule": "Seule la partie qui a annulé peut replanifier.",
+    "appointmentRequestFailed": "Impossible de planifier le rendez-vous. Il est possible que l'heure soit déjà passée."
 }

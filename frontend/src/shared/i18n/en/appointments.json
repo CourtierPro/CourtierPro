@@ -97,5 +97,6 @@
     "close": "Close",
     "reschedule": "Reschedule",
     "originalTime": "Original Time",
-    "onlyCancellerCanReschedule": "Only the party who cancelled can reschedule."
+    "onlyCancellerCanReschedule": "Only the party who cancelled can reschedule.",
+    "appointmentRequestFailed": "Unable to schedule the appointment. The time might have already passed."
 }
