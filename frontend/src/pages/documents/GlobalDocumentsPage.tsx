@@ -14,9 +14,9 @@ import { fetchAllDocuments } from "@/features/documents/api/documentsApi";
 import { DocumentList } from "@/features/documents/components/DocumentList";
 import { UploadDocumentModal } from "@/features/documents/components/UploadDocumentModal";
 import { DocumentReviewModal } from "@/features/documents/components/DocumentReviewModal";
-import { type DocumentRequest } from "@/features/documents/types";
-import { toast } from "sonner";
+import { type Document } from "@/features/documents/types";
 import { getRoleFromUser } from "@/features/auth/roleUtils";
+import { formatDocumentTitle } from "@/features/documents/utils/formatDocumentTitle";
 
 export function GlobalDocumentsPage() {
 
@@ -38,24 +38,23 @@ export function GlobalDocumentsPage() {
     const stageOptions = [allStagesOption, ...stageOptionsRaw];
     const [selectedStage, setSelectedStage] = useState('');
     // Restore missing hooks
-    const [selectedDocument, setSelectedDocument] = useState<DocumentRequest | null>(null);
-    const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<DocumentRequest | null>(null);
+    const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+    const [selectedDocumentForReview, setSelectedDocumentForReview] = useState<Document | null>(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
     const handleUploadSuccess = () => {
-        toast.success(t('uploadSuccess', 'Document uploaded successfully'));
         setIsUploadModalOpen(false);
         setSelectedDocument(null);
         queryClient.invalidateQueries({ queryKey: ['documents'] });
     };
 
-    const handleUploadClick = (document: DocumentRequest) => {
+    const handleUploadClick = (document: Document) => {
         setSelectedDocument(document);
         setIsUploadModalOpen(true);
     };
 
-    const handleReviewClick = (document: DocumentRequest) => {
+    const handleReviewClick = (document: Document) => {
         setSelectedDocumentForReview(document);
         setIsReviewModalOpen(true);
     };
@@ -82,14 +81,14 @@ export function GlobalDocumentsPage() {
                 subtitle={t('globalSubtitle', 'View and manage all your documents across transactions.')}
             />
 
-                        {/* Stage selector (dropdown) visible for broker AND client */}
-                        {(role === 'client' || role === 'broker') && (
-                            <StageDropdownSelector
-                                stages={stageOptions}
-                                selectedStage={selectedStage}
-                                onSelectStage={setSelectedStage}
-                            />
-                        )}
+            {/* Stage selector (dropdown) visible for broker AND client */}
+            {(role === 'client' || role === 'broker') && (
+                <StageDropdownSelector
+                    stages={stageOptions}
+                    selectedStage={selectedStage}
+                    onSelectStage={setSelectedStage}
+                />
+            )}
 
             {filteredDocuments.length === 0 ? (
                 <Section>
@@ -107,9 +106,10 @@ export function GlobalDocumentsPage() {
                 <UploadDocumentModal
                     open={isUploadModalOpen}
                     onClose={() => setIsUploadModalOpen(false)}
-                    requestId={selectedDocument.requestId}
+                    documentId={selectedDocument.documentId}
                     transactionId={selectedDocument.transactionRef.transactionId}
-                    documentTitle={selectedDocument.customTitle || selectedDocument.docType}
+                    documentTitle={formatDocumentTitle(selectedDocument, t)}
+                    docType={selectedDocument.docType}
                     onSuccess={handleUploadSuccess}
                 />
             )}

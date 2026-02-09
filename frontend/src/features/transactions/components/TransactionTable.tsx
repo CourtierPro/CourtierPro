@@ -27,7 +27,7 @@ export function TransactionTable({ transactions, onNavigate, pinnedIds, showArch
         const idx = resolveStageIndex(tx.currentStage, stageEnums);
         const stageKey = stageEnums[idx];
         const sideKey = tx.side === 'BUY_SIDE' ? 'buy' : 'sell';
-        return t(`stages.${sideKey}.${stageKey.toLowerCase()}`, { defaultValue: enumToLabel(stageKey) });
+        return t(`stages.${sideKey}.${stageKey.toLowerCase()}.name`, { defaultValue: enumToLabel(stageKey) });
     };
 
     const handlePinToggle = (e: React.MouseEvent, transactionId: string) => {
@@ -64,7 +64,7 @@ export function TransactionTable({ transactions, onNavigate, pinnedIds, showArch
                                 {t('propertyAddress')}
                             </th>
                             <th className="p-4 text-left font-medium text-muted-foreground" scope="col">
-                                {t('side')}
+                                {t('sideLabel')}
                             </th>
                             <th className="p-4 text-left font-medium text-muted-foreground" scope="col">
                                 {t('currentStage')}

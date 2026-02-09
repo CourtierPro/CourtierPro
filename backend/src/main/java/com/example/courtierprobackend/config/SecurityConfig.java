@@ -67,7 +67,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers(HttpMethod.POST, "/transactions/*/documents/*/submit")
                         .hasAnyRole("BROKER", "CLIENT")
-                        .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*/documents/*/download")
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/documents/*/versions/*/download")
                         .hasAnyRole("BROKER", "CLIENT")
 
                         // Timeline client endpoint
@@ -105,6 +105,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/transactions/*/all-documents").hasAnyRole("BROKER", "CLIENT")
                         // Allow GET /transactions for both brokers and clients
                         .requestMatchers(HttpMethod.GET, "/transactions").hasAnyRole("BROKER", "CLIENT")
+                        // Search criteria endpoints - accessible to both broker and client
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/search-criteria").hasAnyRole("BROKER", "CLIENT")
+                        .requestMatchers(HttpMethod.PUT, "/transactions/*/search-criteria").hasAnyRole("BROKER", "CLIENT")
+                        .requestMatchers(HttpMethod.DELETE, "/transactions/*/search-criteria").hasAnyRole("BROKER", "CLIENT")
                         // Catch-all for other transaction endpoints - requires broker role
                         .requestMatchers("/transactions/**").hasRole("BROKER")
 

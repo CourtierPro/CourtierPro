@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
-import { Filter, Plus, Archive } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Filter, Plus, Archive, Search, CircleOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { Section } from "@/shared/components/branded/Section";
 import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
 import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
 import { useTransactions, usePinnedTransactionIds, useArchivedTransactions } from '@/features/transactions/api/queries';
 import { TransactionFilters } from './TransactionFilters';
 import { TransactionTable } from './TransactionTable';
@@ -24,27 +25,49 @@ import { CreateTransactionModal } from './CreateTransactionModal';
 
 
 export function TransactionList({ language, onNavigate }: TransactionListProps) {
+  const [viewMode, setViewMode] = useState<'active' | 'archived' | 'terminated'>('active');
   const [sideFilter, setSideFilter] = useState<'all' | 'buy' | 'sell'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY'>('ACTIVE');
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc'>('dateDesc');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [showArchived, setShowArchived] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { data: transactions = [], isLoading, error, refetch } = useTransactions({
     status: statusFilter,
     stage: stageFilter,
     side: sideFilter
-  });
-  const { data: archivedTransactions = [], isLoading: isLoadingArchived } = useArchivedTransactions();
+  }, { enabled: viewMode === 'active' });
+  const { data: terminatedTransactions = [], isLoading: isLoadingTerminated, error: terminatedError, refetch: refetchTerminated } = useTransactions({
+    status: 'TERMINATED_EARLY',
+  }, { enabled: viewMode === 'terminated' });
+  const { data: archivedTransactions = [], isLoading: isLoadingArchived, error: archivedError, refetch: refetchArchived } = useArchivedTransactions();
   const { data: pinnedIds = new Set<string>() } = usePinnedTransactionIds();
 
   const { t, i18n } = useTranslation('transactions');
 
-  // Use archived transactions when viewing archived, otherwise use regular transactions
-  const displayTransactions = showArchived ? archivedTransactions : transactions;
-  const isLoadingData = showArchived ? isLoadingArchived : isLoading;
+  // Choose data source based on selected view mode
+  const displayTransactions = viewMode === 'archived'
+    ? archivedTransactions
+    : viewMode === 'terminated'
+      ? terminatedTransactions
+      : transactions;
+  const isLoadingData = viewMode === 'archived'
+    ? isLoadingArchived
+    : viewMode === 'terminated'
+      ? isLoadingTerminated
+      : isLoading;
+  const currentError = viewMode === 'archived'
+    ? archivedError
+    : viewMode === 'terminated'
+      ? terminatedError
+      : error;
+  const retry = viewMode === 'archived'
+    ? refetchArchived
+    : viewMode === 'terminated'
+      ? refetchTerminated
+      : refetch;
 
   useEffect(() => {
     if (language) {
@@ -75,8 +98,8 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     setCurrentPage(1);
   };
 
-  const handleToggleArchived = () => {
-    setShowArchived(!showArchived);
+  const handleViewModeChange = (nextMode: 'active' | 'archived' | 'terminated') => {
+    setViewMode(nextMode);
     setCurrentPage(1);
   };
 
@@ -105,23 +128,41 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     }
   });
 
+  // Filter by search term
+  const filteredTransactions = useMemo(() => {
+    if (!searchTerm.trim()) return sortedTransactions;
+    const query = searchTerm.toLowerCase();
+    return sortedTransactions.filter(tx => {
+      const clientName = tx.clientName?.toLowerCase() || '';
+      const streetAddress = tx.propertyAddress?.street?.toLowerCase() || '';
+      const city = tx.propertyAddress?.city?.toLowerCase() || '';
+      return clientName.includes(query) || streetAddress.includes(query) || city.includes(query);
+    });
+  }, [sortedTransactions, searchTerm]);
 
-  const totalPages = Math.ceil(sortedTransactions.length / ITEMS_PER_PAGE);
+
+  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedTransactions = sortedTransactions.slice(startIndex, endIndex);
+  const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
 
   const handleResetFilters = () => {
     setSideFilter('all');
     setStatusFilter('all');
     setStageFilter('all');
     setSortBy('dateDesc');
+    setSearchTerm('');
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = sideFilter !== 'all' || statusFilter !== 'all' || stageFilter !== 'all';
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
 
-  if (error && !isLoadingData) {
+  const hasActiveFilters = sideFilter !== 'all' || statusFilter !== 'all' || stageFilter !== 'all' || searchTerm.trim() !== '';
+
+  if (currentError && !isLoadingData) {
     return (
       <div className="space-y-6">
         <PageHeader
@@ -136,7 +177,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
             </Button>
           }
         />
-        <ErrorState message={error.message || "Failed to load transactions"} onRetry={() => refetch()} />
+        <ErrorState message={currentError.message || "Failed to load transactions"} onRetry={() => retry()} />
       </div>
     );
   }
@@ -153,19 +194,34 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={showArchived ? t('archivedTransactions') : t('title')}
-        subtitle={showArchived ? t('archivedSubtitle') : t('subtitle')}
+        title={viewMode === 'archived' ? t('archivedTransactions') : viewMode === 'terminated' ? t('terminatedTransactions') : t('title')}
+        subtitle={viewMode === 'archived' ? t('archivedSubtitle') : viewMode === 'terminated' ? t('terminatedSubtitle') : t('subtitle')}
         actions={
           <div className="flex gap-2">
             <Button
-              variant={showArchived ? "default" : "outline"}
-              onClick={handleToggleArchived}
+              variant={viewMode === 'active' ? "default" : "outline"}
+              onClick={() => handleViewModeChange('active')}
+              className="gap-2"
+            >
+              {t('viewActive')}
+            </Button>
+            <Button
+              variant={viewMode === 'archived' ? "default" : "outline"}
+              onClick={() => handleViewModeChange('archived')}
               className="gap-2"
             >
               <Archive className="w-4 h-4" />
-              {showArchived ? t('viewActive') : t('viewArchived')}
+              {t('viewArchived')}
             </Button>
-            {!showArchived && (
+            <Button
+              variant={viewMode === 'terminated' ? "default" : "outline"}
+              onClick={() => handleViewModeChange('terminated')}
+              className="gap-2"
+            >
+              <CircleOff className="w-4 h-4" />
+              {t('viewTerminated')}
+            </Button>
+            {viewMode === 'active' && (
               <Button
                 onClick={() => setIsCreateModalOpen(true)}
                 className="gap-2"
@@ -178,7 +234,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
         }
       />
 
-      {!showArchived && (
+      {viewMode === 'active' && (
         <TransactionFilters
           sideFilter={sideFilter}
           statusFilter={statusFilter}
@@ -193,13 +249,27 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
         />
       )}
 
+      {/* Search Input */}
+      <Section className="p-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder={t('searchPlaceholder', { defaultValue: 'Search by client name or address...' })}
+            value={searchTerm}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </Section>
+
       {paginatedTransactions.length === 0 ? (
         <Section className="p-12 text-center">
           <Filter className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
           <h2 className="mb-4 text-foreground font-medium">
-            {showArchived ? t('noArchivedTransactions') : t('noTransactions')}
+            {viewMode === 'archived' ? t('noArchivedTransactions') : viewMode === 'terminated' ? t('noTerminatedTransactions') : t('noTransactions')}
           </h2>
-          {!showArchived && (
+          {viewMode === 'active' && (
             <Button onClick={handleResetFilters}>
               {t('resetFilters')}
             </Button>
@@ -207,8 +277,8 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
         </Section>
       ) : (
         <>
-          <TransactionTable transactions={paginatedTransactions} onNavigate={onNavigate} pinnedIds={pinnedIds} showArchived={showArchived} />
-          <TransactionCards transactions={paginatedTransactions} onNavigate={onNavigate} pinnedIds={pinnedIds} showArchived={showArchived} />
+          <TransactionTable transactions={paginatedTransactions} onNavigate={onNavigate} pinnedIds={pinnedIds} showArchived={viewMode === 'archived'} />
+          <TransactionCards transactions={paginatedTransactions} onNavigate={onNavigate} pinnedIds={pinnedIds} showArchived={viewMode === 'archived'} />
           <TransactionPagination
             currentPage={currentPage}
             totalPages={totalPages}

@@ -4,15 +4,20 @@ import { useTranslation } from 'react-i18next';
 import { Play } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { DocumentCard } from "./DocumentCard";
-import { type DocumentRequest, DocumentStatusEnum } from "@/features/documents/types";
+import { type Document, DocumentStatusEnum } from "@/features/documents/types";
 
 interface DocumentListProps {
-    documents: DocumentRequest[];
-    onUpload?: (document: DocumentRequest) => void;
-    onReview?: (document: DocumentRequest) => void;
-    onEdit?: (document: DocumentRequest) => void;
+    documents: Document[];
+    onUpload?: (document: Document) => void;
+    onReview?: (document: Document) => void;
+    onEdit?: (document: Document) => void;
+    onSendRequest?: (document: Document) => void;
+    onUploadAndSendRequest?: (document: Document) => void;
+    onShare?: (document: Document) => void;
+    onDelete?: (document: Document) => void;
     focusDocumentId?: string | null;
     showBrokerNotes?: boolean;
+    isBroker?: boolean;
 }
 
 export function DocumentList({
@@ -20,8 +25,13 @@ export function DocumentList({
     onUpload,
     onReview,
     onEdit,
+    onSendRequest,
+    onUploadAndSendRequest,
+    onShare,
+    onDelete,
     focusDocumentId,
-    showBrokerNotes = true
+    showBrokerNotes = true,
+    isBroker = false
 }: DocumentListProps) {
     const { t } = useTranslation('transactions');
 
@@ -32,7 +42,15 @@ export function DocumentList({
         setCollapsedRows(prev => ({ ...prev, [status]: !prev[status] }));
     };
 
-    const statusOrder = [
+    // Status order: DRAFT only shown for brokers, at the top
+    const statusOrder = isBroker ? [
+        DocumentStatusEnum.DRAFT,
+        DocumentStatusEnum.REQUESTED,
+        DocumentStatusEnum.SUBMITTED,
+        DocumentStatusEnum.APPROVED,
+        DocumentStatusEnum.NEEDS_REVISION,
+        DocumentStatusEnum.REJECTED
+    ] : [
         DocumentStatusEnum.REQUESTED,
         DocumentStatusEnum.SUBMITTED,
         DocumentStatusEnum.APPROVED,
@@ -94,12 +112,16 @@ export function DocumentList({
                                 {statusDocs.length > 0 ? (
                                     statusDocs.map((doc) => (
                                         <DocumentCard
-                                            key={doc.requestId}
+                                            key={doc.documentId}
                                             document={doc}
                                             onUpload={onUpload}
                                             onReview={onReview}
                                             onEdit={onEdit}
-                                            isFocused={focusDocumentId === doc.requestId}
+                                            onSendRequest={onSendRequest}
+                                            onUploadAndSendRequest={onUploadAndSendRequest}
+                                            onShare={onShare}
+                                            onDelete={onDelete}
+                                            isFocused={focusDocumentId === doc.documentId}
                                             showBrokerNotes={showBrokerNotes}
                                         />
                                     ))

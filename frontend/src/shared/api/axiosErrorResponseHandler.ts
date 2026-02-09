@@ -6,6 +6,7 @@ import {
   logError,
 } from "@/shared/utils/error-utils";
 import { toast } from "sonner";
+import i18next from "i18next";
 
 export default function axiosErrorResponseHandler(
   error: AxiosError,
@@ -17,7 +18,7 @@ export default function axiosErrorResponseHandler(
     responseData?.message ||
     responseData?.error ||
     error.message ||
-    "An unexpected error occurred";
+    i18next.t("common:error.unexpectedError");
 
   // Create appropriate AppError for consistent logging
   let appError: AppError;
@@ -27,20 +28,20 @@ export default function axiosErrorResponseHandler(
       // Mark session as expired for login page to show toast
       sessionStorage.setItem("sessionExpired", "true");
       // Show toast instead of hard redirect
-      toast.error("Session expired. Please log in again.");
+      toast.error(i18next.t("common:error.sessionExpired"));
       break;
     case 403:
       appError = new ForbiddenError(message, { statusCode, cause: error });
       // Show toast for permission error - don't redirect authenticated users
-      toast.error("You don't have permission to perform this action.");
+      toast.error(i18next.t("common:error.noPermission"));
       break;
     case 500:
       appError = new AppError(message, { statusCode, cause: error });
-      toast.error("An unexpected server error occurred.");
+      toast.error(i18next.t("common:error.serverError"));
       break;
     case 503:
       appError = new AppError(message, { statusCode, cause: error });
-      toast.error("Service temporarily unavailable. Please try again later.");
+      toast.error(i18next.t("common:error.serviceUnavailable"));
       break;
     default:
       appError = new AppError(message, { statusCode, cause: error });
@@ -53,4 +54,3 @@ export default function axiosErrorResponseHandler(
   // Components should handle errors via TanStack Query's error states
   // or the thrown error from axios.
 }
-

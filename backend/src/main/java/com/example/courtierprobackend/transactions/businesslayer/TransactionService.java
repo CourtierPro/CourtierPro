@@ -37,6 +37,10 @@ public interface TransactionService {
 
     TransactionResponseDTO updateTransactionStage(UUID transactionId, StageUpdateRequestDTO dto, UUID brokerId);
 
+    TransactionResponseDTO terminateTransaction(UUID transactionId, String reason, UUID brokerId);
+
+    MissingAutoDraftsResponseDTO getMissingAutoDrafts(UUID transactionId, String stage, UUID brokerId);
+
     TransactionResponseDTO getByTransactionId(UUID transactionId, UUID userId);
 
     void pinTransaction(UUID transactionId, UUID brokerId);
@@ -135,4 +139,23 @@ public interface TransactionService {
 
     // Unified Documents (aggregates all document sources)
     List<UnifiedDocumentDTO> getAllTransactionDocuments(UUID transactionId, UUID userId, boolean isBroker);
+
+    // Search Criteria (for buyer transactions)
+    /**
+     * Get search criteria for a transaction.
+     * Both broker and client can access this.
+     */
+    SearchCriteriaResponseDTO getSearchCriteria(UUID transactionId, UUID userId, boolean isBroker);
+
+    /**
+     * Create or update search criteria for a buy-side transaction.
+     * Both broker and client can modify this.
+     */
+    SearchCriteriaResponseDTO createOrUpdateSearchCriteria(UUID transactionId, SearchCriteriaRequestDTO dto, UUID userId, boolean isBroker);
+
+    /**
+     * Delete search criteria for a transaction.
+     * Both broker and client can delete this.
+     */
+    void deleteSearchCriteria(UUID transactionId, UUID userId, boolean isBroker);
 }

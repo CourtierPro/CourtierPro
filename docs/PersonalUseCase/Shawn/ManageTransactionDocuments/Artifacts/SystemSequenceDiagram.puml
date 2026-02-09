@@ -12,13 +12,13 @@ participant "CourtierPro\nSystem" as System
 Broker -> System: navigateToDocuments(transactionId)
 System --> Broker: documentsList, requestableTypes
 
-Broker -> System: createDocumentRequest(transactionId, docType, expectedFrom, notes, visible)
-System --> Broker: createdDocumentRequest
+Broker -> System: createDocument(transactionId, docType, expectedFrom, notes, visible)
+System --> Broker: createdDocument
 
 note right of System
   System internally:
   - Validates transaction
-  - Creates DocumentRequest (REQUESTED)
+  - Creates Document (REQUESTED or DRAFT)
   - Records timeline entry
   - Sends notification to Client
 end note
@@ -26,16 +26,16 @@ end note
 == Scenario 2: Client Submits Document ==
 
 Client -> System: getDocumentsForTransaction(transactionId)
-System --> Client: pendingDocumentRequests
+System --> Client: pendingDocuments
 
-Client -> System: submitDocument(transactionId, requestId, file)
-System --> Client: updatedDocumentRequest
+Client -> System: submitDocument(transactionId, documentId, file)
+System --> Client: updatedDocument
 
 note right of System
   System internally:
   - Validates file (type, size)
   - Uploads to Cloudflare R2
-  - Creates SubmittedDocument
+  - Creates DocumentVersion
   - Updates status to SUBMITTED
   - Notifies Broker
 end note
@@ -48,8 +48,8 @@ System --> Broker: documentsWithSubmissions
 Broker -> System: getDocumentDownloadUrl(requestId, documentId)
 System --> Broker: preSignedUrl
 
-Broker -> System: reviewDocument(requestId, decision, notes)
-System --> Broker: updatedDocumentRequest
+Broker -> System: reviewDocument(documentId, decision, notes)
+System --> Broker: updatedDocument
 
 note right of System
   decision can be:
@@ -62,7 +62,7 @@ end note
 
 == Scenario 4: Download Document ==
 
-Client -> System: getDocumentDownloadUrl(requestId, documentId)
+Client -> System: getDocumentDownloadUrl(documentId, versionId)
 alt Authorized
   System --> Client: preSignedUrl
 else Not Authorized
@@ -71,7 +71,7 @@ end
 
 == Scenario 5: Broker Deletes Document Request ==
 
-Broker -> System: deleteDocumentRequest(requestId)
+Broker -> System: deleteDocument(documentId)
 System --> Broker: success
 
 note right of System

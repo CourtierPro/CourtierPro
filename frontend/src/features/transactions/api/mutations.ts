@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/shared/api/axiosInstance';
 import { transactionKeys } from '@/features/transactions/api/queries';
 import { dashboardKeys } from '@/features/dashboard/api/queries';
+import { documentKeys } from '@/features/documents/api/queries';
 import type { TransactionRequestDTO, StageUpdateRequestDTO, AddParticipantRequestDTO, UpdateParticipantRequestDTO } from '@/shared/api/types';
 
 export function useUpdateTransactionStage() {
@@ -19,7 +20,30 @@ export function useUpdateTransactionStage() {
             queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
             queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
             queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+            queryClient.invalidateQueries({ queryKey: documentKeys.list(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: documentKeys.stat(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: documentKeys.checklists() });
             // Invalidate dashboard recent activity
+            queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+        },
+    });
+}
+
+export function useTerminateTransaction() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, reason }: { transactionId: string; reason: string }) => {
+            const res = await axiosInstance.post(
+                `/transactions/${transactionId}/terminate`,
+                { reason }
+            );
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
             queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
         },
     });
@@ -510,6 +534,38 @@ export function useDeleteOfferDocument() {
                 queryClient.invalidateQueries({ queryKey: propertyOfferKeys.documents(variables.propertyOfferId) });
             }
             queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
+        },
+    });
+}
+
+// ==================== SEARCH CRITERIA MUTATIONS ====================
+
+import { searchCriteriaKeys } from '@/features/transactions/api/queries';
+import type { SearchCriteriaRequestDTO, SearchCriteria } from '@/shared/api/types';
+
+export function useUpdateSearchCriteria() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, data }: { transactionId: string; data: SearchCriteriaRequestDTO }) => {
+            const res = await axiosInstance.put<SearchCriteria>(`/transactions/${transactionId}/search-criteria`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: searchCriteriaKeys.byTransaction(variables.transactionId) });
+        },
+    });
+}
+
+export function useDeleteSearchCriteria() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (transactionId: string) => {
+            await axiosInstance.delete(`/transactions/${transactionId}/search-criteria`);
+        },
+        onSuccess: (_data, transactionId) => {
+            queryClient.invalidateQueries({ queryKey: searchCriteriaKeys.byTransaction(transactionId) });
         },
     });
 }

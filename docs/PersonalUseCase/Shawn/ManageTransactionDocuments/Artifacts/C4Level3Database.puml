@@ -26,7 +26,7 @@ System_Boundary(cp, "CourtierPro System") {
     Component(PinnedTransactionTable, "Pinned Transactions", "Table", "pinned_transactions")
 
     ' Document schema
-    Component(DocumentTables, "Document Schema", "Tables", "document_requests, submitted_documents")
+    Component(DocumentTables, "Document Schema", "Tables", "documents, document_versions")
 
     ' Appointment schema
     Component(AppointmentTables, "Appointment Schema", "Tables", "appointments")
@@ -59,7 +59,7 @@ Rel(AnalyticsTables, UserAccountTables, "FK broker_id → user_accounts")
 ' Backend API uses schemas via repositories (high level)
 Rel(backend_api, UserAccountTables, "Uses via UserAccountRepository", "JDBC/R2DBC")
 Rel(backend_api, TransactionTables, "Uses via TransactionRepository", "JDBC/R2DBC")
-Rel(backend_api, DocumentTables, "Uses via DocumentRequestRepository & SubmittedDocument access", "JDBC/R2DBC")
+Rel(backend_api, DocumentTables, "Uses via DocumentRepository & DocumentVersion access", "JDBC/R2DBC")
 Rel(backend_api, AppointmentTables, "Uses via AppointmentRepository", "JDBC/R2DBC")
 Rel(backend_api, NotificationTables, "Uses via NotificationRepository", "JDBC/R2DBC")
 Rel(backend_api, AnalyticsTables, "Uses via BrokerMetricsRepository", "JDBC/R2DBC")

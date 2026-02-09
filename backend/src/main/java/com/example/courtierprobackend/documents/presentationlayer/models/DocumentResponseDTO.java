@@ -3,6 +3,7 @@ package com.example.courtierprobackend.documents.presentationlayer.models;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentPartyEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
+import com.example.courtierprobackend.documents.datalayer.enums.DocumentFlowEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.StageEnum;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
 import lombok.AllArgsConstructor;
@@ -18,16 +19,18 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DocumentRequestResponseDTO {
-    private UUID requestId;
+public class DocumentResponseDTO {
+    private UUID documentId;
     private TransactionRef transactionRef;
     private DocumentTypeEnum docType;
     private String customTitle;
     private DocumentStatusEnum status;
     private DocumentPartyEnum expectedFrom;
-    private List<SubmittedDocumentResponseDTO> submittedDocuments;
+    private List<DocumentVersionResponseDTO> versions;
     private String brokerNotes;
     private LocalDateTime lastUpdatedAt;
     private boolean visibleToClient;
     private StageEnum stage;
+    private DocumentFlowEnum flow;
+    private boolean requiresSignature;
 }

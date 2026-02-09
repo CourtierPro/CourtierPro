@@ -14,7 +14,7 @@ export interface ExpiringOffer {
 }
 
 export interface PendingDocument {
-    requestId: string;
+    documentId: string;
     transactionId: string;
     clientName: string;
     documentType: string;

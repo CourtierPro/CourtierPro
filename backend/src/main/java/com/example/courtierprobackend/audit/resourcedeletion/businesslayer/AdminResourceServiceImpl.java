@@ -6,10 +6,10 @@ import com.example.courtierprobackend.audit.resourcedeletion.presentationlayer.d
 import com.example.courtierprobackend.audit.resourcedeletion.presentationlayer.dto.ResourceListResponse;
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
-import com.example.courtierprobackend.documents.datalayer.SubmittedDocument;
-import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import com.example.courtierprobackend.documents.datalayer.Document;
+import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
+import com.example.courtierprobackend.documents.datalayer.DocumentVersion;
+import com.example.courtierprobackend.infrastructure.storage.ObjectStorageService;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntry;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntryRepository;
@@ -31,10 +31,10 @@ import java.util.stream.Collectors;
 public class AdminResourceServiceImpl implements AdminResourceService {
 
     private final TransactionRepository transactionRepository;
-    private final DocumentRequestRepository documentRequestRepository;
+    private final DocumentRepository documentRepository;
     private final TimelineEntryRepository timelineEntryRepository;
     private final AdminDeletionAuditRepository auditRepository;
-    private final S3StorageService s3StorageService;
+    private final ObjectStorageService objectStorageService;
     private final ObjectMapper objectMapper;
     private final UserAccountRepository userAccountRepository;
     private final com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
@@ -43,7 +43,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
     public ResourceListResponse listResources(AdminDeletionAuditLog.ResourceType type, boolean includeDeleted) {
         return switch (type) {
             case TRANSACTION -> listTransactions(includeDeleted);
-            case DOCUMENT_REQUEST -> listDocumentRequests(includeDeleted);
+            case DOCUMENT_REQUEST -> listDocuments(includeDeleted);
             default -> throw new BadRequestException("Resource type not supported for listing: " + type);
         };
     }
@@ -59,11 +59,13 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                 .map(t -> {
                     String clientEmail = t.getClientId() != null
                             ? userAccountRepository.findById(t.getClientId())
-                                    .map(u -> u.getEmail()).orElse(null)
+                                    .map(this::formatUserLabel)
+                                    .orElse(null)
                             : null;
                     String brokerEmail = t.getBrokerId() != null
                             ? userAccountRepository.findById(t.getBrokerId())
-                                    .map(u -> u.getEmail()).orElse(null)
+                                    .map(this::formatUserLabel)
+                                    .orElse(null)
                             : null;
                     String address = t.getPropertyAddress() != null
                             ? t.getPropertyAddress().getStreet() + ", " + t.getPropertyAddress().getCity()
@@ -80,8 +82,8 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                             .clientEmail(clientEmail)
                             .brokerId(t.getBrokerId())
                             .brokerEmail(brokerEmail)
-                            .status(t.getStatus() != null ? t.getStatus().name() : null)
-                            .side(t.getSide() != null ? t.getSide().name() : null)
+                            .status(t.getStatus() != null ? formatEnum(t.getStatus()) : null)
+                            .side(t.getSide() != null ? formatEnum(t.getSide()) : null)
                             .address(address)
                             .build();
                 })
@@ -95,29 +97,29 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                 .build();
     }
 
-    private ResourceListResponse listDocumentRequests(boolean includeDeleted) {
-        List<DocumentRequest> requests = includeDeleted
-                ? documentRequestRepository.findAllIncludingDeleted()
-                : documentRequestRepository.findAll();
+    private ResourceListResponse listDocuments(boolean includeDeleted) {
+        List<Document> documents = includeDeleted
+                ? documentRepository.findAllIncludingDeleted()
+                : documentRepository.findAll();
 
-        long deletedCount = requests.stream().filter(d -> d.getDeletedAt() != null).count();
+        long deletedCount = documents.stream().filter(d -> d.getDeletedAt() != null).count();
 
-        List<ResourceListResponse.ResourceItem> items = requests.stream()
+        List<ResourceListResponse.ResourceItem> items = documents.stream()
                 .map(d -> {
                     UUID transactionId = d.getTransactionRef() != null
                             ? d.getTransactionRef().getTransactionId()
                             : null;
 
                     return ResourceListResponse.ResourceItem.builder()
-                            .id(d.getRequestId())
-                            .summary(buildDocumentRequestSummary(d))
+                            .id(d.getDocumentId())
+                            .summary(buildDocumentSummary(d))
                             .createdAt(d.getLastUpdatedAt())
                             .deletedAt(d.getDeletedAt())
                             .deletedBy(d.getDeletedBy())
                             .isDeleted(d.getDeletedAt() != null)
                             .transactionId(transactionId)
-                            .docType(d.getDocType() != null ? d.getDocType().name() : d.getCustomTitle())
-                            .submittedDocCount(d.getSubmittedDocuments() != null ? d.getSubmittedDocuments().size() : 0)
+                            .docType(d.getDocType() != null ? formatEnum(d.getDocType()) : d.getCustomTitle())
+                            .submittedDocCount(d.getVersions() != null ? d.getVersions().size() : 0)
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -134,7 +136,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
     public DeletionPreviewResponse previewDeletion(AdminDeletionAuditLog.ResourceType type, UUID resourceId) {
         return switch (type) {
             case TRANSACTION -> previewTransactionDeletion(resourceId);
-            case DOCUMENT_REQUEST -> previewDocumentRequestDeletion(resourceId);
+            case DOCUMENT_REQUEST -> previewDocumentDeletion(resourceId);
             default -> throw new BadRequestException("Resource type not supported for deletion: " + type);
         };
     }
@@ -147,38 +149,37 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         List<DeletionPreviewResponse.S3FileToDelete> s3Files = new ArrayList<>();
 
         // Timeline entries
-        // Timeline entries
         List<TimelineEntry> timeline = timelineEntryRepository.findByTransactionIdIncludingDeleted(transactionId);
         for (TimelineEntry entry : timeline) {
             linked.add(DeletionPreviewResponse.LinkedResource.builder()
                     .type("TIMELINE_ENTRY")
                     .id(null)
-                    .summary(entry.getType() != null ? entry.getType().name() : "Unknown Timeline Entry")
+                    .summary(entry.getType() != null ? formatEnum(entry.getType()) : "Unknown Timeline Entry")
                     .build());
         }
 
-        // Document requests and their submitted documents
-        List<DocumentRequest> docRequests = documentRequestRepository
+        // Documents and their versions
+        List<Document> documents = documentRepository
                 .findByTransactionIdIncludingDeleted(transactionId);
-        for (DocumentRequest dr : docRequests) {
+        for (Document doc : documents) {
             linked.add(DeletionPreviewResponse.LinkedResource.builder()
-                    .type("DOCUMENT_REQUEST")
-                    .id(dr.getRequestId())
-                    .summary(buildDocumentRequestSummary(dr))
+                    .type("DOCUMENT")
+                    .id(doc.getDocumentId())
+                    .summary(buildDocumentSummary(doc))
                     .build());
 
-            for (SubmittedDocument sd : dr.getSubmittedDocuments()) {
+            for (DocumentVersion version : doc.getVersions()) {
                 linked.add(DeletionPreviewResponse.LinkedResource.builder()
-                        .type("SUBMITTED_DOCUMENT")
-                        .id(sd.getDocumentId())
-                        .summary(sd.getStorageObject() != null ? sd.getStorageObject().getFileName() : "Unknown file")
+                        .type("DOCUMENT_VERSION")
+                        .id(version.getVersionId())
+                        .summary(version.getStorageObject() != null ? version.getStorageObject().getFileName() : "Unknown file")
                         .build());
 
-                if (sd.getStorageObject() != null && sd.getStorageObject().getS3Key() != null) {
+                if (version.getStorageObject() != null && version.getStorageObject().getS3Key() != null) {
                     s3Files.add(DeletionPreviewResponse.S3FileToDelete.builder()
-                            .fileName(sd.getStorageObject().getFileName())
-                            .mimeType(sd.getStorageObject().getMimeType())
-                            .sizeBytes(sd.getStorageObject().getSizeBytes())
+                            .fileName(version.getStorageObject().getFileName())
+                            .mimeType(version.getStorageObject().getMimeType())
+                            .sizeBytes(version.getStorageObject().getSizeBytes())
                             .build());
                 }
             }
@@ -193,33 +194,33 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                 .build();
     }
 
-    private DeletionPreviewResponse previewDocumentRequestDeletion(UUID requestId) {
-        DocumentRequest request = documentRequestRepository.findByRequestIdIncludingDeleted(requestId)
-                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+    private DeletionPreviewResponse previewDocumentDeletion(UUID documentId) {
+        Document document = documentRepository.findByDocumentIdIncludingDeleted(documentId)
+                .orElseThrow(() -> new NotFoundException("Document not found: " + documentId));
 
         List<DeletionPreviewResponse.LinkedResource> linked = new ArrayList<>();
         List<DeletionPreviewResponse.S3FileToDelete> s3Files = new ArrayList<>();
 
-        for (SubmittedDocument sd : request.getSubmittedDocuments()) {
+        for (DocumentVersion version : document.getVersions()) {
             linked.add(DeletionPreviewResponse.LinkedResource.builder()
-                    .type("SUBMITTED_DOCUMENT")
-                    .id(sd.getDocumentId())
-                    .summary(sd.getStorageObject() != null ? sd.getStorageObject().getFileName() : "Unknown file")
+                    .type("DOCUMENT_VERSION")
+                    .id(version.getVersionId())
+                    .summary(version.getStorageObject() != null ? version.getStorageObject().getFileName() : "Unknown file")
                     .build());
 
-            if (sd.getStorageObject() != null && sd.getStorageObject().getS3Key() != null) {
+            if (version.getStorageObject() != null && version.getStorageObject().getS3Key() != null) {
                 s3Files.add(DeletionPreviewResponse.S3FileToDelete.builder()
-                        .fileName(sd.getStorageObject().getFileName())
-                        .mimeType(sd.getStorageObject().getMimeType())
-                        .sizeBytes(sd.getStorageObject().getSizeBytes())
+                        .fileName(version.getStorageObject().getFileName())
+                        .mimeType(version.getStorageObject().getMimeType())
+                        .sizeBytes(version.getStorageObject().getSizeBytes())
                         .build());
             }
         }
 
         return DeletionPreviewResponse.builder()
-                .resourceId(requestId)
+                .resourceId(documentId)
                 .resourceType("DOCUMENT_REQUEST")
-                .resourceSummary(buildDocumentRequestSummary(request))
+                .resourceSummary(buildDocumentSummary(document))
                 .linkedResources(linked)
                 .s3FilesToDelete(s3Files)
                 .build();
@@ -232,7 +233,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
 
         switch (type) {
             case TRANSACTION -> deleteTransaction(resourceId, adminId);
-            case DOCUMENT_REQUEST -> deleteDocumentRequest(resourceId, adminId);
+            case DOCUMENT_REQUEST -> deleteDocument(resourceId, adminId);
             default -> throw new BadRequestException("Resource type not supported for deletion: " + type);
         }
     }
@@ -282,7 +283,6 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         List<String> cascaded = new ArrayList<>();
 
         // Soft-delete timeline entries
-        // Soft-delete timeline entries
         List<TimelineEntry> timeline = timelineEntryRepository.findByTransactionIdIncludingDeleted(transactionId);
         for (TimelineEntry entry : timeline) {
             entry.setDeletedAt(now);
@@ -291,26 +291,26 @@ public class AdminResourceServiceImpl implements AdminResourceService {
             cascaded.add("TimelineEntry:" + entry.getId());
         }
 
-        // Soft-delete document requests and hard-delete S3 files
-        List<DocumentRequest> docRequests = documentRequestRepository
+        // Soft-delete documents and hard-delete S3 files
+        List<Document> documents = documentRepository
                 .findByTransactionIdIncludingDeleted(transactionId);
-        for (DocumentRequest dr : docRequests) {
-            for (SubmittedDocument sd : dr.getSubmittedDocuments()) {
+        for (Document doc : documents) {
+            for (DocumentVersion version : doc.getVersions()) {
                 // Hard-delete S3 file
-                if (sd.getStorageObject() != null && sd.getStorageObject().getS3Key() != null) {
+                if (version.getStorageObject() != null && version.getStorageObject().getS3Key() != null) {
                     try {
-                        s3StorageService.deleteFile(sd.getStorageObject().getS3Key());
+                        objectStorageService.deleteFile(version.getStorageObject().getS3Key());
                     } catch (Exception e) {
-                        log.error("Failed to delete S3 file: {}", sd.getStorageObject().getS3Key(), e);
+                        log.error("Failed to delete S3 file: {}", version.getStorageObject().getS3Key(), e);
                     }
                 }
-                sd.setDeletedAt(now);
-                sd.setDeletedBy(adminId);
-                cascaded.add("SubmittedDocument:" + sd.getDocumentId());
+                version.setDeletedAt(now);
+                version.setDeletedBy(adminId);
+                cascaded.add("DocumentVersion:" + version.getVersionId());
             }
-            dr.setDeletedAt(now);
-            dr.setDeletedBy(adminId);
-            cascaded.add("DocumentRequest:" + dr.getRequestId());
+            doc.setDeletedAt(now);
+            doc.setDeletedBy(adminId);
+            cascaded.add("Document:" + doc.getDocumentId());
         }
 
         // Soft-delete the transaction
@@ -324,38 +324,38 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                 buildTransactionSnapshot(transaction), cascaded);
     }
 
-    private void deleteDocumentRequest(UUID requestId, UUID adminId) {
-        DocumentRequest request = documentRequestRepository.findByRequestIdIncludingDeleted(requestId)
-                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+    private void deleteDocument(UUID documentId, UUID adminId) {
+        Document document = documentRepository.findByDocumentIdIncludingDeleted(documentId)
+                .orElseThrow(() -> new NotFoundException("Document not found: " + documentId));
 
-        if (request.getDeletedAt() != null) {
-            throw new BadRequestException("Document request is already deleted");
+        if (document.getDeletedAt() != null) {
+            throw new BadRequestException("Document is already deleted");
         }
 
         LocalDateTime now = LocalDateTime.now();
         List<String> cascaded = new ArrayList<>();
 
-        // Hard-delete S3 files and soft-delete submitted documents
-        for (SubmittedDocument sd : request.getSubmittedDocuments()) {
-            if (sd.getStorageObject() != null && sd.getStorageObject().getS3Key() != null) {
+        // Hard-delete S3 files and soft-delete document versions
+        for (DocumentVersion version : document.getVersions()) {
+            if (version.getStorageObject() != null && version.getStorageObject().getS3Key() != null) {
                 try {
-                    s3StorageService.deleteFile(sd.getStorageObject().getS3Key());
+                    objectStorageService.deleteFile(version.getStorageObject().getS3Key());
                 } catch (Exception e) {
-                    log.error("Failed to delete S3 file: {}", sd.getStorageObject().getS3Key(), e);
+                    log.error("Failed to delete S3 file: {}", version.getStorageObject().getS3Key(), e);
                 }
             }
-            sd.setDeletedAt(now);
-            sd.setDeletedBy(adminId);
-            cascaded.add("SubmittedDocument:" + sd.getDocumentId());
+            version.setDeletedAt(now);
+            version.setDeletedBy(adminId);
+            cascaded.add("DocumentVersion:" + version.getVersionId());
         }
 
-        request.setDeletedAt(now);
-        request.setDeletedBy(adminId);
-        documentRequestRepository.save(request);
+        document.setDeletedAt(now);
+        document.setDeletedBy(adminId);
+        documentRepository.save(document);
 
         createAuditLog(AdminDeletionAuditLog.ActionType.DELETE,
-                AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, requestId, adminId,
-                buildDocumentRequestSnapshot(request), cascaded);
+                AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, documentId, adminId,
+                buildDocumentSnapshot(document), cascaded);
     }
 
     @Override
@@ -365,7 +365,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
 
         switch (type) {
             case TRANSACTION -> restoreTransaction(resourceId, adminId);
-            case DOCUMENT_REQUEST -> restoreDocumentRequest(resourceId, adminId);
+            case DOCUMENT_REQUEST -> restoreDocument(resourceId, adminId);
             default -> throw new BadRequestException("Resource type not supported for restoration: " + type);
         }
     }
@@ -381,7 +381,6 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         List<String> cascaded = new ArrayList<>();
 
         // Restore timeline entries
-        // Restore timeline entries
         List<TimelineEntry> timeline = timelineEntryRepository.findByTransactionIdIncludingDeleted(transactionId);
         for (TimelineEntry entry : timeline) {
             if (entry.getDeletedAt() != null) { // Only restore if it was deleted
@@ -391,19 +390,19 @@ public class AdminResourceServiceImpl implements AdminResourceService {
             }
         }
 
-        // Restore document requests (S3 files cannot be recovered)
-        List<DocumentRequest> docRequests = documentRequestRepository
+        // Restore documents (S3 files cannot be recovered)
+        List<Document> documents = documentRepository
                 .findByTransactionIdIncludingDeleted(transactionId);
-        for (DocumentRequest dr : docRequests) {
-            for (SubmittedDocument sd : dr.getSubmittedDocuments()) {
-                sd.setDeletedAt(null);
-                sd.setDeletedBy(null);
-                cascaded.add("SubmittedDocument:" + sd.getDocumentId());
+        for (Document doc : documents) {
+            for (DocumentVersion version : doc.getVersions()) {
+                version.setDeletedAt(null);
+                version.setDeletedBy(null);
+                cascaded.add("DocumentVersion:" + version.getVersionId());
                 // Note: S3 files are gone, metadata is restored but files are not recoverable
             }
-            dr.setDeletedAt(null);
-            dr.setDeletedBy(null);
-            cascaded.add("DocumentRequest:" + dr.getRequestId());
+            doc.setDeletedAt(null);
+            doc.setDeletedBy(null);
+            cascaded.add("Document:" + doc.getDocumentId());
         }
 
         transaction.setDeletedAt(null);
@@ -416,42 +415,41 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                 buildTransactionSnapshot(transaction), cascaded);
     }
 
-    private void restoreDocumentRequest(UUID requestId, UUID adminId) {
-        DocumentRequest request = documentRequestRepository.findByRequestIdIncludingDeleted(requestId)
-                .orElseThrow(() -> new NotFoundException("Document request not found: " + requestId));
+    private void restoreDocument(UUID documentId, UUID adminId) {
+        Document document = documentRepository.findByDocumentIdIncludingDeleted(documentId)
+                .orElseThrow(() -> new NotFoundException("Document not found: " + documentId));
 
-        if (request.getDeletedAt() == null) {
-            throw new BadRequestException("Document request is not deleted");
+        if (document.getDeletedAt() == null) {
+            throw new BadRequestException("Document is not deleted");
         }
 
-        // Check if parent transaction is deleted - can't restore orphaned document
-        // requests
-        UUID transactionId = request.getTransactionRef().getTransactionId();
+        // Check if parent transaction is deleted - can't restore orphaned documents
+        UUID transactionId = document.getTransactionRef().getTransactionId();
         Transaction parentTransaction = transactionRepository.findByTransactionIdIncludingDeleted(transactionId)
                 .orElse(null);
 
         if (parentTransaction != null && parentTransaction.getDeletedAt() != null) {
             throw new BadRequestException(
-                    "Cannot restore document request: its parent transaction " + transactionId + " is deleted. " +
+                    "Cannot restore document: its parent transaction " + transactionId + " is deleted. " +
                             "Restore the transaction first.");
         }
 
         List<String> cascaded = new ArrayList<>();
 
-        for (SubmittedDocument sd : request.getSubmittedDocuments()) {
-            sd.setDeletedAt(null);
-            sd.setDeletedBy(null);
-            cascaded.add("SubmittedDocument:" + sd.getDocumentId());
+        for (DocumentVersion version : document.getVersions()) {
+            version.setDeletedAt(null);
+            version.setDeletedBy(null);
+            cascaded.add("DocumentVersion:" + version.getVersionId());
         }
 
-        request.setDeletedAt(null);
-        request.setDeletedBy(null);
-        documentRequestRepository.save(request);
+        document.setDeletedAt(null);
+        document.setDeletedBy(null);
+        documentRepository.save(document);
 
         // Create restore audit log
         createAuditLog(AdminDeletionAuditLog.ActionType.RESTORE,
-                AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, requestId, adminId,
-                buildDocumentRequestSnapshot(request), cascaded);
+                AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, documentId, adminId,
+                buildDocumentSnapshot(document), cascaded);
     }
 
     @Override
@@ -462,15 +460,18 @@ public class AdminResourceServiceImpl implements AdminResourceService {
     // Helper methods
 
     private String buildTransactionSummary(Transaction t) {
+        if (t.getSide() == com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE && t.getPropertyAddress() == null) {
+            return "No property selected";
+        }
         return t.getPropertyAddress() != null
                 ? t.getPropertyAddress().getStreet() + ", " + t.getPropertyAddress().getCity()
                 : "No address";
     }
 
-    private String buildDocumentRequestSummary(DocumentRequest d) {
+    private String buildDocumentSummary(Document d) {
         String title = d.getCustomTitle() != null ? d.getCustomTitle()
-                : (d.getDocType() != null ? d.getDocType().name() : "Unknown");
-        return String.format("%s (%s)", title, d.getStatus() != null ? d.getStatus().name() : "UNKNOWN");
+                : (d.getDocType() != null ? formatEnum(d.getDocType()) : "Untitled Document");
+        return String.format("%s (%s)", title, d.getStatus() != null ? formatEnum(d.getStatus()) : "Unknown");
     }
 
     private String buildTransactionSnapshot(Transaction t) {
@@ -491,17 +492,17 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         }
     }
 
-    private String buildDocumentRequestSnapshot(DocumentRequest d) {
+    private String buildDocumentSnapshot(Document d) {
         try {
             Map<String, Object> snapshot = new HashMap<>();
-            snapshot.put("requestId", d.getRequestId());
+            snapshot.put("documentId", d.getDocumentId());
             snapshot.put("docType", d.getDocType() != null ? d.getDocType().name() : null);
             snapshot.put("customTitle", d.getCustomTitle());
             snapshot.put("status", d.getStatus() != null ? d.getStatus().name() : null);
-            snapshot.put("submittedDocumentCount", d.getSubmittedDocuments().size());
+            snapshot.put("versionCount", d.getVersions().size());
             return objectMapper.writeValueAsString(snapshot);
         } catch (JsonProcessingException e) {
-            log.error("Failed to serialize document request snapshot", e);
+            log.error("Failed to serialize document snapshot", e);
             return "{}";
         }
     }
@@ -526,5 +527,34 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         } catch (JsonProcessingException e) {
             AdminResourceServiceImpl.log.error("Failed to serialize cascaded operations", e);
         }
+    }
+
+    private String formatUserLabel(com.example.courtierprobackend.user.dataaccesslayer.UserAccount u) {
+        String name = String.format("%s %s",
+                u.getFirstName() != null ? u.getFirstName() : "",
+                u.getLastName() != null ? u.getLastName() : "").trim();
+        
+        if (name.isEmpty()) {
+            return u.getEmail();
+        }
+        return String.format("%s (%s)", name, u.getEmail());
+    }
+
+    private String formatEnum(Enum<?> e) {
+        if (e == null) return null;
+        String s = e.name().replace('_', ' ').toLowerCase(java.util.Locale.ROOT);
+        StringBuilder sb = new StringBuilder();
+        boolean nextTitleCase = true;
+
+        for (char c : s.toCharArray()) {
+            if (Character.isSpaceChar(c)) {
+                nextTitleCase = true;
+            } else if (nextTitleCase) {
+                c = Character.toTitleCase(c);
+                nextTitleCase = false;
+            }
+            sb.append(c);
+        }
+        return sb.toString();
     }
 }

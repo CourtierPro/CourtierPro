@@ -34,7 +34,7 @@ class DocumentConditionLinkRepositoryTest {
     private UUID conditionId2;
     private UUID offerId;
     private UUID propertyOfferId;
-    private UUID documentRequestId;
+    private UUID documentId;
 
     @BeforeEach
     void setUp() {
@@ -42,7 +42,7 @@ class DocumentConditionLinkRepositoryTest {
         conditionId2 = UUID.randomUUID();
         offerId = UUID.randomUUID();
         propertyOfferId = UUID.randomUUID();
-        documentRequestId = UUID.randomUUID();
+        documentId = UUID.randomUUID();
     }
 
     @Test
@@ -88,17 +88,17 @@ class DocumentConditionLinkRepositoryTest {
     }
 
     @Test
-    @DisplayName("should find links by documentRequestId")
-    void findByDocumentRequestId_returnsLinks() {
+    @DisplayName("should find links by documentId")
+    void findByDocumentId_returnsLinks() {
         DocumentConditionLink link = DocumentConditionLink.builder()
                 .conditionId(conditionId1)
-                .documentRequestId(documentRequestId)
+                .documentId(documentId)
                 .createdAt(LocalDateTime.now())
                 .build();
         entityManager.persist(link);
         entityManager.flush();
 
-        List<DocumentConditionLink> result = repository.findByDocumentRequestId(documentRequestId);
+        List<DocumentConditionLink> result = repository.findByDocumentId(documentId);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getConditionId()).isEqualTo(conditionId1);
@@ -149,20 +149,20 @@ class DocumentConditionLinkRepositoryTest {
     }
 
     @Test
-    @DisplayName("should delete links by documentRequestId")
-    void deleteByDocumentRequestId_removesLinks() {
+    @DisplayName("should delete links by documentId")
+    void deleteByDocumentId_removesLinks() {
         DocumentConditionLink link = DocumentConditionLink.builder()
                 .conditionId(conditionId1)
-                .documentRequestId(documentRequestId)
+                .documentId(documentId)
                 .createdAt(LocalDateTime.now())
                 .build();
         entityManager.persist(link);
         entityManager.flush();
 
-        repository.deleteByDocumentRequestId(documentRequestId);
+        repository.deleteByDocumentId(documentId);
         entityManager.flush();
 
-        List<DocumentConditionLink> result = repository.findByDocumentRequestId(documentRequestId);
+        List<DocumentConditionLink> result = repository.findByDocumentId(documentId);
         assertThat(result).isEmpty();
     }
 }

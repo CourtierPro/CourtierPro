@@ -60,7 +60,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
         List<Transaction> findLinkedToUsers(@Param("userIds") java.util.List<UUID> userIds,
                         @Param("requesterId") UUID requesterId);
 
-        @Query("SELECT t FROM Transaction t WHERE t.transactionId IN (SELECT p.transactionId FROM TransactionParticipant p WHERE p.email = :email)")
+        @Query("SELECT t FROM Transaction t WHERE t.transactionId IN (SELECT p.transactionId FROM TransactionParticipant p WHERE p.email = :email) AND t.archived = false")
         List<Transaction> findAllByParticipantEmail(@Param("email") String email);
 
         // Admin queries - bypass @Where filter to see all records including

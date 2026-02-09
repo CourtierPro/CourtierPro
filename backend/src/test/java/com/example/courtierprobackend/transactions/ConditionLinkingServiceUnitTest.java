@@ -5,12 +5,12 @@ import com.example.courtierprobackend.transactions.datalayer.*;
 import com.example.courtierprobackend.transactions.datalayer.dto.*;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
 import com.example.courtierprobackend.transactions.datalayer.repositories.*;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
+import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.example.courtierprobackend.email.EmailService;
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
 import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
-import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import com.example.courtierprobackend.infrastructure.storage.ObjectStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,9 +47,10 @@ class ConditionLinkingServiceUnitTest {
     @Mock private PropertyOfferRepository propertyOfferRepository;
     @Mock private OfferDocumentRepository offerDocumentRepository;
     @Mock private OfferRevisionRepository offerRevisionRepository;
-    @Mock private S3StorageService s3StorageService;
-    @Mock private DocumentRequestRepository documentRequestRepository;
+    @Mock private ObjectStorageService objectStorageService;
+    @Mock private DocumentRepository documentRequestRepository;
     @Mock private DocumentConditionLinkRepository documentConditionLinkRepository;
+    @Mock private SearchCriteriaRepository searchCriteriaRepository;
 
     private TransactionServiceImpl transactionService;
 
@@ -75,9 +76,10 @@ class ConditionLinkingServiceUnitTest {
                 propertyOfferRepository,
                 offerDocumentRepository,
                 offerRevisionRepository,
-                s3StorageService,
+                objectStorageService,
                 documentRequestRepository,
-                documentConditionLinkRepository
+                documentConditionLinkRepository,
+                searchCriteriaRepository
         );
 
         transactionId = UUID.randomUUID();

@@ -30,9 +30,31 @@ class ExceptionClassesTest {
     }
 
     @Test
+    void notFoundException_DefaultAndCauseConstructors() {
+        NotFoundException defaultEx = new NotFoundException();
+        assertThat(defaultEx.getMessage()).isNull();
+
+        RuntimeException cause = new RuntimeException("root cause");
+        NotFoundException causeEx = new NotFoundException("message", cause);
+        assertThat(causeEx.getMessage()).isEqualTo("message");
+        assertThat(causeEx.getCause()).isEqualTo(cause);
+    }
+
+    @Test
     void unauthorizedException_Constructors() {
         UnauthorizedException ex = new UnauthorizedException("message");
         assertThat(ex.getMessage()).isEqualTo("message");
+    }
+
+    @Test
+    void unauthorizedException_DefaultAndCauseConstructors() {
+        UnauthorizedException defaultEx = new UnauthorizedException();
+        assertThat(defaultEx.getMessage()).isNull();
+
+        RuntimeException cause = new RuntimeException("root cause");
+        UnauthorizedException causeEx = new UnauthorizedException("message", cause);
+        assertThat(causeEx.getMessage()).isEqualTo("message");
+        assertThat(causeEx.getCause()).isEqualTo(cause);
     }
 
     @Test

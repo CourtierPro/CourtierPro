@@ -1,7 +1,7 @@
 package com.example.courtierprobackend.email;
 
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
+import com.example.courtierprobackend.documents.datalayer.Document;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
@@ -27,7 +27,7 @@ class EmailServiceDocumentNotificationsTest {
         when(userRepo.findByEmail(anyString())).thenReturn(java.util.Optional.of(userAccount));
         var transactionRef = mock(TransactionRef.class);
         when(transactionRef.getTransactionId()).thenReturn(UUID.randomUUID());
-        var request = mock(DocumentRequest.class);
+        var request = mock(Document.class);
         when(request.getTransactionRef()).thenReturn(transactionRef);
 
         // 1. English, subject/body present
@@ -95,11 +95,11 @@ class EmailServiceDocumentNotificationsTest {
             .documentRequestedBodyFr("Corps {{clientName}} {{brokerName}} {{documentName}} {{brokerNotes}}")
             .build();
         when(orgSettingsService.getSettings()).thenReturn(settings);
-        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "MORTGAGE_PRE_APPROVAL", "Notes", "en");
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "MORTGAGE_PRE_APPROVAL", "Notes", "en", false);
         verify(service, atLeastOnce()).sendEmail(anyString(), anyString(), anyString());
 
         // 2. French with null docType and documentName (lines 174, 177-178, 182)
-        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", null, null, null, "fr");
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", null, null, null, "fr", false);
 
         // 3. Null subject/body from settings (lines 187-188, 192, 200-202)
         OrganizationSettingsResponseModel nullSettings = OrganizationSettingsResponseModel.builder()
@@ -109,8 +109,8 @@ class EmailServiceDocumentNotificationsTest {
             .documentRequestedBodyFr(null)
             .build();
         when(orgSettingsService.getSettings()).thenReturn(nullSettings);
-        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "OTHER", "Notes", "en");
-        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "OTHER", null, "fr");
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "OTHER", "Notes", "en", false);
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "OTHER", null, "fr", false);
 
         // 4. Subject doesn't contain displayName - append
         OrganizationSettingsResponseModel noDisplayNameSubject = OrganizationSettingsResponseModel.builder()
@@ -118,15 +118,50 @@ class EmailServiceDocumentNotificationsTest {
             .documentRequestedBodyEn("Body {{clientName}}")
             .build();
         when(orgSettingsService.getSettings()).thenReturn(noDisplayNameSubject);
-        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "TYPE", null, "en");
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "TYPE", null, "en", false);
 
         // 5. Disabled notifications - early return (line 171)
         when(userAccount.isEmailNotificationsEnabled()).thenReturn(false);
-        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "TYPE", null, "en");
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "TYPE", null, "en", false);
 
         // 6. User not present - early return
         when(userRepo.findByEmail(anyString())).thenReturn(java.util.Optional.empty());
-        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "TYPE", null, "en");
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "TYPE", null, "en", false);
+    }
+
+    @Test
+    void sendDocumentRequestedNotification_signatureTemplates_useSettingsAndFallback() throws Exception {
+        var orgSettingsService = mock(com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService.class);
+        var userRepo = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository.class);
+        EmailService service = spy(new EmailService("a", "b", null, null, orgSettingsService, userRepo, null));
+        doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
+        var userAccount = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(userAccount.isEmailNotificationsEnabled()).thenReturn(true);
+        when(userRepo.findByEmail(anyString())).thenReturn(java.util.Optional.of(userAccount));
+
+        OrganizationSettingsResponseModel configuredSettings = OrganizationSettingsResponseModel.builder()
+            .documentSignatureRequestedSubjectEn("Signature Requested: Doc")
+            .documentSignatureRequestedBodyEn("Hello {{clientName}} [IF-brokerNotes]Note: {{brokerNotes}}[/IF-brokerNotes]")
+            .build();
+        when(orgSettingsService.getSettings()).thenReturn(configuredSettings);
+
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "OTHER", "Notes", "en", true);
+
+        verify(service).sendEmail(eq("to@x.com"), eq("Signature Requested: Doc"), contains("Note: Notes"));
+
+        clearInvocations(service);
+        doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
+
+        OrganizationSettingsResponseModel fallbackSettings = OrganizationSettingsResponseModel.builder()
+            .documentSignatureRequestedSubjectEn(null)
+            .documentSignatureRequestedBodyEn(null)
+            .build();
+        when(orgSettingsService.getSettings()).thenReturn(fallbackSettings);
+
+        service.sendDocumentRequestedNotification("to@x.com", "Client", "Broker", "Doc", "OTHER", null, "en", true);
+
+        verify(service).sendEmail(eq("to@x.com"), eq("Signature Requested: Doc"),
+                contains("download, sign, and upload the signed document"));
     }
 
     // ========== sendDocumentEditedNotification Tests ==========
@@ -162,7 +197,7 @@ class EmailServiceDocumentNotificationsTest {
         doReturn(true).when(service).sendEmail(anyString(), anyString(), anyString());
 
         var transactionRef = new TransactionRef(UUID.randomUUID(), null, TransactionSide.BUY_SIDE);
-        var request = mock(DocumentRequest.class);
+        var request = mock(Document.class);
         when(request.getTransactionRef()).thenReturn(transactionRef);
         when(request.getBrokerNotes()).thenReturn("Notes");
 
@@ -233,7 +268,7 @@ class EmailServiceDocumentNotificationsTest {
         doThrow(new jakarta.mail.MessagingException("fail")).when(service).sendEmail(anyString(), anyString(), anyString());
 
         var transactionRef = new TransactionRef(UUID.randomUUID(), null, TransactionSide.BUY_SIDE);
-        var request = mock(DocumentRequest.class);
+        var request = mock(Document.class);
         when(request.getTransactionRef()).thenReturn(transactionRef);
         when(request.getStatus()).thenReturn(DocumentStatusEnum.APPROVED);
 

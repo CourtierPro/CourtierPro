@@ -47,6 +47,7 @@ public class EntityDtoUtil {
                 .openedDate(t.getOpenedAt() != null ? t.getOpenedAt().toLocalDate().toString() : null)
                 .archived(t.getArchived() != null ? t.getArchived() : false)
                 .archivedAt(t.getArchivedAt() != null ? t.getArchivedAt().toString() : null)
+                .notes(t.getNotes())
                 .build();
     }
 
@@ -149,7 +150,7 @@ public class EntityDtoUtil {
                 .side(TransactionSide.BUY_SIDE)
                 .status(TransactionStatus.ACTIVE)
                 .propertyAddress(null)
-                .currentStage(BuyerStage.BUYER_PREQUALIFY_FINANCIALLY.name())
+                .currentStage(BuyerStage.BUYER_FINANCIAL_PREPARATION.name())
                 .openedDate(LocalDate.now().toString())
                 .archived(false)
                 .archivedAt(null)

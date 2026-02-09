@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/shared/api/axiosInstance';
 import { adminKeys } from '@/features/admin/api/queries';
+import { dashboardKeys } from '@/features/dashboard/api/queries';
 import { setUserActiveStatus } from '@/features/admin/api/adminUserApi';
 import {
     deleteResource,
@@ -40,6 +41,7 @@ export function useSetUserActiveStatus() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: adminKeys.users() });
+            queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
         },
     });
 }

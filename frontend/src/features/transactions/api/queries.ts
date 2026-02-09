@@ -67,7 +67,11 @@ export function useTransactions(filters?: { status?: string; stage?: string; sid
             const params = new URLSearchParams();
             if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
             if (filters?.stage && filters.stage !== 'all') params.append('stage', filters.stage);
-            if (filters?.side && filters.side !== 'all') params.append('side', filters.side);
+            if (filters?.side && filters.side !== 'all') {
+                // Map frontend filter values to backend enum values
+                const sideValue = filters.side === 'buy' ? 'BUY_SIDE' : filters.side === 'sell' ? 'SELL_SIDE' : filters.side;
+                params.append('side', sideValue);
+            }
 
             const res = await axiosInstance.get<Transaction[]>(`/transactions?${params.toString()}`);
             return res.data;
@@ -366,3 +370,21 @@ export function useAllTransactionDocuments(transactionId: string, clientId?: str
     });
 }
 
+// ==================== SEARCH CRITERIA QUERIES ====================
+
+import type { SearchCriteria } from '@/shared/api/types';
+
+export const searchCriteriaKeys = {
+    byTransaction: (transactionId: string) => [...transactionKeys.detail(transactionId), 'searchCriteria'] as const,
+};
+
+export function useSearchCriteria(transactionId: string) {
+    return useQuery({
+        queryKey: searchCriteriaKeys.byTransaction(transactionId),
+        queryFn: async () => {
+            const res = await axiosInstance.get<SearchCriteria | null>(`/transactions/${transactionId}/search-criteria`);
+            return res.data;
+        },
+        enabled: !!transactionId,
+    });
+}

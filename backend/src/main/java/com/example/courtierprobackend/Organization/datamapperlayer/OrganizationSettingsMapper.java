@@ -29,6 +29,10 @@ public class OrganizationSettingsMapper {
                 .documentRequestedBodyEn(entity.getDocumentRequestedBodyEn())
                 .documentRequestedSubjectFr(entity.getDocumentRequestedSubjectFr())
                 .documentRequestedBodyFr(entity.getDocumentRequestedBodyFr())
+                .documentSignatureRequestedSubjectEn(entity.getDocumentSignatureRequestedSubjectEn())
+                .documentSignatureRequestedBodyEn(entity.getDocumentSignatureRequestedBodyEn())
+                .documentSignatureRequestedSubjectFr(entity.getDocumentSignatureRequestedSubjectFr())
+                .documentSignatureRequestedBodyFr(entity.getDocumentSignatureRequestedBodyFr())
                 .documentReviewSubjectEn(entity.getDocumentReviewSubjectEn())
                 .documentReviewBodyEn(entity.getDocumentReviewBodyEn())
                 .documentReviewSubjectFr(entity.getDocumentReviewSubjectFr())
@@ -81,6 +85,11 @@ public class OrganizationSettingsMapper {
         settings.setDocumentRequestedBodyEn(request.getDocumentRequestedBodyEn());
         settings.setDocumentRequestedSubjectFr(request.getDocumentRequestedSubjectFr());
         settings.setDocumentRequestedBodyFr(request.getDocumentRequestedBodyFr());
+
+        settings.setDocumentSignatureRequestedSubjectEn(request.getDocumentSignatureRequestedSubjectEn());
+        settings.setDocumentSignatureRequestedBodyEn(request.getDocumentSignatureRequestedBodyEn());
+        settings.setDocumentSignatureRequestedSubjectFr(request.getDocumentSignatureRequestedSubjectFr());
+        settings.setDocumentSignatureRequestedBodyFr(request.getDocumentSignatureRequestedBodyFr());
 
         settings.setDocumentReviewSubjectEn(request.getDocumentReviewSubjectEn());
         settings.setDocumentReviewBodyEn(request.getDocumentReviewBodyEn());

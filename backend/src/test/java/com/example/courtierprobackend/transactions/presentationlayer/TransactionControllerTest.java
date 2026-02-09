@@ -285,13 +285,13 @@ class TransactionControllerTest {
                 String brokerId = brokerUuid.toString();
 
                 com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO requestDto = new com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO();
-                requestDto.setStage("BUYER_OFFER_ACCEPTED");
+                requestDto.setStage("BUYER_OFFER_AND_NEGOTIATION");
                 requestDto.setNote("Everything looks good");
 
                 TransactionResponseDTO responseDto = TransactionResponseDTO.builder()
                                 .transactionId(txId)
                                 .brokerId(brokerUuid)
-                                .currentStage("BUYER_OFFER_ACCEPTED")
+                                .currentStage("BUYER_OFFER_AND_NEGOTIATION")
                                 .build();
 
                 when(transactionService.updateTransactionStage(eq(txId), any(), eq(brokerUuid)))
@@ -303,7 +303,7 @@ class TransactionControllerTest {
                                 .with(jwt())
                                 .header("x-broker-id", brokerId))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.currentStage").value("BUYER_OFFER_ACCEPTED"));
+                                .andExpect(jsonPath("$.currentStage").value("BUYER_OFFER_AND_NEGOTIATION"));
 
                 verify(transactionService).updateTransactionStage(eq(txId), any(), eq(brokerUuid));
         }
@@ -316,13 +316,13 @@ class TransactionControllerTest {
                 String brokerId = brokerUuid.toString();
 
                 com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO requestDto = new com.example.courtierprobackend.transactions.datalayer.dto.StageUpdateRequestDTO();
-                requestDto.setStage("BUYER_SHOP_FOR_PROPERTY");
+                requestDto.setStage("BUYER_PROPERTY_SEARCH");
                 requestDto.setReason("Back tracking for checking");
 
                 TransactionResponseDTO responseDto = TransactionResponseDTO.builder()
                                 .transactionId(txId)
                                 .brokerId(brokerUuid)
-                                .currentStage("BUYER_SHOP_FOR_PROPERTY")
+                                .currentStage("BUYER_PROPERTY_SEARCH")
                                 .build();
 
                 when(transactionService.updateTransactionStage(eq(txId), any(), eq(brokerUuid)))

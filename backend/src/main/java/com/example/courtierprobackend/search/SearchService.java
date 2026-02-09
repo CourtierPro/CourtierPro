@@ -1,7 +1,7 @@
 package com.example.courtierprobackend.search;
 
-import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
+import com.example.courtierprobackend.documents.datalayer.Document;
+import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
 import com.example.courtierprobackend.search.dto.SearchResultDTO;
 import com.example.courtierprobackend.security.UserContextUtils;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class SearchService {
 
     private final TransactionRepository transactionRepository;
-    private final DocumentRequestRepository documentRequestRepository;
+    private final DocumentRepository documentRepository;
     private final UserAccountRepository userAccountRepository;
     private final HttpServletRequest request;
 
@@ -72,7 +72,7 @@ public class SearchService {
     }
 
     private void searchDocumentById(UUID documentId, UUID userId, Set<SearchResultDTO> results) {
-        documentRequestRepository.findByRequestId(documentId).ifPresent(d -> {
+        documentRepository.findByDocumentId(documentId).ifPresent(d -> {
             boolean isClient = d.getTransactionRef().getClientId().equals(userId);
             
             Transaction t = transactionRepository
@@ -146,19 +146,19 @@ public class SearchService {
      * Searches documents using efficient set-based deduplication before mapping.
      */
     private void searchDocuments(UUID userId, String query, List<UUID> matchedUserIds, Set<SearchResultDTO> results) {
-        Map<UUID, DocumentRequest> uniqueDocuments = new HashMap<>();
+        Map<UUID, Document> uniqueDocuments = new HashMap<>();
 
         // 1. Text search
-        documentRequestRepository.searchDocuments(userId, query)
-                .forEach(d -> uniqueDocuments.put(d.getRequestId(), d));
+        documentRepository.searchDocuments(userId, query)
+                .forEach(d -> uniqueDocuments.put(d.getDocumentId(), d));
 
         // 2. Linked user search
         if (!matchedUserIds.isEmpty()) {
-            documentRequestRepository.findLinkedToUsers(matchedUserIds, userId)
-                    .forEach(d -> uniqueDocuments.putIfAbsent(d.getRequestId(), d));
+            documentRepository.findLinkedToUsers(matchedUserIds, userId)
+                    .forEach(d -> uniqueDocuments.putIfAbsent(d.getDocumentId(), d));
         }
         
-        List<DocumentRequest> documents = new ArrayList<>(uniqueDocuments.values());
+        List<Document> documents = new ArrayList<>(uniqueDocuments.values());
 
         // Batch-fetch transactions for subtitles
         Map<UUID, Transaction> transactionMap = fetchTransactionMap(documents);
@@ -174,7 +174,7 @@ public class SearchService {
                 .collect(Collectors.toList()));
     }
 
-    private Map<UUID, Transaction> fetchTransactionMap(List<DocumentRequest> documents) {
+    private Map<UUID, Transaction> fetchTransactionMap(List<Document> documents) {
         if (documents.isEmpty()) {
             return Map.of();
         }
@@ -217,13 +217,13 @@ public class SearchService {
                 .build();
     }
 
-    private SearchResultDTO mapDocument(DocumentRequest d, String address) {
+    private SearchResultDTO mapDocument(Document d, String address) {
         return SearchResultDTO.builder()
-                .id(d.getRequestId().toString())
+                .id(d.getDocumentId().toString())
                 .type(SearchResultDTO.SearchResultType.DOCUMENT)
                 .title(d.getCustomTitle() != null ? d.getCustomTitle() : d.getDocType().name())
                 .subtitle(address)
-                .url("/transactions/" + d.getTransactionRef().getTransactionId() + "?tab=documents&focus=" + d.getRequestId())
+                .url("/transactions/" + d.getTransactionRef().getTransactionId() + "?tab=documents&focus=" + d.getDocumentId())
                 .build();
     }
 

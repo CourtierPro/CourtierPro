@@ -7,6 +7,7 @@ import { useDocuments } from "@/features/documents/api/queries";
 import { X, FileText, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import type { DocumentStatusEnum } from "@/features/documents/types";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/components/ui/dialog";
+import { formatDocumentTitle } from "@/features/documents/utils/formatDocumentTitle";
 
 interface DocumentChecklistModalProps {
   open: boolean;
@@ -75,10 +76,10 @@ export function DocumentChecklistModal({
           ) : (
             <ul className="space-y-3">
               {documents.map((doc) => {
-                const title = doc.customTitle || t(`types.${doc.docType}`);
+                const title = formatDocumentTitle(doc, t);
                 return (
                   <li
-                    key={doc.requestId}
+                    key={doc.documentId}
                     className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
                   >
                     {getStatusIcon(doc.status)}
@@ -106,4 +107,3 @@ export function DocumentChecklistModal({
     </Dialog>
   );
 }
-

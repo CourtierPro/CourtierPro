@@ -6,11 +6,11 @@ title Design Level Sequence Diagram: Submit Document Flow
 actor "Client" as Client
 participant "DocumentsCenter\n<<React Component>>" as UI
 participant "ApiClient\n<<Axios>>" as ApiClient
-participant "DocumentRequestController\n<<REST Controller>>" as Controller
+participant "DocumentController\n<<REST Controller>>" as Controller
 participant "DocumentService\n<<Application Service>>" as Service
 participant "TransactionRepository\n<<Repository>>" as TxnRepo
-participant "DocumentRequestRepository\n<<Repository>>" as DocRepo
-participant "S3StorageService\n<<Infrastructure>>" as S3
+participant "DocumentRepository\n<<Repository>>" as DocRepo
+participant "ObjectStorageService\n<<Infrastructure>>" as S3
 participant "NotificationService\n<<Application Service>>" as Notif
 database "PostgreSQL" as DB
 database "Cloudflare R2" as R2Store
@@ -46,12 +46,12 @@ Service -> Service: validateUserAccess(transaction, userId)
 ' Validate Document Request
 Service -> DocRepo: findByRequestId(requestId)
 activate DocRepo
-DocRepo -> DB: SELECT * FROM document_requests WHERE request_id = ?
-DB --> DocRepo: DocumentRequest
-DocRepo --> Service: DocumentRequest
+DocRepo -> DB: SELECT * FROM documents WHERE document_id = ?
+DB --> DocRepo: Document
+DocRepo --> Service: Document
 deactivate DocRepo
 
-Service -> Service: validateCanSubmit(documentRequest)
+Service -> Service: validateCanSubmit(document)
 
 ' Validate File
 Service -> Service: validateFile(file)
@@ -62,24 +62,24 @@ Service -> S3: uploadFile(transactionId, requestId, file)
 activate S3
 S3 -> R2Store: PutObject(bucket, key, fileContent)
 R2Store --> S3: uploadResult
-S3 --> Service: StorageObjectRef(s3Key, fileName, mimeType)
+S3 --> Service: StorageObject(s3Key, fileName, mimeType)
 deactivate S3
 
-' Create SubmittedDocument
-Service -> Service: createSubmittedDocument(documentRequest, storageObject, uploadedBy)
+' Create DocumentVersion
+Service -> Service: createDocumentVersion(document, storageObject, uploadedBy)
 
-' Update DocumentRequest
+' Update Document
 Service -> Service: updateStatus(SUBMITTED)
-Service -> DocRepo: save(documentRequest)
+Service -> DocRepo: save(document)
 activate DocRepo
-DocRepo -> DB: UPDATE document_requests SET status = 'SUBMITTED' ...
-DocRepo -> DB: INSERT INTO submitted_documents ...
+DocRepo -> DB: UPDATE documents SET status = 'SUBMITTED' ...
+DocRepo -> DB: INSERT INTO document_versions ...
 DB --> DocRepo: savedEntity
-DocRepo --> Service: updatedDocumentRequest
+DocRepo --> Service: updatedDocument
 deactivate DocRepo
 
 ' Send Notification
-Service -> Notif: notifyDocumentSubmitted(documentRequest)
+Service -> Notif: notifyDocumentSubmitted(document)
 activate Notif
 Notif -> Notif: createNotification(brokerId, DOCUMENT, message)
 Notif -> DB: INSERT INTO notifications ...
@@ -88,8 +88,8 @@ Notif --> Service: void
 deactivate Notif
 
 ' Map to DTO
-Service -> Service: mapToDTO(documentRequest)
-Service --> Controller: DocumentRequestResponseDTO
+Service -> Service: mapToDTO(document)
+Service --> Controller: DocumentResponseDTO
 deactivate Service
 
 Controller --> ApiClient: HTTP 200 + JSON body

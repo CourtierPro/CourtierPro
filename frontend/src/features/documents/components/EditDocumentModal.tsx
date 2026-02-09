@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -26,8 +26,9 @@ import { DocumentTypeEnum } from '@/features/documents/types';
 import { requestDocumentSchema, type RequestDocumentFormValues } from '@/shared/schemas';
 import { getStageLabel } from '@/shared/utils/stages';
 import { useTransactionStages } from '@/features/transactions/hooks/useTransactionStages';
+import { getDocumentTypeOptions } from '@/features/documents/utils/documentTypeOptions';
 
-interface EditDocumentRequestModalProps {
+interface EditDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: RequestDocumentFormValues) => void;
@@ -35,22 +36,33 @@ interface EditDocumentRequestModalProps {
   initialValues: RequestDocumentFormValues;
 }
 
-export function EditDocumentRequestModal({
+export function EditDocumentModal({
   isOpen,
   onClose,
   onSubmit,
   transactionType,
   initialValues,
-}: EditDocumentRequestModalProps) {
+}: EditDocumentModalProps) {
   const { t, i18n } = useTranslation('documents');
   const { t: tTx } = useTranslation('transactions');
   const customTitleInputRef = useRef<HTMLInputElement>(null);
   const side = transactionType === 'buy' ? 'BUY_SIDE' : 'SELL_SIDE';
   const { stages } = useTransactionStages(side);
-  const stageOptions = stages.map(stage => ({
-    value: stage,
-    label: getStageLabel(stage, tTx, side)
-  }));
+  const stageOptions = useMemo(() => {
+    const options = stages.map((stage) => ({
+      value: stage,
+      label: getStageLabel(stage, tTx, side),
+    }));
+
+    if (initialValues.stage && !options.some((option) => option.value === initialValues.stage)) {
+      options.unshift({
+        value: initialValues.stage,
+        label: getStageLabel(initialValues.stage, tTx, side),
+      });
+    }
+
+    return options;
+  }, [stages, initialValues.stage, tTx, side]);
 
   const form = useForm<RequestDocumentFormValues>({
     resolver: zodResolver(requestDocumentSchema),
@@ -82,35 +94,19 @@ export function EditDocumentRequestModal({
     onClose();
   };
 
-  const buySideDocs = [
-    DocumentTypeEnum.MORTGAGE_PRE_APPROVAL,
-    DocumentTypeEnum.MORTGAGE_APPROVAL,
-    DocumentTypeEnum.PROOF_OF_FUNDS,
-    DocumentTypeEnum.ID_VERIFICATION,
-    DocumentTypeEnum.EMPLOYMENT_LETTER,
-    DocumentTypeEnum.PAY_STUBS,
-    DocumentTypeEnum.CREDIT_REPORT,
-    DocumentTypeEnum.PROMISE_TO_PURCHASE,
-    DocumentTypeEnum.INSPECTION_REPORT,
-    DocumentTypeEnum.INSURANCE_LETTER,
-    DocumentTypeEnum.BANK_STATEMENT,
-    DocumentTypeEnum.OTHER,
-  ];
-  const sellSideDocs = [
-    DocumentTypeEnum.CERTIFICATE_OF_LOCATION,
-    DocumentTypeEnum.ID_VERIFICATION,
-    DocumentTypeEnum.PROMISE_TO_PURCHASE,
-    DocumentTypeEnum.INSPECTION_REPORT,
-    DocumentTypeEnum.OTHER,
-  ];
-  const availableDocs = transactionType === 'buy' ? buySideDocs : sellSideDocs;
-  const docTypeOptions = availableDocs;
+  const docTypeOptions = useMemo(() => {
+    const options = getDocumentTypeOptions(transactionType);
+    if (!options.includes(initialValues.docType)) {
+      return [initialValues.docType, ...options];
+    }
+    return options;
+  }, [transactionType, initialValues.docType]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t('editDocumentRequest')}</DialogTitle>
+          <DialogTitle>{t('editDocument')}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-6 py-4">

@@ -8,39 +8,50 @@ import { Loader2, Upload, X, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useErrorHandler } from "@/shared/hooks/useErrorHandler";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
+import { getLocalizedDocumentTitle } from "@/features/documents/utils/formatDocumentTitle";
+import { getErrorMessage } from "@/shared/utils/error-utils";
 
 interface UploadDocumentModalProps {
   open: boolean;
   onClose: () => void;
-  requestId: string;
+  documentId: string;
   transactionId: string;
   documentTitle: string;
   docType?: string;
   initialFile?: File | null;
+  onSubmitFile?: (file: File) => Promise<void>;
+  successMessage?: string;
+  submitLabel?: string;
   onSuccess: () => void;
 }
 
 export function UploadDocumentModal({
   open,
   onClose,
-  requestId,
+  documentId,
   transactionId,
   documentTitle,
   docType,
   initialFile,
+  onSubmitFile,
+  successMessage,
+  submitLabel,
   onSuccess,
 }: UploadDocumentModalProps) {
   const { t } = useTranslation("documents");
   const [file, setFile] = useState<File | null>(initialFile || null);
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isCustomSubmitting, setIsCustomSubmitting] = useState(false);
 
   const submitDocument = useSubmitDocument();
-  const isUploading = submitDocument.isPending;
+  const isUploading = submitDocument.isPending || isCustomSubmitting;
   const { handleError } = useErrorHandler();
 
-  // Get translated document type or use the title
-  const displayTitle = docType ? t(`types.${docType}`) : documentTitle;
+  const displayTitle = getLocalizedDocumentTitle(t, {
+    docType,
+    fallbackLabel: documentTitle,
+  });
 
   // Simulate progress when uploading starts
   useEffect(() => {
@@ -92,21 +103,30 @@ export function UploadDocumentModal({
     setUploadProgress(0);
 
     try {
-      await submitDocument.mutateAsync({ transactionId, requestId, file });
+      if (onSubmitFile) {
+        setIsCustomSubmitting(true);
+        await onSubmitFile(file);
+      } else {
+        await submitDocument.mutateAsync({ transactionId, documentId, file });
+      }
       setUploadProgress(100);
-      toast.success(t("success.documentUploaded"));
+      toast.success(successMessage || t("success.documentUploaded"));
 
       // Delay closing to show 100%
       setTimeout(() => {
         onSuccess();
         setFile(null);
         setUploadProgress(0);
+        setIsCustomSubmitting(false);
       }, 500);
     } catch (err) {
       handleError(err);
-      setError(t("errors.uploadFailed"));
-      toast.error(t("errors.uploadFailed"));
+      const fallbackError = t("errors.uploadFailed");
+      const errorMessage = onSubmitFile ? getErrorMessage(err, fallbackError) : fallbackError;
+      setError(errorMessage);
+      toast.error(errorMessage);
       setUploadProgress(0);
+      setIsCustomSubmitting(false);
     }
   };
 
@@ -212,7 +232,7 @@ export function UploadDocumentModal({
                   {t("actions.uploading")}
                 </>
               ) : (
-                t("actions.upload")
+                (submitLabel || t("actions.upload"))
               )}
             </Button>
           </div>

@@ -1,0 +1,19 @@
+[HEADING-LG]Demande de signature[/HEADING-LG]
+
+Bonjour {{clientName}},
+
+Votre courtier [BOLD]{{brokerName}}[/BOLD] vous demande de signer le document suivant :
+
+[BOX-gray]
+[BOLD]{{documentName}}[/BOLD]
+Type : {{documentType}}
+[/BOX-gray]
+
+[IF-brokerNotes]
+[BOX-gray]
+[BOLD]Détails importants :[/BOLD]
+{{brokerNotes}}
+[/BOX-gray]
+[/IF-brokerNotes]
+
+Veuillez vous connecter à CourtierPro pour télécharger, signer et téléverser le document signé.

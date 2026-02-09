@@ -35,6 +35,8 @@
     "notifications.stageUpdate.message": "{{brokerName}} updated the stage to {{stage}} for the property at {{propertyAddress}}.",
     "notifications.stageRollback.title": "Stage Rollback",
     "notifications.stageRollback.message": "{{brokerName}} rolled back the stage to {{stage}} for the property at {{propertyAddress}}.",
+    "notifications.transactionTerminated.title": "Transaction Terminated",
+    "notifications.transactionTerminated.message": "{{brokerName}} terminated the transaction at stage {{stage}} for the property at {{propertyAddress}}.",
     "notifications.propertyOfferStatusChanged.title": "Offer Status Updated",
     "notifications.propertyOfferStatusChanged.message": "The status for the offer on {{address}} has been updated to {{status}}.",
     "notifications.clientOfferDecision.title": "Client Decision Received",

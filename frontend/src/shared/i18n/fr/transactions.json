@@ -13,6 +13,10 @@
   "viewArchived": "Voir Archivées",
   "viewActive": "Voir Actives",
   "noArchivedTransactions": "Aucune transaction archivée",
+  "terminatedTransactions": "Transactions Résiliées",
+  "terminatedSubtitle": "Voir les transactions résiliées",
+  "viewTerminated": "Voir Résiliées",
+  "noTerminatedTransactions": "Aucune transaction résiliée",
   "archiveSuccess": "Transaction archivée avec succès",
   "unarchiveSuccess": "Transaction restaurée avec succès",
   "archiveError": "Échec de l'archivage de la transaction",
@@ -140,6 +144,7 @@
   "needsUpload": "À télécharger",
   "revisionRequested": "Révision demandée",
   "updateTransactionStage": "Mettre à jour l'étape de la transaction",
+  "updating": "Mise à jour...",
   "selectStagePlaceholder": "Choisir la prochaine étape...",
   "stageDescriptionLabel": "Description de l'étape",
   "progressNote": "Note de progression",
@@ -150,44 +155,28 @@
   "rollbackReasonPlaceholder": "Veuillez expliquer pourquoi vous revenez à une étape précédente...",
   "rollbackWarningTitle": "Retour d'étape",
   "rollbackWarningMessage": "Vous déplacez la transaction vers une étape précédente. Une raison est requise.",
+  "missingDocumentWarningTitle": "Liste de documents incomplète",
+  "missingDocumentWarningMessage": "Certains documents requis pour l'étape actuelle ne sont pas encore cochés. Vous pouvez continuer, mais ces éléments restent en attente.",
+  "proceedAnyway": "Continuer quand même",
   "reasonRequired": "La raison est requise",
   "reasonTooShort": "La raison doit comporter au moins 10 caractères",
   "reasonTooLong": "La raison ne peut pas dépasser 500 caractères",
   "selectStageFirst": "Veuillez sélectionner une étape pour continuer",
   "currentStageSelectedTitle": "Étape actuelle sélectionnée",
   "currentStageSelectedMessage": "Vous avez sélectionné l'étape actuelle de la transaction. Veuillez sélectionner une étape différente pour la mise à jour.",
-  "stageDescriptions": [
-    "Votre offre a été soumise au vendeur. En attente de réponse.",
-    "Félicitations! Votre offre a été acceptée. Passons aux prochaines étapes.",
-    "L'inspection de la propriété est prévue. Nous examinerons le rapport ensemble.",
-    "Votre demande de financement est en cours. Restez en contact avec votre prêteur.",
-    "Les documents juridiques sont examinés par votre avocat.",
-    "Planifiez votre visite finale de la propriété avant la clôture.",
-    "Préparation de la clôture finale. Presque terminé!",
-    "Transaction terminée! Félicitations pour votre nouvelle propriété!"
-  ],
-  "buyStageDescriptions": [
-    "L'offre de l'acheteur a été soumise au vendeur et est en attente d'examen et de réponse.",
-    "L'inspection professionnelle de la propriété est prévue ou terminée. Examinez les résultats avec le client.",
-    "L'acheteur obtient une pré-approbation ou approbation finale de son institution financière.",
-    "Les documents juridiques incluant le contrat d'achat sont examinés par l'avocat de l'acheteur.",
-    "Visite finale de la propriété prévue pour vérifier l'état avant la clôture.",
-    "Toutes les conditions sont remplies. Finalisation des documents et préparation du transfert de propriété.",
-    "Transaction terminée avec succès. Les clés ont été transférées au nouveau propriétaire.",
-    "L'acheteur prend officiellement possession de la propriété après la confirmation de l'inscription et du transfert de fonds par le notaire, et les clés sont remises.",
-    "La transaction est officiellement annulée avant la clôture en raison de conditions non remplies, d'un retrait ou d'un accord mutuel, et le dossier est clos sans vente réalisée."
-  ],
-  "sellStageDescriptions": [
-    "La propriété est officiellement inscrite sur le marché et disponible pour les visites.",
-    "Campagne de marketing active en cours. La propriété est promue auprès des acheteurs potentiels.",
-    "Une offre a été reçue d'un acheteur potentiel et est en cours d'examen.",
-    "Négociation des termes, conditions et prix avec l'acheteur potentiel.",
-    "Le vendeur a accepté une offre. Nous passons à la période de vérification diligente de l'acheteur.",
-    "Les documents juridiques sont examinés et préparés par l'avocat du vendeur.",
-    "Toutes les conditions sont remplies. Finalisation des documents de vente et préparation du transfert.",
-    "Vente terminée avec succès. La propriété a été transférée à l'acheteur.",
-    "La transaction est officiellement annulée avant la clôture en raison de conditions non remplies, d'un retrait ou d'un accord mutuel, et le dossier est clos sans vente réalisée."
-  ],
+  "stageDescription": {
+    "goalLabel": "Objectif :",
+    "previousStage": "Étape précédente",
+    "nextStage": "Étape suivante"
+  },
+  "terminateTransaction": "Résilier la transaction",
+  "terminateConfirmTitle": "Résilier la transaction",
+  "terminateConfirmMessage": "Cela fermera définitivement la transaction. L'étape sera conservée pour montrer où la transaction a été résiliée.",
+  "terminateReason": "Raison de la résiliation",
+  "terminateReasonPlaceholder": "Veuillez expliquer pourquoi vous résiliez cette transaction...",
+  "terminateSuccess": "Transaction résiliée avec succès",
+  "errorTerminating": "Erreur lors de la résiliation de la transaction",
+  "transactionTerminated": "Résiliée",
   "transactionNotFound": "Transaction non trouvée",
   "noTransactionId": "Aucun ID de transaction fourni.",
   "goBack": "Retour",
@@ -228,27 +217,68 @@
   "allStages": "Toutes les étapes",
   "stages": {
     "buy": {
-      "buyer_prequalify_financially": "Préqualification financière",
-      "buyer_shop_for_property": "Recherche de propriété",
-      "buyer_submit_offer": "Soumettre une offre",
-      "buyer_offer_accepted": "Offre acceptée",
-      "buyer_home_inspection": "Inspection résidentielle",
-      "buyer_financing_finalized": "Financement finalisé",
-      "buyer_first_notary_appointment": "Premier rendez-vous notaire",
-      "buyer_second_notary_appointment": "Deuxième rendez-vous notaire",
-      "buyer_occupancy": "Occupation",
-      "buyer_terminated": "Achat résilié"
+      "buyer_financial_preparation": {
+        "name": "Préparation financière",
+        "description": "Avant de commencer vos recherches, vous préparez vos documents financiers avec votre courtier. Cela comprend une pré-approbation hypothécaire, une preuve de revenu, une confirmation de mise de fonds et des pièces d'identité. Cette étape permet de déterminer votre budget et de renforcer votre position lors de la soumission d'offres.",
+        "goal": "Connaître votre budget et démontrer votre préparation financière."
+      },
+      "buyer_property_search": {
+        "name": "Recherche de propriété",
+        "description": "Avec votre financement en place, vous commencez à visiter des propriétés correspondant à vos besoins, vos préférences et votre budget. Votre courtier fournit des inscriptions, planifie des visites et vous aide à analyser les quartiers, les prix et les conditions du marché. Vous examinerez des documents tels que la Déclaration du vendeur et le Certificat de localisation pour mieux comprendre chaque propriété. Au fil du temps, vous réduisez vos options et sélectionnez la propriété que vous souhaitez acquérir.",
+        "goal": "Identifier et choisir une propriété convenable à acheter."
+      },
+      "buyer_offer_and_negotiation": {
+        "name": "Offre et négociation",
+        "description": "Une fois que vous avez choisi une propriété, votre courtier prépare une Promesse d'achat détaillant votre prix, vos conditions et votre échéancier. Votre offre est soumise au vendeur et peut être suivie de contre-offres. Votre courtier vous aide à négocier les termes tels que le prix, les inclusions, la date de possession et les conditions. Cette étape peut impliquer plusieurs échanges avant d'atteindre un accord. Cette étape se termine lorsqu'une offre est acceptée et signée.",
+        "goal": "Négocier et obtenir une offre acceptée."
+      },
+      "buyer_financing_and_conditions": {
+        "name": "Financement et conditions",
+        "description": "Après l'acceptation de votre offre, vous devez remplir les conditions incluses dans votre Promesse d'achat. Cela implique généralement l'organisation d'une inspection résidentielle et l'obtention de l'approbation hypothécaire finale. Vous examinerez le rapport d'inspection et confirmerez la couverture d'assurance habitation. Si des problèmes surviennent, votre courtier vous aidera à décider s'il faut renégocier ou poursuivre.",
+        "goal": "Confirmer que la propriété et le financement répondent à vos attentes."
+      },
+      "buyer_notary_and_signing": {
+        "name": "Notaire et signature",
+        "description": "Au Québec, c'est l'acheteur qui choisit le notaire. Durant cette étape, vous sélectionnez un notaire, soumettez vos pièces d'identité et documents, et préparez votre mise de fonds. Le notaire rédige les documents juridiques et planifie la signature. Lors du rendez-vous principal, vous signez l'acte hypothécaire et l'Acte de vente. Le notaire procède ensuite à l'inscription de la transaction.",
+        "goal": "Compléter l'achat légal et signer l'acte de vente."
+      },
+      "buyer_possession": {
+        "name": "Possession",
+        "description": "Une fois que le notaire confirme l'inscription et le paiement, vous recevez les clés à la date de possession convenue. Vous êtes maintenant le propriétaire légal de la propriété, et vos documents de transaction sont archivés pour référence future.",
+        "goal": "Prendre possession de votre nouvelle maison."
+      }
     },
     "sell": {
-      "seller_initial_consultation": "Consultation initiale",
-      "seller_listing_published": "Inscription publiée",
-      "seller_review_offers": "Examen des offres",
-      "seller_accept_best_offer": "Accepter la meilleure offre",
-      "seller_conditions_met": "Conditions remplies",
-      "seller_notary_coordination": "Coordination notaire",
-      "seller_notary_appointment": "Rendez-vous notaire",
-      "seller_handover_keys": "Remise des clés",
-      "seller_terminated": "Vente résiliée"
+      "seller_initial_consultation": {
+        "name": "Consultation initiale",
+        "description": "Votre parcours de vente commence par une rencontre entre vous et votre courtier pour discuter de vos objectifs, de votre échéancier et de vos attentes. Durant cette étape, vous examinerez des documents importants tels que l'Analyse comparative de marché (ACM), qui estime la valeur marchande de votre maison, et la Déclaration du vendeur, qui divulgue l'état de votre propriété. Vous rassemblerez également des documents tels que votre Certificat de localisation, vos comptes de taxes et vos informations hypothécaires pour vous assurer que votre dossier est complet et exact.",
+        "goal": "Préparer votre propriété et vos documents pour l'inscription."
+      },
+      "seller_publish_listing": {
+        "name": "Publication de l'inscription",
+        "description": "Une fois vos documents prêts, votre courtier inscrit votre propriété sur Centris et commence à la commercialiser auprès d'acheteurs potentiels. Cela comprend des photos professionnelles, des descriptions de la propriété et les divulgations requises. Votre courtier gère les visites, les demandes de renseignements et les communications, vous tenant informé tout au long du processus.",
+        "goal": "Attirer des acheteurs sérieux et qualifiés."
+      },
+      "seller_offer_and_negotiation": {
+        "name": "Offre et négociation",
+        "description": "Lorsque des acheteurs soumettent des offres, ils le font au moyen d'une Promesse d'achat. Votre courtier examinera chaque offre avec vous et vous expliquera le prix, les conditions et les délais. Si nécessaire, votre courtier préparera des contre-offres et vous aidera à négocier de meilleures conditions. Ce processus peut impliquer plusieurs échanges jusqu'à ce que les deux parties s'entendent sur toutes les conditions. Une fois la version finale signée, l'offre devient juridiquement contraignante.",
+        "goal": "Négocier et conclure une entente signée avec un acheteur."
+      },
+      "seller_financing_and_conditions": {
+        "name": "Financement et conditions",
+        "description": "Après l'acceptation d'une offre, l'acheteur doit remplir ses conditions, généralement l'approbation du financement et une inspection résidentielle. Le prêteur de l'acheteur confirme l'approbation hypothécaire, et l'inspecteur prépare un rapport sur l'état de la propriété. Si des problèmes surviennent, votre courtier vous aidera à les résoudre. Lorsque toutes les conditions sont remplies ou levées par écrit, la vente devient ferme.",
+        "goal": "Confirmer que l'acheteur peut compléter l'achat."
+      },
+      "seller_notary_and_signing": {
+        "name": "Notaire et signature",
+        "description": "Une fois la vente ferme, votre courtier travaille avec le notaire choisi par l'acheteur pour préparer le dossier juridique. Vous fournirez vos pièces d'identité et les documents de propriété tels que le Certificat de localisation et le relevé de solde hypothécaire. Lors du rendez-vous chez le notaire, vous signez l'Acte de vente, et le notaire inscrit la transaction au Registre foncier du Québec.",
+        "goal": "Transférer légalement la propriété par l'intermédiaire du notaire."
+      },
+      "seller_handover": {
+        "name": "Remise des clés",
+        "description": "Après que le notaire confirme que l'acte a été inscrit et que les fonds ont été transférés, vous remettez les clés à l'acheteur à la date de possession convenue. Votre vente est maintenant complétée.",
+        "goal": "Compléter la transaction et remettre la possession."
+      }
     }
   },
   "timeline.submittedBy": "Soumis par {{name}}",
@@ -259,6 +289,7 @@
   "timeline.stageChangeNote": "Étape changée en {{stage}}.",
   "timeline.stageChangeNoteFull": "Changement d'étape : {{previousStage}} → {{newStage}}.",
   "timeline.stageRollbackNote": "Étape revenue à {{stage}}.",
+  "timeline.terminationReason": "Raison : {{reason}}",
   "timeline.by": "par {{name}}",
   "add": "Ajouter",
   "participantAdded": "Participant ajouté avec succès",
@@ -315,6 +346,7 @@
     "CONDITION_REMOVED": "Condition retirée",
     "CONDITION_SATISFIED": "Condition satisfaite",
     "CONDITION_FAILED": "Condition non satisfaite",
+    "TRANSACTION_TERMINATED": "Transaction résiliée",
     "APPOINTMENT_CONFIRMED": "Rendez-vous confirmé",
     "APPOINTMENT_CANCELLED": "Rendez-vous annulé",
     "APPOINTMENT_DECLINED": "Rendez-vous refusé",
@@ -507,6 +539,7 @@
   },
   "awaitingReview": "En attente d'examen",
   "documentStatus": {
+    "draft": "Brouillon",
     "requested": "Demandé",
     "submitted": "Soumis",
     "approved": "Approuvé",
@@ -641,6 +674,112 @@
     "stageRollback": {
       "title": "Retour d'étape",
       "message": "L'étape a été retournée à {{stage}} par {{brokerName}} pour {{propertyAddress}}"
+    }
+  },
+  "searchCriteria": {
+    "tab": "Critères de recherche",
+    "loading": "Chargement des critères de recherche...",
+    "loadError": "Échec du chargement des critères de recherche",
+    "saved": "Critères de recherche enregistrés",
+    "saveError": "Échec de l'enregistrement des critères de recherche",
+    "deleted": "Critères de recherche effacés",
+    "deleteError": "Échec de l'effacement des critères de recherche",
+    "save": "Enregistrer les critères",
+    "delete": "Tout effacer",
+    "deleteConfirmTitle": "Effacer les critères de recherche?",
+    "deleteConfirmDescription": "Cela supprimera toutes les préférences de recherche enregistrées pour cette transaction. Cette action ne peut pas être annulée.",
+    "priceRange": "Fourchette de prix",
+    "minPrice": "Prix minimum",
+    "maxPrice": "Prix maximum",
+    "regions": "Régions",
+    "propertyTypes": "Types de propriété",
+    "features": "Caractéristiques",
+    "minBedrooms": "Min chambres",
+    "maxBedrooms": "Max chambres",
+    "bedrooms": "Chambres",
+    "minBathrooms": "Min salles de bain",
+    "maxBathrooms": "Max salles de bain",
+    "bathrooms": "Salles de bain",
+    "minParking": "Min stationnement",
+    "maxParking": "Max stationnement",
+    "parking": "Stationnement",
+    "minGarages": "Min garages",
+    "maxGarages": "Max garages",
+    "garages": "Garages",
+    "any": "Tous",
+    "hasPool": "Piscine",
+    "hasElevator": "Ascenseur",
+    "adaptedForReducedMobility": "Accessible en fauteuil roulant",
+    "hasWaterfront": "Front d'eau",
+    "hasAccessToWaterfront": "Accès à l'eau",
+    "hasNavigableWater": "Eau navigable",
+    "isResort": "Propriété de villégiature",
+    "petsAllowed": "Animaux permis",
+    "smokingAllowed": "Fumeur permis",
+    "building": "Bâtiment",
+    "minLivingArea": "Superficie min",
+    "maxLivingArea": "Superficie max",
+    "areaUnit": "Unité",
+    "selectUnit": "Sélectionner l'unité",
+    "sqft": "pi²",
+    "sqm": "m²",
+    "minYearBuilt": "Année min",
+    "maxYearBuilt": "Année max",
+    "buildingStyles": "Styles de bâtiment",
+    "plexTypes": "Types de plex",
+    "otherCriteria": "Autres critères",
+    "minLandArea": "Terrain min",
+    "maxLandArea": "Terrain max",
+    "landAreaUnit": "Unité du terrain",
+    "newSince": "Nouveau depuis",
+    "moveInDate": "Date d'emménagement",
+    "openHousesOnly": "Portes ouvertes seulement",
+    "repossessionOnly": "Reprises seulement",
+    "propertyTypeLabels": {
+      "SINGLE_FAMILY_HOME": "Maison unifamiliale",
+      "CONDO": "Condo",
+      "LOFT_STUDIO": "Loft/Studio",
+      "PLEX": "Plex",
+      "INTERGENERATIONAL": "Intergénérationnelle",
+      "MOBILE_HOME": "Maison mobile",
+      "HOBBY_FARM": "Fermette",
+      "COTTAGE": "Chalet",
+      "LOT": "Terrain"
+    },
+    "buildingStyleLabels": {
+      "NEW_CONSTRUCTION": "Construction neuve",
+      "CENTURY_HISTORIC": "Centenaire/Historique",
+      "BUNGALOW": "Plain-pied",
+      "MORE_THAN_ONE_STOREY": "Multi-étages",
+      "SPLIT_LEVEL": "À paliers",
+      "DETACHED": "Détachée",
+      "SEMI_DETACHED": "Semi-détachée",
+      "ATTACHED": "Attachée"
+    },
+    "plexTypeLabels": {
+      "DUPLEX": "Duplex",
+      "TRIPLEX": "Triplex",
+      "QUADRUPLEX": "Quadruplex",
+      "QUINTUPLEX": "Quintuplex"
+    },
+    "regionLabels": {
+      "BAS_SAINT_LAURENT": "Bas-Saint-Laurent",
+      "SAGUENAY_LAC_SAINT_JEAN": "Saguenay–Lac-Saint-Jean",
+      "CAPITALE_NATIONALE": "Capitale-Nationale",
+      "MAURICIE": "Mauricie",
+      "ESTRIE": "Estrie",
+      "MONTREAL": "Montréal",
+      "OUTAOUAIS": "Outaouais",
+      "ABITIBI_TEMISCAMINGUE": "Abitibi-Témiscamingue",
+      "COTE_NORD": "Côte-Nord",
+      "NORD_DU_QUEBEC": "Nord-du-Québec",
+      "GASPESIE_ILES_DE_LA_MADELEINE": "Gaspésie–Îles-de-la-Madeleine",
+      "CHAUDIERE_APPALACHES": "Chaudière-Appalaches",
+      "LAVAL": "Laval",
+      "LANAUDIERE": "Lanaudière",
+      "LAURENTIDES": "Laurentides",
+      "MONTEREGIE": "Montérégie",
+      "CENTRE_DU_QUEBEC": "Centre-du-Québec"
     }
   }
 }

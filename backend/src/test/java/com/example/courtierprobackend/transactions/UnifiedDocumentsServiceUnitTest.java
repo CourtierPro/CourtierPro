@@ -3,14 +3,14 @@ package com.example.courtierprobackend.transactions;
 import com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService;
 import com.example.courtierprobackend.common.exceptions.ForbiddenException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequest;
-import com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository;
-import com.example.courtierprobackend.documents.datalayer.SubmittedDocument;
+import com.example.courtierprobackend.documents.datalayer.Document;
+import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
+import com.example.courtierprobackend.documents.datalayer.DocumentVersion;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject;
 import com.example.courtierprobackend.email.EmailService;
-import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import com.example.courtierprobackend.infrastructure.storage.ObjectStorageService;
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionServiceImpl;
 import com.example.courtierprobackend.transactions.datalayer.*;
@@ -64,7 +64,7 @@ class UnifiedDocumentsServiceUnitTest {
     private OfferDocumentRepository offerDocumentRepository;
 
     @Mock
-    private DocumentRequestRepository documentRequestRepository;
+    private DocumentRepository documentRequestRepository;
 
     @Mock
     private PinnedTransactionRepository pinnedTransactionRepository;
@@ -91,7 +91,7 @@ class UnifiedDocumentsServiceUnitTest {
     private OfferRevisionRepository offerRevisionRepository;
 
     @Mock
-    private S3StorageService s3StorageService;
+    private ObjectStorageService objectStorageService;
 
     @InjectMocks
     private TransactionServiceImpl service;
@@ -123,7 +123,7 @@ class UnifiedDocumentsServiceUnitTest {
         @DisplayName("should aggregate documents from all sources")
         void getAllDocuments_allSources_returnsAggregated() {
             // Setup document request with submitted document
-            DocumentRequest docRequest = createDocumentRequest();
+            Document docRequest = createDocumentRequest();
             when(documentRequestRepository.findByTransactionRef_TransactionId(transactionId))
                     .thenReturn(List.of(docRequest));
 
@@ -247,10 +247,10 @@ class UnifiedDocumentsServiceUnitTest {
 
     // ==================== Helper Methods ====================
 
-    private DocumentRequest createDocumentRequest() {
+    private Document createDocumentRequest() {
         UUID requestId = UUID.randomUUID();
-        DocumentRequest request = new DocumentRequest();
-        request.setRequestId(requestId);
+        Document request = new Document();
+        request.setDocumentId(requestId);
         request.setDocType(DocumentTypeEnum.MORTGAGE_PRE_APPROVAL);
         request.setStatus(DocumentStatusEnum.APPROVED);
         
@@ -261,13 +261,13 @@ class UnifiedDocumentsServiceUnitTest {
                 .sizeBytes(1024L)
                 .build();
         
-        SubmittedDocument submitted = new SubmittedDocument();
-        submitted.setDocumentId(UUID.randomUUID());
+        DocumentVersion submitted = new DocumentVersion();
+        submitted.setVersionId(UUID.randomUUID());
         submitted.setUploadedAt(LocalDateTime.now());
         submitted.setStorageObject(storage);
-        submitted.setDocumentRequest(request);
+        submitted.setDocument(request);
         
-        request.setSubmittedDocuments(new ArrayList<>(List.of(submitted)));
+        request.setVersions(new ArrayList<>(List.of(submitted)));
         return request;
     }
 

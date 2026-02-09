@@ -41,11 +41,11 @@ System_Boundary(cp, "CourtierPro System") {
     Component(TransactionRepository, "TransactionRepository", "Spring Data Repository", "CRUD for Transaction aggregate")
 
     ' ==== DOCUMENT MANAGEMENT ====
-    Component(DocumentRequestController, "DocumentRequestController", "REST Controller", "/transactions/{id}/documents/** – broker & client")
+    Component(DocumentController, "DocumentController", "REST Controller", "/transactions/{id}/documents/** – broker & client")
     Component(GlobalDocumentController, "GlobalDocumentController", "REST Controller", "/documents/** - download/view access")
-    Component(DocumentService, "DocumentService", "Application Service", "DocumentRequest & SubmittedDocument workflows")
-    Component(DocumentRequestRepository, "DocumentRequestRepository", "Spring Data Repository", "CRUD for DocumentRequest aggregate")
-    Component(S3StorageService, "S3StorageService", "Infrastructure Adapter", "Pre-signed URLs and Cloudflare R2 interactions (S3-compatible)")
+    Component(DocumentService, "DocumentService", "Application Service", "Document & DocumentVersion workflows")
+    Component(DocumentRepository, "DocumentRepository", "Spring Data Repository", "CRUD for Document aggregate")
+    Component(ObjectStorageService, "ObjectStorageService", "Infrastructure Adapter", "Pre-signed URLs and Cloudflare R2 interactions (S3-compatible)")
 
     ' ==== APPOINTMENTS ====
     Component(AppointmentController, "AppointmentController", "REST Controller", "/api/v1/appointments/** – appointments")
@@ -81,7 +81,7 @@ Rel(AppointmentService, NotificationService, "notifies participants of appointme
 
 Rel(web_spa, CurrentUserController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, TransactionController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
-Rel(web_spa, DocumentRequestController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+Rel(web_spa, DocumentController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, AppointmentController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, DashboardController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
 Rel(web_spa, AdminUserController, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
@@ -97,10 +97,10 @@ Rel(ClientTransactionController, TransactionService, "calls")
 Rel(TransactionService, TransactionRepository, "uses")
 Rel(TransactionService, TimelineService, "delegates stage changes")
 
-Rel(DocumentRequestController, DocumentService, "calls")
+Rel(DocumentController, DocumentService, "calls")
 Rel(GlobalDocumentController, DocumentService, "calls")
-Rel(DocumentService, DocumentRequestRepository, "uses")
-Rel(DocumentService, S3StorageService, "uses")
+Rel(DocumentService, DocumentRepository, "uses")
+Rel(DocumentService, ObjectStorageService, "uses")
 
 Rel(AppointmentController, AppointmentService, "calls")
 Rel(AppointmentService, AppointmentRepository, "uses")
@@ -115,7 +115,7 @@ Rel(NotificationService, JavaMailSender, "uses")
 
 Rel(UserAccountRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
 Rel(TransactionRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
-Rel(DocumentRequestRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
+Rel(DocumentRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
 Rel(AppointmentRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
 Rel(NotificationRepository, main_db, "Reads/Writes", "JDBC/R2DBC")
 Rel(BrokerMetricsRepository, main_db, "Reads/Writes", "JDBC/R2DBC")

@@ -23,5 +23,9 @@ public enum ParticipantPermission {
 
     // Notes Management
     VIEW_NOTES,
-    EDIT_NOTES
+    EDIT_NOTES,
+
+    // Search Criteria Management (Buyer side)
+    VIEW_SEARCH_CRITERIA,
+    EDIT_SEARCH_CRITERIA
 }

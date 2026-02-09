@@ -4,23 +4,23 @@ skinparam classAttributeIconSize 0
 title Infrastructure Layer
 
 package "Infrastructure Layer" #LightCoral {
-  interface S3StorageService {
-    + uploadFile(transactionId, requestId, file): StorageObject
+  interface ObjectStorageService {
+    + uploadFile(transactionId, documentId, file): StorageObject
     + getPreSignedUrl(s3Key, expirationMinutes): String
     + deleteFile(s3Key): void
   }
   
-  class S3StorageServiceImpl {
+  class ObjectStorageServiceImpl {
     - s3Client: S3Client  // Connects to Cloudflare R2 (S3-compatible)
     - bucketName: String
     --
-    + uploadFile(transactionId, requestId, file): StorageObject
+    + uploadFile(transactionId, documentId, file): StorageObject
     + getPreSignedUrl(s3Key, expirationMinutes): String
-    - generateS3Key(transactionId, requestId, fileName): String
+    - generateS3Key(transactionId, documentId, fileName): String
   }
   
   ' Intra-package relationships
-  S3StorageServiceImpl ..|> S3StorageService : implements
+  ObjectStorageServiceImpl ..|> ObjectStorageService : implements
 }
 
 @enduml

@@ -6,7 +6,7 @@ import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.value
 import com.example.courtierprobackend.common.exceptions.BadRequestException;
 import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.email.EmailService;
-import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import com.example.courtierprobackend.infrastructure.storage.ObjectStorageService;
 import com.example.courtierprobackend.notifications.businesslayer.NotificationService;
 import com.example.courtierprobackend.transactions.businesslayer.TransactionServiceImpl;
 import com.example.courtierprobackend.transactions.datalayer.Property;
@@ -91,7 +91,7 @@ class PropertyOfferServiceUnitTest {
     private TimelineService timelineService;
 
     @Mock
-    private S3StorageService s3StorageService;
+    private ObjectStorageService objectStorageService;
 
     @Mock
     private DocumentConditionLinkRepository documentConditionLinkRepository;

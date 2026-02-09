@@ -4,26 +4,26 @@ skinparam classAttributeIconSize 0
 title Presentation Layer
 
 package "Presentation Layer" #LightBlue {
-  class DocumentRequestController {
-    - service: DocumentRequestService
+  class DocumentController {
+    - service: DocumentService
     --
-    + getDocuments(transactionId, userId): List<DocumentRequestResponseDTO>
-    + createDocumentRequest(transactionId, dto): DocumentRequestResponseDTO
-    + getDocumentRequest(transactionId, requestId, userId): DocumentRequestResponseDTO
-    + updateDocumentRequest(transactionId, requestId, dto): DocumentRequestResponseDTO
-    + deleteDocumentRequest(transactionId, requestId): void
-    + submitDocument(transactionId, requestId, file, userId, type): DocumentRequestResponseDTO
-    + getDocumentDownloadUrl(transactionId, requestId, docId): Map<String, String>
-    + reviewDocument(transactionId, requestId, reviewDto, brokerId): DocumentRequestResponseDTO
+    + getDocuments(transactionId, userId): List<DocumentResponseDTO>
+    + createDocument(transactionId, dto): DocumentResponseDTO
+    + getDocument(transactionId, documentId, userId): DocumentResponseDTO
+    + updateDocument(transactionId, documentId, dto): DocumentResponseDTO
+    + deleteDocument(transactionId, documentId): void
+    + submitDocument(transactionId, documentId, file, userId, type): DocumentResponseDTO
+    + getDocumentDownloadUrl(transactionId, documentId, versionId): Map<String, String>
+    + reviewDocument(transactionId, documentId, reviewDto, brokerId): DocumentResponseDTO
   }
   
   class GlobalDocumentController {
-    - service: DocumentRequestService
+    - service: DocumentService
     --
     + getDocumentById(documentId, userId): Map<String, String>
   }
   
-  class DocumentRequestRequestDTO {
+  class DocumentRequestDTO {
     + docType: DocumentTypeEnum
     + customTitle: String
     + expectedFrom: DocumentPartyEnum
@@ -35,8 +35,8 @@ package "Presentation Layer" #LightBlue {
     + linkedConditionIds: List<UUID>
   }
   
-  class DocumentRequestResponseDTO {
-    + requestId: UUID
+  class DocumentResponseDTO {
+    + documentId: UUID
     + transactionId: UUID
     + docType: DocumentTypeEnum
     + customTitle: String
@@ -45,7 +45,7 @@ package "Presentation Layer" #LightBlue {
     + stage: StageEnum
     + brokerNotes: String
     + visibleToClient: Boolean
-    + submittedDocuments: List<SubmittedDocumentDTO>
+    + versions: List<DocumentVersionDTO>
     + lastUpdatedAt: LocalDateTime
   }
   
@@ -54,8 +54,8 @@ package "Presentation Layer" #LightBlue {
     + brokerNotes: String
   }
   
-  class SubmittedDocumentDTO {
-    + documentId: UUID
+  class DocumentVersionDTO {
+    + versionId: UUID
     + fileName: String
     + mimeType: String
     + uploadedAt: LocalDateTime
@@ -64,10 +64,10 @@ package "Presentation Layer" #LightBlue {
   }
   
   ' Intra-package relationships
-  DocumentRequestController ..> DocumentRequestRequestDTO : receives
-  DocumentRequestController ..> DocumentRequestResponseDTO : returns
-  DocumentRequestController ..> DocumentReviewRequestDTO : receives
-  DocumentRequestResponseDTO ..> SubmittedDocumentDTO : contains
+  DocumentController ..> DocumentRequestDTO : receives
+  DocumentController ..> DocumentResponseDTO : returns
+  DocumentController ..> DocumentReviewRequestDTO : receives
+  DocumentResponseDTO ..> DocumentVersionDTO : contains
 }
 
 @enduml

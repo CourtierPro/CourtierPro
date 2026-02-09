@@ -341,12 +341,12 @@ export function AdminResourcesPage() {
                                 logs.map((log) => {
                                     const cascadedItems = parseCascaded(log.cascadedDeletions);
 
-                                    // Filter out events/actions (TimelineEntry, SubmittedDocument, etc.)
-                                    // User only wants to see resources (DocumentRequest, etc.)
+                                    // Filter out events/actions (TimelineEntry, DocumentVersion, etc.)
+                                    // User only wants to see resources (Document, etc.)
                                     const visibleItems = cascadedItems.filter(item => {
                                         const [type] = item.split(":");
                                         return !item.startsWith('TimelineEntry') &&
-                                            !item.startsWith('SubmittedDocument') &&
+                                            !item.startsWith('DocumentVersion') &&
                                             !type.toLowerCase().includes('review');
                                     });
 

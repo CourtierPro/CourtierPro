@@ -25,6 +25,7 @@ public class TransactionResponseDTO {
     private String openedDate;
     private Boolean archived;
     private String archivedAt;
+    private String notes;
 }
 
 

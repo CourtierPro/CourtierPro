@@ -8,6 +8,8 @@
 -- - Notifications
 -- - Search Indexes
 -- - Pinned Transactions
+-- - Appointments
+-- - Search Criteria
 -- ============================================================================
 
 
@@ -75,7 +77,9 @@ CREATE TABLE IF NOT EXISTS transactions (
     archived_by UUID,
     -- Soft Delete Columns
     deleted_at TIMESTAMP,
-    deleted_by UUID
+    deleted_by UUID,
+    -- Internal notes for brokers
+    notes TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_transactions_transaction_id ON transactions(transaction_id);
@@ -136,11 +140,11 @@ CREATE INDEX IF NOT EXISTS idx_timeline_entries_transaction ON timeline_entries(
 CREATE INDEX IF NOT EXISTS idx_timeline_entries_deleted_at ON timeline_entries(deleted_at);
 
 -- =============================================================================
--- DOCUMENT REQUESTS
+-- DOCUMENTS
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS document_requests (
+CREATE TABLE IF NOT EXISTS documents (
     id BIGSERIAL PRIMARY KEY,
-    request_id UUID UNIQUE,
+    document_id UUID UNIQUE,
     -- Embedded TransactionRef
     transaction_id UUID,
     client_id UUID,
@@ -156,31 +160,43 @@ CREATE TABLE IF NOT EXISTS document_requests (
     last_updated_at TIMESTAMP,
     visible_to_client BOOLEAN DEFAULT true,
     stage VARCHAR(64),
+    -- Flow type: REQUEST (client uploads) or UPLOAD (broker uploads)
+    flow VARCHAR(50) DEFAULT 'REQUEST',
+    -- Whether the client must sign and return this document
+    requires_signature BOOLEAN DEFAULT false,
+    -- Auto-draft template tracking (stage template identity)
+    template_key VARCHAR(120),
+    auto_generated BOOLEAN NOT NULL DEFAULT false,
+    -- Date columns (consolidated from V2)
+    due_date TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     -- Soft Delete Columns
     deleted_at TIMESTAMP,
     deleted_by UUID
 );
 
-CREATE INDEX IF NOT EXISTS idx_document_requests_request_id ON document_requests(request_id);
-CREATE INDEX IF NOT EXISTS idx_document_requests_transaction ON document_requests(transaction_id);
-CREATE INDEX IF NOT EXISTS idx_document_requests_status ON document_requests(status);
-CREATE INDEX IF NOT EXISTS idx_document_requests_deleted_at ON document_requests(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_documents_document_id ON documents(document_id);
+CREATE INDEX IF NOT EXISTS idx_documents_transaction ON documents(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
+CREATE INDEX IF NOT EXISTS idx_documents_deleted_at ON documents(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_documents_flow ON documents(flow);
+CREATE INDEX IF NOT EXISTS idx_documents_transaction_template_key ON documents(transaction_id, template_key);
 
 -- Search Indexes
 -- Search Indexes
--- CREATE INDEX IF NOT EXISTS idx_document_requests_custom_title_trgm 
---     ON document_requests USING GIN (custom_title gin_trgm_ops);
--- CREATE INDEX IF NOT EXISTS idx_document_requests_broker_notes_trgm 
---     ON document_requests USING GIN (broker_notes gin_trgm_ops);
+-- CREATE INDEX IF NOT EXISTS idx_documents_custom_title_trgm 
+--     ON documents USING GIN (custom_title gin_trgm_ops);
+-- CREATE INDEX IF NOT EXISTS idx_documents_broker_notes_trgm 
+--     ON documents USING GIN (broker_notes gin_trgm_ops);
 
 -- =============================================================================
--- SUBMITTED DOCUMENTS
+-- DOCUMENT VERSIONS
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS submitted_documents (
+CREATE TABLE IF NOT EXISTS document_versions (
     id BIGSERIAL PRIMARY KEY,
-    document_id UUID,
+    version_id UUID,
     uploaded_at TIMESTAMP,
-    document_request_id BIGINT REFERENCES document_requests(id) ON DELETE CASCADE,
+    document_id BIGINT REFERENCES documents(id) ON DELETE CASCADE,
     -- Embedded UploadedBy
     uploader_type VARCHAR(50),
     party VARCHAR(50),
@@ -196,9 +212,31 @@ CREATE TABLE IF NOT EXISTS submitted_documents (
     deleted_by UUID
 );
 
-CREATE INDEX IF NOT EXISTS idx_submitted_documents_request ON submitted_documents(document_request_id);
-CREATE INDEX IF NOT EXISTS idx_submitted_documents_document_id ON submitted_documents(document_id);
-CREATE INDEX IF NOT EXISTS idx_submitted_documents_deleted_at ON submitted_documents(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_document_versions_document ON document_versions(document_id);
+CREATE INDEX IF NOT EXISTS idx_document_versions_version_id ON document_versions(version_id);
+CREATE INDEX IF NOT EXISTS idx_document_versions_deleted_at ON document_versions(deleted_at);
+
+-- =============================================================================
+-- TRANSACTION STAGE CHECKLIST STATE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS transaction_stage_checklist_state (
+    id BIGSERIAL PRIMARY KEY,
+    transaction_id UUID NOT NULL,
+    stage VARCHAR(64) NOT NULL,
+    item_key VARCHAR(120) NOT NULL,
+    manual_checked BOOLEAN,
+    manual_checked_by UUID,
+    manual_checked_at TIMESTAMP,
+    auto_checked BOOLEAN NOT NULL DEFAULT false,
+    auto_checked_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_tx_stage_item UNIQUE (transaction_id, stage, item_key),
+    CONSTRAINT fk_tx_stage_checklist_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_tx_stage_checklist_transaction ON transaction_stage_checklist_state(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_tx_stage_checklist_stage ON transaction_stage_checklist_state(stage);
 
 -- =============================================================================
 -- NOTIFICATIONS
@@ -271,6 +309,10 @@ CREATE TABLE IF NOT EXISTS organization_settings (
     document_requested_body_en TEXT,
     document_requested_subject_fr VARCHAR(255),
     document_requested_body_fr TEXT,
+    document_signature_requested_subject_en VARCHAR(255),
+    document_signature_requested_body_en TEXT,
+    document_signature_requested_subject_fr VARCHAR(255),
+    document_signature_requested_body_fr TEXT,
     document_review_subject_en VARCHAR(255),
     document_review_body_en TEXT,
     document_review_subject_fr VARCHAR(255),
@@ -425,7 +467,7 @@ CREATE TABLE IF NOT EXISTS properties (
     CONSTRAINT chk_offer_status 
         CHECK (offer_status IN ('OFFER_TO_BE_MADE', 'OFFER_MADE', 'COUNTERED', 'ACCEPTED', 'DECLINED')),
     CONSTRAINT chk_property_status
-        CHECK (status IN ('SUGGESTED', 'ACCEPTED', 'DECLINED'))
+        CHECK (status IN ('SUGGESTED', 'INTERESTED', 'NOT_INTERESTED', 'NEEDS_INFO'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_properties_transaction_id ON properties(transaction_id);
@@ -597,7 +639,7 @@ CREATE TABLE IF NOT EXISTS document_conditions (
     condition_id UUID NOT NULL,
     offer_id UUID,
     property_offer_id UUID,
-    document_request_id UUID,
+    document_id UUID,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     
     CONSTRAINT fk_document_conditions_condition 
@@ -612,26 +654,26 @@ CREATE TABLE IF NOT EXISTS document_conditions (
         FOREIGN KEY (property_offer_id) 
         REFERENCES property_offers(property_offer_id)
         ON DELETE CASCADE,
-    CONSTRAINT fk_document_conditions_request 
-        FOREIGN KEY (document_request_id) 
-        REFERENCES document_requests(request_id)
+    CONSTRAINT fk_document_conditions_document 
+        FOREIGN KEY (document_id) 
+        REFERENCES documents(document_id)
         ON DELETE CASCADE,
-    -- Exactly one of offer_id, property_offer_id, document_request_id must be set
+    -- Exactly one of offer_id, property_offer_id, document_id must be set
     CONSTRAINT chk_document_conditions_one_source
         CHECK (
-            (offer_id IS NOT NULL AND property_offer_id IS NULL AND document_request_id IS NULL) OR
-            (offer_id IS NULL AND property_offer_id IS NOT NULL AND document_request_id IS NULL) OR
-            (offer_id IS NULL AND property_offer_id IS NULL AND document_request_id IS NOT NULL)
+            (offer_id IS NOT NULL AND property_offer_id IS NULL AND document_id IS NULL) OR
+            (offer_id IS NULL AND property_offer_id IS NOT NULL AND document_id IS NULL) OR
+            (offer_id IS NULL AND property_offer_id IS NULL AND document_id IS NOT NULL)
         ),
     -- Prevent duplicate links
     CONSTRAINT uq_document_conditions_unique_link
-        UNIQUE (condition_id, offer_id, property_offer_id, document_request_id)
+        UNIQUE (condition_id, offer_id, property_offer_id, document_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_document_conditions_condition_id ON document_conditions(condition_id);
 CREATE INDEX IF NOT EXISTS idx_document_conditions_offer_id ON document_conditions(offer_id);
 CREATE INDEX IF NOT EXISTS idx_document_conditions_property_offer_id ON document_conditions(property_offer_id);
-CREATE INDEX IF NOT EXISTS idx_document_conditions_document_request_id ON document_conditions(document_request_id);
+CREATE INDEX IF NOT EXISTS idx_document_conditions_document_id ON document_conditions(document_id);
 
 -- =============================================================================
 -- SYSTEM ALERTS
@@ -711,6 +753,8 @@ CREATE TABLE IF NOT EXISTS appointments (
     version BIGINT DEFAULT 0,
     deleted_at TIMESTAMP,
     deleted_by UUID,
+    -- Reminder column (consolidated from V3)
+    reminder_sent BOOLEAN DEFAULT FALSE NOT NULL,
     CONSTRAINT fk_appointments_broker FOREIGN KEY (broker_id) REFERENCES user_accounts(id) ON DELETE CASCADE,
     CONSTRAINT fk_appointments_client FOREIGN KEY (client_id) REFERENCES user_accounts(id) ON DELETE CASCADE,
     CONSTRAINT fk_appointments_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE SET NULL
@@ -740,11 +784,89 @@ CREATE TABLE IF NOT EXISTS appointment_audits (
 );
 
 CREATE INDEX idx_appointment_audits_appointment_id ON appointment_audits(appointment_id);
--- ============================================================================
--- DATA FIX: Ensure all appointments have the correct brokerId from their transaction
--- ============================================================================
-UPDATE appointments a
-SET broker_id = t.broker_id
-FROM transactions t
-WHERE a.transaction_id = t.transaction_id
-    AND (a.broker_id IS NULL OR a.broker_id <> t.broker_id);
+
+-- =============================================================================
+-- SEARCH CRITERIA (for buy-side transaction property search preferences)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS search_criteria (
+    id BIGSERIAL PRIMARY KEY,
+    search_criteria_id UUID NOT NULL UNIQUE,
+    transaction_id UUID NOT NULL UNIQUE,
+
+    -- Features
+    min_bedrooms INTEGER,
+    min_bathrooms INTEGER,
+    min_parking_spaces INTEGER,
+    min_garages INTEGER,
+    has_pool BOOLEAN,
+    has_elevator BOOLEAN,
+    adapted_for_reduced_mobility BOOLEAN,
+    has_waterfront BOOLEAN,
+    has_access_to_waterfront BOOLEAN,
+    has_navigable_water BOOLEAN,
+    is_resort BOOLEAN,
+    pets_allowed BOOLEAN,
+    smoking_allowed BOOLEAN,
+
+    -- Building
+    min_living_area DECIMAL(12, 2),
+    max_living_area DECIMAL(12, 2),
+    living_area_unit VARCHAR(10),
+    min_year_built INTEGER,
+    max_year_built INTEGER,
+
+    -- Other Criteria
+    min_land_area DECIMAL(12, 2),
+    max_land_area DECIMAL(12, 2),
+    land_area_unit VARCHAR(10),
+    new_since DATE,
+    move_in_date DATE,
+    open_houses_only BOOLEAN,
+    repossession_only BOOLEAN,
+
+    -- Price Range
+    min_price DECIMAL(15, 2),
+    max_price DECIMAL(15, 2),
+
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+
+    -- Foreign key constraint
+    CONSTRAINT fk_search_criteria_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE
+);
+
+-- Create index on transaction_id for quick lookups
+CREATE INDEX IF NOT EXISTS idx_search_criteria_transaction_id ON search_criteria(transaction_id);
+
+-- Create collection table for property types (Set<PropertyType>)
+CREATE TABLE IF NOT EXISTS search_criteria_property_types (
+    search_criteria_id BIGINT NOT NULL,
+    property_type VARCHAR(50) NOT NULL,
+    PRIMARY KEY (search_criteria_id, property_type),
+    CONSTRAINT fk_sc_property_types_search_criteria FOREIGN KEY (search_criteria_id) REFERENCES search_criteria(id) ON DELETE CASCADE
+);
+
+-- Create collection table for building styles (Set<BuildingStyle>)
+CREATE TABLE IF NOT EXISTS search_criteria_building_styles (
+    search_criteria_id BIGINT NOT NULL,
+    building_style VARCHAR(50) NOT NULL,
+    PRIMARY KEY (search_criteria_id, building_style),
+    CONSTRAINT fk_sc_building_styles_search_criteria FOREIGN KEY (search_criteria_id) REFERENCES search_criteria(id) ON DELETE CASCADE
+);
+
+-- Create collection table for plex types (Set<PlexType>)
+CREATE TABLE IF NOT EXISTS search_criteria_plex_types (
+    search_criteria_id BIGINT NOT NULL,
+    plex_type VARCHAR(50) NOT NULL,
+    PRIMARY KEY (search_criteria_id, plex_type),
+    CONSTRAINT fk_sc_plex_types_search_criteria FOREIGN KEY (search_criteria_id) REFERENCES search_criteria(id) ON DELETE CASCADE
+);
+
+-- Create collection table for Quebec regions (Set<QuebecRegion>)
+CREATE TABLE IF NOT EXISTS search_criteria_regions (
+    search_criteria_id BIGINT NOT NULL,
+    region VARCHAR(50) NOT NULL,
+    PRIMARY KEY (search_criteria_id, region),
+    CONSTRAINT fk_sc_regions_search_criteria FOREIGN KEY (search_criteria_id) REFERENCES search_criteria(id) ON DELETE CASCADE
+);

@@ -81,11 +81,23 @@ import com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferRe
 import com.example.courtierprobackend.transactions.datalayer.dto.PropertyOfferResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferDocumentResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.OfferRevisionResponseDTO;
-import com.example.courtierprobackend.infrastructure.storage.S3StorageService;
+import com.example.courtierprobackend.infrastructure.storage.ObjectStorageService;
+import com.example.courtierprobackend.documents.businesslayer.StageDocumentTemplateRegistry;
+import com.example.courtierprobackend.documents.datalayer.Document;
+import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
+import com.example.courtierprobackend.documents.datalayer.enums.StageEnum;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject;
+import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
+import com.example.courtierprobackend.transactions.datalayer.dto.MissingAutoDraftItemDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.MissingAutoDraftsResponseDTO;
 import com.example.courtierprobackend.transactions.datalayer.dto.UnifiedDocumentDTO;
 import com.example.courtierprobackend.transactions.datalayer.DocumentConditionLink;
 import org.springframework.web.multipart.MultipartFile;
+import com.example.courtierprobackend.transactions.datalayer.SearchCriteria;
+import com.example.courtierprobackend.transactions.datalayer.repositories.SearchCriteriaRepository;
+import com.example.courtierprobackend.transactions.datalayer.dto.SearchCriteriaRequestDTO;
+import com.example.courtierprobackend.transactions.datalayer.dto.SearchCriteriaResponseDTO;
+
 
 @Service
 @RequiredArgsConstructor
@@ -93,9 +105,17 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public void saveInternalNotes(UUID transactionId, String notes, UUID brokerId) {
-        // Optionally: persist notes on the transaction entity if needed (not required
-        // per user)
-        // Always: create a timeline NOTE event
+        // Fetch transaction and verify access
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+        
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_NOTES);
+        
+        // Persist notes on the transaction entity
+        tx.setNotes(notes);
+        repo.save(tx);
+        
+        // Create a timeline NOTE event for non-empty notes
         if (notes != null && !notes.isBlank()) {
             timelineService.addEntry(
                     transactionId,
@@ -121,9 +141,10 @@ public class TransactionServiceImpl implements TransactionService {
     private final PropertyOfferRepository propertyOfferRepository;
     private final OfferDocumentRepository offerDocumentRepository;
     private final OfferRevisionRepository offerRevisionRepository;
-    private final S3StorageService s3StorageService;
-    private final com.example.courtierprobackend.documents.datalayer.DocumentRequestRepository documentRequestRepository;
+    private final ObjectStorageService objectStorageService;
+    private final com.example.courtierprobackend.documents.datalayer.DocumentRepository documentRepository;
     private final com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository documentConditionLinkRepository;
+    private final SearchCriteriaRepository searchCriteriaRepository;
 
     private String lookupUserName(UUID userId) {
         if (userId == null) {
@@ -165,6 +186,138 @@ public class TransactionServiceImpl implements TransactionService {
         TransactionAccessUtils.verifyBrokerOrCoManagerAccess(tx, userId, userEmail, participants, requiredPermission);
     }
 
+    private StageEnum parseStageForTransactionSide(Transaction tx, String stageName) {
+        if (tx.getSide() != TransactionSide.BUY_SIDE && tx.getSide() != TransactionSide.SELL_SIDE) {
+            throw new BadRequestException("Unsupported transaction side: " + tx.getSide());
+        }
+        try {
+            return StageDocumentTemplateRegistry.parseAndValidateStage(tx.getSide(), stageName);
+        } catch (IllegalArgumentException ex) {
+            if (tx.getSide() == TransactionSide.BUY_SIDE) {
+                throw new BadRequestException("stage '" + stageName + "' is not a valid buyer stage. Allowed values: "
+                        + Arrays.toString(BuyerStage.values()));
+            }
+            throw new BadRequestException("stage '" + stageName + "' is not a valid seller stage. Allowed values: "
+                    + Arrays.toString(SellerStage.values()));
+        }
+    }
+
+    private StageEnum currentStageEnum(Transaction tx) {
+        String stageName = tx.getSide() == TransactionSide.BUY_SIDE
+                ? (tx.getBuyerStage() != null ? tx.getBuyerStage().name() : null)
+                : (tx.getSellerStage() != null ? tx.getSellerStage().name() : null);
+        if (stageName == null) {
+            return null;
+        }
+        try {
+            return StageEnum.valueOf(stageName);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    private void ensureAutoDraftsForStage(Transaction tx, StageEnum stage) {
+        if (stage == null) {
+            return;
+        }
+
+        List<StageDocumentTemplateRegistry.TemplateSpec> templates = StageDocumentTemplateRegistry
+                .templatesFor(tx.getSide(), stage);
+        if (templates.isEmpty()) {
+            return;
+        }
+
+        List<Document> existingDocs = Optional
+                .ofNullable(documentRepository.findByTransactionRef_TransactionId(tx.getTransactionId()))
+                .orElse(List.of());
+        Set<String> existingTemplateKeys = existingDocs.stream()
+                .map(Document::getTemplateKey)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        List<Document> toCreate = new ArrayList<>();
+        for (StageDocumentTemplateRegistry.TemplateSpec template : templates) {
+            String templateKey = StageDocumentTemplateRegistry.templateKey(stage, template);
+            if (existingTemplateKeys.contains(templateKey)) {
+                continue;
+            }
+
+            Document doc = new Document();
+            doc.setDocumentId(UUID.randomUUID());
+            doc.setTransactionRef(new TransactionRef(tx.getTransactionId(), tx.getClientId(), tx.getSide()));
+            doc.setDocType(template.docType());
+            doc.setCustomTitle(null);
+            doc.setStatus(DocumentStatusEnum.DRAFT);
+            doc.setExpectedFrom(StageDocumentTemplateRegistry.expectedFrom(tx.getSide(), template));
+            doc.setVisibleToClient(true);
+            doc.setStage(stage);
+            doc.setFlow(template.flow());
+            doc.setRequiresSignature(template.requiresSignature());
+            doc.setTemplateKey(templateKey);
+            doc.setAutoGenerated(true);
+            doc.setCreatedAt(LocalDateTime.now());
+            doc.setLastUpdatedAt(LocalDateTime.now());
+            toCreate.add(doc);
+        }
+
+        if (!toCreate.isEmpty()) {
+            documentRepository.saveAll(toCreate);
+        }
+    }
+
+    private void cleanupFutureAutoGeneratedDraftsOnRollback(Transaction tx, StageEnum targetStage) {
+        int targetIndex = StageDocumentTemplateRegistry.stageIndex(tx.getSide(), targetStage);
+        if (targetIndex < 0) {
+            return;
+        }
+
+        List<Document> candidateDrafts = Optional
+                .ofNullable(documentRepository.findByTransactionRef_TransactionIdAndAutoGeneratedTrueAndStatus(
+                        tx.getTransactionId(),
+                        DocumentStatusEnum.DRAFT))
+                .orElse(List.of());
+
+        for (Document doc : candidateDrafts) {
+            if (doc.getStage() == null) {
+                continue;
+            }
+            int docStageIndex = StageDocumentTemplateRegistry.stageIndex(tx.getSide(), doc.getStage());
+            if (docStageIndex > targetIndex) {
+                documentRepository.delete(doc);
+            }
+        }
+    }
+
+    private MissingAutoDraftsResponseDTO buildMissingAutoDraftsResponse(Transaction tx, StageEnum stage) {
+        List<StageDocumentTemplateRegistry.TemplateSpec> templates = StageDocumentTemplateRegistry
+                .templatesFor(tx.getSide(), stage);
+
+        List<Document> docsForStage = Optional
+                .ofNullable(documentRepository.findByTransactionRef_TransactionIdAndStage(tx.getTransactionId(), stage))
+                .orElse(List.of());
+        Set<String> existingTemplateKeys = docsForStage.stream()
+                .map(Document::getTemplateKey)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        List<MissingAutoDraftItemDTO> missingItems = templates.stream()
+                .filter(template -> !existingTemplateKeys
+                        .contains(StageDocumentTemplateRegistry.templateKey(stage, template)))
+                .map(template -> MissingAutoDraftItemDTO.builder()
+                        .itemKey(template.itemKey())
+                        .label(template.label())
+                        .docType(template.docType())
+                        .flow(template.flow())
+                        .requiresSignature(template.requiresSignature())
+                        .build())
+                .toList();
+
+        return MissingAutoDraftsResponseDTO.builder()
+                .stage(stage.name())
+                .missingItems(missingItems)
+                .build();
+    }
+
     @Override
     public TransactionResponseDTO createTransaction(TransactionRequestDTO dto) {
 
@@ -191,7 +344,6 @@ public class TransactionServiceImpl implements TransactionService {
         UUID brokerId = dto.getBrokerId();
         String street = dto.getPropertyAddress().getStreet();
 
-        // 2) Prevent duplicate ACTIVE transactions
         // 2) Prevent duplicate ACTIVE transactions (only if address is provided)
         if (street != null && !street.isBlank()) {
             repo.findByClientIdAndPropertyAddress_StreetAndStatus(
@@ -255,12 +407,13 @@ public class TransactionServiceImpl implements TransactionService {
             TransactionParticipant clientParticipant = TransactionParticipant.builder()
                     .transactionId(saved.getTransactionId())
                     .name(clientOpt.get().getFirstName() + " " + clientOpt.get().getLastName())
-                    .role(ParticipantRole.BUYER) // ou un rôle spécifique si besoin
+                    .role(saved.getSide() == TransactionSide.BUY_SIDE ? ParticipantRole.BUYER : ParticipantRole.SELLER)
                     .email(clientOpt.get().getEmail())
                     .userId(clientOpt.get().getId())
                     .phoneNumber(null)
                     .permissions(Set.of(ParticipantPermission.VIEW_DOCUMENTS, ParticipantPermission.VIEW_STAGE,
-                            ParticipantPermission.VIEW_CONDITIONS, ParticipantPermission.VIEW_NOTES))
+                            ParticipantPermission.VIEW_CONDITIONS, ParticipantPermission.VIEW_NOTES,
+                            ParticipantPermission.VIEW_SEARCH_CRITERIA, ParticipantPermission.EDIT_SEARCH_CRITERIA))
                     .isSystem(true)
                     .build();
             participantRepository.save(clientParticipant);
@@ -278,6 +431,9 @@ public class TransactionServiceImpl implements TransactionService {
                     .build();
             participantRepository.save(brokerParticipant);
         }
+
+        // Auto-generate stage drafts at transaction creation.
+        ensureAutoDraftsForStage(saved, currentStageEnum(saved));
 
         // Create timeline entry for transaction creation
         String clientName = lookupUserName(saved.getClientId());
@@ -413,12 +569,31 @@ public class TransactionServiceImpl implements TransactionService {
             participantTxs = repo.findAllByParticipantEmail(userEmail);
         }
 
+        // Apply the same filters to participant transactions
+        final TransactionStatus finalStatus = status;
+        final TransactionSide finalSide = side;
+        final Enum<?> finalStage = stage;
+        
+        List<Transaction> filteredParticipantTxs = participantTxs.stream()
+                .filter(tx -> !Boolean.TRUE.equals(tx.getArchived())) // exclude archived
+                .filter(tx -> finalStatus == null || tx.getStatus() == finalStatus)
+                .filter(tx -> finalSide == null || tx.getSide() == finalSide)
+                .filter(tx -> {
+                    if (finalStage == null) return true;
+                    if (tx.getSide() == TransactionSide.BUY_SIDE) {
+                        return tx.getBuyerStage() == finalStage;
+                    } else {
+                        return tx.getSellerStage() == finalStage;
+                    }
+                })
+                .toList();
+
         // Merge both lists without duplicates (by transactionId)
         Map<UUID, Transaction> txMap = new HashMap<>();
         for (Transaction tx : brokerTxs) {
             txMap.put(tx.getTransactionId(), tx);
         }
-        for (Transaction tx : participantTxs) {
+        for (Transaction tx : filteredParticipantTxs) {
             txMap.put(tx.getTransactionId(), tx);
         }
 
@@ -539,6 +714,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         stageStr = stageStr.trim();
+        StageEnum targetStageEnum = parseStageForTransactionSide(tx, stageStr);
 
         // Capture previous stage BEFORE update
         String previousStage = null;
@@ -597,21 +773,19 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BadRequestException("Unsupported transaction side: " + tx.getSide());
         }
 
+        if (isRollback) {
+            cleanupFutureAutoGeneratedDraftsOnRollback(tx, targetStageEnum);
+        }
+
         // Auto-Closing Logic
         if (tx.getSide() == TransactionSide.BUY_SIDE) {
-            if (tx.getBuyerStage() == BuyerStage.BUYER_OCCUPANCY) {
+            if (tx.getBuyerStage() == BuyerStage.BUYER_POSSESSION) {
                 tx.setStatus(TransactionStatus.CLOSED_SUCCESSFULLY);
-                tx.setClosedAt(LocalDateTime.now());
-            } else if (tx.getBuyerStage() == BuyerStage.BUYER_TERMINATED) {
-                tx.setStatus(TransactionStatus.TERMINATED_EARLY);
                 tx.setClosedAt(LocalDateTime.now());
             }
         } else if (tx.getSide() == TransactionSide.SELL_SIDE) {
-            if (tx.getSellerStage() == SellerStage.SELLER_HANDOVER_KEYS) {
+            if (tx.getSellerStage() == SellerStage.SELLER_HANDOVER) {
                 tx.setStatus(TransactionStatus.CLOSED_SUCCESSFULLY);
-                tx.setClosedAt(LocalDateTime.now());
-            } else if (tx.getSellerStage() == SellerStage.SELLER_TERMINATED) {
-                tx.setStatus(TransactionStatus.TERMINATED_EARLY);
                 tx.setClosedAt(LocalDateTime.now());
             }
         }
@@ -653,6 +827,8 @@ public class TransactionServiceImpl implements TransactionService {
             throw new ConflictException("The transaction was updated by another user. Please refresh and try again.",
                     e);
         }
+
+        ensureAutoDraftsForStage(saved, targetStageEnum);
 
         // CP-48: Send Notifications and Emails
         try {
@@ -715,6 +891,107 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         return EntityDtoUtil.toResponse(saved, lookupUserName(saved.getClientId()));
+    }
+
+    @Override
+    @Transactional
+    public TransactionResponseDTO terminateTransaction(UUID transactionId, String reason, UUID brokerId) {
+        if (reason == null || reason.isBlank()) {
+            throw new BadRequestException("Reason is required for termination.");
+        }
+        String trimmedReason = reason.trim();
+        if (trimmedReason.length() < 10 || trimmedReason.length() > 500) {
+            throw new BadRequestException("Reason must be between 10 and 500 characters.");
+        }
+
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_STAGE);
+
+        if (tx.getStatus() == TransactionStatus.CLOSED_SUCCESSFULLY ||
+                tx.getStatus() == TransactionStatus.TERMINATED_EARLY) {
+            throw new BadRequestException("Cannot terminate a closed or already terminated transaction.");
+        }
+
+        tx.setStatus(TransactionStatus.TERMINATED_EARLY);
+        tx.setClosedAt(LocalDateTime.now());
+        // Stage is intentionally NOT changed — it preserves where the transaction was
+
+        Transaction saved;
+        try {
+            saved = repo.save(tx);
+        } catch (OptimisticLockingFailureException e) {
+            throw new ConflictException("The transaction was updated by another user. Please refresh and try again.", e);
+        }
+
+        // Timeline entry
+        String terminationActorName = lookupUserName(brokerId);
+        timelineService.addEntry(
+                transactionId,
+                brokerId,
+                TimelineEntryType.TRANSACTION_TERMINATED,
+                trimmedReason,
+                null,
+                TransactionInfo.builder()
+                        .reason(trimmedReason)
+                        .actorName(terminationActorName)
+                        .build());
+
+        // Notifications
+        try {
+            Optional<UserAccount> clientOpt = userAccountRepository.findById(saved.getClientId());
+            Optional<UserAccount> brokerOpt = userAccountRepository.findById(brokerId);
+
+            if (clientOpt.isPresent() && brokerOpt.isPresent()) {
+                UserAccount client = clientOpt.get();
+                UserAccount broker = brokerOpt.get();
+
+                String clientName = (client.getFirstName() + " " + client.getLastName()).trim();
+                String brokerName = (broker.getFirstName() + " " + broker.getLastName()).trim();
+
+                String address = "Unknown Address";
+                if (saved.getPropertyAddress() != null && saved.getPropertyAddress().getStreet() != null) {
+                    address = saved.getPropertyAddress().getStreet();
+                }
+
+                String currentStage = saved.getSide() == TransactionSide.BUY_SIDE
+                        ? (saved.getBuyerStage() != null ? saved.getBuyerStage().name() : "")
+                        : (saved.getSellerStage() != null ? saved.getSellerStage().name() : "");
+
+                Map<String, Object> params = new HashMap<>();
+                params.put("stage", StageTranslationUtil.getTranslatedStage(currentStage, client.getPreferredLanguage()));
+                params.put("brokerName", brokerName);
+                params.put("propertyAddress", address);
+
+                notificationService.createNotification(
+                        client.getId().toString(),
+                        "notifications.transactionTerminated.title",
+                        "notifications.transactionTerminated.message",
+                        params,
+                        saved.getTransactionId().toString(),
+                        com.example.courtierprobackend.notifications.datalayer.enums.NotificationCategory.STAGE_UPDATE);
+            }
+        } catch (Exception e) {
+            log.error("Failed to send notifications for terminated transaction {}", saved.getTransactionId(), e);
+        }
+
+        return EntityDtoUtil.toResponse(saved, lookupUserName(saved.getClientId()));
+    }
+
+    @Override
+    public MissingAutoDraftsResponseDTO getMissingAutoDrafts(UUID transactionId, String stage, UUID brokerId) {
+        if (stage == null || stage.isBlank()) {
+            throw new BadRequestException("stage is required");
+        }
+
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        verifyBrokerOrCoManager(tx, brokerId, ParticipantPermission.EDIT_STAGE);
+
+        StageEnum stageEnum = parseStageForTransactionSide(tx, stage.trim());
+        return buildMissingAutoDraftsResponse(tx, stageEnum);
     }
 
     @Override
@@ -1980,7 +2257,7 @@ public class TransactionServiceImpl implements TransactionService {
 
             // Upload to S3 using the storage service - use the returned StorageObject which
             // has the actual s3Key
-            StorageObject storageObject = s3StorageService.uploadFile(file, offer.getTransactionId(), offerId);
+            StorageObject storageObject = objectStorageService.uploadFile(file, offer.getTransactionId(), offerId);
 
             OfferDocument document = OfferDocument.builder()
                     .documentId(UUID.randomUUID())
@@ -2023,7 +2300,7 @@ public class TransactionServiceImpl implements TransactionService {
             String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed";
 
             // Upload to S3 - use the returned StorageObject which has the actual s3Key
-            StorageObject storageObject = s3StorageService.uploadFile(file, tx.getTransactionId(), propertyOfferId);
+            StorageObject storageObject = objectStorageService.uploadFile(file, tx.getTransactionId(), propertyOfferId);
 
             OfferDocument document = OfferDocument.builder()
                     .documentId(UUID.randomUUID())
@@ -2136,7 +2413,11 @@ public class TransactionServiceImpl implements TransactionService {
                     ParticipantPermission.VIEW_DOCUMENTS);
         }
 
-        return s3StorageService.generatePresignedUrl(document.getS3Key());
+        String fileName = document.getFileName();
+        if (fileName == null || fileName.isBlank()) {
+            return objectStorageService.generatePresignedUrl(document.getS3Key());
+        }
+        return objectStorageService.generatePresignedUrl(document.getS3Key(), fileName);
     }
 
     @Override
@@ -2163,7 +2444,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // Delete from S3
-        s3StorageService.deleteFile(document.getS3Key());
+        objectStorageService.deleteFile(document.getS3Key());
 
         // Delete from database
         offerDocumentRepository.delete(document);
@@ -2706,30 +2987,30 @@ public class TransactionServiceImpl implements TransactionService {
 
         List<UnifiedDocumentDTO> allDocuments = new ArrayList<>();
 
-        // 1. Get DocumentRequests (client uploads) with their latest submitted document
-        List<com.example.courtierprobackend.documents.datalayer.DocumentRequest> docRequests = documentRequestRepository
+        // 1. Get Documents (client uploads) with their latest version
+        List<com.example.courtierprobackend.documents.datalayer.Document> documents = documentRepository
                 .findByTransactionRef_TransactionId(transactionId);
-        for (var docRequest : docRequests) {
-            // Only include if there's a submitted document
-            if (docRequest.getSubmittedDocuments() != null && !docRequest.getSubmittedDocuments().isEmpty()) {
-                // Get the latest submitted document
-                var latestSubmission = docRequest.getSubmittedDocuments().stream()
+        for (var doc : documents) {
+            // Only include if there's a submitted version
+            if (doc.getVersions() != null && !doc.getVersions().isEmpty()) {
+                // Get the latest version
+                var latestVersion = doc.getVersions().stream()
                         .max((a, b) -> a.getUploadedAt().compareTo(b.getUploadedAt()))
                         .orElse(null);
-                if (latestSubmission != null && latestSubmission.getStorageObject() != null) {
-                    String sourceName = docRequest.getCustomTitle() != null
-                            ? docRequest.getCustomTitle()
-                            : (docRequest.getDocType() != null ? docRequest.getDocType().name() : "Document");
+                if (latestVersion != null && latestVersion.getStorageObject() != null) {
+                    String sourceName = doc.getCustomTitle() != null
+                            ? doc.getCustomTitle()
+                            : (doc.getDocType() != null ? doc.getDocType().name() : "Document");
                     allDocuments.add(UnifiedDocumentDTO.builder()
-                            .documentId(latestSubmission.getDocumentId())
-                            .fileName(latestSubmission.getStorageObject().getFileName())
-                            .mimeType(latestSubmission.getStorageObject().getMimeType())
-                            .sizeBytes(latestSubmission.getStorageObject().getSizeBytes())
-                            .uploadedAt(latestSubmission.getUploadedAt())
+                            .documentId(latestVersion.getVersionId())
+                            .fileName(latestVersion.getStorageObject().getFileName())
+                            .mimeType(latestVersion.getStorageObject().getMimeType())
+                            .sizeBytes(latestVersion.getStorageObject().getSizeBytes())
+                            .uploadedAt(latestVersion.getUploadedAt())
                             .source("CLIENT_UPLOAD")
-                            .sourceId(docRequest.getRequestId())
+                            .sourceId(doc.getDocumentId())
                             .sourceName(sourceName)
-                            .status(docRequest.getStatus() != null ? docRequest.getStatus().name() : null)
+                            .status(doc.getStatus() != null ? doc.getStatus().name() : null)
                             .build());
                 }
             }
@@ -2792,5 +3073,186 @@ public class TransactionServiceImpl implements TransactionService {
         });
 
         return allDocuments;
+    }
+
+    // ========== Search Criteria (for buyer transactions) ==========
+
+    @Override
+    public SearchCriteriaResponseDTO getSearchCriteria(UUID transactionId, UUID userId, boolean isBroker) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        // Verify access (broker, client, or participant)
+        String userEmail = userId != null
+                ? userAccountRepository.findById(userId).map(UserAccount::getEmail).orElse(null)
+                : null;
+        List<TransactionParticipant> participants = participantRepository.findByTransactionId(transactionId);
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail, participants);
+
+        // Validate that it's a buy-side transaction
+        if (tx.getSide() != TransactionSide.BUY_SIDE) {
+            throw new BadRequestException("Search criteria is only applicable to buyer-side transactions");
+        }
+
+        return searchCriteriaRepository.findByTransactionId(transactionId)
+                .map(this::toSearchCriteriaResponseDTO)
+                .orElse(null);
+    }
+
+    @Override
+    @Transactional
+    public SearchCriteriaResponseDTO createOrUpdateSearchCriteria(UUID transactionId, SearchCriteriaRequestDTO dto,
+            UUID userId, boolean isBroker) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        // Verify access (broker, client, or participant)
+        String userEmail = userId != null
+                ? userAccountRepository.findById(userId).map(UserAccount::getEmail).orElse(null)
+                : null;
+        List<TransactionParticipant> participants = participantRepository.findByTransactionId(transactionId);
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail, participants);
+
+        // Validate that it's a buy-side transaction
+        if (tx.getSide() != TransactionSide.BUY_SIDE) {
+            throw new BadRequestException("Search criteria is only applicable to buyer-side transactions");
+        }
+
+        // Find existing or create new
+        SearchCriteria criteria = searchCriteriaRepository.findByTransactionId(transactionId)
+                .orElseGet(() -> SearchCriteria.builder()
+                        .searchCriteriaId(UUID.randomUUID())
+                        .transactionId(transactionId)
+                        .build());
+
+        // Update all fields from DTO
+        updateSearchCriteriaFromDTO(criteria, dto);
+
+        SearchCriteria saved = searchCriteriaRepository.save(criteria);
+        return toSearchCriteriaResponseDTO(saved);
+    }
+
+    @Override
+    @Transactional
+    public void deleteSearchCriteria(UUID transactionId, UUID userId, boolean isBroker) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        // Verify access (broker, client, or participant)
+        String userEmail = userId != null
+                ? userAccountRepository.findById(userId).map(UserAccount::getEmail).orElse(null)
+                : null;
+        List<TransactionParticipant> participants = participantRepository.findByTransactionId(transactionId);
+        TransactionAccessUtils.verifyTransactionAccess(tx, userId, userEmail, participants);
+
+        // Validate that it's a buy-side transaction
+        if (tx.getSide() != TransactionSide.BUY_SIDE) {
+            throw new BadRequestException("Search criteria is only applicable to buyer-side transactions");
+        }
+
+        SearchCriteria criteria = searchCriteriaRepository.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Search criteria not found for this transaction"));
+
+        searchCriteriaRepository.delete(criteria);
+    }
+
+    private void updateSearchCriteriaFromDTO(SearchCriteria criteria, SearchCriteriaRequestDTO dto) {
+        // Property Types - set directly to allow clearing (empty set clears selections)
+        // null from DTO means "don't update", empty set means "clear all"
+        if (dto.getPropertyTypes() != null) {
+            criteria.getPropertyTypes().clear();
+            criteria.getPropertyTypes().addAll(dto.getPropertyTypes());
+        }
+
+        // Features
+        criteria.setMinBedrooms(dto.getMinBedrooms());
+        criteria.setMinBathrooms(dto.getMinBathrooms());
+        criteria.setMinParkingSpaces(dto.getMinParkingSpaces());
+        criteria.setMinGarages(dto.getMinGarages());
+        criteria.setHasPool(dto.getHasPool());
+        criteria.setHasElevator(dto.getHasElevator());
+        criteria.setAdaptedForReducedMobility(dto.getAdaptedForReducedMobility());
+        criteria.setHasWaterfront(dto.getHasWaterfront());
+        criteria.setHasAccessToWaterfront(dto.getHasAccessToWaterfront());
+        criteria.setHasNavigableWater(dto.getHasNavigableWater());
+        criteria.setIsResort(dto.getIsResort());
+        criteria.setPetsAllowed(dto.getPetsAllowed());
+        criteria.setSmokingAllowed(dto.getSmokingAllowed());
+
+        // Building
+        criteria.setMinLivingArea(dto.getMinLivingArea());
+        criteria.setMaxLivingArea(dto.getMaxLivingArea());
+        criteria.setLivingAreaUnit(dto.getLivingAreaUnit());
+        criteria.setMinYearBuilt(dto.getMinYearBuilt());
+        criteria.setMaxYearBuilt(dto.getMaxYearBuilt());
+        if (dto.getBuildingStyles() != null) {
+            criteria.getBuildingStyles().clear();
+            criteria.getBuildingStyles().addAll(dto.getBuildingStyles());
+        }
+
+        // Plex Types
+        if (dto.getPlexTypes() != null) {
+            criteria.getPlexTypes().clear();
+            criteria.getPlexTypes().addAll(dto.getPlexTypes());
+        }
+
+        // Other Criteria
+        criteria.setMinLandArea(dto.getMinLandArea());
+        criteria.setMaxLandArea(dto.getMaxLandArea());
+        criteria.setLandAreaUnit(dto.getLandAreaUnit());
+        criteria.setNewSince(dto.getNewSince());
+        criteria.setMoveInDate(dto.getMoveInDate());
+        criteria.setOpenHousesOnly(dto.getOpenHousesOnly());
+        criteria.setRepossessionOnly(dto.getRepossessionOnly());
+
+        // Price Range
+        criteria.setMinPrice(dto.getMinPrice());
+        criteria.setMaxPrice(dto.getMaxPrice());
+
+        // Regions
+        if (dto.getRegions() != null) {
+            criteria.getRegions().clear();
+            criteria.getRegions().addAll(dto.getRegions());
+        }
+    }
+
+    private SearchCriteriaResponseDTO toSearchCriteriaResponseDTO(SearchCriteria criteria) {
+        return SearchCriteriaResponseDTO.builder()
+                .searchCriteriaId(criteria.getSearchCriteriaId())
+                .transactionId(criteria.getTransactionId())
+                .propertyTypes(criteria.getPropertyTypes())
+                .minBedrooms(criteria.getMinBedrooms())
+                .minBathrooms(criteria.getMinBathrooms())
+                .minParkingSpaces(criteria.getMinParkingSpaces())
+                .minGarages(criteria.getMinGarages())
+                .hasPool(criteria.getHasPool())
+                .hasElevator(criteria.getHasElevator())
+                .adaptedForReducedMobility(criteria.getAdaptedForReducedMobility())
+                .hasWaterfront(criteria.getHasWaterfront())
+                .hasAccessToWaterfront(criteria.getHasAccessToWaterfront())
+                .hasNavigableWater(criteria.getHasNavigableWater())
+                .isResort(criteria.getIsResort())
+                .petsAllowed(criteria.getPetsAllowed())
+                .smokingAllowed(criteria.getSmokingAllowed())
+                .minLivingArea(criteria.getMinLivingArea())
+                .maxLivingArea(criteria.getMaxLivingArea())
+                .livingAreaUnit(criteria.getLivingAreaUnit())
+                .minYearBuilt(criteria.getMinYearBuilt())
+                .maxYearBuilt(criteria.getMaxYearBuilt())
+                .buildingStyles(criteria.getBuildingStyles())
+                .plexTypes(criteria.getPlexTypes())
+                .minLandArea(criteria.getMinLandArea())
+                .maxLandArea(criteria.getMaxLandArea())
+                .landAreaUnit(criteria.getLandAreaUnit())
+                .newSince(criteria.getNewSince())
+                .moveInDate(criteria.getMoveInDate())
+                .openHousesOnly(criteria.getOpenHousesOnly())
+                .repossessionOnly(criteria.getRepossessionOnly())
+                .minPrice(criteria.getMinPrice())
+                .maxPrice(criteria.getMaxPrice())
+                .regions(criteria.getRegions())
+                .createdAt(criteria.getCreatedAt())
+                .updatedAt(criteria.getUpdatedAt())
+                .build();
     }
 }

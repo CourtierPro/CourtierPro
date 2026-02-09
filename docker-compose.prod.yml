@@ -29,7 +29,6 @@ services:
   backend:
     # Pulls the image built by GitHub Actions
     image: ghcr.io/${GITHUB_REPO_OWNER}/courtierpro-backend:${IMAGE_TAG}
-    build: ./backend
     container_name: courtierpro_backend
     restart: unless-stopped
     environment:
@@ -69,7 +68,6 @@ services:
   # --- Frontend ---
   frontend:
     image: ghcr.io/${GITHUB_REPO_OWNER}/courtierpro-frontend:${IMAGE_TAG}
-    build: ./frontend
     container_name: courtierpro_frontend
     restart: unless-stopped
     environment:

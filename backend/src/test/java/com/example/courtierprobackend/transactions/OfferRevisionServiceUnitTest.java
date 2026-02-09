@@ -81,7 +81,7 @@ class OfferRevisionServiceUnitTest {
     private OfferRevisionRepository offerRevisionRepository;
 
     @Mock
-    private com.example.courtierprobackend.infrastructure.storage.S3StorageService s3StorageService;
+    private com.example.courtierprobackend.infrastructure.storage.ObjectStorageService objectStorageService;
 
     @Mock
     private DocumentConditionLinkRepository documentConditionLinkRepository;

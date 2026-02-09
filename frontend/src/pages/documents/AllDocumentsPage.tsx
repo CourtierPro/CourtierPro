@@ -9,9 +9,7 @@ import { DocumentsPage } from './DocumentsPage';
 import { LoadingState } from '@/shared/components/branded/LoadingState';
 import { ErrorState } from '@/shared/components/branded/ErrorState';
 import axiosInstance from '@/shared/api/axiosInstance';
-import type { DocumentRequest } from '@/features/documents/types';
-
-
+import type { Document } from '@/features/documents/types';
 
 
 
@@ -38,14 +36,14 @@ export const AllDocumentsPage: React.FC = () => {
     queries: transactions.map(tx => ({
       queryKey: documentKeys.stat(tx.transactionId),
       queryFn: async () => {
-        const response = await axiosInstance.get<DocumentRequest[]>(`/transactions/${tx.transactionId}/documents`);
+        const response = await axiosInstance.get<Document[]>(`/transactions/${tx.transactionId}/documents`);
         const docs = response.data || [];
-        
+
         const pending = docs.filter((d) => d.status === 'REQUESTED').length;
         const submitted = docs.filter((d) => d.status === 'SUBMITTED').length;
         const approved = docs.filter((d) => d.status === 'APPROVED').length;
         const needsRevision = docs.filter((d) => d.status === 'NEEDS_REVISION').length;
-        
+
         return {
           count: docs.length,
           statuses: { pending, submitted, approved, needsRevision }

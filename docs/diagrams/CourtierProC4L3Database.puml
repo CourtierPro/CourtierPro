@@ -18,7 +18,7 @@ AddElementTag("webApp", $bgColor="#e34f26", $fontColor="white", $legendText="Web
 
 AddRelTag("purple-line", $lineColor="purple", $legendText="API Calls (REST)")
 AddRelTag("blue-line", $lineColor="blue", $legendText="Auth / Sessions")
-AddRelTag("green-line", $lineColor="green", $legendText="Documents (S3)")
+AddRelTag("green-line", $lineColor="green", $legendText="Documents (R2)")
 AddRelTag("orange-line", $lineColor="orange", $legendText="Appointments (domain data)")
 AddRelTag("red-line", $lineColor="red", $legendText="Analytics (domain data)")
 
@@ -39,7 +39,7 @@ System_Boundary(cp, "CourtierPro System") {
     Component(PinnedTransaction, "Pinned Transactions", "Table", "pinned_transactions")
 
     ' Document schema
-    Component(DocumentTables, "Document Schema", "Tables", "document_requests, submitted_documents")
+    Component(DocumentTables, "Document Schema", "Tables", "documents, document_versions")
 
     ' Appointment schema (Planned)
     Component(AppointmentTables, "Appointment Schema (Future)", "Tables", "appointments")
@@ -73,7 +73,7 @@ Rel(AnalyticsTables, UserAccountTables, "FK broker_id → user_accounts")
 ' Backend API uses schemas via repositories (high level)
 Rel(backend_api, UserAccountTables, "Uses via UserAccountRepository", "JDBC/R2DBC")
 Rel(backend_api, TransactionTables, "Uses via TransactionRepository", "JDBC/R2DBC")
-Rel(backend_api, DocumentTables, "Uses via DocumentRequestRepository & SubmittedDocument access", "JDBC/R2DBC")
+Rel(backend_api, DocumentTables, "Uses via DocumentRepository & DocumentVersion access", "JDBC/R2DBC")
 Rel(backend_api, AppointmentTables, "Uses via AppointmentRepository", "JDBC/R2DBC")
 Rel(backend_api, NotificationTables, "Uses via NotificationRepository", "JDBC/R2DBC")
 Rel(backend_api, AnalyticsTables, "Uses via BrokerMetricsRepository", "JDBC/R2DBC")

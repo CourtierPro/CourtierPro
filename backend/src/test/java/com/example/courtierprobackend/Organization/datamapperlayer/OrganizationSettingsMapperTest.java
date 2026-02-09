@@ -109,6 +109,10 @@ class OrganizationSettingsMapperTest {
                 .documentRequestedBodyEn("Old DocReqBodyEn")
                 .documentRequestedSubjectFr("Old DocReqSubjFr")
                 .documentRequestedBodyFr("Old DocReqBodyFr")
+                .documentSignatureRequestedSubjectEn("Old DocSignReqSubjEn")
+                .documentSignatureRequestedBodyEn("Old DocSignReqBodyEn")
+                .documentSignatureRequestedSubjectFr("Old DocSignReqSubjFr")
+                .documentSignatureRequestedBodyFr("Old DocSignReqBodyFr")
                 .documentReviewSubjectEn("Old DocRevSubjEn")
                 .documentReviewBodyEn("Old DocRevBodyEn")
                 .documentReviewSubjectFr("Old DocRevSubjFr")
@@ -149,6 +153,10 @@ class OrganizationSettingsMapperTest {
                 "New DocReqBodyEn",
                 "New DocReqSubjFr",
                 "New DocReqBodyFr",
+                "New DocSignReqSubjEn",
+                "New DocSignReqBodyEn",
+                "New DocSignReqSubjFr",
+                "New DocSignReqBodyFr",
                 "New DocRevSubjEn",
                 "New DocRevBodyEn",
                 "New DocRevSubjFr",
@@ -192,6 +200,10 @@ class OrganizationSettingsMapperTest {
         assertThat(settings.getDocumentRequestedBodyEn()).isEqualTo("New DocReqBodyEn");
         assertThat(settings.getDocumentRequestedSubjectFr()).isEqualTo("New DocReqSubjFr");
         assertThat(settings.getDocumentRequestedBodyFr()).isEqualTo("New DocReqBodyFr");
+        assertThat(settings.getDocumentSignatureRequestedSubjectEn()).isEqualTo("New DocSignReqSubjEn");
+        assertThat(settings.getDocumentSignatureRequestedBodyEn()).isEqualTo("New DocSignReqBodyEn");
+        assertThat(settings.getDocumentSignatureRequestedSubjectFr()).isEqualTo("New DocSignReqSubjFr");
+        assertThat(settings.getDocumentSignatureRequestedBodyFr()).isEqualTo("New DocSignReqBodyFr");
         assertThat(settings.getDocumentReviewSubjectEn()).isEqualTo("New DocRevSubjEn");
         assertThat(settings.getDocumentReviewBodyEn()).isEqualTo("New DocRevBodyEn");
         assertThat(settings.getDocumentReviewSubjectFr()).isEqualTo("New DocRevSubjFr");
