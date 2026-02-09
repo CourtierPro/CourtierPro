@@ -97,11 +97,6 @@
     "close": "Fermer",
     "reschedule": "Replanifier",
     "originalTime": "Heure originale",
-<<<<<<< HEAD
     "onlyCancellerCanReschedule": "Seule la partie qui a annulé peut replanifier.",
     "appointmentRequestFailed": "Impossible de planifier le rendez-vous. Il est possible que l'heure soit déjà passée."
 }
-=======
-    "onlyCancellerCanReschedule": "Seule la partie qui a annulé peut replanifier."
-}
->>>>>>> 356d7aa13aea6fff6e099530a8ab02b8786d4215
