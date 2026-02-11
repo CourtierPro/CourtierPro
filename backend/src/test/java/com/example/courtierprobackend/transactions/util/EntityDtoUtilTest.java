@@ -56,8 +56,10 @@ class EntityDtoUtilTest {
         assertThat(result.getSide()).isEqualTo(TransactionSide.BUY_SIDE);
         assertThat(result.getCurrentStage()).isEqualTo("BUYER_PROPERTY_SEARCH");
         assertThat(result.getStatus()).isEqualTo(TransactionStatus.ACTIVE);
-        // openedDate should now be the full string representation of LocalDateTime
-        assertThat(result.getOpenedDate()).isEqualTo("2025-01-15T10:00");
+        // openedDate should now be the date component of LocalDateTime
+        assertThat(result.getOpenedDate()).isEqualTo("2025-01-15");
+        // openedAt should be the full string representation of LocalDateTime
+        assertThat(result.getOpenedAt()).isEqualTo("2025-01-15T10:00");
         // lastUpdated should be mapped
         assertThat(result.getLastUpdated()).isEqualTo("2025-02-10T14:30");
         assertThat(result.getPropertyAddress().getStreet()).isEqualTo("123 Main St");
@@ -134,7 +136,8 @@ class EntityDtoUtilTest {
 
         // Assert
         assertThat(result.getCurrentStage()).isEqualTo("SELLER_PUBLISH_LISTING");
-        assertThat(result.getOpenedDate()).isEqualTo("2025-02-20T14:30");
+        assertThat(result.getOpenedDate()).isEqualTo("2025-02-20");
+        assertThat(result.getOpenedAt()).isEqualTo("2025-02-20T14:30");
     }
 
     @Test
