@@ -50,6 +50,7 @@
   "warningFinalStageMessage": "Cela fermera la transaction. Vous ne pourrez plus modifier l'étape par la suite.",
   "lastUpdatedAsc": "Dernière mise à jour (Plus ancienne)",
   "lastUpdatedDesc": "Dernière mise à jour (Plus récente)",
+  "lastUpdated": "Dernière mise à jour",
   "dateOpenedAsc": "Date d'ouverture (Plus ancienne)",
   "dateOpenedDesc": "Date d'ouverture (Plus récente)",
   "clientNameAsc": "Nom du client (A-Z)",

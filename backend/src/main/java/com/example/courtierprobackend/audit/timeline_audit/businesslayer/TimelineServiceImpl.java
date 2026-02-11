@@ -19,6 +19,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.time.Clock;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TimelineServiceImpl implements TimelineService {
@@ -26,12 +28,14 @@ public class TimelineServiceImpl implements TimelineService {
     private final TimelineEntryRepository repository;
     private final TimelineEntryMapper timelineEntryMapper;
     private final TransactionRepository transactionRepository;
+    private final Clock clock;
 
     @Autowired
-    public TimelineServiceImpl(TimelineEntryRepository repository, TimelineEntryMapper timelineEntryMapper, TransactionRepository transactionRepository) {
+    public TimelineServiceImpl(TimelineEntryRepository repository, TimelineEntryMapper timelineEntryMapper, TransactionRepository transactionRepository, Clock clock) {
         this.repository = repository;
         this.timelineEntryMapper = timelineEntryMapper;
         this.transactionRepository = transactionRepository;
+        this.clock = clock;
     }
 
     @Override
@@ -40,6 +44,7 @@ public class TimelineServiceImpl implements TimelineService {
     }
 
     @Override
+    @Transactional
     public void addEntry(UUID transactionId, UUID actorId, TimelineEntryType type, String note, String docType,
             TransactionInfo transactionInfo) {
         boolean visibleToClient = switch (type) {
@@ -61,16 +66,16 @@ public class TimelineServiceImpl implements TimelineService {
                 .type(type)
                 .note(note)
                 .docType(docType)
-                .timestamp(Instant.now())
+                .timestamp(Instant.now(clock))
                 .visibleToClient(visibleToClient)
                 .transactionInfo(transactionInfo)
                 .build();
         repository.save(entry);
 
         // Update transaction lastUpdated timestamp
-        // We use UTC/System Default for conversion, consistent with how timestamps are typically handled
+        // We use UTC for conversion, consistent with how timestamps are typically handled
         transactionRepository.findByTransactionId(transactionId).ifPresent(transaction -> {
-            transaction.setLastUpdated(LocalDateTime.ofInstant(entry.getTimestamp(), ZoneId.systemDefault()));
+            transaction.setLastUpdated(LocalDateTime.ofInstant(entry.getTimestamp(), ZoneId.of("UTC")));
             transactionRepository.save(transaction);
         });
     }

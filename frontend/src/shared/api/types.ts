@@ -83,6 +83,8 @@ export interface TransactionResponseDTO {
   currentStage: string;
   status: string;
   openedDate?: string;
+  openedAt?: string;
+  lastUpdated?: string;
   centrisNumber?: string;
 }
 

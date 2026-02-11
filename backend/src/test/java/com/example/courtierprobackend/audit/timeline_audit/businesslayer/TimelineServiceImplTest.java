@@ -17,7 +17,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -36,11 +39,13 @@ class TimelineServiceImplTest {
     @Mock
     private TransactionRepository transactionRepository;
 
+    private Clock clock;
     private TimelineServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new TimelineServiceImpl(repository, mapper, transactionRepository);
+        clock = Clock.fixed(Instant.parse("2026-02-10T12:00:00Z"), ZoneId.of("UTC"));
+        service = new TimelineServiceImpl(repository, mapper, transactionRepository, clock);
     }
 
     @Test
@@ -88,8 +93,10 @@ class TimelineServiceImplTest {
         
         Transaction savedTx = txCaptor.getValue();
         assertThat(savedTx.getTransactionId()).isEqualTo(txId);
-        // Verify lastUpdated was updated to recent time (e.g. within last second)
-        assertThat(savedTx.getLastUpdated()).isAfter(LocalDateTime.now().minusMinutes(1));
+        
+        // Verify lastUpdated maps to the fixed clock time
+        LocalDateTime expected = LocalDateTime.ofInstant(clock.instant(), ZoneId.of("UTC"));
+        assertThat(savedTx.getLastUpdated()).isEqualTo(expected);
     }
 
     @Test
