@@ -23,6 +23,7 @@ public class TransactionResponseDTO {
     private String currentStage;
     private TransactionStatus status;
     private String openedDate;
+    private String lastUpdated;
     private Boolean archived;
     private String archivedAt;
     private String notes;

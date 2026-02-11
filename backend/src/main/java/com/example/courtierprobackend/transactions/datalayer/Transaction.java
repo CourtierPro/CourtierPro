@@ -54,6 +54,8 @@ public class Transaction {
 
     private LocalDateTime closedAt;
 
+    private LocalDateTime lastUpdated;
+
     // Internal notes for brokers
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;

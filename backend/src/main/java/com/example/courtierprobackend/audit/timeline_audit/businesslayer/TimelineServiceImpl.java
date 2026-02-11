@@ -6,11 +6,15 @@ import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Timel
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.value_object.TransactionInfo;
 import com.example.courtierprobackend.audit.timeline_audit.datamapperlayer.TimelineEntryMapper;
 import com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO;
+import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
+import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -21,11 +25,13 @@ public class TimelineServiceImpl implements TimelineService {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TimelineServiceImpl.class);
     private final TimelineEntryRepository repository;
     private final TimelineEntryMapper timelineEntryMapper;
+    private final TransactionRepository transactionRepository;
 
     @Autowired
-    public TimelineServiceImpl(TimelineEntryRepository repository, TimelineEntryMapper timelineEntryMapper) {
+    public TimelineServiceImpl(TimelineEntryRepository repository, TimelineEntryMapper timelineEntryMapper, TransactionRepository transactionRepository) {
         this.repository = repository;
         this.timelineEntryMapper = timelineEntryMapper;
+        this.transactionRepository = transactionRepository;
     }
 
     @Override
@@ -60,6 +66,13 @@ public class TimelineServiceImpl implements TimelineService {
                 .transactionInfo(transactionInfo)
                 .build();
         repository.save(entry);
+
+        // Update transaction lastUpdated timestamp
+        // We use UTC/System Default for conversion, consistent with how timestamps are typically handled
+        transactionRepository.findByTransactionId(transactionId).ifPresent(transaction -> {
+            transaction.setLastUpdated(LocalDateTime.ofInstant(entry.getTimestamp(), ZoneId.systemDefault()));
+            transactionRepository.save(transaction);
+        });
     }
 
     @Override

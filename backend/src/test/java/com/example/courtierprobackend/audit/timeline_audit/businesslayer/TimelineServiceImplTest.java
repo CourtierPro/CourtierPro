@@ -6,6 +6,8 @@ import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Timel
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.value_object.TransactionInfo;
 import com.example.courtierprobackend.audit.timeline_audit.datamapperlayer.TimelineEntryMapper;
 import com.example.courtierprobackend.audit.timeline_audit.presentationlayer.TimelineEntryDTO;
+import com.example.courtierprobackend.transactions.datalayer.Transaction;
+import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,8 +17,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,12 +33,14 @@ class TimelineServiceImplTest {
     private TimelineEntryRepository repository;
     @Mock
     private TimelineEntryMapper mapper;
+    @Mock
+    private TransactionRepository transactionRepository;
 
     private TimelineServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new TimelineServiceImpl(repository, mapper);
+        service = new TimelineServiceImpl(repository, mapper, transactionRepository);
     }
 
     @Test
@@ -45,6 +51,8 @@ class TimelineServiceImplTest {
         String note = "Test note";
         String docType = "CONTRACT";
 
+        when(transactionRepository.findByTransactionId(txId)).thenReturn(Optional.empty());
+
         service.addEntry(txId, actorId, type, note, docType);
 
         ArgumentCaptor<TimelineEntry> captor = ArgumentCaptor.forClass(TimelineEntry.class);
@@ -53,6 +61,35 @@ class TimelineServiceImplTest {
         TimelineEntry saved = captor.getValue();
         assertThat(saved.getTransactionId()).isEqualTo(txId);
         assertThat(saved.getTransactionInfo()).isNull();
+    }
+
+    @Test
+    void addEntry_UpdatesTransactionLastUpdatedTimestamp() {
+        // Arrange
+        UUID txId = UUID.randomUUID();
+        UUID actorId = UUID.randomUUID();
+        TimelineEntryType type = TimelineEntryType.NOTE;
+        String note = "Update timestamp";
+        String docType = null;
+        
+        Transaction mockTx = new Transaction();
+        mockTx.setTransactionId(txId);
+        mockTx.setLastUpdated(LocalDateTime.now().minusDays(1)); // Old timestamp
+        
+        when(transactionRepository.findByTransactionId(txId)).thenReturn(Optional.of(mockTx));
+
+        // Act
+        service.addEntry(txId, actorId, type, note, docType);
+
+        // Assert
+        ArgumentCaptor<Transaction> txCaptor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).findByTransactionId(txId);
+        verify(transactionRepository).save(txCaptor.capture());
+        
+        Transaction savedTx = txCaptor.getValue();
+        assertThat(savedTx.getTransactionId()).isEqualTo(txId);
+        // Verify lastUpdated was updated to recent time (e.g. within last second)
+        assertThat(savedTx.getLastUpdated()).isAfter(LocalDateTime.now().minusMinutes(1));
     }
 
     @Test
@@ -66,6 +103,8 @@ class TimelineServiceImplTest {
                 .clientName("Client")
                 .actorName("Actor")
                 .build();
+
+        when(transactionRepository.findByTransactionId(txId)).thenReturn(Optional.empty());
 
         service.addEntry(txId, actorId, type, note, docType, txInfo);
 
@@ -90,7 +129,10 @@ class TimelineServiceImplTest {
             "OFFER_RECEIVED", "OFFER_UPDATED", "OFFER_REMOVED"
     })
     void addEntry_VisibleTypes_SetsSpecificVisibilityTrue(TimelineEntryType type) {
-        service.addEntry(UUID.randomUUID(), UUID.randomUUID(), type, "note", null);
+        UUID txId = UUID.randomUUID();
+        when(transactionRepository.findByTransactionId(txId)).thenReturn(Optional.empty());
+
+        service.addEntry(txId, UUID.randomUUID(), type, "note", null);
 
         ArgumentCaptor<TimelineEntry> captor = ArgumentCaptor.forClass(TimelineEntry.class);
         verify(repository).save(captor.capture());
@@ -102,7 +144,10 @@ class TimelineServiceImplTest {
             "NOTE", "TRANSACTION_NOTE", "STATUS_CHANGE"
     })
     void addEntry_HiddenTypes_SetsVisibilityFalse(TimelineEntryType type) {
-        service.addEntry(UUID.randomUUID(), UUID.randomUUID(), type, "note", null);
+        UUID txId = UUID.randomUUID();
+        when(transactionRepository.findByTransactionId(txId)).thenReturn(Optional.empty());
+
+        service.addEntry(txId, UUID.randomUUID(), type, "note", null);
 
         ArgumentCaptor<TimelineEntry> captor = ArgumentCaptor.forClass(TimelineEntry.class);
         verify(repository).save(captor.capture());
