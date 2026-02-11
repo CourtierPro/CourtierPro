@@ -26,7 +26,7 @@ export function ClientTransactionList({ onNavigate }: ClientTransactionListProps
   const [sideFilter, setSideFilter] = useState<'all' | 'buy' | 'sell'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY'>('ACTIVE');
   const [stageFilter, setStageFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc'>('dateDesc');
+  const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc' | 'lastUpdatedDesc' | 'lastUpdatedAsc'>('lastUpdatedDesc');
   const [currentPage, setCurrentPage] = useState(1);
 
   const { t, i18n } = useTranslation('transactions');
@@ -69,8 +69,17 @@ export function ClientTransactionList({ onNavigate }: ClientTransactionListProps
           return aTime - bTime;
         case 'dateDesc':
           return bTime - aTime;
-        default:
-          return 0;
+        case 'lastUpdatedAsc': {
+          const aLast = a.lastUpdated ? parseToTimestamp(a.lastUpdated) : aTime;
+          const bLast = b.lastUpdated ? parseToTimestamp(b.lastUpdated) : bTime;
+          return aLast - bLast;
+        }
+        case 'lastUpdatedDesc':
+        default: {
+          const aLast = a.lastUpdated ? parseToTimestamp(a.lastUpdated) : aTime;
+          const bLast = b.lastUpdated ? parseToTimestamp(b.lastUpdated) : bTime;
+          return bLast - aLast;
+        }
       }
     });
   }, [filteredTransactions, sortBy]);
@@ -84,7 +93,7 @@ export function ClientTransactionList({ onNavigate }: ClientTransactionListProps
     setSideFilter('all');
     setStatusFilter('all');
     setStageFilter('all');
-    setSortBy('dateDesc');
+    setSortBy('lastUpdatedDesc');
     setCurrentPage(1);
   };
 
