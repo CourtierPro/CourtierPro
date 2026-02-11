@@ -34,6 +34,7 @@ export interface Transaction {
     status: 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY';
     openedAt?: string;
     openedDate?: string;
+    lastUpdated?: string;
     notes?: string;
     brokerId?: string;
     archived?: boolean;

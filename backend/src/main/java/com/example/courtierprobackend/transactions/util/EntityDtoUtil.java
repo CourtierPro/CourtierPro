@@ -45,6 +45,8 @@ public class EntityDtoUtil {
                 .currentStage(resolveStage(t))
                 .status(t.getStatus())
                 .openedDate(t.getOpenedAt() != null ? t.getOpenedAt().toLocalDate().toString() : null)
+                .openedAt(t.getOpenedAt() != null ? t.getOpenedAt().toString() : null)
+                .lastUpdated(t.getLastUpdated() != null ? t.getLastUpdated().toString() : null)
                 .archived(t.getArchived() != null ? t.getArchived() : false)
                 .archivedAt(t.getArchivedAt() != null ? t.getArchivedAt().toString() : null)
                 .notes(t.getNotes())
