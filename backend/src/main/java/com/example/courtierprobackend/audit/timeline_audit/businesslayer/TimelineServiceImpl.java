@@ -73,9 +73,10 @@ public class TimelineServiceImpl implements TimelineService {
         repository.save(entry);
 
         // Update transaction lastUpdated timestamp
-        // We use UTC for conversion, consistent with how timestamps are typically handled
+        // The @PreUpdate lifecycle hook on the Transaction entity will set the actual lastUpdated time
+        // We set it here ensure the entity is marked 'dirty' so the save triggers the update
         transactionRepository.findByTransactionId(transactionId).ifPresent(transaction -> {
-            transaction.setLastUpdated(LocalDateTime.ofInstant(entry.getTimestamp(), ZoneId.of("UTC")));
+            transaction.setLastUpdated(LocalDateTime.now(clock)); 
             transactionRepository.save(transaction);
         });
     }
