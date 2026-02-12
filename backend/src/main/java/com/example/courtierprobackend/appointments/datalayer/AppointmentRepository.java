@@ -154,6 +154,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                 "AND a.deletedAt IS NULL AND " +
                 "(LOWER(a.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
                 "LOWER(COALESCE(a.notes, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-                "LOWER(COALESCE(a.location, '')) LIKE LOWER(CONCAT('%', :query, '%')))")
+                "LOWER(COALESCE(a.location, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+                "LOWER(CAST(a.appointmentId AS string)) LIKE LOWER(CONCAT('%', :query, '%')))")
         List<Appointment> searchAppointments(@Param("userId") UUID userId, @Param("query") String query);
 }

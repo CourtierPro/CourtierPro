@@ -36,76 +36,27 @@ public class SearchService {
             return List.of();
         }
 
-        // Expand query for potential bilingual synonyms (e.g. "notaire" <-> "notary")
-        Set<String> searchTerms = resolveSynonyms(query);
-
         UUID userId = UserContextUtils.resolveUserId(request);
         Set<SearchResultDTO> results = new LinkedHashSet<>();
 
         // 1. Direct ID search (if query is UUID)
         searchById(query, userId, results);
 
-        for (String term : searchTerms) {
-            // 2. Search users
-            List<UUID> matchedUserIds = searchUsers(userId, term, results);
+        // 2. Search users
+        List<UUID> matchedUserIds = searchUsers(userId, query, results);
 
-            // 3. Search transactions
-            searchTransactions(userId, term, matchedUserIds, results);
+        // 3. Search transactions
+        searchTransactions(userId, query, matchedUserIds, results);
 
-            // 4. Search documents
-            searchDocuments(userId, term, matchedUserIds, results);
+        // 4. Search documents
+        searchDocuments(userId, query, matchedUserIds, results);
 
-            // 5. Search appointments
-            searchAppointments(userId, term, results);
-        }
+        // 5. Search appointments
+        searchAppointments(userId, query, results);
 
         return new ArrayList<>(results);
     }
     
-    private Set<String> resolveSynonyms(String query) {
-        Set<String> terms = new HashSet<>();
-        terms.add(query);
-        
-        String lowerQuery = query.toLowerCase().trim();
-        
-        // Manual mapping of common bilingual search terms
-        if (lowerQuery.contains("notaire") || lowerQuery.contains("notariale")) {
-            terms.add("notary");
-        }
-        if (lowerQuery.contains("assurance")) {
-            terms.add("insurance");
-        }
-        if (lowerQuery.contains("hypothèque") || lowerQuery.contains("hypotheque")) {
-            terms.add("mortgage");
-        }
-        if (lowerQuery.contains("inspection")) {
-            terms.add("inspection"); // Same
-        }
-        if (lowerQuery.contains("signature")) {
-            terms.add("signing");
-        }
-        if (lowerQuery.contains("banque") || lowerQuery.contains("relevé") || lowerQuery.contains("releve")) {
-            terms.add("bank");
-            terms.add("statement");
-        }
-        
-        // Reverse mappings (English -> French equivalent/synonym context)
-        if (lowerQuery.contains("notary")) {
-            terms.add("notaire");
-        }
-        if (lowerQuery.contains("mortgage")) {
-            terms.add("hypotheque");
-        }
-        if (lowerQuery.contains("signing")) {
-            terms.add("signature");
-        }
-        
-        return terms;
-    }
-
-    /**
-     * Searches by UUID if query is a valid UUID. Adds matching transaction/document to results.
-     */
     private void searchById(String query, UUID userId, Set<SearchResultDTO> results) {
         try {
             UUID potentialId = UUID.fromString(query);

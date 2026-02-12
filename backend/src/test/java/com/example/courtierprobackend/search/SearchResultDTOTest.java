@@ -58,12 +58,28 @@ class SearchResultDTOTest {
     }
 
     @Test
+    void builder_createsAppointmentResult() {
+        SearchResultDTO result = SearchResultDTO.builder()
+                .id("appt-101")
+                .type(SearchResultDTO.SearchResultType.APPOINTMENT)
+                .title("Closing Meeting")
+                .subtitle("Oct 12, 2:00 PM • Office")
+                .url("/appointments?focus=appt-101")
+                .build();
+
+        assertThat(result.getType()).isEqualTo(SearchResultDTO.SearchResultType.APPOINTMENT);
+        assertThat(result.getTitle()).isEqualTo("Closing Meeting");
+        assertThat(result.getSubtitle()).isEqualTo("Oct 12, 2:00 PM • Office");
+    }
+
+    @Test
     void searchResultType_hasAllExpectedValues() {
         assertThat(SearchResultDTO.SearchResultType.values())
                 .containsExactlyInAnyOrder(
                         SearchResultDTO.SearchResultType.TRANSACTION,
                         SearchResultDTO.SearchResultType.DOCUMENT,
                         SearchResultDTO.SearchResultType.USER,
+                        SearchResultDTO.SearchResultType.APPOINTMENT,
                         SearchResultDTO.SearchResultType.PAGE
                 );
     }
