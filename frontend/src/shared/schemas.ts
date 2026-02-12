@@ -3,8 +3,9 @@ import { DocumentTypeEnum } from "@/features/documents/types";
 import { isValidPostalCode, normalizePostalCode } from "@/shared/utils/postal-code";
 
 // Transaction Schemas
+// Transaction Schemas
 export const transactionCreateSchema = z.object({
-    transactionSide: z.enum(["buy", "sell"]),
+    transactionSide: z.enum(["buy", "sell"]).optional(),
     clientId: z.string().min(1, "errorSelectClient"),
     streetNumber: z.string().optional(),
     streetName: z.string().optional(),
@@ -14,6 +15,15 @@ export const transactionCreateSchema = z.object({
     centrisNumber: z.string().optional(),
     initialStage: z.string().min(1, "errorSelectStage"),
 }).superRefine((data, ctx) => {
+    if (!data.transactionSide) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "errorSelectSide",
+            path: ["transactionSide"]
+        });
+        return;
+    }
+
     if (data.transactionSide === 'sell') {
         if (!data.streetNumber?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "errorRequired", path: ["streetNumber"] });
         if (!data.streetName?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "errorRequired", path: ["streetName"] });

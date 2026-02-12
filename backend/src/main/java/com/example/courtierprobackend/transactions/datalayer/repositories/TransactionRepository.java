@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
@@ -75,4 +76,28 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
         @Query(value = "SELECT * FROM transactions WHERE transaction_id = :transactionId", nativeQuery = true)
         Optional<Transaction> findByTransactionIdIncludingDeleted(@Param("transactionId") UUID transactionId);
+
+        @Query("SELECT t FROM Transaction t " +
+                "WHERE t.brokerId = :brokerId " +
+                "AND (cast(:startDate as timestamp) IS NULL OR t.openedAt >= :startDate) " +
+                "AND (cast(:endDate as timestamp) IS NULL OR t.openedAt <= :endDate) " +
+                "AND (:side IS NULL OR t.side = :side)")
+        List<Transaction> findForAnalytics(
+                @Param("brokerId") UUID brokerId,
+                @Param("startDate") LocalDateTime startDate,
+                @Param("endDate") LocalDateTime endDate,
+                @Param("side") com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide side);
+
+        @Query("SELECT t FROM Transaction t " +
+                "WHERE t.brokerId = :brokerId " +
+                "AND (cast(:startDate as timestamp) IS NULL OR t.openedAt >= :startDate) " +
+                "AND (cast(:endDate as timestamp) IS NULL OR t.openedAt <= :endDate) " +
+                "AND (:side IS NULL OR t.side = :side) " +
+                "AND t.clientId IN (:clientIds)")
+        List<Transaction> findForAnalyticsWithClients(
+                @Param("brokerId") UUID brokerId,
+                @Param("startDate") LocalDateTime startDate,
+                @Param("endDate") LocalDateTime endDate,
+                @Param("side") com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide side,
+                @Param("clientIds") java.util.List<UUID> clientIds);
 }

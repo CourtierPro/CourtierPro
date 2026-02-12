@@ -9,6 +9,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
@@ -23,8 +24,41 @@ public class AnalyticsController {
     public ResponseEntity<AnalyticsDTO> getAnalytics(
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt,
-            HttpServletRequest request) {
+            HttpServletRequest request,
+            AnalyticsFilterRequest filters) {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
-        return ResponseEntity.ok(analyticsService.getAnalytics(brokerId));
+        return ResponseEntity.ok(analyticsService.getAnalytics(brokerId, filters));
+    }
+
+    @GetMapping("/export/csv")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<byte[]> exportAnalyticsCsv(
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request,
+            AnalyticsFilterRequest filters) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        byte[] csvData = analyticsService.exportAnalyticsCsv(brokerId, filters);
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=analytics_report.csv")
+                .header("Content-Type", "text/csv")
+                .body(csvData);
+    }
+
+    @GetMapping("/export/pdf")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<byte[]> exportAnalyticsPdf(
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request,
+            AnalyticsFilterRequest filters) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        byte[] pdfData = analyticsService.exportAnalyticsPdf(brokerId, filters);
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=analytics_report.pdf")
+                .header("Content-Type", "application/pdf")
+                .body(pdfData);
     }
 }
