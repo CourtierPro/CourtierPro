@@ -52,6 +52,7 @@ class ConditionLinkingServiceUnitTest {
     @Mock private DocumentConditionLinkRepository documentConditionLinkRepository;
     @Mock private SearchCriteriaRepository searchCriteriaRepository;
     @Mock private com.example.courtierprobackend.appointments.datalayer.AppointmentRepository appointmentRepository;
+    @Mock private com.example.courtierprobackend.transactions.datalayer.repositories.VisitorRepository visitorRepository;
 
     private TransactionServiceImpl transactionService;
 
@@ -81,7 +82,8 @@ class ConditionLinkingServiceUnitTest {
                 documentRequestRepository,
                 documentConditionLinkRepository,
                 searchCriteriaRepository,
-                appointmentRepository
+                appointmentRepository,
+                visitorRepository
         );
 
         transactionId = UUID.randomUUID();

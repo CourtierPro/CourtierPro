@@ -57,6 +57,7 @@ class AppointmentServiceCoverageTest {
     @Mock private NotificationService notificationService;
     @Mock private TransactionParticipantRepository transactionParticipantRepository;
     @Mock private PropertyRepository propertyRepository;
+    @Mock private com.example.courtierprobackend.transactions.datalayer.repositories.VisitorRepository visitorRepository;
 
     @InjectMocks
     private AppointmentServiceImpl appointmentService;
@@ -111,7 +112,8 @@ class AppointmentServiceCoverageTest {
                 LocalTime.of(10, 0),
                 LocalTime.of(11, 0),
                 "Note",
-                propertyId
+                propertyId,
+                null
         );
 
         Transaction tx = new Transaction();
@@ -138,7 +140,8 @@ class AppointmentServiceCoverageTest {
                 LocalTime.of(10, 0),
                 LocalTime.of(11, 0),
                 "Note",
-                propertyId
+                propertyId,
+                null
         );
 
         Transaction tx = new Transaction();
@@ -171,6 +174,7 @@ class AppointmentServiceCoverageTest {
                 LocalTime.of(10, 0),
                 LocalTime.of(11, 0),
                 "Note",
+                null,
                 null
         );
 

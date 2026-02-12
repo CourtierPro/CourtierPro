@@ -84,7 +84,7 @@ public class RescheduleDuplicationTest {
                 // 2. Create Appointment (PROPOSED)
                 AppointmentRequestDTO createReq = new AppointmentRequestDTO(
                                 transactionId, "Property Visit", null, LocalDate.now().plusDays(1), LocalTime.of(10, 0),
-                                LocalTime.of(11, 0), "Note", null);
+                                LocalTime.of(11, 0), "Note", null, null);
                 AppointmentResponseDTO created = appointmentService.requestAppointment(createReq, brokerId);
                 UUID appointmentId = created.appointmentId();
 

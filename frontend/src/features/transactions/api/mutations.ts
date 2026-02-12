@@ -573,3 +573,51 @@ export function useDeleteSearchCriteria() {
         },
     });
 }
+
+// ==================== VISITOR MUTATIONS ====================
+
+import type { VisitorRequestDTO } from '@/shared/api/types';
+import { visitorKeys } from '@/features/transactions/api/queries';
+
+export function useAddVisitor() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, data }: { transactionId: string; data: VisitorRequestDTO }) => {
+            const res = await axiosInstance.post(`/transactions/${transactionId}/visitors`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: visitorKeys.byTransaction(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
+        },
+    });
+}
+
+export function useUpdateVisitor() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, visitorId, data }: { transactionId: string; visitorId: string; data: VisitorRequestDTO }) => {
+            const res = await axiosInstance.put(`/transactions/${transactionId}/visitors/${visitorId}`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: visitorKeys.byTransaction(variables.transactionId) });
+        },
+    });
+}
+
+export function useDeleteVisitor() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, visitorId }: { transactionId: string; visitorId: string }) => {
+            await axiosInstance.delete(`/transactions/${transactionId}/visitors/${visitorId}`);
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: visitorKeys.byTransaction(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
+        },
+    });
+}

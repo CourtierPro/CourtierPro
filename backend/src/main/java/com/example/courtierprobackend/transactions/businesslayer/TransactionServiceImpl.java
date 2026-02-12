@@ -146,6 +146,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository documentConditionLinkRepository;
     private final SearchCriteriaRepository searchCriteriaRepository;
     private final com.example.courtierprobackend.appointments.datalayer.AppointmentRepository appointmentRepository;
+    private final com.example.courtierprobackend.transactions.datalayer.repositories.VisitorRepository visitorRepository;
 
     private String lookupUserName(UUID userId) {
         if (userId == null) {
@@ -689,6 +690,10 @@ public class TransactionServiceImpl implements TransactionService {
         TransactionResponseDTO dto = EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId()), centrisNumber);
         if (tx.getSide() == com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE) {
             dto.setHouseVisitCount(appointmentRepository.countConfirmedHouseVisitsByTransactionId(transactionId));
+        }
+        if (tx.getSide() == TransactionSide.SELL_SIDE) {
+            dto.setTotalShowings(appointmentRepository.countConfirmedShowingsByTransactionId(transactionId));
+            dto.setTotalVisitors(appointmentRepository.sumVisitorsByTransactionId(transactionId));
         }
         return dto;
     }
@@ -1271,6 +1276,132 @@ public class TransactionServiceImpl implements TransactionService {
             return 0;
         }
         return appointmentRepository.countConfirmedHouseVisitsByTransactionId(transactionId);
+    }
+
+    // ==================== VISITOR METHODS (Sell-Side) ====================
+
+    @Override
+    public List<com.example.courtierprobackend.transactions.datalayer.dto.VisitorResponseDTO> getVisitors(
+            UUID transactionId, UUID userId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        String userEmail = userId != null
+                ? userAccountRepository.findById(userId).map(UserAccount::getEmail).orElse(null)
+                : null;
+        List<TransactionParticipant> participants = participantRepository.findByTransactionId(tx.getTransactionId());
+        TransactionAccessUtils.verifyViewAccess(tx, userId, userEmail, participants, null);
+
+        List<com.example.courtierprobackend.transactions.datalayer.Visitor> visitors =
+                visitorRepository.findByTransactionIdOrderByNameAsc(transactionId);
+
+        // Batch fetch timesVisited
+        Map<UUID, Integer> visitCounts = new HashMap<>();
+        if (!visitors.isEmpty()) {
+            List<UUID> visitorIds = visitors.stream()
+                    .map(com.example.courtierprobackend.transactions.datalayer.Visitor::getVisitorId).toList();
+            for (Object[] row : appointmentRepository.countConfirmedShowingsByVisitorIds(visitorIds)) {
+                visitCounts.put((UUID) row[0], ((Number) row[1]).intValue());
+            }
+        }
+
+        return visitors.stream().map(v -> toVisitorResponseDTO(v, visitCounts.getOrDefault(v.getVisitorId(), 0)))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public com.example.courtierprobackend.transactions.datalayer.dto.VisitorResponseDTO addVisitor(
+            UUID transactionId,
+            com.example.courtierprobackend.transactions.datalayer.dto.VisitorRequestDTO dto,
+            UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        verifyBrokerOrCoManager(tx, brokerId, null);
+
+        if (tx.getSide() != TransactionSide.SELL_SIDE) {
+            throw new IllegalArgumentException("Visitors can only be added to sell-side transactions");
+        }
+
+        if (dto.name() == null || dto.name().isBlank()) {
+            throw new IllegalArgumentException("Visitor name is required");
+        }
+
+        com.example.courtierprobackend.transactions.datalayer.Visitor visitor =
+                com.example.courtierprobackend.transactions.datalayer.Visitor.builder()
+                        .transactionId(transactionId)
+                        .name(dto.name().trim())
+                        .email(dto.email() != null ? dto.email().trim() : null)
+                        .phoneNumber(dto.phoneNumber() != null ? dto.phoneNumber().trim() : null)
+                        .build();
+
+        com.example.courtierprobackend.transactions.datalayer.Visitor saved = visitorRepository.save(visitor);
+        return toVisitorResponseDTO(saved, 0);
+    }
+
+    @Override
+    @Transactional
+    public com.example.courtierprobackend.transactions.datalayer.dto.VisitorResponseDTO updateVisitor(
+            UUID transactionId, UUID visitorId,
+            com.example.courtierprobackend.transactions.datalayer.dto.VisitorRequestDTO dto,
+            UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        verifyBrokerOrCoManager(tx, brokerId, null);
+
+        com.example.courtierprobackend.transactions.datalayer.Visitor visitor =
+                visitorRepository.findByVisitorId(visitorId)
+                        .orElseThrow(() -> new NotFoundException("Visitor not found"));
+
+        if (!visitor.getTransactionId().equals(transactionId)) {
+            throw new ForbiddenException("Visitor does not belong to this transaction");
+        }
+
+        if (dto.name() == null || dto.name().isBlank()) {
+            throw new IllegalArgumentException("Visitor name is required");
+        }
+
+        visitor.setName(dto.name().trim());
+        visitor.setEmail(dto.email() != null ? dto.email().trim() : null);
+        visitor.setPhoneNumber(dto.phoneNumber() != null ? dto.phoneNumber().trim() : null);
+
+        com.example.courtierprobackend.transactions.datalayer.Visitor saved = visitorRepository.save(visitor);
+        int timesVisited = appointmentRepository.countConfirmedShowingsByVisitorId(visitorId);
+        return toVisitorResponseDTO(saved, timesVisited);
+    }
+
+    @Override
+    @Transactional
+    public void removeVisitor(UUID transactionId, UUID visitorId, UUID brokerId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        verifyBrokerOrCoManager(tx, brokerId, null);
+
+        com.example.courtierprobackend.transactions.datalayer.Visitor visitor =
+                visitorRepository.findByVisitorId(visitorId)
+                        .orElseThrow(() -> new NotFoundException("Visitor not found"));
+
+        if (!visitor.getTransactionId().equals(transactionId)) {
+            throw new ForbiddenException("Visitor does not belong to this transaction");
+        }
+
+        visitorRepository.delete(visitor);
+    }
+
+    private com.example.courtierprobackend.transactions.datalayer.dto.VisitorResponseDTO toVisitorResponseDTO(
+            com.example.courtierprobackend.transactions.datalayer.Visitor visitor, int timesVisited) {
+        return new com.example.courtierprobackend.transactions.datalayer.dto.VisitorResponseDTO(
+                visitor.getVisitorId(),
+                visitor.getTransactionId(),
+                visitor.getName(),
+                visitor.getEmail(),
+                visitor.getPhoneNumber(),
+                timesVisited,
+                visitor.getCreatedAt(),
+                visitor.getUpdatedAt());
     }
 
     // ==================== PROPERTY METHODS ====================

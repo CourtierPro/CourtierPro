@@ -519,3 +519,22 @@ export interface SearchCriteriaRequestDTO {
   maxPrice?: number;
   regions?: QuebecRegion[];
 }
+
+// ==================== VISITOR TYPES (for sell-side transactions) ====================
+
+export interface Visitor {
+  visitorId: string;
+  transactionId: string;
+  name: string;
+  email?: string;
+  phoneNumber?: string;
+  timesVisited: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VisitorRequestDTO {
+  name: string;
+  email?: string;
+  phoneNumber?: string;
+}

@@ -66,6 +66,7 @@ class SearchCriteriaServiceUnitTest {
     @Mock private DocumentConditionLinkRepository documentConditionLinkRepository;
     @Mock private SearchCriteriaRepository searchCriteriaRepository;
     @Mock private com.example.courtierprobackend.appointments.datalayer.AppointmentRepository appointmentRepository;
+    @Mock private com.example.courtierprobackend.transactions.datalayer.repositories.VisitorRepository visitorRepository;
 
     private TransactionServiceImpl service;
 
@@ -86,7 +87,8 @@ class SearchCriteriaServiceUnitTest {
                 propertyRepository, offerRepository, conditionRepository, propertyOfferRepository,
                 offerDocumentRepository, offerRevisionRepository, objectStorageService,
                 documentRequestRepository, documentConditionLinkRepository, searchCriteriaRepository,
-                appointmentRepository
+                appointmentRepository,
+                visitorRepository
         );
 
         transactionId = UUID.randomUUID();

@@ -17,7 +17,8 @@
         "clientEngagement": "Client Engagement",
         "trends": "Trends",
         "activity": "Activity Summary",
-        "monthlyActivity": "Monthly Activity"
+        "monthlyActivity": "Monthly Activity",
+        "sellShowings": "Sell-Side Showings"
     },
     "stats": {
         "totalTransactions": "Total Transactions",
@@ -75,7 +76,10 @@
         "busiestMonth": "Busiest Month",
         "idleTransactions": "Idle Transactions (30+ days)",
         "opened": "Opened",
-        "closed": "Closed"
+        "closed": "Closed",
+        "totalSellShowings": "Total Showings",
+        "avgSellShowingsPerClosedTransaction": "Avg. per Closed Sell",
+        "totalSellVisitors": "Total Visitors"
     },
     "stageLabels": {
         "buyerStages": "Buyer Stages",

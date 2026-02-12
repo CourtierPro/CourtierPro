@@ -315,6 +315,8 @@
     "inspection": "Inspection",
     "walkthrough": "Walkthrough",
     "appraisal": "Appraisal",
+    "open_house": "Open House",
+    "private_showing": "Private Showing",
     "other": "Other"
   },
   "setActive": "Set Active",
@@ -795,5 +797,19 @@
       "MONTEREGIE": "Montérégie",
       "CENTRE_DU_QUEBEC": "Centre-du-Québec"
     }
-  }
+  },
+  "totalShowings": "Total Showings",
+  "totalVisitors": "Total Visitors",
+  "visitors": "Visitors",
+  "addVisitor": "Add Visitor",
+  "editVisitor": "Edit Visitor",
+  "deleteVisitor": "Delete Visitor",
+  "visitorName": "Visitor Name",
+  "timesVisited": "{{count}} visit",
+  "timesVisited_other": "{{count}} visits",
+  "noVisitors": "No visitors yet",
+  "visitorAdded": "Visitor added successfully",
+  "visitorUpdated": "Visitor updated successfully",
+  "visitorDeleted": "Visitor deleted successfully",
+  "confirmDeleteVisitor": "Are you sure you want to delete this visitor?"
 }

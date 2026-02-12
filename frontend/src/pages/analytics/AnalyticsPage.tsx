@@ -198,13 +198,23 @@ export function AnalyticsPage() {
         )}
       </div>
 
-      {/* ─── HOUSE VISITS ─── */}
-      <Section title={t("sections.houseVisits")}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <KpiCard title={t("stats.totalHouseVisits")} value={data.totalHouseVisits} icon={<Building2 className="h-5 w-5" />} />
-          <KpiCard title={t("stats.avgHouseVisits")} value={data.avgHouseVisitsPerClosedTransaction} icon={<TrendingUp className="h-5 w-5" />} />
-        </div>
-      </Section>
+      {/* ─── HOUSE VISITS + SELL SHOWINGS ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Section title={t("sections.houseVisits")}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <KpiCard title={t("stats.totalHouseVisits")} value={data.totalHouseVisits} icon={<Building2 className="h-5 w-5" />} />
+            <KpiCard title={t("stats.avgHouseVisits")} value={data.avgHouseVisitsPerClosedTransaction} icon={<TrendingUp className="h-5 w-5" />} />
+          </div>
+        </Section>
+
+        <Section title={t("sections.sellShowings")}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <KpiCard title={t("stats.totalSellShowings")} value={data.totalSellShowings} icon={<Eye className="h-5 w-5" />} />
+            <KpiCard title={t("stats.avgSellShowingsPerClosedTransaction")} value={data.avgSellShowingsPerClosedTransaction} icon={<TrendingUp className="h-5 w-5" />} />
+            <KpiCard title={t("stats.totalSellVisitors")} value={data.totalSellVisitors} icon={<Users className="h-5 w-5" />} />
+          </div>
+        </Section>
+      </div>
 
       {/* ─── PROPERTIES + BUYER OFFERS (side by side) ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

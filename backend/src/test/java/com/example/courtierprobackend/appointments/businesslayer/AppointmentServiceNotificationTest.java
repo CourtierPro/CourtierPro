@@ -74,13 +74,17 @@ class AppointmentServiceNotificationTest {
         @Mock
         private com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository propertyRepository;
 
+        @Mock
+        private com.example.courtierprobackend.transactions.datalayer.repositories.VisitorRepository visitorRepository;
+
         @BeforeEach
         void setUp() {
                 appointmentService = new AppointmentServiceImpl(appointmentRepository, userAccountRepository,
                                 transactionRepository, appointmentAuditService, emailService, timelineService,
                                 notificationService,
                                 transactionParticipantRepository,
-                                propertyRepository);
+                                propertyRepository,
+                                visitorRepository);
 
                 brokerId = UUID.randomUUID();
                 clientId = UUID.randomUUID();
@@ -112,7 +116,7 @@ class AppointmentServiceNotificationTest {
                 // Arrange
                 AppointmentRequestDTO request = new AppointmentRequestDTO(
                                 transactionId, "Viewing", "Notes", LocalDate.now().plusDays(1),
-                                LocalTime.of(10, 0), LocalTime.of(11, 0), "Message", null);
+                                LocalTime.of(10, 0), LocalTime.of(11, 0), "Message", null, null);
 
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);

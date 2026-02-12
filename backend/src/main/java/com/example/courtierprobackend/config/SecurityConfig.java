@@ -109,6 +109,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/transactions/*/search-criteria").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers(HttpMethod.PUT, "/transactions/*/search-criteria").hasAnyRole("BROKER", "CLIENT")
                         .requestMatchers(HttpMethod.DELETE, "/transactions/*/search-criteria").hasAnyRole("BROKER", "CLIENT")
+                        // Visitor read access - accessible to both broker and client
+                        .requestMatchers(HttpMethod.GET, "/transactions/*/visitors").hasAnyRole("BROKER", "CLIENT")
                         // Catch-all for other transaction endpoints - requires broker role
                         .requestMatchers("/transactions/**").hasRole("BROKER")
 

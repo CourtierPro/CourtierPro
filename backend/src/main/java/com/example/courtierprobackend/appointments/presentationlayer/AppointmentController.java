@@ -202,6 +202,27 @@ public class AppointmentController {
         return ResponseEntity.ok(updatedAppointment);
     }
 
+    /**
+     * Update the visitor count for an open_house or private_showing appointment.
+     */
+    @PatchMapping("/{appointmentId}/visitor-count")
+    @PreAuthorize("hasAnyRole('BROKER', 'ADMIN')")
+    public ResponseEntity<AppointmentResponseDTO> updateVisitorCount(
+            @PathVariable UUID appointmentId,
+            @RequestBody java.util.Map<String, Integer> body,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest request) {
+
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        Integer numberOfVisitors = body.get("numberOfVisitors");
+        if (numberOfVisitors == null) {
+            throw new BadRequestException("numberOfVisitors is required");
+        }
+        AppointmentResponseDTO updated = appointmentService.updateVisitorCount(appointmentId, numberOfVisitors, userId);
+        return ResponseEntity.ok(updated);
+    }
+
     @GetMapping("/client/{clientId}")
     @PreAuthorize("hasAnyRole('BROKER', 'ADMIN')")
     public ResponseEntity<List<AppointmentResponseDTO>> getAppointmentsForClient(

@@ -190,4 +190,56 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                         "AND a.deletedAt IS NULL " +
                         "GROUP BY a.transactionId")
         List<Object[]> countConfirmedHouseVisitsByTransactionIds(@Param("transactionIds") List<UUID> transactionIds);
+
+        /**
+         * Count confirmed sell-side showings (open_house + private_showing) for a transaction.
+         */
+        @Query("SELECT COUNT(a) FROM Appointment a WHERE a.transactionId = :transactionId " +
+                        "AND a.title IN ('open_house', 'private_showing') " +
+                        "AND a.status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED " +
+                        "AND a.deletedAt IS NULL")
+        int countConfirmedShowingsByTransactionId(@Param("transactionId") UUID transactionId);
+
+        /**
+         * Sum numberOfVisitors for confirmed sell-side showings for a transaction.
+         */
+        @Query("SELECT COALESCE(SUM(a.numberOfVisitors), 0) FROM Appointment a " +
+                        "WHERE a.transactionId = :transactionId " +
+                        "AND a.title IN ('open_house', 'private_showing') " +
+                        "AND a.status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED " +
+                        "AND a.deletedAt IS NULL")
+        int sumVisitorsByTransactionId(@Param("transactionId") UUID transactionId);
+
+        /**
+         * Count confirmed private showings for a specific visitor (for timesVisited).
+         */
+        @Query("SELECT COUNT(a) FROM Appointment a WHERE a.visitorId = :visitorId " +
+                        "AND a.title = 'private_showing' " +
+                        "AND a.status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED " +
+                        "AND a.deletedAt IS NULL")
+        int countConfirmedShowingsByVisitorId(@Param("visitorId") UUID visitorId);
+
+        /**
+         * Batch count confirmed private showings per visitor for a list of visitor IDs.
+         * Returns rows of [visitorId, count].
+         */
+        @Query("SELECT a.visitorId, COUNT(a) FROM Appointment a " +
+                        "WHERE a.visitorId IN :visitorIds " +
+                        "AND a.title = 'private_showing' " +
+                        "AND a.status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED " +
+                        "AND a.deletedAt IS NULL " +
+                        "GROUP BY a.visitorId")
+        List<Object[]> countConfirmedShowingsByVisitorIds(@Param("visitorIds") List<UUID> visitorIds);
+
+        /**
+         * Batch count confirmed sell-side showings per transaction for a list of transaction IDs.
+         * Returns rows of [transactionId, count].
+         */
+        @Query("SELECT a.transactionId, COUNT(a) FROM Appointment a " +
+                        "WHERE a.transactionId IN :transactionIds " +
+                        "AND a.title IN ('open_house', 'private_showing') " +
+                        "AND a.status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED " +
+                        "AND a.deletedAt IS NULL " +
+                        "GROUP BY a.transactionId")
+        List<Object[]> countConfirmedShowingsByTransactionIds(@Param("transactionIds") List<UUID> transactionIds);
 }

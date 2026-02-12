@@ -15,9 +15,14 @@ export interface AnalyticsData {
     buyerStageDistribution: Record<string, number>;
     sellerStageDistribution: Record<string, number>;
 
-    // House Visits
+    // House Visits (Buy-Side)
     totalHouseVisits: number;
     avgHouseVisitsPerClosedTransaction: number;
+
+    // Showings (Sell-Side)
+    totalSellShowings: number;
+    avgSellShowingsPerClosedTransaction: number;
+    totalSellVisitors: number;
 
     // Properties (Buy-Side)
     totalProperties: number;
