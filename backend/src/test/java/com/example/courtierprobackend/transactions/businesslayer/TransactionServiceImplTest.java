@@ -109,6 +109,9 @@ class TransactionServiceImplTest {
         @Mock
         private com.example.courtierprobackend.transactions.datalayer.repositories.SearchCriteriaRepository searchCriteriaRepository;
 
+        @Mock
+        private com.example.courtierprobackend.appointments.datalayer.AppointmentRepository appointmentRepository;
+
         @BeforeEach
         void setup() {
                 transactionService = new TransactionServiceImpl(transactionRepository, pinnedTransactionRepository,
@@ -117,7 +120,7 @@ class TransactionServiceImplTest {
                                 offerRepository, conditionRepository,
                                 propertyOfferRepository, offerDocumentRepository, offerRevisionRepository,
                                 objectStorageService, documentRequestRepository, documentConditionLinkRepository,
-                                searchCriteriaRepository);
+                                searchCriteriaRepository, appointmentRepository);
                 lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
         }
 

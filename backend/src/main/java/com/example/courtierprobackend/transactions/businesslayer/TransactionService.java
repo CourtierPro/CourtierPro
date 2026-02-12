@@ -59,6 +59,9 @@ public interface TransactionService {
 
     List<ParticipantResponseDTO> getParticipants(UUID transactionId, UUID userId);
 
+    // House visit statistics (for buyer transactions)
+    int getHouseVisitCount(UUID transactionId, UUID userId);
+
     // Properties (for buyer transactions)
     List<PropertyResponseDTO> getProperties(UUID transactionId, UUID userId, boolean isBroker);
 

@@ -10,6 +10,7 @@ export interface AppointmentRequestDTO {
     startTime: string; // ISO time HH:mm
     endTime: string; // ISO time HH:mm
     message: string;
+    propertyId?: string; // Required for house_visit type
 }
 
 export function useRequestAppointment() {

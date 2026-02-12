@@ -39,6 +39,7 @@ export interface Transaction {
     brokerId?: string;
     archived?: boolean;
     archivedAt?: string;
+    houseVisitCount?: number;
 }
 
 export function usePinnedTransactionIds() {

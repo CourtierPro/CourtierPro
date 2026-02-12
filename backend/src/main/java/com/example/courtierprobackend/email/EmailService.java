@@ -745,6 +745,21 @@ public class EmailService {
                 .replace("'", "&#39;");
     }
 
+    String translateAppointmentTitle(String title, boolean isFrench) {
+        if (title == null) return isFrench ? "Rendez-vous" : "Appointment";
+        return switch (title.toLowerCase()) {
+            case "house_visit" -> isFrench ? "Visite de maison" : "House Visit";
+            case "inspection" -> isFrench ? "Inspection" : "Inspection";
+            case "notary" -> isFrench ? "Notaire" : "Notary";
+            case "consultation" -> isFrench ? "Consultation" : "Consultation";
+            case "meeting" -> isFrench ? "Réunion" : "Meeting";
+            case "showing" -> isFrench ? "Visite" : "Showing";
+            case "property viewing" -> isFrench ? "Visite de propriété" : "Property Viewing";
+            case "other" -> isFrench ? "Autre" : "Other";
+            default -> title;
+        };
+    }
+
     // ==================== APPOINTMENT NOTIFICATIONS ====================
 
     public void sendAppointmentRequestedNotification(
@@ -754,8 +769,9 @@ public class EmailService {
             return;
 
         boolean isFrench = "fr".equalsIgnoreCase(language);
-        String subject = isFrench ? "Nouvelle demande de rendez-vous: " + appointment.getTitle()
-                : "New Appointment Request: " + appointment.getTitle();
+        String translatedTitle = translateAppointmentTitle(appointment.getTitle(), isFrench);
+        String subject = isFrench ? "Nouvelle demande de rendez-vous: " + translatedTitle
+                : "New Appointment Request: " + translatedTitle;
         String body = isFrench
                 ? "Bonjour {{name}}, une nouvelle demande de rendez-vous \"{{title}}\" a été reçue pour {{date}} à {{location}}. Notes: {{notes}}"
                 : "Hello {{name}}, a new appointment request \"{{title}}\" has been received for {{date}} at {{location}}. Notes: {{notes}}";
@@ -770,8 +786,9 @@ public class EmailService {
             return;
 
         boolean isFrench = "fr".equalsIgnoreCase(language);
-        String subject = isFrench ? "Rendez-vous confirmé: " + appointment.getTitle()
-                : "Appointment Confirmed: " + appointment.getTitle();
+        String translatedTitle = translateAppointmentTitle(appointment.getTitle(), isFrench);
+        String subject = isFrench ? "Rendez-vous confirmé: " + translatedTitle
+                : "Appointment Confirmed: " + translatedTitle;
         String body = isFrench
                 ? "Bonjour {{name}}, votre rendez-vous \"{{title}}\" pour {{date}} à {{location}} a été confirmé."
                 : "Hello {{name}}, your appointment \"{{title}}\" for {{date}} at {{location}} has been confirmed.";
@@ -805,8 +822,9 @@ public class EmailService {
             return;
 
         boolean isFrench = "fr".equalsIgnoreCase(language);
-        String subject = isFrench ? "Rappel de rendez-vous: " + appointment.getTitle()
-                : "Appointment Reminder: " + appointment.getTitle();
+        String translatedTitle = translateAppointmentTitle(appointment.getTitle(), isFrench);
+        String subject = isFrench ? "Rappel de rendez-vous: " + translatedTitle
+                : "Appointment Reminder: " + translatedTitle;
         String body = isFrench
                 ? "Bonjour {{name}}, ceci est un rappel pour votre rendez-vous \"{{title}}\" demain à {{date}} à {{location}}."
                 : "Hello {{name}}, this is a reminder for your appointment \"{{title}}\" tomorrow at {{date}} at {{location}}.";
@@ -834,7 +852,7 @@ public class EmailService {
             String body = bodyTemplate
                     .replace("{{name}}", escapeHtml(name))
                     .replace("{{title}}",
-                            escapeHtml(appointment.getTitle() != null ? appointment.getTitle() : "Appointment"))
+                            escapeHtml(translateAppointmentTitle(appointment.getTitle(), isFrench)))
                     .replace("{{date}}", escapeHtml(dateStr))
                     .replace("{{location}}",
                             escapeHtml(appointment.getLocation() != null ? appointment.getLocation() : "N/A"))

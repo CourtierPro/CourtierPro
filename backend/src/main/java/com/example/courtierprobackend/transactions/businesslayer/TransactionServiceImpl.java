@@ -145,6 +145,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final com.example.courtierprobackend.documents.datalayer.DocumentRepository documentRepository;
     private final com.example.courtierprobackend.transactions.datalayer.repositories.DocumentConditionLinkRepository documentConditionLinkRepository;
     private final SearchCriteriaRepository searchCriteriaRepository;
+    private final com.example.courtierprobackend.appointments.datalayer.AppointmentRepository appointmentRepository;
 
     private String lookupUserName(UUID userId) {
         if (userId == null) {
@@ -685,7 +686,11 @@ public class TransactionServiceImpl implements TransactionService {
             }
         }
 
-        return EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId()), centrisNumber);
+        TransactionResponseDTO dto = EntityDtoUtil.toResponse(tx, lookupUserName(tx.getClientId()), centrisNumber);
+        if (tx.getSide() == com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE) {
+            dto.setHouseVisitCount(appointmentRepository.countConfirmedHouseVisitsByTransactionId(transactionId));
+        }
+        return dto;
     }
 
     @Override
@@ -1249,6 +1254,25 @@ public class TransactionServiceImpl implements TransactionService {
                 .toList();
     }
 
+    // ==================== HOUSE VISIT STATISTICS ====================
+
+    @Override
+    public int getHouseVisitCount(UUID transactionId, UUID userId) {
+        Transaction tx = repo.findByTransactionId(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        String userEmail = userId != null
+                ? userAccountRepository.findById(userId).map(UserAccount::getEmail).orElse(null)
+                : null;
+        List<TransactionParticipant> participants = participantRepository.findByTransactionId(tx.getTransactionId());
+        TransactionAccessUtils.verifyViewAccess(tx, userId, userEmail, participants, null);
+
+        if (tx.getSide() != TransactionSide.BUY_SIDE) {
+            return 0;
+        }
+        return appointmentRepository.countConfirmedHouseVisitsByTransactionId(transactionId);
+    }
+
     // ==================== PROPERTY METHODS ====================
 
     @Override
@@ -1272,8 +1296,17 @@ public class TransactionServiceImpl implements TransactionService {
 
         List<Property> properties = propertyRepository.findByTransactionIdOrderByCreatedAtDesc(transactionId);
 
+        // Batch fetch house visit counts to avoid N+1
+        List<UUID> propertyIds = properties.stream().map(Property::getPropertyId).toList();
+        Map<UUID, Long> visitCounts = new java.util.HashMap<>();
+        if (!propertyIds.isEmpty()) {
+            appointmentRepository.countConfirmedHouseVisitsByPropertyIds(propertyIds)
+                    .forEach(row -> visitCounts.put((UUID) row[0], (Long) row[1]));
+        }
+
         return properties.stream()
-                .map(p -> toPropertyResponseDTO(p, isBroker))
+                .map(p -> toPropertyResponseDTO(p, isBroker,
+                        visitCounts.getOrDefault(p.getPropertyId(), 0L).intValue()))
                 .toList();
     }
 
@@ -1567,6 +1600,10 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     private PropertyResponseDTO toPropertyResponseDTO(Property property, boolean includeBrokerNotes) {
+        return toPropertyResponseDTO(property, includeBrokerNotes, 0);
+    }
+
+    private PropertyResponseDTO toPropertyResponseDTO(Property property, boolean includeBrokerNotes, int timesVisited) {
         return PropertyResponseDTO.builder()
                 .propertyId(property.getPropertyId())
                 .transactionId(property.getTransactionId())
@@ -1579,6 +1616,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .status(property.getStatus())
                 .createdAt(property.getCreatedAt())
                 .updatedAt(property.getUpdatedAt())
+                .timesVisited(timesVisited)
                 .build();
     }
 

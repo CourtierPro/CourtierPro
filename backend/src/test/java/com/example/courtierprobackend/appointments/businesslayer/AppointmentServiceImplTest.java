@@ -67,12 +67,16 @@ class AppointmentServiceImplTest {
         @Mock
         private com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService;
 
+        @Mock
+        private com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository propertyRepository;
+
         @BeforeEach
         void setUp() {
                 appointmentService = new AppointmentServiceImpl(appointmentRepository, userAccountRepository,
                                 transactionRepository, appointmentAuditService, emailService, timelineService,
                                 notificationService,
-                                transactionParticipantRepository);
+                                transactionParticipantRepository,
+                                propertyRepository);
                 brokerId = UUID.randomUUID();
                 clientId = UUID.randomUUID();
                 transactionId = UUID.randomUUID();
@@ -833,7 +837,7 @@ class AppointmentServiceImplTest {
                 UUID requesterId = brokerId;
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Property Viewing", null, java.time.LocalDate.now().plusDays(1),
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Let's view this");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Let's view this", null);
 
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
@@ -865,7 +869,7 @@ class AppointmentServiceImplTest {
                 UUID requesterId = clientId;
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Property Viewing", null, java.time.LocalDate.now().plusDays(1),
-                                java.time.LocalTime.of(14, 0), java.time.LocalTime.of(15, 0), "Can we meet?");
+                                java.time.LocalTime.of(14, 0), java.time.LocalTime.of(15, 0), "Can we meet?", null);
 
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
@@ -894,7 +898,7 @@ class AppointmentServiceImplTest {
                 // Arrange
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Other", "Custom Title", java.time.LocalDate.now().plusDays(1),
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Details");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Details", null);
 
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
@@ -921,7 +925,7 @@ class AppointmentServiceImplTest {
                 // Arrange
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Other", "", java.time.LocalDate.now().plusDays(1), // empty title
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Details");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Details", null);
 
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
@@ -948,7 +952,7 @@ class AppointmentServiceImplTest {
                 // Arrange
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Type", "Title", java.time.LocalDate.now(),
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg", null);
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
 
@@ -963,7 +967,7 @@ class AppointmentServiceImplTest {
                 // Arrange
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Type", "Title", java.time.LocalDate.now().plusDays(1),
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg", null);
 
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
@@ -984,7 +988,7 @@ class AppointmentServiceImplTest {
                 // Arrange
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Type", "Title", java.time.LocalDate.now(),
-                                java.time.LocalTime.of(12, 0), java.time.LocalTime.of(11, 0), "End before start");
+                                java.time.LocalTime.of(12, 0), java.time.LocalTime.of(11, 0), "End before start", null);
 
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
@@ -1036,7 +1040,7 @@ class AppointmentServiceImplTest {
         void requestAppointment_startTimeNotInFuture_throwsIllegalArgumentException() {
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Type", "Title", java.time.LocalDate.now().minusDays(1),
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Past date");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Past date", null);
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
                 transaction.setBrokerId(brokerId);
@@ -1095,7 +1099,7 @@ class AppointmentServiceImplTest {
         void requestAppointment_missingBrokerId_throwsIllegalStateException() {
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Type", "Title", java.time.LocalDate.now().plusDays(1),
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg", null);
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
                 transaction.setBrokerId(null); // missing brokerId
@@ -1110,7 +1114,7 @@ class AppointmentServiceImplTest {
         void requestAppointment_missingClientId_throwsIllegalStateException() {
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Type", "Title", java.time.LocalDate.now().plusDays(1),
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg", null);
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
                 transaction.setBrokerId(brokerId);
@@ -1179,4 +1183,79 @@ class AppointmentServiceImplTest {
                                 null);
                 assertThat(result).isEmpty();
         }
+
+        // ========== House Visit requestAppointment Tests ==========
+
+        @Test
+        void requestAppointment_houseVisit_sellSide_throwsIllegalArgumentException() {
+                UUID propertyId = UUID.randomUUID();
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                                transactionId, "house_visit", null, java.time.LocalDate.now().plusDays(1),
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Visit", propertyId);
+                Transaction transaction = new Transaction();
+                transaction.setTransactionId(transactionId);
+                transaction.setBrokerId(brokerId);
+                transaction.setClientId(clientId);
+                transaction.setSide(
+                                com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.SELL_SIDE);
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+                assertThatThrownBy(() -> appointmentService.requestAppointment(request, brokerId))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("buy-side transactions");
+        }
+
+        @Test
+        void requestAppointment_houseVisit_missingPropertyId_throwsIllegalArgumentException() {
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                                transactionId, "house_visit", null, java.time.LocalDate.now().plusDays(1),
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Visit", null);
+                Transaction transaction = new Transaction();
+                transaction.setTransactionId(transactionId);
+                transaction.setBrokerId(brokerId);
+                transaction.setClientId(clientId);
+                transaction.setSide(
+                                com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE);
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+                assertThatThrownBy(() -> appointmentService.requestAppointment(request, brokerId))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("Property must be selected");
+        }
+
+        @Test
+        void requestAppointment_houseVisit_success_setsPropertyId() {
+                UUID propertyId = UUID.randomUUID();
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                                transactionId, "house_visit", null, java.time.LocalDate.now().plusDays(1),
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Visit", propertyId);
+                Transaction transaction = new Transaction();
+                transaction.setTransactionId(transactionId);
+                transaction.setBrokerId(brokerId);
+                transaction.setClientId(clientId);
+                transaction.setSide(
+                                com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE);
+
+                com.example.courtierprobackend.transactions.datalayer.Property property = com.example.courtierprobackend.transactions.datalayer.Property
+                                .builder()
+                                .propertyId(propertyId)
+                                .transactionId(transactionId)
+                                .build();
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+                when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+                when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> {
+                        Appointment a = (Appointment) i.getArguments()[0];
+                        a.setAppointmentId(UUID.randomUUID());
+                        a.setCreatedAt(java.time.LocalDateTime.now());
+                        a.setUpdatedAt(java.time.LocalDateTime.now());
+                        return a;
+                });
+                mockUserAccounts();
+
+                AppointmentResponseDTO result = appointmentService.requestAppointment(request, brokerId);
+
+                assertThat(result).isNotNull();
+                assertThat(result.propertyId()).isEqualTo(propertyId);
+                assertThat(result.title()).isEqualTo("house_visit");
+        }
 }
+
