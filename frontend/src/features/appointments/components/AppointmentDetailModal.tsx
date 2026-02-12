@@ -510,7 +510,10 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                                                 appointmentId: appointment.appointmentId,
                                                 numberOfVisitors: visitorCountValue,
                                             }, {
-                                                onSuccess: () => setEditingVisitorCount(false),
+                                                onSuccess: () => {
+                                                    toast.success(t('visitorCountUpdated'));
+                                                    setEditingVisitorCount(false);
+                                                },
                                             });
                                         }}
                                         disabled={updateVisitorCountMutation.isPending}

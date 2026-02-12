@@ -133,13 +133,8 @@ public class AnalyticsService {
                         for (Object[] row : appointmentRepository.countConfirmedShowingsByTransactionIds(sellTxIds)) {
                                 showingsCountsByTxId.put((UUID) row[0], ((Number) row[1]).intValue());
                         }
-                        for (Appointment a : allAppointments) {
-                                if (a.getTransactionId() != null
-                                                && ("open_house".equalsIgnoreCase(a.getTitle()) || "private_showing".equalsIgnoreCase(a.getTitle()))
-                                                && a.getStatus() == AppointmentStatus.CONFIRMED
-                                                && a.getNumberOfVisitors() != null) {
-                                        visitorsCountsByTxId.merge(a.getTransactionId(), a.getNumberOfVisitors(), Integer::sum);
-                                }
+                        for (Object[] row : appointmentRepository.sumVisitorsByTransactionIds(sellTxIds)) {
+                                visitorsCountsByTxId.put((UUID) row[0], ((Number) row[1]).intValue());
                         }
                 }
 

@@ -211,6 +211,18 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         int sumVisitorsByTransactionId(@Param("transactionId") UUID transactionId);
 
         /**
+         * Batch sum numberOfVisitors for confirmed sell-side showings per transaction.
+         * Returns rows of [transactionId, visitorSum].
+         */
+        @Query("SELECT a.transactionId, COALESCE(SUM(a.numberOfVisitors), 0) FROM Appointment a " +
+                        "WHERE a.transactionId IN :transactionIds " +
+                        "AND a.title IN ('open_house', 'private_showing') " +
+                        "AND a.status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED " +
+                        "AND a.deletedAt IS NULL " +
+                        "GROUP BY a.transactionId")
+        List<Object[]> sumVisitorsByTransactionIds(@Param("transactionIds") List<UUID> transactionIds);
+
+        /**
          * Count confirmed private showings for a specific visitor (for timesVisited).
          */
         @Query("SELECT COUNT(a) FROM Appointment a WHERE a.visitorId = :visitorId " +

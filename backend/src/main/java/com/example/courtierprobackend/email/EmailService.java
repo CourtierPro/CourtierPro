@@ -749,7 +749,7 @@ public class EmailService {
         if (title == null) return isFrench ? "Rendez-vous" : "Appointment";
         return switch (title.toLowerCase()) {
             case "house_visit" -> isFrench ? "Visite de maison" : "House Visit";
-            case "open_house" -> isFrench ? "Journée portes ouvertes" : "Open House";
+            case "open_house" -> isFrench ? "Portes ouvertes" : "Open House";
             case "private_showing" -> isFrench ? "Visite privée" : "Private Showing";
             case "inspection" -> isFrench ? "Inspection" : "Inspection";
             case "notary" -> isFrench ? "Notaire" : "Notary";
@@ -768,7 +768,7 @@ public class EmailService {
             case "CONFIRMED" -> isFrench ? "Confirmé" : "Confirmed";
             case "DECLINED" -> isFrench ? "Refusé" : "Declined";
             case "CANCELLED" -> isFrench ? "Annulé" : "Cancelled";
-            case "RESCHEDULED" -> isFrench ? "Reporté" : "Rescheduled";
+
             case "PROPOSED" -> isFrench ? "Proposé" : "Proposed";
             default -> status;
         };
