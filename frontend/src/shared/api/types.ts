@@ -83,6 +83,8 @@ export interface TransactionResponseDTO {
   currentStage: string;
   status: string;
   openedDate?: string;
+  openedAt?: string;
+  lastUpdated?: string;
   centrisNumber?: string;
 }
 
@@ -213,6 +215,7 @@ export interface Property {
   offerAmount?: number;
   centrisNumber?: string;
   notes?: string; // Only present for brokers
+  timesVisited?: number;
   createdAt: string;
   updatedAt: string;
 }

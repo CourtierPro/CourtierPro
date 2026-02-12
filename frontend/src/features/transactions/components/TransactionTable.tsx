@@ -7,6 +7,7 @@ import { Button } from "@/shared/components/ui/button";
 import { getStagesForSide, enumToLabel, resolveStageIndex } from '@/shared/utils/stages';
 import { type Transaction } from '@/features/transactions/api/queries';
 import { usePinTransaction, useUnpinTransaction, useArchiveTransaction, useUnarchiveTransaction } from '@/features/transactions/api/mutations';
+import { formatDate } from '@/shared/utils/date';
 
 interface TransactionTableProps {
     transactions: Transaction[];
@@ -71,6 +72,9 @@ export function TransactionTable({ transactions, onNavigate, pinnedIds, showArch
                             </th>
                             <th className="p-4 text-left font-medium text-muted-foreground" scope="col">
                                 {t('statusLabel')}
+                            </th>
+                            <th className="p-4 text-left font-medium text-muted-foreground" scope="col">
+                                {t('lastUpdated', { defaultValue: 'Last Updated' })}
                             </th>
                             <th className="p-4 text-left font-medium text-muted-foreground" scope="col">
                                 {t('openedDate')}
@@ -138,7 +142,10 @@ export function TransactionTable({ transactions, onNavigate, pinnedIds, showArch
                                         <StatusBadge status={transaction.status} />
                                     </td>
                                     <td className="p-4 text-muted-foreground">
-                                        {transaction.openedDate ?? (transaction.openedAt ? transaction.openedAt.substring(0, 10) : '')}
+                                        {formatDate(transaction.lastUpdated ?? transaction.openedDate ?? transaction.openedAt)}
+                                    </td>
+                                    <td className="p-4 text-muted-foreground">
+                                        {formatDate(transaction.openedDate ?? transaction.openedAt)}
                                     </td>
                                     <td className="p-4">
                                         <Button

@@ -39,6 +39,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
     private final UserAccountRepository userAccountRepository;
     private final com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
     private final com.example.courtierprobackend.appointments.datalayer.AppointmentRepository appointmentRepository;
+    private final com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService;
 
     @Override
     public ResourceListResponse listResources(AdminDeletionAuditLog.ResourceType type, boolean includeDeleted) {
@@ -463,6 +464,10 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         createAuditLog(AdminDeletionAuditLog.ActionType.DELETE,
                 AdminDeletionAuditLog.ResourceType.APPOINTMENT, appointmentId, adminId,
                 buildAppointmentSnapshot(appointment), new ArrayList<>());
+
+        // New Appointment Audit Integration
+        appointmentAuditService.logAction(appointmentId, "ADMIN_DELETED", adminId,
+                "Appointment soft-deleted by administrator");
     }
 
     @Override
@@ -601,6 +606,10 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         createAuditLog(AdminDeletionAuditLog.ActionType.RESTORE,
                 AdminDeletionAuditLog.ResourceType.APPOINTMENT, appointmentId, adminId,
                 buildAppointmentSnapshot(appointment), new ArrayList<>());
+
+        // New Appointment Audit Integration
+        appointmentAuditService.logAction(appointmentId, "ADMIN_RESTORED", adminId,
+                "Appointment restored by administrator");
     }
 
     @Override

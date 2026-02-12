@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     status VARCHAR(50),
     opened_at TIMESTAMP,
     closed_at TIMESTAMP,
+    last_updated TIMESTAMP,
     -- Optimistic locking version column
     version BIGINT DEFAULT 0,
     -- Archive columns

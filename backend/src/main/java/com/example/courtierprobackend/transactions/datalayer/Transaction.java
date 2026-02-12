@@ -54,6 +54,8 @@ public class Transaction {
 
     private LocalDateTime closedAt;
 
+    private LocalDateTime lastUpdated;
+
     // Internal notes for brokers
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
@@ -77,4 +79,19 @@ public class Transaction {
     // Soft delete fields
     private LocalDateTime deletedAt;
     private UUID deletedBy;
+
+    @PrePersist
+    protected void onCreate() {
+        if (transactionId == null) {
+            transactionId = UUID.randomUUID();
+        }
+        if (lastUpdated == null) {
+            lastUpdated = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        lastUpdated = LocalDateTime.now();
+    }
 }

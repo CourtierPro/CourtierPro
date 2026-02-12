@@ -2,174 +2,215 @@ package com.example.courtierprobackend.email;
 
 import com.example.courtierprobackend.Organization.businesslayer.OrganizationSettingsService;
 import com.example.courtierprobackend.Organization.presentationlayer.model.OrganizationSettingsResponseModel;
+import com.example.courtierprobackend.appointments.datalayer.Appointment;
 import com.example.courtierprobackend.documents.datalayer.Document;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.TransactionRef;
+import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Transport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
-import software.amazon.awssdk.services.ses.SesClient;
-import software.amazon.awssdk.services.ses.model.SesException;
 
-import jakarta.mail.MessagingException;
-import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class EmailServiceCoverageTest {
 
-    @Mock
-    private OrganizationSettingsService organizationSettingsService;
-
-    @Mock
-    private UserAccountRepository userAccountRepository;
-
-    @Mock
-    private SesClient sesClient;
+    @Mock private OrganizationSettingsService organizationSettingsService;
+    @Mock private UserAccountRepository userAccountRepository;
 
     private EmailService emailService;
 
     @BeforeEach
-    void setup() {
-        // Initialize with default SMTP values
+    void setUp() {
         emailService = new EmailService(
-                "user", "pass", "smtp.gmail.com", "587",
-                organizationSettingsService, userAccountRepository, sesClient
+                "user", "pass", "host", "587",
+                organizationSettingsService,
+                userAccountRepository,
+                null
         );
-        ReflectionTestUtils.setField(emailService, "emailProvider", "gmail");
+        // Inject fromAddress used in SES path, though SMTP uses gmailUsername.
+        // Doing this to be safe and consistent.
         ReflectionTestUtils.setField(emailService, "fromAddress", "noreply@courtierpro.com");
-    }
 
-    @Test
-    void sendPasswordSetupEmail_withException_returnsFalse_andLogs() {
-        // Mock settings
-        OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
-                .defaultLanguage("en")
-                .build();
+        // Default settings
+        OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder().build();
         when(organizationSettingsService.getSettings()).thenReturn(settings);
-
-        // Force an exception by passing an invalid email that might cause issues (though standard email checks are loose)
-        // Or simpler: Mock convertPlainTextToHtml or internal call?
-        // Easier: The method catches MessagingException. We can simulate it if we mock the internal sendEmail call?
-        // Since sendEmail is package-private, we can spy on the service or testing the logic that calls sendEmail.
-        // However, standard Mockito spy on 'this' is tricky.
-        // Instead, we can verify the logic branches before the exception or rely on integration-style failure.
-        // To strictly test the catch block at line 105:
-        // We can force one of the internal methods to throw if possible, or use a bad config.
-        
-        // Let's test the fallback languages first (lines 76-83)
-        emailService.sendPasswordSetupEmail("test@example.com", "link", null);
-        verify(organizationSettingsService).getSettings();
     }
 
+    // --- translateDocumentType ---
+
     @Test
-    void sendDocumentSubmittedNotification_userDisabledNotifications_returnsEarly() {
-        String brokerEmail = "broker@example.com";
-        UserAccount broker = new UserAccount();
-        broker.setEmailNotificationsEnabled(false);
+    void translateDocumentType_coversAllCases() {
+        assertThat(emailService.translateDocumentType("MORTGAGE_PRE_APPROVAL", false)).isEqualTo("Mortgage Pre-Approval");
+        assertThat(emailService.translateDocumentType("MORTGAGE_PRE_APPROVAL", true)).isEqualTo("Pré-approbation hypothécaire");
         
-        when(userAccountRepository.findByEmail(brokerEmail)).thenReturn(Optional.of(broker));
+        assertThat(emailService.translateDocumentType(null, false)).isEqualTo("Other");
+        assertThat(emailService.translateDocumentType(null, true)).isEqualTo("Autre");
 
-        Document req = new Document();
-        
-        emailService.sendDocumentSubmittedNotification(req, brokerEmail, "Uploader", "Doc", "Other", "en");
-
-        // Verify sentEmail NOT called (we can't verify private methods easily, but we can verify no interactions with SES client etc)
-        // In SMTP mode it creates a session.
-        // We satisfied the guard clause at line 116.
+        assertThat(emailService.translateDocumentType("UNKNOWN_TYPE", false)).isEqualTo("UNKNOWN_TYPE");
     }
 
-    @Test
-    void sendDocumentRequestedNotification_userDisabledNotifications_returnsEarly() {
-        String clientEmail = "client@example.com";
-        UserAccount client = new UserAccount();
-        client.setEmailNotificationsEnabled(false);
-        
-        when(userAccountRepository.findByEmail(clientEmail)).thenReturn(Optional.of(client));
+    // --- translateAppointmentTitle ---
 
-        emailService.sendDocumentRequestedNotification(clientEmail, "Client", "Broker", "Doc", "Type", "Notes", "en", false);
+    @Test
+    void translateAppointmentTitle_coversAllCases() {
+        assertThat(emailService.translateAppointmentTitle("house_visit", false)).isEqualTo("House Visit");
+        assertThat(emailService.translateAppointmentTitle("house_visit", true)).isEqualTo("Visite de maison");
+
+        assertThat(emailService.translateAppointmentTitle(null, false)).isEqualTo("Appointment");
+        assertThat(emailService.translateAppointmentTitle(null, true)).isEqualTo("Rendez-vous");
+
+        assertThat(emailService.translateAppointmentTitle("Unknown", false)).isEqualTo("Unknown");
     }
 
-    @Test
-    void sendEmailSes_success() {
-        ReflectionTestUtils.setField(emailService, "emailProvider", "ses");
-        
-        boolean result = false;
-        try {
-            result = emailService.sendEmail("test@example.com", "Subject", "Body");
-        } catch (Exception e) {
-            // ignore
-        }
-        
-        assertThat(result).isTrue();
-        verify(sesClient).sendEmail(any(software.amazon.awssdk.services.ses.model.SendEmailRequest.class));
-    }
+    // --- sendDocumentSubmittedNotification ---
 
     @Test
-    void sendEmailSes_exception_returnsFalse() {
-        ReflectionTestUtils.setField(emailService, "emailProvider", "ses");
-        
-        when(sesClient.sendEmail(any(software.amazon.awssdk.services.ses.model.SendEmailRequest.class)))
-            .thenThrow(SesException.builder().message("SES Error").build());
-
-        boolean result = false;
-        try {
-            result = emailService.sendEmail("test@example.com", "Subject", "Body");
-        } catch (Exception e) {
-            // ignore
-        }
-
-        assertThat(result).isFalse();
-    }
-    
-    @Test
-    void sendDocumentSubmittedNotification_fallbackSubjectAndBody() {
-        String brokerEmail = "broker@example.com";
+    void sendDocumentSubmittedNotification_nullDocTypeAndName_fallsBack() {
+        String brokerEmail = "broker@test.com";
         UserAccount broker = new UserAccount();
         broker.setEmailNotificationsEnabled(true);
         when(userAccountRepository.findByEmail(brokerEmail)).thenReturn(Optional.of(broker));
-        
-        OrganizationSettingsResponseModel settings = new OrganizationSettingsResponseModel(); // null fields
-        when(organizationSettingsService.getSettings()).thenReturn(settings);
-        
-        Document req = new Document();
-        req.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), null));
 
-        // Use reflection to switch provider to SES to easily mock the send behavior
-        ReflectionTestUtils.setField(emailService, "emailProvider", "ses");
+        Document doc = mock(Document.class);
+        when(doc.getTransactionRef()).thenReturn(new TransactionRef(UUID.randomUUID(), null, TransactionSide.BUY_SIDE));
 
-        emailService.sendDocumentSubmittedNotification(req, brokerEmail, "Uploader", "Doc", "OTHER", "en");
-        
-        verify(sesClient).sendEmail(any(software.amazon.awssdk.services.ses.model.SendEmailRequest.class));
+        try (MockedStatic<Transport> transport = mockStatic(Transport.class)) {
+            emailService.sendDocumentSubmittedNotification(doc, brokerEmail, "Uploader", null, null, "en");
+            
+            transport.verify(() -> Transport.send(any(Message.class)), times(1));
+        }
     }
 
     @Test
-    void sendDocumentStatusUpdatedNotification_catchException() {
-         // To hit line 356 (catch MessagingException), we can force SES failure or try to send to invalid email with SMTP?
-         // SES failure is easier.
-         ReflectionTestUtils.setField(emailService, "emailProvider", "ses");
-         when(sesClient.sendEmail(any(software.amazon.awssdk.services.ses.model.SendEmailRequest.class)))
-            .thenThrow(SesException.builder()
-                .awsErrorDetails(software.amazon.awssdk.awscore.exception.AwsErrorDetails.builder().errorMessage("Failed").build())
-                .build());
-         when(organizationSettingsService.getSettings()).thenReturn(OrganizationSettingsResponseModel.builder().build());
+    void sendDocumentSubmittedNotification_messagingException_logsError() {
+        String brokerEmail = "broker@test.com";
+        UserAccount broker = new UserAccount();
+        broker.setEmailNotificationsEnabled(true);
+        when(userAccountRepository.findByEmail(brokerEmail)).thenReturn(Optional.of(broker));
+
+        Document doc = mock(Document.class);
+        when(doc.getTransactionRef()).thenReturn(new TransactionRef(UUID.randomUUID(), null, TransactionSide.BUY_SIDE));
+
+        try (MockedStatic<Transport> transport = mockStatic(Transport.class)) {
+            transport.when(() -> Transport.send(any(Message.class))).thenThrow(new MessagingException("Fail"));
             
-        Document req = new Document();
-        req.setBrokerNotes("Notes");
-        req.setTransactionRef(new TransactionRef(UUID.randomUUID(), UUID.randomUUID(), com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE));
+            // Should not throw
+            emailService.sendDocumentSubmittedNotification(doc, brokerEmail, "Uploader", "Doc", "Type", "en");
+        }
+    }
+
+    // --- sendDocumentRequestedNotification ---
+
+    @Test
+    void sendDocumentRequestedNotification_signatureRequired_nullBody_usesTemplate() {
+        String clientEmail = "client@test.com";
+        UserAccount client = new UserAccount();
+        client.setEmailNotificationsEnabled(true);
+        when(userAccountRepository.findByEmail(clientEmail)).thenReturn(Optional.of(client));
+
+        // Settings with null body
+        when(organizationSettingsService.getSettings()).thenReturn(OrganizationSettingsResponseModel.builder().build());
+
+        try (MockedStatic<Transport> transport = mockStatic(Transport.class)) {
+            emailService.sendDocumentRequestedNotification(clientEmail, "Name", "Broker", "Doc", "Type", "Note", "en", true);
+            
+            transport.verify(() -> Transport.send(any(Message.class)), times(1));
+        }
+    }
+
+    @Test
+    void sendDocumentRequestedNotification_noSignature_nullBody_usesTemplate() {
+        String clientEmail = "client@test.com";
+        UserAccount client = new UserAccount();
+        client.setEmailNotificationsEnabled(true);
+        when(userAccountRepository.findByEmail(clientEmail)).thenReturn(Optional.of(client));
+
+        // Settings with null body
+        when(organizationSettingsService.getSettings()).thenReturn(OrganizationSettingsResponseModel.builder().build());
+
+        try (MockedStatic<Transport> transport = mockStatic(Transport.class)) {
+            emailService.sendDocumentRequestedNotification(clientEmail, "Name", "Broker", "Doc", "Type", "Note", "en", false);
+            
+            transport.verify(() -> Transport.send(any(Message.class)), times(1));
+        }
+    }
+
+    // --- sendAppointmentConfirmedNotification ---
+
+    @Test
+    void sendAppointmentConfirmedNotification_sendsEmail() {
+        String clientEmail = "client@test.com";
+        UserAccount client = new UserAccount();
+        client.setEmailNotificationsEnabled(true);
+        when(userAccountRepository.findByEmail(clientEmail)).thenReturn(Optional.of(client));
+
+        Appointment appt = new Appointment();
+        appt.setTitle("house_visit");
+        appt.setFromDateTime(LocalDateTime.now());
         
-        emailService.sendDocumentStatusUpdatedNotification(req, "test@example.com", "Client", "Broker", "Doc", "Type", "en");
-        
-        // Should catch exception and log error, not throw
+        try (MockedStatic<Transport> transport = mockStatic(Transport.class)) {
+            emailService.sendAppointmentConfirmedNotification(appt, clientEmail, "Client", "en");
+            
+            transport.verify(() -> Transport.send(any(Message.class)), times(1));
+        }
+    }
+
+    // --- sendAppointmentStatusUpdateNotification ---
+
+    @Test
+    void sendAppointmentStatusUpdateNotification_sendsEmail() {
+        String clientEmail = "client@test.com";
+        UserAccount client = new UserAccount();
+        client.setEmailNotificationsEnabled(true);
+        when(userAccountRepository.findByEmail(clientEmail)).thenReturn(Optional.of(client));
+
+        Appointment appt = new Appointment();
+        appt.setTitle("house_visit");
+        appt.setFromDateTime(LocalDateTime.now());
+
+        try (MockedStatic<Transport> transport = mockStatic(Transport.class)) {
+            emailService.sendAppointmentStatusUpdateNotification(appt, clientEmail, "Client", "fr", "CANCELLED", "Reason");
+
+            transport.verify(() -> Transport.send(any(Message.class)), times(1));
+        }
+    }
+
+    // --- sendAppointmentReminderNotification ---
+
+    @Test
+    void sendAppointmentReminderNotification_sendsEmail() {
+        String clientEmail = "client@test.com";
+        UserAccount client = new UserAccount();
+        client.setEmailNotificationsEnabled(true);
+        when(userAccountRepository.findByEmail(clientEmail)).thenReturn(Optional.of(client));
+
+        Appointment appt = new Appointment();
+        appt.setTitle("house_visit");
+        appt.setFromDateTime(LocalDateTime.now());
+
+        try (MockedStatic<Transport> transport = mockStatic(Transport.class)) {
+            emailService.sendAppointmentReminderNotification(appt, clientEmail, "Client", "en");
+
+            transport.verify(() -> Transport.send(any(Message.class)), times(1));
+        }
     }
 }

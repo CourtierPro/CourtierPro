@@ -62,6 +62,8 @@ class AdminResourceServiceImplTest {
         private com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
         @Mock
         private AppointmentRepository appointmentRepository;
+        @Mock
+        private com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService;
 
         private AdminResourceServiceImpl service;
         private ObjectMapper objectMapper;
@@ -78,7 +80,8 @@ class AdminResourceServiceImplTest {
                                 objectMapper,
                                 userAccountRepository,
                                 notificationService,
-                                appointmentRepository);
+                                appointmentRepository,
+                                appointmentAuditService);
         }
 
         // ========== listResources Tests ==========
@@ -814,7 +817,8 @@ class AdminResourceServiceImplTest {
                                 mockMapper,
                                 userAccountRepository,
                                 notificationService,
-                                appointmentRepository);
+                                appointmentRepository,
+                                appointmentAuditService);
 
                 when(mockMapper.writeValueAsString(any()))
                                 .thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("Fail") {
@@ -856,7 +860,8 @@ class AdminResourceServiceImplTest {
                                 mockMapper,
                                 userAccountRepository,
                                 notificationService,
-                                appointmentRepository);
+                                appointmentRepository,
+                                appointmentAuditService);
 
                 // Use doAnswer to conditionally fail only for the Map (snapshot) and succeed
                 // for List (cascaded)
@@ -941,7 +946,8 @@ class AdminResourceServiceImplTest {
                                 mockMapper,
                                 userAccountRepository,
                                 notificationService,
-                                appointmentRepository);
+                                appointmentRepository,
+                                appointmentAuditService);
 
                 // Use doAnswer to conditionally fail only for the Map (snapshot) and succeed
                 // for List (cascaded)

@@ -22,6 +22,7 @@ export function UpcomingAppointmentsCard({
     daysAhead = 2
 }: UpcomingAppointmentsCardProps) {
     const { t } = useTranslation("dashboard");
+    const { t: tAppt } = useTranslation("appointments");
     const navigate = useNavigate();
     const { data: appointments, isLoading, error } = useAppointments();
 
@@ -148,7 +149,7 @@ export function UpcomingAppointmentsCard({
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="font-medium text-sm">
-                                        {apt.title}
+                                        {String(tAppt(apt.title.toLowerCase(), apt.title))}
                                     </div>
                                     <div className="text-xs text-muted-foreground truncate">
                                         {apt.clientName}

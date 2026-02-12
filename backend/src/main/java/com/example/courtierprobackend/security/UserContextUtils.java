@@ -2,8 +2,10 @@ package com.example.courtierprobackend.security;
 
 import com.example.courtierprobackend.common.exceptions.ForbiddenException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
 
+import java.util.Arrays;
 import java.util.UUID;
 
 public class UserContextUtils {
@@ -11,15 +13,16 @@ public class UserContextUtils {
     /**
      * Resolves the internal user UUID from the request attributes (set by UserContextFilter).
      * Also supports an optional override ID (typically from a header) for development/testing flexibility.
+     * The override is only honored when the "dev" Spring profile is active.
      *
      * @param request    The HTTP request containing the internalUserId attribute.
-     * @param overrideId Optional ID string (e.g. from x-broker-id header). If present, it takes precedence.
+     * @param overrideId Optional ID string (e.g. from x-broker-id header). If present and dev profile is active, it takes precedence.
      * @return The resolved UUID.
      * @throws ForbiddenException if the user ID cannot be resolved.
      */
     public static UUID resolveUserId(HttpServletRequest request, String overrideId) {
-        // DEV mode: header override
-        if (StringUtils.hasText(overrideId)) {
+        // DEV mode only: header override
+        if (StringUtils.hasText(overrideId) && isOverrideAllowed(request)) {
             return UUID.fromString(overrideId);
         }
 
@@ -56,5 +59,27 @@ public class UserContextUtils {
             return false;
         }
         return "BROKER".equalsIgnoreCase(role.toString());
+    }
+
+    /**
+     * Checks whether the header override should be allowed.
+     * It is blocked only when the "prod" Spring profile is active.
+     * In dev, test, and default environments the override is allowed.
+     */
+    private static boolean isOverrideAllowed(HttpServletRequest request) {
+        if (request == null || request.getServletContext() == null) {
+            return true;
+        }
+        try {
+            var ctx = org.springframework.web.context.support.WebApplicationContextUtils
+                    .getWebApplicationContext(request.getServletContext());
+            if (ctx == null) {
+                return true;
+            }
+            Environment env = ctx.getEnvironment();
+            return !Arrays.asList(env.getActiveProfiles()).contains("prod");
+        } catch (Exception e) {
+            return true;
+        }
     }
 }

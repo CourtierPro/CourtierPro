@@ -29,7 +29,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
   const [sideFilter, setSideFilter] = useState<'all' | 'buy' | 'sell'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY'>('ACTIVE');
   const [stageFilter, setStageFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc'>('dateDesc');
+  const [sortBy, setSortBy] = useState<'dateAsc' | 'dateDesc' | 'lastUpdatedDesc' | 'lastUpdatedAsc'>('lastUpdatedAsc');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,7 +93,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     setCurrentPage(1);
   };
 
-  const handleSortByChange = (value: 'dateAsc' | 'dateDesc') => {
+  const handleSortByChange = (value: 'dateAsc' | 'dateDesc' | 'lastUpdatedDesc' | 'lastUpdatedAsc') => {
     setSortBy(value);
     setCurrentPage(1);
   };
@@ -121,10 +121,20 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     switch (sortBy) {
       case 'dateAsc':
         return aTime - bTime;
-
       case 'dateDesc':
-      default:
         return bTime - aTime;
+      case 'lastUpdatedAsc': {
+        // Fall back to openedDate if lastUpdated is missing (e.g. legacy data)
+        const aLast = a.lastUpdated ? parseToTimestamp(a.lastUpdated) : aTime;
+        const bLast = b.lastUpdated ? parseToTimestamp(b.lastUpdated) : bTime;
+        return aLast - bLast;
+      }
+      case 'lastUpdatedDesc':
+      default: {
+        const aLast = a.lastUpdated ? parseToTimestamp(a.lastUpdated) : aTime;
+        const bLast = b.lastUpdated ? parseToTimestamp(b.lastUpdated) : bTime;
+        return bLast - aLast;
+      }
     }
   });
 
@@ -150,7 +160,7 @@ export function TransactionList({ language, onNavigate }: TransactionListProps) 
     setSideFilter('all');
     setStatusFilter('all');
     setStageFilter('all');
-    setSortBy('dateDesc');
+    setSortBy('lastUpdatedAsc');
     setSearchTerm('');
     setCurrentPage(1);
   };

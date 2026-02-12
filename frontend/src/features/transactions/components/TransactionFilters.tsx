@@ -15,11 +15,11 @@ interface TransactionFiltersProps {
     sideFilter: 'all' | 'buy' | 'sell';
     statusFilter: 'all' | 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY';
     stageFilter: string;
-    sortBy: 'dateAsc' | 'dateDesc';
+    sortBy: 'dateAsc' | 'dateDesc' | 'lastUpdatedDesc' | 'lastUpdatedAsc';
     onSideFilterChange: (value: 'all' | 'buy' | 'sell') => void;
     onStatusFilterChange: (value: 'all' | 'ACTIVE' | 'CLOSED_SUCCESSFULLY' | 'TERMINATED_EARLY') => void;
     onStageFilterChange: (value: string) => void;
-    onSortByChange: (value: 'dateAsc' | 'dateDesc') => void;
+    onSortByChange: (value: 'dateAsc' | 'dateDesc' | 'lastUpdatedDesc' | 'lastUpdatedAsc') => void;
     onResetFilters: () => void;
     hasActiveFilters: boolean;
 }
@@ -40,11 +40,17 @@ export function TransactionFilters({
 
     // Get available stages based on selected side (deduplicated labels)
     const availableStages = (() => {
-        if (sideFilter === 'buy') return getStagesForSide('BUY_SIDE').map(enumToLabel);
-        if (sideFilter === 'sell') return getStagesForSide('SELL_SIDE').map(enumToLabel);
-        const combined = [...getStagesForSide('BUY_SIDE'), ...getStagesForSide('SELL_SIDE')];
-        const uniqueEnums = Array.from(new Set(combined));
-        return uniqueEnums.map(enumToLabel);
+        let stages: string[] = [];
+        if (sideFilter === 'buy') {
+            stages = getStagesForSide('BUY_SIDE');
+        } else if (sideFilter === 'sell') {
+            stages = getStagesForSide('SELL_SIDE');
+        } else {
+            stages = [...getStagesForSide('BUY_SIDE'), ...getStagesForSide('SELL_SIDE')];
+        }
+        
+        // Convert to labels, then deduplicate
+        return Array.from(new Set(stages.map(s => enumToLabel(s))));
     })();
 
     return (
@@ -130,12 +136,14 @@ export function TransactionFilters({
                     </label>
                     <Select
                         value={sortBy}
-                        onValueChange={(value) => onSortByChange(value as 'dateAsc' | 'dateDesc')}
+                        onValueChange={(value) => onSortByChange(value as 'dateAsc' | 'dateDesc' | 'lastUpdatedDesc' | 'lastUpdatedAsc')}
                     >
                         <SelectTrigger id="sort-by" className="w-full">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="lastUpdatedDesc">{t('lastUpdatedDesc')}</SelectItem>
+                            <SelectItem value="lastUpdatedAsc">{t('lastUpdatedAsc')}</SelectItem>
                             <SelectItem value="dateDesc">{t('dateOpenedDesc')}</SelectItem>
                             <SelectItem value="dateAsc">{t('dateOpenedAsc')}</SelectItem>
                         </SelectContent>

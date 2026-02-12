@@ -127,9 +127,14 @@ export function TransactionCards({ transactions, onNavigate, pinnedIds, showArch
                                     </p>
                                 </div>
 
-                                <p className="text-sm text-muted-foreground">
-                                    {t('openedDate')}: {formatDate(transaction.openedDate ?? transaction.openedAt)}
-                                </p>
+                                <div className="space-y-1">
+                                    <p className="text-sm text-muted-foreground">
+                                        {t('lastUpdated', { defaultValue: 'Last Updated' })}: {formatDate(transaction.lastUpdated ?? transaction.openedDate ?? transaction.openedAt)}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {t('openedDate')}: {formatDate(transaction.openedDate ?? transaction.openedAt)}
+                                    </p>
+                                </div>
                             </div>
                         </button>
                     </div>

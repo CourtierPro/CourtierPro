@@ -73,6 +73,12 @@ export function TransactionInfo({ transaction, hideClientLabel = false, onClient
             {formatDate(transaction.openedDate ?? transaction.openedAt)}
           </p>
         </div>
+        {transaction.side === 'BUY_SIDE' && transaction.houseVisitCount != null && (
+          <div className="mt-2">
+            <p className="text-xs text-muted-foreground">{t('houseVisits')}</p>
+            <p className="text-sm font-medium text-foreground">{transaction.houseVisitCount}</p>
+          </div>
+        )}
       </div>
     </Section>
   );

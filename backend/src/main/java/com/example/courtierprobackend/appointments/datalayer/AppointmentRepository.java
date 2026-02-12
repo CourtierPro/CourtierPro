@@ -128,17 +128,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
          * - starting between start and end
          * - reminder not sent yet
          * - status is NOT the excluded status (e.g. CANCELLED / DECLINED)
-         * 
-         * Note: JPA method naming convention or @Query can be used.
-         * We'll use a custom query for clarity and to handle multiple status exclusions
-         * if needed,
-         * or simply chain the method name if it's just one status. But the requirement
-         * asks for "NOT CANCELLED/DECLINED".
-         * So better to use a query or a method that takes a list of statuses to exclude
-         * (NotInto).
-         * 
-         * Requirement: "query the repository for appointments starting between 24h and
-         * 25h from now that have reminderSent = false and are not CANCELLED/DECLINED"
          */
         List<Appointment> findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotIn(
                         LocalDateTime start,
@@ -158,4 +147,47 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
          */
         @Query(value = "SELECT * FROM appointments WHERE transaction_id = :transactionId", nativeQuery = true)
         List<Appointment> findByTransactionIdIncludingDeleted(@Param("transactionId") UUID transactionId);
+
+        /**
+         * Count confirmed house visit appointments for a specific property.
+         */
+        @Query("SELECT COUNT(a) FROM Appointment a WHERE a.propertyId = :propertyId " +
+                        "AND a.title = 'house_visit' AND a.status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED "
+                        +
+                        "AND a.deletedAt IS NULL")
+        int countConfirmedHouseVisitsByPropertyId(@Param("propertyId") UUID propertyId);
+
+        /**
+         * Count confirmed house visit appointments for a specific transaction.
+         */
+        @Query("SELECT COUNT(a) FROM Appointment a WHERE a.transactionId = :transactionId " +
+                        "AND a.title = 'house_visit' AND a.status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED "
+                        +
+                        "AND a.deletedAt IS NULL")
+        int countConfirmedHouseVisitsByTransactionId(@Param("transactionId") UUID transactionId);
+
+        /**
+         * Batch count confirmed house visits per property for a list of property IDs.
+         * Returns rows of [propertyId, count].
+         */
+        @Query("SELECT a.propertyId, COUNT(a) FROM Appointment a " +
+                        "WHERE a.propertyId IN :propertyIds " +
+                        "AND a.title = 'house_visit' AND a.status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED "
+                        +
+                        "AND a.deletedAt IS NULL " +
+                        "GROUP BY a.propertyId")
+        List<Object[]> countConfirmedHouseVisitsByPropertyIds(@Param("propertyIds") List<UUID> propertyIds);
+
+        /**
+         * Batch count confirmed house visits per transaction for a list of transaction
+         * IDs.
+         * Returns rows of [transactionId, count].
+         */
+        @Query("SELECT a.transactionId, COUNT(a) FROM Appointment a " +
+                        "WHERE a.transactionId IN :transactionIds " +
+                        "AND a.title = 'house_visit' AND a.status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED "
+                        +
+                        "AND a.deletedAt IS NULL " +
+                        "GROUP BY a.transactionId")
+        List<Object[]> countConfirmedHouseVisitsByTransactionIds(@Param("transactionIds") List<UUID> transactionIds);
 }

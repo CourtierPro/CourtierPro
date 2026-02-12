@@ -58,6 +58,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         private final com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService;
         private final com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
         private final com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository;
+        private final com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository propertyRepository;
 
         public AppointmentServiceImpl(AppointmentRepository appointmentRepository,
                         UserAccountRepository userAccountRepository,
@@ -66,7 +67,8 @@ public class AppointmentServiceImpl implements AppointmentService {
                         com.example.courtierprobackend.email.EmailService emailService,
                         com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService,
                         com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService,
-                        com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository) {
+                        com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository,
+                        com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository propertyRepository) {
                 this.appointmentRepository = appointmentRepository;
                 this.userAccountRepository = userAccountRepository;
                 this.transactionRepository = transactionRepository;
@@ -75,6 +77,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 this.timelineService = timelineService;
                 this.notificationService = notificationService;
                 this.transactionParticipantRepository = transactionParticipantRepository;
+                this.propertyRepository = propertyRepository;
         }
 
         @Override
@@ -315,6 +318,27 @@ public class AppointmentServiceImpl implements AppointmentService {
                         appointment.setTitle(request.title());
                 } else {
                         appointment.setTitle(request.type());
+                }
+
+                // Validate house_visit type: requires BUY_SIDE transaction and a valid property
+                if ("house_visit".equalsIgnoreCase(request.type())) {
+                        if (transaction.getSide() != com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE) {
+                                throw new IllegalArgumentException(
+                                                "House visit appointments can only be created for buy-side transactions");
+                        }
+                        if (request.propertyId() == null) {
+                                throw new IllegalArgumentException(
+                                                "Property must be selected for house visit appointments");
+                        }
+                        com.example.courtierprobackend.transactions.datalayer.Property property = propertyRepository
+                                        .findByPropertyId(request.propertyId())
+                                        .orElseThrow(() -> new NotFoundException(
+                                                        "Property not found: " + request.propertyId()));
+                        if (!property.getTransactionId().equals(transaction.getTransactionId())) {
+                                throw new IllegalArgumentException(
+                                                "Property does not belong to this transaction");
+                        }
+                        appointment.setPropertyId(request.propertyId());
                 }
 
                 LocalDateTime start = LocalDateTime.of(request.date(), request.startTime());
@@ -722,7 +746,8 @@ public class AppointmentServiceImpl implements AppointmentService {
                                 apt.getCancellationReason(),
                                 apt.getCancelledBy(),
                                 apt.getCreatedAt(),
-                                apt.getUpdatedAt());
+                                apt.getUpdatedAt(),
+                                apt.getPropertyId());
         }
 
         /**

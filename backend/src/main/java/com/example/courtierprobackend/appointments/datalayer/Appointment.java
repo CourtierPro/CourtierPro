@@ -30,6 +30,9 @@ public class Appointment {
     @Column(name = "transaction_id")
     private UUID transactionId;
 
+    @Column(name = "property_id")
+    private UUID propertyId;
+
     @Column(name = "broker_id", nullable = false)
     private UUID brokerId;
 
@@ -152,6 +155,14 @@ public class Appointment {
 
     public void setTransactionId(UUID transactionId) {
         this.transactionId = transactionId;
+    }
+
+    public UUID getPropertyId() {
+        return propertyId;
+    }
+
+    public void setPropertyId(UUID propertyId) {
+        this.propertyId = propertyId;
     }
 
     public UUID getBrokerId() {
