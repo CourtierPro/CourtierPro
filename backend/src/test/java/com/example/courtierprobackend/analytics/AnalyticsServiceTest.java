@@ -285,6 +285,24 @@ class AnalyticsServiceTest {
                     eq(mockClientIds)
             );
         }
+
+        @Test
+        void getAnalytics_withClientFilter_noMatchingClients_returnsEmptyWithoutRepositoryCalls() {
+            String clientName = "NonExistentClient";
+            AnalyticsFilterRequest filters = AnalyticsFilterRequest.builder()
+                    .clientName(clientName)
+                    .build();
+
+            when(userAccountRepository.findIdsBySearchQuery(clientName)).thenReturn(Collections.emptyList());
+
+            AnalyticsDTO result = analyticsService.getAnalytics(brokerId, filters);
+
+            assertThat(result.totalTransactions()).isZero();
+            
+            verify(userAccountRepository).findIdsBySearchQuery(clientName);
+            verify(transactionRepository, never()).findForAnalytics(any(), any(), any(), any(), any());
+            verify(appointmentRepository, never()).findForAnalytics(any(), any(), any(), any());
+        }
         
         @Test
         void getAnalytics_withTransactionTypeFilter_callsRepositoryWithCorrectType() {
