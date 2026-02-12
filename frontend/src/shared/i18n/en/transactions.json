@@ -805,6 +805,8 @@
   "editVisitor": "Edit Visitor",
   "deleteVisitor": "Delete Visitor",
   "visitorName": "Visitor Name",
+  "visitorEmail": "Visitor Email",
+  "visitorPhone": "Visitor Phone",
   "timesVisited": "{{count}} visit",
   "timesVisited_other": "{{count}} visits",
   "noVisitors": "No visitors yet",

@@ -763,6 +763,11 @@ public class AppointmentServiceImpl implements AppointmentService {
                         throw new ForbiddenException("Only the broker can update the visitor count");
                 }
 
+                // Validate appointment status - only confirmed appointments can have visitor counts
+                if (appointment.getStatus() != com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED) {
+                        throw new IllegalArgumentException("Visitor count can only be updated for confirmed appointments");
+                }
+
                 // Validate appointment type
                 String title = appointment.getTitle();
                 if (!"open_house".equalsIgnoreCase(title) && !"private_showing".equalsIgnoreCase(title)) {

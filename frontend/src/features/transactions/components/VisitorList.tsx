@@ -117,21 +117,21 @@ export function VisitorList({ transactionId, isBroker }: VisitorListProps) {
                 />
             </div>
             <div>
-                <label className="text-sm text-muted-foreground block mb-1">Email</label>
+                <label className="text-sm text-muted-foreground block mb-1">{t('visitorEmail')}</label>
                 <Input
                     type="email"
                     value={formEmail}
                     onChange={(e) => setFormEmail(e.target.value)}
-                    placeholder="Email"
+                    placeholder={t('visitorEmail')}
                 />
             </div>
             <div>
-                <label className="text-sm text-muted-foreground block mb-1">{t('phone', 'Phone')}</label>
+                <label className="text-sm text-muted-foreground block mb-1">{t('visitorPhone')}</label>
                 <Input
                     type="tel"
                     value={formPhone}
                     onChange={(e) => setFormPhone(e.target.value)}
-                    placeholder={t('phone', 'Phone')}
+                    placeholder={t('visitorPhone')}
                 />
             </div>
         </div>

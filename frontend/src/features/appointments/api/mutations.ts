@@ -83,8 +83,11 @@ export function useUpdateVisitorCount() {
             const res = await axiosInstance.patch(`/appointments/${appointmentId}/visitor-count`, { numberOfVisitors });
             return res.data;
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+            if (data.transactionId) {
+                queryClient.invalidateQueries({ queryKey: ['transactions', 'detail', data.transactionId] });
+            }
         },
     });
 }

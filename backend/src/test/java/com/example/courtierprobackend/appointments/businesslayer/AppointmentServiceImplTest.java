@@ -1494,5 +1494,21 @@ class AppointmentServiceImplTest {
                                 .isInstanceOf(ForbiddenException.class)
                                 .hasMessageContaining("Only the broker");
         }
+
+        @Test
+        void updateVisitorCount_notConfirmed_throws() {
+                UUID appointmentId = UUID.randomUUID();
+                Appointment apt = createTestAppointment();
+                apt.setAppointmentId(appointmentId);
+                apt.setTitle("open_house");
+                apt.setStatus(AppointmentStatus.PROPOSED); // not confirmed
+
+                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                                .thenReturn(Optional.of(apt));
+
+                assertThatThrownBy(() -> appointmentService.updateVisitorCount(appointmentId, 5, brokerId))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("confirmed appointments");
+        }
 }
 

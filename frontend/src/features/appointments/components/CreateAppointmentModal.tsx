@@ -401,10 +401,6 @@ export function CreateAppointmentModal({
       return;
     }
 
-    if (appointmentType === 'private_showing' && !selectedVisitorId) {
-      toast.error(t('visitorRequired'));
-      return;
-    }
 
     // Validation for time
     const [startHour, startMin] = startTime.split(':').map(Number);
@@ -766,17 +762,12 @@ export function CreateAppointmentModal({
                   <User className="w-4 h-4" />
                   {t('selectVisitor')}
                 </span>
-                <span
-                  className="text-destructive text-sm"
-                  aria-label="required"
-                >
-                  {t('required')}
-                </span>
               </label>
               <Select
                 value={selectedVisitorId}
                 onValueChange={(value) => {
                   if (value === '__create_new__') {
+                    setSelectedVisitorId('');
                     setShowNewVisitorForm(true);
                   } else {
                     setSelectedVisitorId(value);
@@ -784,7 +775,7 @@ export function CreateAppointmentModal({
                   }
                 }}
               >
-                <SelectTrigger id="visitor-select" className="w-full" aria-required="true">
+                <SelectTrigger id="visitor-select" className="w-full">
                   <SelectValue placeholder={t('selectVisitor')} />
                 </SelectTrigger>
                 <SelectContent>

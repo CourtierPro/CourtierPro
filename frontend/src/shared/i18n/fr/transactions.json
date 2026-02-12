@@ -797,6 +797,8 @@
   "editVisitor": "Modifier le visiteur",
   "deleteVisitor": "Supprimer le visiteur",
   "visitorName": "Nom du visiteur",
+  "visitorEmail": "Courriel du visiteur",
+  "visitorPhone": "Téléphone du visiteur",
   "timesVisited": "{{count}} visite",
   "timesVisited_other": "{{count}} visites",
   "noVisitors": "Aucun visiteur pour le moment",
