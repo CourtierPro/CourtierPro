@@ -208,6 +208,8 @@ export function RequestDocumentModal({
       setUploadProgress(0);
     }
 
+    if (!data.docType) return;
+
     try {
       const documentId = await onSubmit(
         data.docType,

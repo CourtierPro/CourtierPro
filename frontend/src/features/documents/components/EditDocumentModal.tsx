@@ -96,7 +96,7 @@ export function EditDocumentModal({
 
   const docTypeOptions = useMemo(() => {
     const options = getDocumentTypeOptions(transactionType);
-    if (!options.includes(initialValues.docType)) {
+    if (initialValues.docType && !options.includes(initialValues.docType)) {
       return [initialValues.docType, ...options];
     }
     return options;

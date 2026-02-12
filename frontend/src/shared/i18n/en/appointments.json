@@ -98,5 +98,10 @@
     "reschedule": "Reschedule",
     "originalTime": "Original Time",
     "onlyCancellerCanReschedule": "Only the party who cancelled can reschedule.",
-    "appointmentRequestFailed": "Unable to schedule the appointment. The time might have already passed."
+    "appointmentRequestFailed": "Unable to schedule the appointment. The time might have already passed.",
+    "appointmentConfirmed": "Appointment confirmed successfully",
+    "appointmentDeclined": "Appointment declined",
+    "appointmentCancelledSuccess": "Appointment cancelled",
+    "appointmentRescheduled": "New time proposal sent",
+    "errorActionFailed": "An error occurred while processing your request"
 }

@@ -26,6 +26,7 @@ import { useTransactions, type Transaction } from '@/features/transactions/api/q
 import { useAuth0 } from "@auth0/auth0-react";
 import { toast } from "sonner";
 import { useRequestAppointment } from "../api/mutations";
+import { getLocalDateString } from '@/shared/utils/date';
 
 import { AlertTriangle } from "lucide-react";
 import { type Appointment } from "../types";
@@ -138,13 +139,7 @@ export function CreateAppointmentModal({
   // For clients, allTransactions contains only their own transactions (backend filtered).
   const transactions = allTransactions;
 
-  const getMinDate = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+  const getMinDate = () => getLocalDateString();
 
   const getTimeSlots = () => {
     const slots: string[] = [];

@@ -121,7 +121,7 @@ class AppointmentServiceImplTest {
         void getAppointmentsForBroker_returnsAppointments() {
                 // Arrange
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
 
@@ -133,13 +133,13 @@ class AppointmentServiceImplTest {
                 assertThat(result.get(0).title()).isEqualTo("Test Appointment");
                 assertThat(result.get(0).brokerName()).isEqualTo("John Broker");
                 assertThat(result.get(0).clientName()).isEqualTo("Jane Client");
-                verify(appointmentRepository).findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId);
+                verify(appointmentRepository).findByBrokerIdOrderByFromDateTimeAsc(brokerId);
         }
 
         @Test
         void getAppointmentsForBroker_withNoAppointments_returnsEmptyList() {
                 // Arrange
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of());
 
                 // Act
@@ -154,7 +154,7 @@ class AppointmentServiceImplTest {
         @Test
         void getAppointmentsForClient_asClient_returnsAppointments() {
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, clientId,
@@ -166,7 +166,7 @@ class AppointmentServiceImplTest {
         @Test
         void getAppointmentsForClient_asBroker_returnsAppointments() {
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, brokerId,
@@ -178,7 +178,7 @@ class AppointmentServiceImplTest {
         void getAppointmentsForClient_asCoBroker_returnsAppointments() {
                 Appointment apt = createTestAppointment();
                 UUID coBrokerId = UUID.randomUUID();
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
                 com.example.courtierprobackend.transactions.datalayer.TransactionParticipant coBroker = new com.example.courtierprobackend.transactions.datalayer.TransactionParticipant();
@@ -195,7 +195,7 @@ class AppointmentServiceImplTest {
         void getAppointmentsForClient_forbiddenUser_returnsEmpty() {
                 Appointment apt = createTestAppointment();
                 UUID otherId = UUID.randomUUID();
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
                 when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
@@ -206,7 +206,7 @@ class AppointmentServiceImplTest {
 
         @Test
         void getAppointmentsForClient_withNoAppointments_returnsEmptyList() {
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                                 .thenReturn(List.of());
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, clientId,
                                 null);
@@ -266,7 +266,7 @@ class AppointmentServiceImplTest {
                 // Arrange
                 Appointment apt = createTestAppointment();
                 apt.setStatus(AppointmentStatus.CONFIRMED);
-                when(appointmentRepository.findByBrokerIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId,
+                when(appointmentRepository.findByBrokerIdAndStatusOrderByFromDateTimeAsc(brokerId,
                                 AppointmentStatus.CONFIRMED))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
@@ -278,7 +278,7 @@ class AppointmentServiceImplTest {
                 // Assert
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).status()).isEqualTo(AppointmentStatus.CONFIRMED);
-                verify(appointmentRepository).findByBrokerIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId,
+                verify(appointmentRepository).findByBrokerIdAndStatusOrderByFromDateTimeAsc(brokerId,
                                 AppointmentStatus.CONFIRMED);
         }
 
@@ -289,7 +289,7 @@ class AppointmentServiceImplTest {
                 // Arrange
                 Appointment apt = createTestAppointment();
                 apt.setStatus(AppointmentStatus.DECLINED);
-                when(appointmentRepository.findByClientIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId,
+                when(appointmentRepository.findByClientIdAndStatusOrderByFromDateTimeAsc(clientId,
                                 AppointmentStatus.DECLINED))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
@@ -303,7 +303,7 @@ class AppointmentServiceImplTest {
                 // Assert
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).status()).isEqualTo(AppointmentStatus.DECLINED);
-                verify(appointmentRepository).findByClientIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId,
+                verify(appointmentRepository).findByClientIdAndStatusOrderByFromDateTimeAsc(clientId,
                                 AppointmentStatus.DECLINED);
         }
 
@@ -369,7 +369,7 @@ class AppointmentServiceImplTest {
                 transaction.setClientId(clientId);
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
-                when(appointmentRepository.findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(transactionId))
+                when(appointmentRepository.findByTransactionIdOrderByFromDateTimeAsc(transactionId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
 
@@ -381,7 +381,7 @@ class AppointmentServiceImplTest {
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).transactionId()).isEqualTo(transactionId);
                 verify(appointmentRepository)
-                                .findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(transactionId);
+                                .findByTransactionIdOrderByFromDateTimeAsc(transactionId);
         }
 
         @Test
@@ -410,7 +410,7 @@ class AppointmentServiceImplTest {
                 transaction.setClientId(clientId);
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
-                when(appointmentRepository.findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(transactionId))
+                when(appointmentRepository.findByTransactionIdOrderByFromDateTimeAsc(transactionId))
                                 .thenReturn(List.of());
 
                 // Act
@@ -440,7 +440,7 @@ class AppointmentServiceImplTest {
                 UUID appointmentId = UUID.randomUUID();
                 Appointment apt = createTestAppointment();
                 apt.setAppointmentId(appointmentId);
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
                 mockUserAccounts();
 
@@ -450,7 +450,7 @@ class AppointmentServiceImplTest {
                 // Assert
                 assertThat(result).isNotNull();
                 assertThat(result.appointmentId()).isEqualTo(appointmentId);
-                verify(appointmentRepository).findByAppointmentIdAndDeletedAtIsNull(appointmentId);
+                verify(appointmentRepository).findByAppointmentId(appointmentId);
         }
 
         @Test
@@ -459,7 +459,7 @@ class AppointmentServiceImplTest {
                 UUID appointmentId = UUID.randomUUID();
                 Appointment apt = createTestAppointment();
                 apt.setAppointmentId(appointmentId);
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
 
                 // Act & Assert
@@ -473,7 +473,7 @@ class AppointmentServiceImplTest {
         void getAppointmentById_notFound_throwsNotFoundException() {
                 // Arrange
                 UUID appointmentId = UUID.randomUUID();
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.empty());
 
                 // Act & Assert
@@ -488,7 +488,7 @@ class AppointmentServiceImplTest {
         void mapToDTO_withUnknownUser_usesUnknownFallback() {
                 // Arrange
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt));
                 // Return empty list so user names are not found
                 when(userAccountRepository.findAllById(any())).thenReturn(List.of());
@@ -506,7 +506,7 @@ class AppointmentServiceImplTest {
         void getFullName_withNullFirstName_returnsLastNameOnly() {
                 // Arrange
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt));
 
                 UserAccount brokerUser = createUserAccount(brokerId, null, "BrokerLastName");
@@ -524,7 +524,7 @@ class AppointmentServiceImplTest {
         void getFullName_withNullLastName_returnsFirstNameOnly() {
                 // Arrange
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt));
 
                 UserAccount brokerUser = createUserAccount(brokerId, "John", null);
@@ -542,7 +542,7 @@ class AppointmentServiceImplTest {
         void getFullName_withBothNamesNull_returnsEmptyString() {
                 // Arrange
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt));
 
                 UserAccount brokerUser = createUserAccount(brokerId, null, null);
@@ -560,7 +560,7 @@ class AppointmentServiceImplTest {
         void getUserNamesMap_withDuplicateUsers_handlesCollision() {
                 // Arrange
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt));
 
                 // Simulate repository returning duplicate users for the same ID (edge case)
@@ -582,7 +582,7 @@ class AppointmentServiceImplTest {
         void mapToDTO_mapsAllFields() {
                 // Arrange
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
 
@@ -618,7 +618,7 @@ class AppointmentServiceImplTest {
                 apt2.setTitle("Appointment 2");
                 apt2.setAppointmentId(UUID.randomUUID());
 
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt1, apt2));
                 mockUserAccounts();
 
@@ -641,7 +641,7 @@ class AppointmentServiceImplTest {
                 apt.setAppointmentId(appointmentId);
                 // apt is initiated by BROKER (default in createTestAppointment)
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
                 when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArguments()[0]);
                 mockUserAccounts();
@@ -665,7 +665,7 @@ class AppointmentServiceImplTest {
                 Appointment apt = createTestAppointment();
                 apt.setAppointmentId(appointmentId);
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
                 when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArguments()[0]);
                 mockUserAccounts();
@@ -692,7 +692,7 @@ class AppointmentServiceImplTest {
                 apt.setStatus(AppointmentStatus.PROPOSED);
                 // apt initiated by BROKER
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
                 when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArguments()[0]);
                 mockUserAccounts();
@@ -725,7 +725,7 @@ class AppointmentServiceImplTest {
                 apt.setAppointmentId(appointmentId);
                 apt.setInitiatedBy(InitiatorType.BROKER); // Initiated by BROKER
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
 
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO reviewDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO(
@@ -746,7 +746,7 @@ class AppointmentServiceImplTest {
                 apt.setAppointmentId(appointmentId);
                 apt.setStatus(AppointmentStatus.CONFIRMED); // Already confirmed
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
 
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO reviewDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO(
@@ -766,7 +766,7 @@ class AppointmentServiceImplTest {
                 Appointment apt = createTestAppointment();
                 apt.setAppointmentId(appointmentId);
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
 
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO reviewDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO(
@@ -788,7 +788,7 @@ class AppointmentServiceImplTest {
                 Appointment apt = createTestAppointment();
                 apt.setAppointmentId(appointmentId);
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
                 mockUserAccounts();
 
@@ -809,7 +809,7 @@ class AppointmentServiceImplTest {
                 Appointment apt = createTestAppointment();
                 apt.setAppointmentId(appointmentId);
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
 
                 java.time.LocalDate newDate = java.time.LocalDate.now().plusDays(2);
@@ -1054,7 +1054,7 @@ class AppointmentServiceImplTest {
                 apt.setBrokerId(brokerId);
                 apt.setClientId(clientId);
                 apt.setStatus(AppointmentStatus.CONFIRMED);
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(any())).thenReturn(Optional.of(apt));
+                when(appointmentRepository.findByAppointmentId(any())).thenReturn(Optional.of(apt));
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO(
                                 "Not allowed");
                 UUID otherUser = UUID.randomUUID();
@@ -1069,7 +1069,7 @@ class AppointmentServiceImplTest {
                 apt.setBrokerId(brokerId);
                 apt.setClientId(clientId);
                 apt.setStatus(AppointmentStatus.CONFIRMED);
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(any())).thenReturn(Optional.of(apt));
+                when(appointmentRepository.findByAppointmentId(any())).thenReturn(Optional.of(apt));
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO(
                                 "");
                 assertThatThrownBy(() -> appointmentService.cancelAppointment(UUID.randomUUID(), cancelDTO, brokerId))
@@ -1083,7 +1083,7 @@ class AppointmentServiceImplTest {
                 apt.setBrokerId(brokerId);
                 apt.setClientId(clientId);
                 apt.setStatus(AppointmentStatus.CANCELLED);
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(any())).thenReturn(Optional.of(apt));
+                when(appointmentRepository.findByAppointmentId(any())).thenReturn(Optional.of(apt));
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO(
                                 "Already cancelled");
                 assertThatThrownBy(() -> appointmentService.cancelAppointment(UUID.randomUUID(), cancelDTO, brokerId))
@@ -1160,7 +1160,7 @@ class AppointmentServiceImplTest {
         @Test
         void getAppointmentsForClient_nullRequester_returnsEmpty() {
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, null, null);
@@ -1171,7 +1171,7 @@ class AppointmentServiceImplTest {
         void getAppointmentsForClient_notRelated_returnsEmpty() {
                 Appointment apt = createTestAppointment();
                 UUID unrelatedId = UUID.randomUUID();
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
                 when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of());

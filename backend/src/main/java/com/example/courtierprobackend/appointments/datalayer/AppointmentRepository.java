@@ -20,17 +20,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         /**
          * Find appointment by public UUID.
          */
-        Optional<Appointment> findByAppointmentIdAndDeletedAtIsNull(UUID appointmentId);
+        Optional<Appointment> findByAppointmentId(UUID appointmentId);
 
         /**
          * Find all appointments for a broker (not deleted).
          */
-        List<Appointment> findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(UUID brokerId);
+        List<Appointment> findByBrokerIdOrderByFromDateTimeAsc(UUID brokerId);
 
         /**
          * Find all appointments for a client (not deleted).
          */
-        List<Appointment> findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(UUID clientId);
+        List<Appointment> findByClientIdOrderByFromDateTimeAsc(UUID clientId);
 
         /**
          * Find appointments for a broker that overlap with a date range.
@@ -38,7 +38,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
          * range starts.
          */
         @Query("SELECT a FROM Appointment a WHERE a.brokerId = :brokerId " +
-                        "AND a.deletedAt IS NULL " +
                         "AND a.fromDateTime < :toDate AND a.toDateTime > :fromDate " +
                         "ORDER BY a.fromDateTime ASC")
         List<Appointment> findByBrokerIdAndDateRange(
@@ -52,7 +51,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
          * range starts.
          */
         @Query("SELECT a FROM Appointment a WHERE a.clientId = :clientId " +
-                        "AND a.deletedAt IS NULL " +
                         "AND a.fromDateTime < :toDate AND a.toDateTime > :fromDate " +
                         "ORDER BY a.fromDateTime ASC")
         List<Appointment> findByClientIdAndDateRange(
@@ -63,13 +61,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         /**
          * Find appointments for a broker with specific status.
          */
-        List<Appointment> findByBrokerIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(
+        List<Appointment> findByBrokerIdAndStatusOrderByFromDateTimeAsc(
                         UUID brokerId, AppointmentStatus status);
 
         /**
          * Find appointments for a client with specific status.
          */
-        List<Appointment> findByClientIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(
+        List<Appointment> findByClientIdAndStatusOrderByFromDateTimeAsc(
                         UUID clientId, AppointmentStatus status);
 
         /**
@@ -79,7 +77,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
          * range starts.
          */
         @Query("SELECT a FROM Appointment a WHERE a.brokerId = :brokerId " +
-                        "AND a.deletedAt IS NULL " +
                         "AND a.status = :status " +
                         "AND a.fromDateTime < :toDate AND a.toDateTime > :fromDate " +
                         "ORDER BY a.fromDateTime ASC")
@@ -96,7 +93,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
          * range starts.
          */
         @Query("SELECT a FROM Appointment a WHERE a.clientId = :clientId " +
-                        "AND a.deletedAt IS NULL " +
                         "AND a.status = :status " +
                         "AND a.fromDateTime < :toDate AND a.toDateTime > :fromDate " +
                         "ORDER BY a.fromDateTime ASC")
@@ -109,13 +105,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         /**
          * Find appointments for a specific transaction.
          */
-        List<Appointment> findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(UUID transactionId);
+        List<Appointment> findByTransactionIdOrderByFromDateTimeAsc(UUID transactionId);
 
         /**
          * Find upcoming appointments for a broker (from now onwards).
          */
         @Query("SELECT a FROM Appointment a WHERE a.brokerId = :brokerId " +
-                        "AND a.deletedAt IS NULL " +
                         "AND a.fromDateTime >= :now " +
                         "ORDER BY a.fromDateTime ASC")
         List<Appointment> findUpcomingByBrokerId(@Param("brokerId") UUID brokerId, @Param("now") LocalDateTime now);
@@ -124,7 +119,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
          * Find upcoming appointments for a client (from now onwards).
          */
         @Query("SELECT a FROM Appointment a WHERE a.clientId = :clientId " +
-                        "AND a.deletedAt IS NULL " +
                         "AND a.fromDateTime >= :now " +
                         "ORDER BY a.fromDateTime ASC")
         List<Appointment> findUpcomingByClientId(@Param("clientId") UUID clientId, @Param("now") LocalDateTime now);
@@ -146,7 +140,22 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
          * Requirement: "query the repository for appointments starting between 24h and
          * 25h from now that have reminderSent = false and are not CANCELLED/DECLINED"
          */
-        List<Appointment> findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotInAndDeletedAtIsNull(
+        List<Appointment> findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotIn(
                         LocalDateTime start,
                         LocalDateTime end, java.util.Collection<AppointmentStatus> statuses);
+
+        @Query(value = "SELECT * FROM appointments", nativeQuery = true)
+        List<Appointment> findAllIncludingDeleted();
+
+        /**
+         * Find appointment by ID including soft-deleted ones.
+         */
+        @Query(value = "SELECT * FROM appointments WHERE appointment_id = :appointmentId", nativeQuery = true)
+        Optional<Appointment> findByAppointmentIdIncludingDeleted(@Param("appointmentId") UUID appointmentId);
+
+        /**
+         * Find appointments for a specific transaction including deleted ones.
+         */
+        @Query(value = "SELECT * FROM appointments WHERE transaction_id = :transactionId", nativeQuery = true)
+        List<Appointment> findByTransactionIdIncludingDeleted(@Param("transactionId") UUID transactionId);
 }

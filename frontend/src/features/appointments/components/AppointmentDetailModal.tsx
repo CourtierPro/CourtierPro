@@ -12,7 +12,9 @@ import { Badge } from "@/shared/components/ui/badge";
 import { getStatusBadgeVariant } from "../enums";
 import { useAuth0 } from "@auth0/auth0-react";
 import { format } from "date-fns";
+import { getLocalDateString } from '@/shared/utils/date';
 import { Section } from "@/shared/components/branded/Section";
+import { toast } from "sonner";
 
 import {
     Select,
@@ -137,7 +139,11 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
             id: appointment.appointmentId,
             data: { action: 'CONFIRM' }
         }, {
-            onSuccess: () => onClose()
+            onSuccess: () => {
+                toast.success(t('appointmentConfirmed'));
+                onClose();
+            },
+            onError: () => toast.error(t('errorActionFailed'))
         });
     };
 
@@ -148,10 +154,12 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
             data: { action: 'DECLINE', refusalReason }
         }, {
             onSuccess: () => {
+                toast.success(t('appointmentDeclined'));
                 setIsDeclineOpen(false);
                 setRefusalReason("");
                 onClose();
-            }
+            },
+            onError: () => toast.error(t('errorActionFailed'))
         });
     };
 
@@ -162,10 +170,12 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
             data: { reason: cancellationReason }
         }, {
             onSuccess: () => {
+                toast.success(t('appointmentCancelledSuccess'));
                 setIsCancelOpen(false);
                 setCancellationReason("");
                 onClose();
-            }
+            },
+            onError: () => toast.error(t('errorActionFailed'))
         });
     }
 
@@ -191,9 +201,11 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
             }
         }, {
             onSuccess: () => {
+                toast.success(t('appointmentRescheduled'));
                 setIsRescheduleOpen(false);
                 onClose();
-            }
+            },
+            onError: () => toast.error(t('errorActionFailed'))
         });
     };
 
@@ -499,7 +511,7 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                                     {t('reschedule', 'Reschedule')}
                                 </Button>
                             </div>
-                    )}
+                        )}
 
                     {/* Cancel Action (CONFIRMED or PROPOSED + ME) */}
                     {canCancel && !isCancelOpen && !isRescheduleOpen && !isDeclineOpen && (
@@ -602,7 +614,7 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                                         type="date"
                                         value={newDate}
                                         onChange={(e) => setNewDate(e.target.value)}
-                                        min={new Date().toISOString().split('T')[0]}
+                                        min={getLocalDateString()}
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">

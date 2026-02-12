@@ -89,7 +89,7 @@ public class AppointmentServiceImplAccessControlTest {
         apt.setBrokerId(brokerId);
         apt.setClientId(clientId);
         com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED;
-        when(appointmentRepository.findByClientIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId, status))
+        when(appointmentRepository.findByClientIdAndStatusOrderByFromDateTimeAsc(clientId, status))
                 .thenReturn(List.of(apt));
         TransactionParticipant coBroker = new TransactionParticipant();
         coBroker.setUserId(coBrokerId);
