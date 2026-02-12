@@ -9,6 +9,7 @@ import {
     History,
     ChevronDown,
     ChevronRight,
+    Calendar,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -55,10 +56,12 @@ export function AdminResourcesPage() {
     // Queries - regular tabs (active resources only)
     const transactionsQuery = useAdminResources("TRANSACTION", false);
     const documentsQuery = useAdminResources("DOCUMENT_REQUEST", false);
+    const appointmentsQuery = useAdminResources("APPOINTMENT", false);
 
     // Queries - deleted tab (all resources including deleted, then filter client-side)
     const deletedTransactionsQuery = useAdminResources("TRANSACTION", true);
     const deletedDocumentsQuery = useAdminResources("DOCUMENT_REQUEST", true);
+    const deletedAppointmentsQuery = useAdminResources("APPOINTMENT", true);
 
     const previewQuery = useResourcePreview(
         selectedResource?.type || "TRANSACTION",
@@ -186,8 +189,10 @@ export function AdminResourcesPage() {
                                                     <div className="flex items-center gap-3">
                                                         {type === "TRANSACTION" ? (
                                                             <Database className="h-5 w-5 text-muted-foreground" />
-                                                        ) : (
+                                                        ) : type === "DOCUMENT_REQUEST" ? (
                                                             <FileText className="h-5 w-5 text-muted-foreground" />
+                                                        ) : (
+                                                            <Calendar className="h-5 w-5 text-muted-foreground" />
                                                         )}
                                                         <div className="flex flex-col">
                                                             <div className="font-semibold text-foreground">{item.summary}</div>
@@ -268,6 +273,22 @@ export function AdminResourcesPage() {
                                                                     <div>
                                                                         <span className="text-muted-foreground">{t("submittedDocuments")}:</span>
                                                                         <div className="font-medium">{item.submittedDocCount}</div>
+                                                                    </div>
+                                                                </>
+                                                            )}
+                                                            {type === "APPOINTMENT" && (
+                                                                <>
+                                                                    <div>
+                                                                        <span className="text-muted-foreground">{t("clientEmail")}:</span>
+                                                                        <div className="font-medium">{item.clientEmail || "—"}</div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="text-muted-foreground">{t("brokerEmail")}:</span>
+                                                                        <div className="font-medium">{item.brokerEmail || "—"}</div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="text-muted-foreground">{t("parentTransaction")}:</span>
+                                                                        <div className="font-mono text-xs">{item.transactionId || "—"}</div>
                                                                     </div>
                                                                 </>
                                                             )}
@@ -457,6 +478,10 @@ export function AdminResourcesPage() {
                             <FileText className="h-4 w-4 mr-1" />
                             {t("documents")}
                         </TabsTrigger>
+                        <TabsTrigger value="APPOINTMENT">
+                            <Calendar className="h-4 w-4 mr-1" />
+                            {t("appointments", "Appointments")}
+                        </TabsTrigger>
                         <TabsTrigger value="deleted">
                             <Trash2 className="h-4 w-4 mr-1" />
                             {t("deletedResources")}
@@ -504,6 +529,15 @@ export function AdminResourcesPage() {
                     )}
                 </TabsContent>
 
+                <TabsContent value="APPOINTMENT">
+                    {renderResourceTable(
+                        appointmentsQuery.data,
+                        appointmentsQuery.isLoading,
+                        appointmentsQuery.error,
+                        "APPOINTMENT"
+                    )}
+                </TabsContent>
+
                 <TabsContent value="deleted">
                     <div className="space-y-6">
                         <h3 className="text-lg font-semibold">{t("deletedTransactions")}</h3>
@@ -521,6 +555,15 @@ export function AdminResourcesPage() {
                             deletedDocumentsQuery.isLoading,
                             deletedDocumentsQuery.error,
                             "DOCUMENT_REQUEST",
+                            true,
+                            true
+                        )}
+                        <h3 className="text-lg font-semibold">{t("deletedAppointments", "Deleted Appointments")}</h3>
+                        {renderResourceTable(
+                            deletedAppointmentsQuery.data,
+                            deletedAppointmentsQuery.isLoading,
+                            deletedAppointmentsQuery.error,
+                            "APPOINTMENT",
                             true,
                             true
                         )}

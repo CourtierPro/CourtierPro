@@ -215,6 +215,7 @@ export interface Property {
   offerAmount?: number;
   centrisNumber?: string;
   notes?: string; // Only present for brokers
+  timesVisited?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -517,4 +518,23 @@ export interface SearchCriteriaRequestDTO {
   minPrice?: number;
   maxPrice?: number;
   regions?: QuebecRegion[];
+}
+
+// ==================== VISITOR TYPES (for sell-side transactions) ====================
+
+export interface Visitor {
+  visitorId: string;
+  transactionId: string;
+  name: string;
+  email?: string;
+  phoneNumber?: string;
+  timesVisited: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VisitorRequestDTO {
+  name: string;
+  email?: string;
+  phoneNumber?: string;
 }

@@ -109,6 +109,12 @@ class TransactionServiceImplTest {
         @Mock
         private com.example.courtierprobackend.transactions.datalayer.repositories.SearchCriteriaRepository searchCriteriaRepository;
 
+        @Mock
+        private com.example.courtierprobackend.appointments.datalayer.AppointmentRepository appointmentRepository;
+
+        @Mock
+        private com.example.courtierprobackend.transactions.datalayer.repositories.VisitorRepository visitorRepository;
+
         @BeforeEach
         void setup() {
                 transactionService = new TransactionServiceImpl(transactionRepository, pinnedTransactionRepository,
@@ -117,7 +123,7 @@ class TransactionServiceImplTest {
                                 offerRepository, conditionRepository,
                                 propertyOfferRepository, offerDocumentRepository, offerRevisionRepository,
                                 objectStorageService, documentRequestRepository, documentConditionLinkRepository,
-                                searchCriteriaRepository);
+                                searchCriteriaRepository, appointmentRepository, visitorRepository);
                 lenient().when(userAccountRepository.findByAuth0UserId(any())).thenReturn(Optional.empty());
         }
 
@@ -7368,5 +7374,267 @@ class TransactionServiceImplTest {
 
                 assertThat(result).isEqualTo("https://s3.example.com/offer-with-filename");
                 verify(objectStorageService).generatePresignedUrl("offer-key", "accepted-offer.pdf");
+        }
+
+        // ========== Visitor CRUD Tests (Sell-Side) ==========
+
+        private Transaction createSellSideTransaction(UUID transactionId, UUID brokerId) {
+                Transaction tx = new Transaction();
+                tx.setTransactionId(transactionId);
+                tx.setBrokerId(brokerId);
+                tx.setClientId(UUID.randomUUID());
+                tx.setSide(TransactionSide.SELL_SIDE);
+                tx.setStatus(TransactionStatus.ACTIVE);
+                return tx;
+        }
+
+        private com.example.courtierprobackend.transactions.datalayer.Visitor createVisitorEntity(
+                        UUID transactionId, String name, String email, String phone) {
+                return com.example.courtierprobackend.transactions.datalayer.Visitor.builder()
+                                .visitorId(UUID.randomUUID())
+                                .transactionId(transactionId)
+                                .name(name)
+                                .email(email)
+                                .phoneNumber(phone)
+                                .createdAt(LocalDateTime.now())
+                                .updatedAt(LocalDateTime.now())
+                                .build();
+        }
+
+        @Test
+        void getVisitors_withValidTransaction_returnsVisitorsWithCounts() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = createSellSideTransaction(transactionId, brokerId);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.empty());
+                when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+
+                var visitor1 = createVisitorEntity(transactionId, "Alice", "alice@test.com", "555-0001");
+                var visitor2 = createVisitorEntity(transactionId, "Bob", "bob@test.com", null);
+                when(visitorRepository.findByTransactionIdOrderByNameAsc(transactionId))
+                                .thenReturn(List.of(visitor1, visitor2));
+
+                when(appointmentRepository.countConfirmedShowingsByVisitorIds(any()))
+                                .thenReturn(List.of(
+                                                new Object[] { visitor1.getVisitorId(), 3L },
+                                                new Object[] { visitor2.getVisitorId(), 1L }));
+
+                var result = transactionService.getVisitors(transactionId, brokerId);
+
+                assertThat(result).hasSize(2);
+                assertThat(result.get(0).name()).isEqualTo("Alice");
+                assertThat(result.get(0).timesVisited()).isEqualTo(3);
+                assertThat(result.get(1).name()).isEqualTo("Bob");
+                assertThat(result.get(1).timesVisited()).isEqualTo(1);
+        }
+
+        @Test
+        void getVisitors_withNoVisitors_returnsEmptyList() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = createSellSideTransaction(transactionId, brokerId);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(userAccountRepository.findById(brokerId)).thenReturn(Optional.empty());
+                when(participantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
+                when(visitorRepository.findByTransactionIdOrderByNameAsc(transactionId)).thenReturn(List.of());
+
+                var result = transactionService.getVisitors(transactionId, brokerId);
+
+                assertThat(result).isEmpty();
+        }
+
+        @Test
+        void getVisitors_withNonExistentTransaction_throwsNotFoundException() {
+                when(transactionRepository.findByTransactionId(any())).thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> transactionService.getVisitors(UUID.randomUUID(), UUID.randomUUID()))
+                                .isInstanceOf(NotFoundException.class)
+                                .hasMessageContaining("Transaction not found");
+        }
+
+        @Test
+        void addVisitor_withValidData_createsVisitor() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = createSellSideTransaction(transactionId, brokerId);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+                var dto = new com.example.courtierprobackend.transactions.datalayer.dto.VisitorRequestDTO(
+                                "Jane Doe", "jane@test.com", "555-0002");
+
+                when(visitorRepository.save(any(com.example.courtierprobackend.transactions.datalayer.Visitor.class)))
+                                .thenAnswer(invocation -> {
+                                        var v = invocation
+                                                        .getArgument(0,
+                                                                        com.example.courtierprobackend.transactions.datalayer.Visitor.class);
+                                        if (v.getVisitorId() == null)
+                                                v.setVisitorId(UUID.randomUUID());
+                                        if (v.getCreatedAt() == null)
+                                                v.setCreatedAt(LocalDateTime.now());
+                                        if (v.getUpdatedAt() == null)
+                                                v.setUpdatedAt(LocalDateTime.now());
+                                        return v;
+                                });
+
+                var result = transactionService.addVisitor(transactionId, dto, brokerId);
+
+                assertThat(result).isNotNull();
+                assertThat(result.name()).isEqualTo("Jane Doe");
+                assertThat(result.email()).isEqualTo("jane@test.com");
+                assertThat(result.phoneNumber()).isEqualTo("555-0002");
+                assertThat(result.timesVisited()).isEqualTo(0);
+                verify(visitorRepository).save(any(com.example.courtierprobackend.transactions.datalayer.Visitor.class));
+        }
+
+        @Test
+        void addVisitor_withBlankName_throwsIllegalArgumentException() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = createSellSideTransaction(transactionId, brokerId);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+                var dto = new com.example.courtierprobackend.transactions.datalayer.dto.VisitorRequestDTO(
+                                "   ", "email@test.com", null);
+
+                assertThatThrownBy(() -> transactionService.addVisitor(transactionId, dto, brokerId))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("Visitor name is required");
+        }
+
+        @Test
+        void addVisitor_onBuySideTransaction_throwsIllegalArgumentException() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = createSellSideTransaction(transactionId, brokerId);
+                tx.setSide(TransactionSide.BUY_SIDE);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+
+                var dto = new com.example.courtierprobackend.transactions.datalayer.dto.VisitorRequestDTO(
+                                "Test Visitor", null, null);
+
+                assertThatThrownBy(() -> transactionService.addVisitor(transactionId, dto, brokerId))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("sell-side transactions");
+        }
+
+        @Test
+        void updateVisitor_withValidData_updatesVisitor() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = createSellSideTransaction(transactionId, brokerId);
+
+                var visitor = createVisitorEntity(transactionId, "Old Name", "old@test.com", "555-0000");
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(visitorRepository.findByVisitorId(visitor.getVisitorId())).thenReturn(Optional.of(visitor));
+                when(visitorRepository.save(any(com.example.courtierprobackend.transactions.datalayer.Visitor.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+                when(appointmentRepository.countConfirmedShowingsByVisitorId(visitor.getVisitorId())).thenReturn(2);
+
+                var dto = new com.example.courtierprobackend.transactions.datalayer.dto.VisitorRequestDTO(
+                                "Updated Name", "updated@test.com", "555-9999");
+
+                var result = transactionService.updateVisitor(transactionId, visitor.getVisitorId(), dto, brokerId);
+
+                assertThat(result.name()).isEqualTo("Updated Name");
+                assertThat(result.email()).isEqualTo("updated@test.com");
+                assertThat(result.phoneNumber()).isEqualTo("555-9999");
+                assertThat(result.timesVisited()).isEqualTo(2);
+        }
+
+        @Test
+        void updateVisitor_withWrongTransaction_throwsForbiddenException() {
+                UUID transactionId = UUID.randomUUID();
+                UUID otherTransactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = createSellSideTransaction(transactionId, brokerId);
+
+                var visitor = createVisitorEntity(otherTransactionId, "Test", null, null);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(visitorRepository.findByVisitorId(visitor.getVisitorId())).thenReturn(Optional.of(visitor));
+
+                var dto = new com.example.courtierprobackend.transactions.datalayer.dto.VisitorRequestDTO(
+                                "Updated", null, null);
+
+                assertThatThrownBy(
+                                () -> transactionService.updateVisitor(transactionId, visitor.getVisitorId(), dto, brokerId))
+                                .isInstanceOf(ForbiddenException.class)
+                                .hasMessageContaining("does not belong to this transaction");
+        }
+
+        @Test
+        void updateVisitor_withBlankName_throwsIllegalArgumentException() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = createSellSideTransaction(transactionId, brokerId);
+
+                var visitor = createVisitorEntity(transactionId, "Original", null, null);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(visitorRepository.findByVisitorId(visitor.getVisitorId())).thenReturn(Optional.of(visitor));
+
+                var dto = new com.example.courtierprobackend.transactions.datalayer.dto.VisitorRequestDTO(
+                                "", null, null);
+
+                assertThatThrownBy(
+                                () -> transactionService.updateVisitor(transactionId, visitor.getVisitorId(), dto, brokerId))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("Visitor name is required");
+        }
+
+        @Test
+        void removeVisitor_withValidData_deletesVisitor() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = createSellSideTransaction(transactionId, brokerId);
+
+                var visitor = createVisitorEntity(transactionId, "To Delete", "del@test.com", null);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(visitorRepository.findByVisitorId(visitor.getVisitorId())).thenReturn(Optional.of(visitor));
+
+                transactionService.removeVisitor(transactionId, visitor.getVisitorId(), brokerId);
+
+                verify(visitorRepository).delete(visitor);
+        }
+
+        @Test
+        void removeVisitor_withWrongTransaction_throwsForbiddenException() {
+                UUID transactionId = UUID.randomUUID();
+                UUID otherTransactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = createSellSideTransaction(transactionId, brokerId);
+
+                var visitor = createVisitorEntity(otherTransactionId, "Wrong Tx", null, null);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(visitorRepository.findByVisitorId(visitor.getVisitorId())).thenReturn(Optional.of(visitor));
+
+                assertThatThrownBy(
+                                () -> transactionService.removeVisitor(transactionId, visitor.getVisitorId(), brokerId))
+                                .isInstanceOf(ForbiddenException.class)
+                                .hasMessageContaining("does not belong to this transaction");
+        }
+
+        @Test
+        void removeVisitor_withNonExistentVisitor_throwsNotFoundException() {
+                UUID transactionId = UUID.randomUUID();
+                UUID brokerId = UUID.randomUUID();
+                Transaction tx = createSellSideTransaction(transactionId, brokerId);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+                when(visitorRepository.findByVisitorId(any())).thenReturn(Optional.empty());
+
+                assertThatThrownBy(
+                                () -> transactionService.removeVisitor(transactionId, UUID.randomUUID(), brokerId))
+                                .isInstanceOf(NotFoundException.class)
+                                .hasMessageContaining("Visitor not found");
         }
 }

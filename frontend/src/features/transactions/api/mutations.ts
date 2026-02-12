@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/shared/api/axiosInstance';
 import { transactionKeys } from '@/features/transactions/api/queries';
 import { dashboardKeys } from '@/features/dashboard/api/queries';
+import { analyticsKeys } from '@/features/analytics/api/queries';
 import { documentKeys } from '@/features/documents/api/queries';
 import type { TransactionRequestDTO, StageUpdateRequestDTO, AddParticipantRequestDTO, UpdateParticipantRequestDTO } from '@/shared/api/types';
 
@@ -25,6 +26,7 @@ export function useUpdateTransactionStage() {
             queryClient.invalidateQueries({ queryKey: documentKeys.checklists() });
             // Invalidate dashboard recent activity
             queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
         },
     });
 }
@@ -45,6 +47,7 @@ export function useTerminateTransaction() {
             queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
             queryClient.invalidateQueries({ queryKey: [...transactionKeys.detail(variables.transactionId), 'timeline'] });
             queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
         },
     });
 }
@@ -82,6 +85,7 @@ export function useCreateTransaction() {
             queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
             // Invalidate dashboard recent activity so it updates immediately
             queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
         },
     });
 }
@@ -566,6 +570,54 @@ export function useDeleteSearchCriteria() {
         },
         onSuccess: (_data, transactionId) => {
             queryClient.invalidateQueries({ queryKey: searchCriteriaKeys.byTransaction(transactionId) });
+        },
+    });
+}
+
+// ==================== VISITOR MUTATIONS ====================
+
+import type { VisitorRequestDTO } from '@/shared/api/types';
+import { visitorKeys } from '@/features/transactions/api/queries';
+
+export function useAddVisitor() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, data }: { transactionId: string; data: VisitorRequestDTO }) => {
+            const res = await axiosInstance.post(`/transactions/${transactionId}/visitors`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: visitorKeys.byTransaction(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
+        },
+    });
+}
+
+export function useUpdateVisitor() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, visitorId, data }: { transactionId: string; visitorId: string; data: VisitorRequestDTO }) => {
+            const res = await axiosInstance.put(`/transactions/${transactionId}/visitors/${visitorId}`, data);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: visitorKeys.byTransaction(variables.transactionId) });
+        },
+    });
+}
+
+export function useDeleteVisitor() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ transactionId, visitorId }: { transactionId: string; visitorId: string }) => {
+            await axiosInstance.delete(`/transactions/${transactionId}/visitors/${visitorId}`);
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: visitorKeys.byTransaction(variables.transactionId) });
+            queryClient.invalidateQueries({ queryKey: transactionKeys.detail(variables.transactionId) });
         },
     });
 }

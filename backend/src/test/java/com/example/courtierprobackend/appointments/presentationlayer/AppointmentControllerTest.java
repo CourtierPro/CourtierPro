@@ -71,7 +71,10 @@ class AppointmentControllerTest {
                                 null,
                                 null,
                                 LocalDateTime.now(),
-                                LocalDateTime.now());
+                                LocalDateTime.now(),
+                                null,
+                                null,
+                                null);
         }
 
         private MockHttpServletRequest createBrokerRequest(UUID internalId) {
@@ -385,7 +388,9 @@ class AppointmentControllerTest {
                                 java.time.LocalDate.now().plusDays(1),
                                 java.time.LocalTime.of(10, 0),
                                 java.time.LocalTime.of(11, 0),
-                                "Test message");
+                                "Test message",
+                                null,
+                                null);
 
                 AppointmentResponseDTO responseDTO = createTestAppointmentDTO();
 

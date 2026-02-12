@@ -314,6 +314,53 @@ public class TransactionController {
         return ResponseEntity.ok(service.getParticipants(transactionId, userId));
     }
 
+    // ==================== VISITOR ENDPOINTS (Sell-Side) ====================
+
+    @GetMapping("/{transactionId}/visitors")
+    @PreAuthorize("hasAnyRole('BROKER', 'ADMIN', 'CLIENT')")
+    public ResponseEntity<List<com.example.courtierprobackend.transactions.datalayer.dto.VisitorResponseDTO>> getVisitors(
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.getVisitors(transactionId, userId));
+    }
+
+    @PostMapping("/{transactionId}/visitors")
+    @PreAuthorize("hasAnyRole('BROKER', 'ADMIN')")
+    public ResponseEntity<com.example.courtierprobackend.transactions.datalayer.dto.VisitorResponseDTO> addVisitor(
+            @PathVariable UUID transactionId,
+            @RequestBody com.example.courtierprobackend.transactions.datalayer.dto.VisitorRequestDTO dto,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.addVisitor(transactionId, dto, brokerId));
+    }
+
+    @PutMapping("/{transactionId}/visitors/{visitorId}")
+    @PreAuthorize("hasAnyRole('BROKER', 'ADMIN')")
+    public ResponseEntity<com.example.courtierprobackend.transactions.datalayer.dto.VisitorResponseDTO> updateVisitor(
+            @PathVariable UUID transactionId,
+            @PathVariable UUID visitorId,
+            @RequestBody com.example.courtierprobackend.transactions.datalayer.dto.VisitorRequestDTO dto,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.updateVisitor(transactionId, visitorId, dto, brokerId));
+    }
+
+    @DeleteMapping("/{transactionId}/visitors/{visitorId}")
+    @PreAuthorize("hasAnyRole('BROKER', 'ADMIN')")
+    public ResponseEntity<Void> removeVisitor(
+            @PathVariable UUID transactionId,
+            @PathVariable UUID visitorId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
+        service.removeVisitor(transactionId, visitorId, brokerId);
+        return ResponseEntity.noContent().build();
+    }
+
     // ==================== PROPERTY ENDPOINTS ====================
 
     @GetMapping("/{transactionId}/properties")
@@ -408,6 +455,18 @@ public class TransactionController {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
         service.clearActiveProperty(transactionId, brokerId);
         return ResponseEntity.noContent().build();
+    }
+
+    // ==================== HOUSE VISIT COUNT ENDPOINT ====================
+
+    @GetMapping("/{transactionId}/house-visit-count")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<Integer> getHouseVisitCount(
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.getHouseVisitCount(transactionId, userId));
     }
 
     // ==================== PROPERTY OFFER ENDPOINTS ====================

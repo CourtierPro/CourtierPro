@@ -110,4 +110,9 @@ public interface AppointmentService {
                         com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO,
                         UUID requesterId);
 
+        /**
+         * Update the visitor count for an open_house or private_showing appointment.
+         */
+        AppointmentResponseDTO updateVisitorCount(UUID appointmentId, int numberOfVisitors, UUID requesterId);
+
 }

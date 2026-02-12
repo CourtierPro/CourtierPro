@@ -9,6 +9,8 @@ import com.example.courtierprobackend.common.exceptions.NotFoundException;
 import com.example.courtierprobackend.documents.datalayer.Document;
 import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
 import com.example.courtierprobackend.documents.datalayer.DocumentVersion;
+import com.example.courtierprobackend.appointments.datalayer.Appointment;
+import com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum;
 import com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum;
 import com.example.courtierprobackend.documents.datalayer.valueobjects.StorageObject;
@@ -21,6 +23,7 @@ import com.example.courtierprobackend.transactions.datalayer.enums.TransactionSi
 import com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
+import com.example.courtierprobackend.appointments.datalayer.AppointmentRepository;
 import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntryRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,6 +60,10 @@ class AdminResourceServiceImplTest {
         private TimelineEntryRepository timelineEntryRepository;
         @Mock
         private com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
+        @Mock
+        private AppointmentRepository appointmentRepository;
+        @Mock
+        private com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService;
 
         private AdminResourceServiceImpl service;
         private ObjectMapper objectMapper;
@@ -72,7 +79,9 @@ class AdminResourceServiceImplTest {
                                 objectStorageService,
                                 objectMapper,
                                 userAccountRepository,
-                                notificationService);
+                                notificationService,
+                                appointmentRepository,
+                                appointmentAuditService);
         }
 
         // ========== listResources Tests ==========
@@ -132,6 +141,22 @@ class AdminResourceServiceImplTest {
                 assertThat(result.getItems().get(0).getId()).isEqualTo(reqId);
                 // Verify formatted enum
                 assertThat(result.getItems().get(0).getDocType()).isEqualTo("Bank Statement");
+        }
+
+        @Test
+        void listResources_WithAppointments_ReturnsResourceList() {
+                UUID apptId = UUID.randomUUID();
+                Appointment appt = createTestAppointment(apptId);
+
+                when(appointmentRepository.findAll()).thenReturn(List.of(appt));
+
+                ResourceListResponse result = service.listResources(
+                                AdminDeletionAuditLog.ResourceType.APPOINTMENT, false);
+
+                assertThat(result.getResourceType()).isEqualTo("APPOINTMENT");
+                assertThat(result.getItems()).hasSize(1);
+                assertThat(result.getItems().get(0).getId()).isEqualTo(apptId);
+                assertThat(result.getItems().get(0).getSummary()).contains("Test Meeting");
         }
 
         @Test
@@ -213,7 +238,7 @@ class AdminResourceServiceImplTest {
                 assertThat(result.getLinkedResources()).hasSizeGreaterThan(0);
                 // Verify formatted summaries in linked resources
                 assertThat(result.getLinkedResources())
-                        .anyMatch(r -> r.getSummary().contains("Bank Statement"));
+                                .anyMatch(r -> r.getSummary().contains("Bank Statement"));
                 assertThat(result.getS3FilesToDelete()).hasSize(1);
         }
 
@@ -248,6 +273,22 @@ class AdminResourceServiceImplTest {
                 assertThat(result.getLinkedResources()).hasSize(1);
                 // Verify formatted summary
                 assertThat(result.getResourceSummary()).contains("Bank Statement");
+        }
+
+        @Test
+        void previewDeletion_ForAppointment_ReturnsSummary() {
+                UUID apptId = UUID.randomUUID();
+                Appointment appt = createTestAppointment(apptId);
+
+                when(appointmentRepository.findByAppointmentIdIncludingDeleted(apptId))
+                                .thenReturn(Optional.of(appt));
+
+                DeletionPreviewResponse result = service.previewDeletion(
+                                AdminDeletionAuditLog.ResourceType.APPOINTMENT, apptId);
+
+                assertThat(result.getResourceId()).isEqualTo(apptId);
+                assertThat(result.getResourceType()).isEqualTo("APPOINTMENT");
+                assertThat(result.getResourceSummary()).contains("Test Meeting");
         }
 
         @Test
@@ -459,6 +500,24 @@ class AdminResourceServiceImplTest {
                 verify(auditRepository).save(any(AdminDeletionAuditLog.class));
         }
 
+        @Test
+        void deleteResource_Appointment_SoftDeletesAndCreatesAuditLog() {
+                UUID apptId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+                Appointment appt = createTestAppointment(apptId);
+
+                when(appointmentRepository.findByAppointmentIdIncludingDeleted(apptId))
+                                .thenReturn(Optional.of(appt));
+                when(appointmentRepository.save(any(Appointment.class)))
+                                .thenAnswer(inv -> inv.getArgument(0));
+
+                service.deleteResource(AdminDeletionAuditLog.ResourceType.APPOINTMENT, apptId, adminId);
+
+                assertThat(appt.getDeletedAt()).isNotNull();
+                assertThat(appt.getDeletedBy()).isEqualTo(adminId);
+                verify(auditRepository).save(any(AdminDeletionAuditLog.class));
+        }
+
         // ========== restoreResource Tests ==========
 
         @Test
@@ -528,6 +587,24 @@ class AdminResourceServiceImplTest {
         }
 
         @Test
+        void restoreResource_ForDeletedAppointment_Restores() {
+                UUID apptId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+                Appointment appt = createTestAppointment(apptId);
+                appt.setDeletedAt(LocalDateTime.now());
+
+                when(appointmentRepository.findByAppointmentIdIncludingDeleted(apptId))
+                                .thenReturn(Optional.of(appt));
+                when(appointmentRepository.save(any(Appointment.class)))
+                                .thenAnswer(inv -> inv.getArgument(0));
+
+                service.restoreResource(AdminDeletionAuditLog.ResourceType.APPOINTMENT, apptId, adminId);
+
+                assertThat(appt.getDeletedAt()).isNull();
+                assertThat(appt.getDeletedBy()).isNull();
+        }
+
+        @Test
         void restoreResource_ParentTransactionDeleted_ThrowsBadRequest() {
                 UUID reqId = UUID.randomUUID();
                 UUID adminId = UUID.randomUUID();
@@ -547,6 +624,30 @@ class AdminResourceServiceImplTest {
                                 AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId, adminId))
                                 .isInstanceOf(BadRequestException.class)
                                 .hasMessageContaining("parent transaction");
+        }
+
+        @Test
+        void restoreAppointment_ParentTransactionDeleted_ThrowsBadRequest() {
+                UUID apptId = UUID.randomUUID();
+                UUID adminId = UUID.randomUUID();
+                UUID txId = UUID.randomUUID();
+
+                Appointment appt = createTestAppointment(apptId);
+                appt.setTransactionId(txId);
+                appt.setDeletedAt(LocalDateTime.now());
+
+                Transaction parentTx = createTestTransaction(txId);
+                parentTx.setDeletedAt(LocalDateTime.now());
+
+                when(appointmentRepository.findByAppointmentIdIncludingDeleted(apptId)).thenReturn(Optional.of(appt));
+                when(transactionRepository.findByTransactionIdIncludingDeleted(txId)).thenReturn(Optional.of(parentTx));
+
+                assertThatThrownBy(() -> service.restoreResource(
+                                AdminDeletionAuditLog.ResourceType.APPOINTMENT, apptId, adminId))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("Cannot restore appointment")
+                                .hasMessageContaining("parent transaction")
+                                .hasMessageContaining("is deleted");
         }
 
         @Test
@@ -647,6 +748,20 @@ class AdminResourceServiceImplTest {
                 entry.setType(com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType.STAGE_CHANGE);
                 return entry;
         }
+
+        private Appointment createTestAppointment(UUID appointmentId) {
+                Appointment appt = new Appointment();
+                appt.setAppointmentId(appointmentId);
+                appt.setTitle("Test Meeting");
+                appt.setBrokerId(UUID.randomUUID());
+                appt.setClientId(UUID.randomUUID());
+                appt.setStatus(AppointmentStatus.CONFIRMED);
+                appt.setFromDateTime(LocalDateTime.now().plusDays(1));
+                appt.setToDateTime(LocalDateTime.now().plusDays(1).plusHours(1));
+                appt.setCreatedAt(LocalDateTime.now());
+                appt.setUpdatedAt(LocalDateTime.now());
+                return appt;
+        }
         // ========== Unsupported Type Tests ==========
 
         @Test
@@ -701,7 +816,9 @@ class AdminResourceServiceImplTest {
                                 objectStorageService,
                                 mockMapper,
                                 userAccountRepository,
-                                notificationService);
+                                notificationService,
+                                appointmentRepository,
+                                appointmentAuditService);
 
                 when(mockMapper.writeValueAsString(any()))
                                 .thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("Fail") {
@@ -742,7 +859,9 @@ class AdminResourceServiceImplTest {
                                 objectStorageService,
                                 mockMapper,
                                 userAccountRepository,
-                                notificationService);
+                                notificationService,
+                                appointmentRepository,
+                                appointmentAuditService);
 
                 // Use doAnswer to conditionally fail only for the Map (snapshot) and succeed
                 // for List (cascaded)
@@ -826,9 +945,12 @@ class AdminResourceServiceImplTest {
                                 objectStorageService,
                                 mockMapper,
                                 userAccountRepository,
-                                notificationService);
+                                notificationService,
+                                appointmentRepository,
+                                appointmentAuditService);
 
-                // Use doAnswer to conditionally fail only for the Map (snapshot) and succeed for List (cascaded)
+                // Use doAnswer to conditionally fail only for the Map (snapshot) and succeed
+                // for List (cascaded)
                 // The snapshot argument is a Map<String, Object>
                 when(mockMapper.writeValueAsString(any())).thenAnswer(invocation -> {
                         Object arg = invocation.getArgument(0);
@@ -847,7 +969,8 @@ class AdminResourceServiceImplTest {
                 when(documentRequestRepository.findByDocumentIdIncludingDeleted(reqId)).thenReturn(Optional.of(docReq));
                 when(documentRequestRepository.save(any())).thenReturn(docReq);
 
-                errorService.deleteResource(AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId, UUID.randomUUID());
+                errorService.deleteResource(AdminDeletionAuditLog.ResourceType.DOCUMENT_REQUEST, reqId,
+                                UUID.randomUUID());
 
                 // Verify audit log IS saved, and snapshot is "{}"
                 org.mockito.ArgumentCaptor<AdminDeletionAuditLog> captor = org.mockito.ArgumentCaptor
@@ -869,15 +992,13 @@ class AdminResourceServiceImplTest {
                 tx.setClientId(clientId);
                 tx.setBrokerId(brokerId);
 
-                com.example.courtierprobackend.user.dataaccesslayer.UserAccount client = 
-                        new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+                com.example.courtierprobackend.user.dataaccesslayer.UserAccount client = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
                 client.setId(clientId);
                 client.setEmail("client@test.com");
                 client.setFirstName("Alice");
                 client.setLastName("Client");
 
-                com.example.courtierprobackend.user.dataaccesslayer.UserAccount broker = 
-                        new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+                com.example.courtierprobackend.user.dataaccesslayer.UserAccount broker = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
                 broker.setId(brokerId);
                 broker.setEmail("broker@test.com");
                 broker.setFirstName("Bob");
@@ -917,8 +1038,7 @@ class AdminResourceServiceImplTest {
                 UUID clientId = UUID.randomUUID();
                 tx.setClientId(clientId);
 
-                com.example.courtierprobackend.user.dataaccesslayer.UserAccount client = 
-                        new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
+                com.example.courtierprobackend.user.dataaccesslayer.UserAccount client = new com.example.courtierprobackend.user.dataaccesslayer.UserAccount();
                 client.setId(clientId);
                 client.setEmail("onlyemail@test.com");
                 // FirstName and LastName are null
@@ -974,9 +1094,8 @@ class AdminResourceServiceImplTest {
                 UUID reqId = UUID.randomUUID();
                 Document doc = createTestDocumentRequest(reqId);
                 doc.setVersions(List.of(
-                        createTestDocumentVersion(UUID.randomUUID()),
-                        createTestDocumentVersion(UUID.randomUUID())
-                ));
+                                createTestDocumentVersion(UUID.randomUUID()),
+                                createTestDocumentVersion(UUID.randomUUID())));
 
                 when(documentRequestRepository.findAll()).thenReturn(List.of(doc));
 
@@ -1086,7 +1205,8 @@ class AdminResourceServiceImplTest {
                 assertThat(tx.getDeletedAt()).isNull();
                 assertThat(docReq.getDeletedAt()).isNull();
                 assertThat(submittedDoc.getDeletedAt()).isNull();
-                // Note: Service modifies docReq in-place but doesn't explicitly save it (relies on cascading)
+                // Note: Service modifies docReq in-place but doesn't explicitly save it (relies
+                // on cascading)
         }
 
         @Test
@@ -1207,5 +1327,3 @@ class AdminResourceServiceImplTest {
                 assertThat(result.getS3FilesToDelete()).isEmpty();
         }
 }
-
-

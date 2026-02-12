@@ -29,5 +29,8 @@ public record AppointmentResponseDTO(
         String cancellationReason,
         UUID cancelledBy,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+        LocalDateTime updatedAt,
+        UUID propertyId,
+        Integer numberOfVisitors,
+        UUID visitorId) {
 }

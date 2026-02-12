@@ -38,12 +38,15 @@ public class AdminResourceServiceImpl implements AdminResourceService {
     private final ObjectMapper objectMapper;
     private final UserAccountRepository userAccountRepository;
     private final com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
+    private final com.example.courtierprobackend.appointments.datalayer.AppointmentRepository appointmentRepository;
+    private final com.example.courtierprobackend.audit.appointment_audit.businesslayer.AppointmentAuditService appointmentAuditService;
 
     @Override
     public ResourceListResponse listResources(AdminDeletionAuditLog.ResourceType type, boolean includeDeleted) {
         return switch (type) {
             case TRANSACTION -> listTransactions(includeDeleted);
             case DOCUMENT_REQUEST -> listDocuments(includeDeleted);
+            case APPOINTMENT -> listAppointments(includeDeleted);
             default -> throw new BadRequestException("Resource type not supported for listing: " + type);
         };
     }
@@ -132,11 +135,57 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                 .build();
     }
 
+    private ResourceListResponse listAppointments(boolean includeDeleted) {
+        List<com.example.courtierprobackend.appointments.datalayer.Appointment> appointments = includeDeleted
+                ? appointmentRepository.findAllIncludingDeleted()
+                : appointmentRepository.findAll();
+
+        long deletedCount = appointments.stream().filter(a -> a.getDeletedAt() != null).count();
+
+        List<ResourceListResponse.ResourceItem> items = appointments.stream()
+                .map(a -> {
+                    String clientEmail = a.getClientId() != null
+                            ? userAccountRepository.findById(a.getClientId())
+                                    .map(this::formatUserLabel)
+                                    .orElse(null)
+                            : null;
+                    String brokerEmail = a.getBrokerId() != null
+                            ? userAccountRepository.findById(a.getBrokerId())
+                                    .map(this::formatUserLabel)
+                                    .orElse(null)
+                            : null;
+
+                    return ResourceListResponse.ResourceItem.builder()
+                            .id(a.getAppointmentId())
+                            .summary(a.getTitle())
+                            .createdAt(a.getCreatedAt())
+                            .deletedAt(a.getDeletedAt())
+                            .deletedBy(a.getDeletedBy())
+                            .isDeleted(a.getDeletedAt() != null)
+                            .clientId(a.getClientId())
+                            .clientEmail(clientEmail)
+                            .brokerId(a.getBrokerId())
+                            .brokerEmail(brokerEmail)
+                            .transactionId(a.getTransactionId())
+                            .status(a.getStatus() != null ? formatEnum(a.getStatus()) : null)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return ResourceListResponse.builder()
+                .resourceType("APPOINTMENT")
+                .totalCount(items.size())
+                .deletedCount((int) deletedCount)
+                .items(items)
+                .build();
+    }
+
     @Override
     public DeletionPreviewResponse previewDeletion(AdminDeletionAuditLog.ResourceType type, UUID resourceId) {
         return switch (type) {
             case TRANSACTION -> previewTransactionDeletion(resourceId);
             case DOCUMENT_REQUEST -> previewDocumentDeletion(resourceId);
+            case APPOINTMENT -> previewAppointmentDeletion(resourceId);
             default -> throw new BadRequestException("Resource type not supported for deletion: " + type);
         };
     }
@@ -172,7 +221,8 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                 linked.add(DeletionPreviewResponse.LinkedResource.builder()
                         .type("DOCUMENT_VERSION")
                         .id(version.getVersionId())
-                        .summary(version.getStorageObject() != null ? version.getStorageObject().getFileName() : "Unknown file")
+                        .summary(version.getStorageObject() != null ? version.getStorageObject().getFileName()
+                                : "Unknown file")
                         .build());
 
                 if (version.getStorageObject() != null && version.getStorageObject().getS3Key() != null) {
@@ -183,6 +233,17 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                             .build());
                 }
             }
+        }
+
+        // Appointments
+        List<com.example.courtierprobackend.appointments.datalayer.Appointment> appointments = appointmentRepository
+                .findByTransactionIdIncludingDeleted(transactionId);
+        for (com.example.courtierprobackend.appointments.datalayer.Appointment appt : appointments) {
+            linked.add(DeletionPreviewResponse.LinkedResource.builder()
+                    .type("APPOINTMENT")
+                    .id(appt.getAppointmentId())
+                    .summary(appt.getTitle() + " (" + formatEnum(appt.getStatus()) + ")")
+                    .build());
         }
 
         return DeletionPreviewResponse.builder()
@@ -205,7 +266,8 @@ public class AdminResourceServiceImpl implements AdminResourceService {
             linked.add(DeletionPreviewResponse.LinkedResource.builder()
                     .type("DOCUMENT_VERSION")
                     .id(version.getVersionId())
-                    .summary(version.getStorageObject() != null ? version.getStorageObject().getFileName() : "Unknown file")
+                    .summary(version.getStorageObject() != null ? version.getStorageObject().getFileName()
+                            : "Unknown file")
                     .build());
 
             if (version.getStorageObject() != null && version.getStorageObject().getS3Key() != null) {
@@ -226,6 +288,20 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                 .build();
     }
 
+    private DeletionPreviewResponse previewAppointmentDeletion(UUID appointmentId) {
+        com.example.courtierprobackend.appointments.datalayer.Appointment appointment = appointmentRepository
+                .findByAppointmentIdIncludingDeleted(appointmentId)
+                .orElseThrow(() -> new NotFoundException("Appointment not found: " + appointmentId));
+
+        return DeletionPreviewResponse.builder()
+                .resourceId(appointmentId)
+                .resourceType("APPOINTMENT")
+                .resourceSummary(appointment.getTitle())
+                .linkedResources(new ArrayList<>())
+                .s3FilesToDelete(new ArrayList<>())
+                .build();
+    }
+
     @Override
     @Transactional
     public void deleteResource(AdminDeletionAuditLog.ResourceType type, UUID resourceId, UUID adminId) {
@@ -234,6 +310,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         switch (type) {
             case TRANSACTION -> deleteTransaction(resourceId, adminId);
             case DOCUMENT_REQUEST -> deleteDocument(resourceId, adminId);
+            case APPOINTMENT -> deleteAppointment(resourceId, adminId);
             default -> throw new BadRequestException("Resource type not supported for deletion: " + type);
         }
     }
@@ -313,6 +390,18 @@ public class AdminResourceServiceImpl implements AdminResourceService {
             cascaded.add("Document:" + doc.getDocumentId());
         }
 
+        // Soft-delete appointments
+        List<com.example.courtierprobackend.appointments.datalayer.Appointment> appointments = appointmentRepository
+                .findByTransactionIdIncludingDeleted(transactionId);
+        for (com.example.courtierprobackend.appointments.datalayer.Appointment appt : appointments) {
+            if (appt.getDeletedAt() == null) {
+                appt.setDeletedAt(now);
+                appt.setDeletedBy(adminId);
+                appointmentRepository.save(appt);
+                cascaded.add("Appointment:" + appt.getAppointmentId());
+            }
+        }
+
         // Soft-delete the transaction
         transaction.setDeletedAt(now);
         transaction.setDeletedBy(adminId);
@@ -358,6 +447,29 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                 buildDocumentSnapshot(document), cascaded);
     }
 
+    private void deleteAppointment(UUID appointmentId, UUID adminId) {
+        com.example.courtierprobackend.appointments.datalayer.Appointment appointment = appointmentRepository
+                .findByAppointmentIdIncludingDeleted(appointmentId)
+                .orElseThrow(() -> new NotFoundException("Appointment not found: " + appointmentId));
+
+        if (appointment.getDeletedAt() != null) {
+            throw new BadRequestException("Appointment is already deleted");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        appointment.setDeletedAt(now);
+        appointment.setDeletedBy(adminId);
+        appointmentRepository.save(appointment);
+
+        createAuditLog(AdminDeletionAuditLog.ActionType.DELETE,
+                AdminDeletionAuditLog.ResourceType.APPOINTMENT, appointmentId, adminId,
+                buildAppointmentSnapshot(appointment), new ArrayList<>());
+
+        // New Appointment Audit Integration
+        appointmentAuditService.logAction(appointmentId, "ADMIN_DELETED", adminId,
+                "Appointment soft-deleted by administrator");
+    }
+
     @Override
     @Transactional
     public void restoreResource(AdminDeletionAuditLog.ResourceType type, UUID resourceId, UUID adminId) {
@@ -366,6 +478,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         switch (type) {
             case TRANSACTION -> restoreTransaction(resourceId, adminId);
             case DOCUMENT_REQUEST -> restoreDocument(resourceId, adminId);
+            case APPOINTMENT -> restoreAppointment(resourceId, adminId);
             default -> throw new BadRequestException("Resource type not supported for restoration: " + type);
         }
     }
@@ -403,6 +516,18 @@ public class AdminResourceServiceImpl implements AdminResourceService {
             doc.setDeletedAt(null);
             doc.setDeletedBy(null);
             cascaded.add("Document:" + doc.getDocumentId());
+        }
+
+        // Restore appointments
+        List<com.example.courtierprobackend.appointments.datalayer.Appointment> appointments = appointmentRepository
+                .findByTransactionIdIncludingDeleted(transactionId);
+        for (com.example.courtierprobackend.appointments.datalayer.Appointment appt : appointments) {
+            if (appt.getDeletedAt() != null) {
+                appt.setDeletedAt(null);
+                appt.setDeletedBy(null);
+                appointmentRepository.save(appt);
+                cascaded.add("Appointment:" + appt.getAppointmentId());
+            }
         }
 
         transaction.setDeletedAt(null);
@@ -452,6 +577,41 @@ public class AdminResourceServiceImpl implements AdminResourceService {
                 buildDocumentSnapshot(document), cascaded);
     }
 
+    private void restoreAppointment(UUID appointmentId, UUID adminId) {
+        com.example.courtierprobackend.appointments.datalayer.Appointment appointment = appointmentRepository
+                .findByAppointmentIdIncludingDeleted(appointmentId)
+                .orElseThrow(() -> new NotFoundException("Appointment not found: " + appointmentId));
+
+        if (appointment.getDeletedAt() == null) {
+            throw new BadRequestException("Appointment is not deleted");
+        }
+
+        // Check if parent transaction is deleted - can't restore orphaned appointments
+        if (appointment.getTransactionId() != null) {
+            Transaction parentTransaction = transactionRepository
+                    .findByTransactionIdIncludingDeleted(appointment.getTransactionId())
+                    .orElse(null);
+
+            if (parentTransaction != null && parentTransaction.getDeletedAt() != null) {
+                throw new BadRequestException(
+                        "Cannot restore appointment: its parent transaction " + appointment.getTransactionId()
+                                + " is deleted. Restore the transaction first.");
+            }
+        }
+
+        appointment.setDeletedAt(null);
+        appointment.setDeletedBy(null);
+        appointmentRepository.save(appointment);
+
+        createAuditLog(AdminDeletionAuditLog.ActionType.RESTORE,
+                AdminDeletionAuditLog.ResourceType.APPOINTMENT, appointmentId, adminId,
+                buildAppointmentSnapshot(appointment), new ArrayList<>());
+
+        // New Appointment Audit Integration
+        appointmentAuditService.logAction(appointmentId, "ADMIN_RESTORED", adminId,
+                "Appointment restored by administrator");
+    }
+
     @Override
     public List<AdminDeletionAuditLog> getAuditHistory() {
         return auditRepository.findAllByOrderByTimestampDesc();
@@ -460,7 +620,8 @@ public class AdminResourceServiceImpl implements AdminResourceService {
     // Helper methods
 
     private String buildTransactionSummary(Transaction t) {
-        if (t.getSide() == com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE && t.getPropertyAddress() == null) {
+        if (t.getSide() == com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE
+                && t.getPropertyAddress() == null) {
             return "No property selected";
         }
         return t.getPropertyAddress() != null
@@ -507,6 +668,24 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         }
     }
 
+    private String buildAppointmentSnapshot(com.example.courtierprobackend.appointments.datalayer.Appointment a) {
+        try {
+            Map<String, Object> snapshot = new HashMap<>();
+            snapshot.put("appointmentId", a.getAppointmentId());
+            snapshot.put("title", a.getTitle());
+            snapshot.put("clientId", a.getClientId());
+            snapshot.put("brokerId", a.getBrokerId());
+            snapshot.put("transactionId", a.getTransactionId());
+            snapshot.put("status", a.getStatus() != null ? a.getStatus().name() : null);
+            snapshot.put("fromDateTime", a.getFromDateTime());
+            snapshot.put("toDateTime", a.getToDateTime());
+            return objectMapper.writeValueAsString(snapshot);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize appointment snapshot", e);
+            return "{}";
+        }
+    }
+
     private void createAuditLog(AdminDeletionAuditLog.ActionType action,
             AdminDeletionAuditLog.ResourceType type,
             UUID resourceId,
@@ -533,7 +712,7 @@ public class AdminResourceServiceImpl implements AdminResourceService {
         String name = String.format("%s %s",
                 u.getFirstName() != null ? u.getFirstName() : "",
                 u.getLastName() != null ? u.getLastName() : "").trim();
-        
+
         if (name.isEmpty()) {
             return u.getEmail();
         }
@@ -541,7 +720,8 @@ public class AdminResourceServiceImpl implements AdminResourceService {
     }
 
     private String formatEnum(Enum<?> e) {
-        if (e == null) return null;
+        if (e == null)
+            return null;
         String s = e.name().replace('_', ' ').toLowerCase(java.util.Locale.ROOT);
         StringBuilder sb = new StringBuilder();
         boolean nextTitleCase = true;

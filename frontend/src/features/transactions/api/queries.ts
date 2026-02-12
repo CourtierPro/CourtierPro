@@ -39,6 +39,9 @@ export interface Transaction {
     brokerId?: string;
     archived?: boolean;
     archivedAt?: string;
+    houseVisitCount?: number;
+    totalShowings?: number;
+    totalVisitors?: number;
 }
 
 export function usePinnedTransactionIds() {
@@ -384,6 +387,25 @@ export function useSearchCriteria(transactionId: string) {
         queryKey: searchCriteriaKeys.byTransaction(transactionId),
         queryFn: async () => {
             const res = await axiosInstance.get<SearchCriteria | null>(`/transactions/${transactionId}/search-criteria`);
+            return res.data;
+        },
+        enabled: !!transactionId,
+    });
+}
+
+// ==================== VISITOR QUERIES ====================
+
+import type { Visitor } from '@/shared/api/types';
+
+export const visitorKeys = {
+    byTransaction: (transactionId: string) => [...transactionKeys.detail(transactionId), 'visitors'] as const,
+};
+
+export function useTransactionVisitors(transactionId: string) {
+    return useQuery({
+        queryKey: visitorKeys.byTransaction(transactionId),
+        queryFn: async () => {
+            const res = await axiosInstance.get<Visitor[]>(`/transactions/${transactionId}/visitors`);
             return res.data;
         },
         enabled: !!transactionId,

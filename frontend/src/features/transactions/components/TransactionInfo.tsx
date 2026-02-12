@@ -73,6 +73,28 @@ export function TransactionInfo({ transaction, hideClientLabel = false, onClient
             {formatDate(transaction.openedDate ?? transaction.openedAt)}
           </p>
         </div>
+        {transaction.side === 'BUY_SIDE' && transaction.houseVisitCount != null && (
+          <div className="mt-2">
+            <p className="text-xs text-muted-foreground">{t('houseVisits')}</p>
+            <p className="text-sm font-medium text-foreground">{transaction.houseVisitCount}</p>
+          </div>
+        )}
+        {transaction.side === 'SELL_SIDE' && (
+          <div className="flex gap-4 mt-2">
+            {transaction.totalShowings != null && (
+              <div>
+                <p className="text-xs text-muted-foreground">{t('totalShowings')}</p>
+                <p className="text-sm font-medium text-foreground">{transaction.totalShowings}</p>
+              </div>
+            )}
+            {transaction.totalVisitors != null && (
+              <div>
+                <p className="text-xs text-muted-foreground">{t('totalVisitors')}</p>
+                <p className="text-sm font-medium text-foreground">{transaction.totalVisitors}</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </Section>
   );

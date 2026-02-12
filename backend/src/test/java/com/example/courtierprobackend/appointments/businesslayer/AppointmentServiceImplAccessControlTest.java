@@ -42,6 +42,10 @@ public class AppointmentServiceImplAccessControlTest {
     private com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
     @Mock
     private com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService;
+    @Mock
+    private com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository propertyRepository;
+    @Mock
+    private com.example.courtierprobackend.transactions.datalayer.repositories.VisitorRepository visitorRepository;
 
     @BeforeEach
     void setUp() {
@@ -54,7 +58,9 @@ public class AppointmentServiceImplAccessControlTest {
                 emailService,
                 timelineService,
                 notificationService,
-                transactionParticipantRepository);
+                transactionParticipantRepository,
+                propertyRepository,
+                visitorRepository);
         transactionId = UUID.randomUUID();
         brokerId = UUID.randomUUID();
         clientId = UUID.randomUUID();
@@ -89,7 +95,7 @@ public class AppointmentServiceImplAccessControlTest {
         apt.setBrokerId(brokerId);
         apt.setClientId(clientId);
         com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED;
-        when(appointmentRepository.findByClientIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId, status))
+        when(appointmentRepository.findByClientIdAndStatusOrderByFromDateTimeAsc(clientId, status))
                 .thenReturn(List.of(apt));
         TransactionParticipant coBroker = new TransactionParticipant();
         coBroker.setUserId(coBrokerId);

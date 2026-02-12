@@ -58,6 +58,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         private final com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService;
         private final com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService;
         private final com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository;
+        private final com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository propertyRepository;
+        private final com.example.courtierprobackend.transactions.datalayer.repositories.VisitorRepository visitorRepository;
 
         public AppointmentServiceImpl(AppointmentRepository appointmentRepository,
                         UserAccountRepository userAccountRepository,
@@ -66,7 +68,9 @@ public class AppointmentServiceImpl implements AppointmentService {
                         com.example.courtierprobackend.email.EmailService emailService,
                         com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService,
                         com.example.courtierprobackend.notifications.businesslayer.NotificationService notificationService,
-                        com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository) {
+                        com.example.courtierprobackend.transactions.datalayer.repositories.TransactionParticipantRepository transactionParticipantRepository,
+                        com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository propertyRepository,
+                        com.example.courtierprobackend.transactions.datalayer.repositories.VisitorRepository visitorRepository) {
                 this.appointmentRepository = appointmentRepository;
                 this.userAccountRepository = userAccountRepository;
                 this.transactionRepository = transactionRepository;
@@ -75,12 +79,14 @@ public class AppointmentServiceImpl implements AppointmentService {
                 this.timelineService = timelineService;
                 this.notificationService = notificationService;
                 this.transactionParticipantRepository = transactionParticipantRepository;
+                this.propertyRepository = propertyRepository;
+                this.visitorRepository = visitorRepository;
         }
 
         @Override
         public List<AppointmentResponseDTO> getAppointmentsForBroker(UUID brokerId) {
                 List<Appointment> appointments = appointmentRepository
-                                .findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId);
+                                .findByBrokerIdOrderByFromDateTimeAsc(brokerId);
                 return mapToDTOs(appointments);
         }
 
@@ -88,7 +94,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         public List<AppointmentResponseDTO> getAppointmentsForClient(UUID clientId, UUID requesterId,
                         String requesterEmail) {
                 List<Appointment> allAppointments = appointmentRepository
-                                .findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId);
+                                .findByClientIdOrderByFromDateTimeAsc(clientId);
                 final UUID finalRequesterId = requesterId;
                 final String finalRequesterEmail = requesterEmail;
                 List<Appointment> filtered = allAppointments.stream().filter(apt -> {
@@ -150,7 +156,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         public List<AppointmentResponseDTO> getAppointmentsForBrokerByStatus(
                         UUID brokerId, AppointmentStatus status) {
                 List<Appointment> appointments = appointmentRepository
-                                .findByBrokerIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId, status);
+                                .findByBrokerIdAndStatusOrderByFromDateTimeAsc(brokerId, status);
                 return mapToDTOs(appointments);
         }
 
@@ -158,7 +164,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         public List<AppointmentResponseDTO> getAppointmentsForClientByStatus(
                         UUID clientId, AppointmentStatus status, UUID requesterId, String requesterEmail) {
                 List<Appointment> appointments = appointmentRepository
-                                .findByClientIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId, status);
+                                .findByClientIdAndStatusOrderByFromDateTimeAsc(clientId, status);
                 final UUID finalRequesterId = requesterId;
                 final String finalRequesterEmail = requesterEmail;
                 List<Appointment> filtered = appointments.stream().filter(apt -> {
@@ -228,14 +234,14 @@ public class AppointmentServiceImpl implements AppointmentService {
                 }
 
                 List<Appointment> appointments = appointmentRepository
-                                .findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(transactionId);
+                                .findByTransactionIdOrderByFromDateTimeAsc(transactionId);
                 return mapToDTOs(appointments);
         }
 
         @Override
         public AppointmentResponseDTO getAppointmentById(UUID appointmentId, UUID requesterId) {
                 Appointment appointment = appointmentRepository
-                                .findByAppointmentIdAndDeletedAtIsNull(appointmentId)
+                                .findByAppointmentId(appointmentId)
                                 .orElseThrow(() -> new NotFoundException("Appointment not found: " + appointmentId));
 
                 if (!appointment.getBrokerId().equals(requesterId) && !appointment.getClientId().equals(requesterId)) {
@@ -315,6 +321,51 @@ public class AppointmentServiceImpl implements AppointmentService {
                         appointment.setTitle(request.title());
                 } else {
                         appointment.setTitle(request.type());
+                }
+
+                // Validate house_visit type: requires BUY_SIDE transaction and a valid property
+                if ("house_visit".equalsIgnoreCase(request.type())) {
+                        if (transaction.getSide() != com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE) {
+                                throw new IllegalArgumentException(
+                                                "House visit appointments can only be created for buy-side transactions");
+                        }
+                        if (request.propertyId() == null) {
+                                throw new IllegalArgumentException(
+                                                "Property must be selected for house visit appointments");
+                        }
+                        com.example.courtierprobackend.transactions.datalayer.Property property = propertyRepository
+                                        .findByPropertyId(request.propertyId())
+                                        .orElseThrow(() -> new NotFoundException(
+                                                        "Property not found: " + request.propertyId()));
+                        if (!property.getTransactionId().equals(transaction.getTransactionId())) {
+                                throw new IllegalArgumentException(
+                                                "Property does not belong to this transaction");
+                        }
+                        appointment.setPropertyId(request.propertyId());
+                }
+
+                // Validate open_house and private_showing types: requires SELL_SIDE transaction
+                if ("open_house".equalsIgnoreCase(request.type()) || "private_showing".equalsIgnoreCase(request.type())) {
+                        if (transaction.getSide() != com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.SELL_SIDE) {
+                                throw new IllegalArgumentException(
+                                                "Open house and private showing appointments can only be created for sell-side transactions");
+                        }
+
+                        if ("private_showing".equalsIgnoreCase(request.type())) {
+                                appointment.setNumberOfVisitors(1); // default for private showing
+                                if (request.visitorId() != null) {
+                                        com.example.courtierprobackend.transactions.datalayer.Visitor visitor = visitorRepository
+                                                        .findByVisitorId(request.visitorId())
+                                                        .orElseThrow(() -> new NotFoundException(
+                                                                        "Visitor not found: " + request.visitorId()));
+                                        if (!visitor.getTransactionId().equals(transaction.getTransactionId())) {
+                                                throw new IllegalArgumentException(
+                                                                "Visitor does not belong to this transaction");
+                                        }
+                                        appointment.setVisitorId(request.visitorId());
+                                }
+                        }
+                        // open_house: numberOfVisitors left null, set after event concludes
                 }
 
                 LocalDateTime start = LocalDateTime.of(request.date(), request.startTime());
@@ -398,7 +449,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                         com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO reviewDTO,
                         UUID reviewerId) {
                 Appointment appointment = appointmentRepository
-                                .findByAppointmentIdAndDeletedAtIsNull(appointmentId)
+                                .findByAppointmentId(appointmentId)
                                 .orElseThrow(() -> new NotFoundException("Appointment not found: " + appointmentId));
 
                 boolean isBroker = appointment.getBrokerId().equals(reviewerId);
@@ -609,7 +660,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                         com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO,
                         UUID requesterId) {
                 Appointment appointment = appointmentRepository
-                                .findByAppointmentIdAndDeletedAtIsNull(appointmentId)
+                                .findByAppointmentId(appointmentId)
                                 .orElseThrow(() -> new NotFoundException("Appointment not found: " + appointmentId));
 
                 boolean isBroker = appointment.getBrokerId().equals(requesterId);
@@ -701,6 +752,42 @@ public class AppointmentServiceImpl implements AppointmentService {
                 return mapToDTO(saved, getUserNamesMap(List.of(saved)));
         }
 
+        @Override
+        @Transactional
+        public AppointmentResponseDTO updateVisitorCount(UUID appointmentId, int numberOfVisitors, UUID requesterId) {
+                Appointment appointment = appointmentRepository.findByAppointmentId(appointmentId)
+                                .orElseThrow(() -> new NotFoundException("Appointment not found: " + appointmentId));
+
+                // Verify requester is the broker on this appointment
+                if (!appointment.getBrokerId().equals(requesterId)) {
+                        throw new ForbiddenException("Only the broker can update the visitor count");
+                }
+
+                // Validate appointment status - only confirmed appointments can have visitor counts
+                if (appointment.getStatus() != com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED) {
+                        throw new IllegalArgumentException("Visitor count can only be updated for confirmed appointments");
+                }
+
+                // Validate appointment type
+                String title = appointment.getTitle();
+                if (!"open_house".equalsIgnoreCase(title) && !"private_showing".equalsIgnoreCase(title)) {
+                        throw new IllegalArgumentException("Visitor count can only be updated for open house or private showing appointments");
+                }
+
+                // For open_house, event must have concluded
+                if ("open_house".equalsIgnoreCase(title) && appointment.getToDateTime().isAfter(LocalDateTime.now())) {
+                        throw new IllegalArgumentException("Visitor count for open house can only be set after the event concludes");
+                }
+
+                if (numberOfVisitors < 0) {
+                        throw new IllegalArgumentException("Number of visitors cannot be negative");
+                }
+
+                appointment.setNumberOfVisitors(numberOfVisitors);
+                Appointment saved = appointmentRepository.save(appointment);
+                return mapToDTO(saved, getUserNamesMap(List.of(saved)));
+        }
+
         private AppointmentResponseDTO mapToDTO(Appointment apt, Map<UUID, String> userNames) {
                 return new AppointmentResponseDTO(
                                 apt.getAppointmentId(),
@@ -722,7 +809,10 @@ public class AppointmentServiceImpl implements AppointmentService {
                                 apt.getCancellationReason(),
                                 apt.getCancelledBy(),
                                 apt.getCreatedAt(),
-                                apt.getUpdatedAt());
+                                apt.getUpdatedAt(),
+                                apt.getPropertyId(),
+                                apt.getNumberOfVisitors(),
+                                apt.getVisitorId());
         }
 
         /**
@@ -739,7 +829,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
                 List<AppointmentStatus> excluded = List.of(AppointmentStatus.CANCELLED, AppointmentStatus.DECLINED);
                 List<Appointment> appointments = appointmentRepository
-                                .findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotInAndDeletedAtIsNull(
+                                .findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotIn(
                                                 startWindow, endWindow,
                                                 excluded);
 

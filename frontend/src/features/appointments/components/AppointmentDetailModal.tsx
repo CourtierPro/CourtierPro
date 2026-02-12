@@ -6,13 +6,16 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import { useTranslation } from "react-i18next";
 import { type Appointment, getAppointmentTimeRange, getAppointmentDate } from "../types";
 import { fr, enUS } from 'date-fns/locale';
-import { Calendar, Clock, MapPin, User, FileText, Check, X, AlertTriangle, CalendarClock, Ban } from "lucide-react";
-import { useReviewAppointment, useCancelAppointment } from "../api/mutations";
+import { Calendar, Clock, MapPin, User, FileText, Check, X, AlertTriangle, CalendarClock, Ban, Users } from "lucide-react";
+import { useReviewAppointment, useCancelAppointment, useUpdateVisitorCount } from "../api/mutations";
+import { useTransactionVisitors } from "@/features/transactions/api/queries";
 import { Badge } from "@/shared/components/ui/badge";
 import { getStatusBadgeVariant } from "../enums";
 import { useAuth0 } from "@auth0/auth0-react";
 import { format } from "date-fns";
+import { getLocalDateString } from '@/shared/utils/date';
 import { Section } from "@/shared/components/branded/Section";
+import { toast } from "sonner";
 
 import {
     Select,
@@ -48,6 +51,16 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
 
     const reviewMutation = useReviewAppointment();
     const cancelMutation = useCancelAppointment();
+    const updateVisitorCountMutation = useUpdateVisitorCount();
+
+    const [editingVisitorCount, setEditingVisitorCount] = useState(false);
+    const [visitorCountValue, setVisitorCountValue] = useState<number>(0);
+
+    const isShowingType = appointment ? (appointment.title.toLowerCase() === 'open_house' || appointment.title.toLowerCase() === 'private_showing') : false;
+    const eventConcluded = appointment ? new Date(appointment.toDateTime) < new Date() : false;
+
+    const { data: transactionVisitors = [] } = useTransactionVisitors(appointment?.transactionId || '');
+    const linkedVisitor = appointment?.visitorId ? transactionVisitors.find(v => v.visitorId === appointment.visitorId) : null;
 
     // Logic to determine other party name
     // If I am broker, show client name. If I am client, show broker name.
@@ -137,7 +150,11 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
             id: appointment.appointmentId,
             data: { action: 'CONFIRM' }
         }, {
-            onSuccess: () => onClose()
+            onSuccess: () => {
+                toast.success(t('appointmentConfirmed'));
+                onClose();
+            },
+            onError: () => toast.error(t('errorActionFailed'))
         });
     };
 
@@ -148,10 +165,12 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
             data: { action: 'DECLINE', refusalReason }
         }, {
             onSuccess: () => {
+                toast.success(t('appointmentDeclined'));
                 setIsDeclineOpen(false);
                 setRefusalReason("");
                 onClose();
-            }
+            },
+            onError: () => toast.error(t('errorActionFailed'))
         });
     };
 
@@ -162,10 +181,12 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
             data: { reason: cancellationReason }
         }, {
             onSuccess: () => {
+                toast.success(t('appointmentCancelledSuccess'));
                 setIsCancelOpen(false);
                 setCancellationReason("");
                 onClose();
-            }
+            },
+            onError: () => toast.error(t('errorActionFailed'))
         });
     }
 
@@ -191,9 +212,11 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
             }
         }, {
             onSuccess: () => {
+                toast.success(t('appointmentRescheduled'));
                 setIsRescheduleOpen(false);
                 onClose();
-            }
+            },
+            onError: () => toast.error(t('errorActionFailed'))
         });
     };
 
@@ -435,6 +458,80 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                         </div>
                     )}
 
+                    {/* Visitor Count Display/Edit for open_house and private_showing */}
+                    {isShowingType && appointment.status === 'CONFIRMED' && (
+                        <div className="space-y-2 pt-2 border-t border-border/50">
+                            <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wider flex items-center gap-2">
+                                <Users className="w-3 h-3" />
+                                {t('numberOfVisitors')}
+                            </p>
+                            {linkedVisitor && (
+                                <div className="flex items-center gap-2 text-sm">
+                                    <User className="w-3 h-3 text-muted-foreground" />
+                                    <span>{linkedVisitor.name}</span>
+                                </div>
+                            )}
+                            {!editingVisitorCount ? (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium">
+                                        {appointment.numberOfVisitors != null ? appointment.numberOfVisitors : '—'}
+                                    </span>
+                                    {isBroker && eventConcluded && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                setVisitorCountValue(appointment.numberOfVisitors ?? 0);
+                                                setEditingVisitorCount(true);
+                                            }}
+                                        >
+                                            {t('updateVisitorCount')}
+                                        </Button>
+                                    )}
+                                    {isBroker && !eventConcluded && (
+                                        <span className="text-xs text-muted-foreground italic">
+                                            {t('eventNotConcluded')}
+                                        </span>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        type="number"
+                                        min={0}
+                                        value={visitorCountValue}
+                                        onChange={(e) => setVisitorCountValue(parseInt(e.target.value) || 0)}
+                                        className="w-24"
+                                    />
+                                    <Button
+                                        size="sm"
+                                        onClick={() => {
+                                            updateVisitorCountMutation.mutate({
+                                                appointmentId: appointment.appointmentId,
+                                                numberOfVisitors: visitorCountValue,
+                                            }, {
+                                                onSuccess: () => {
+                                                    toast.success(t('visitorCountUpdated'));
+                                                    setEditingVisitorCount(false);
+                                                },
+                                            });
+                                        }}
+                                        disabled={updateVisitorCountMutation.isPending}
+                                    >
+                                        <Check className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setEditingVisitorCount(false)}
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Refusal Reason (if Declined) */}
                     {appointment.status === 'DECLINED' && appointment.refusalReason && (
                         <div className="space-y-2 pt-2 border-t border-border/50">
@@ -499,7 +596,7 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                                     {t('reschedule', 'Reschedule')}
                                 </Button>
                             </div>
-                    )}
+                        )}
 
                     {/* Cancel Action (CONFIRMED or PROPOSED + ME) */}
                     {canCancel && !isCancelOpen && !isRescheduleOpen && !isDeclineOpen && (
@@ -602,7 +699,7 @@ export function AppointmentDetailModal({ isOpen, onClose, appointment, existingA
                                         type="date"
                                         value={newDate}
                                         onChange={(e) => setNewDate(e.target.value)}
-                                        min={new Date().toISOString().split('T')[0]}
+                                        min={getLocalDateString()}
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
