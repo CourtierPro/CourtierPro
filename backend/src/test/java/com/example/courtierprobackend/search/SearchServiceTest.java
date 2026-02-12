@@ -9,6 +9,8 @@ import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
+import com.example.courtierprobackend.appointments.datalayer.Appointment;
+import com.example.courtierprobackend.appointments.datalayer.AppointmentRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
@@ -37,6 +39,8 @@ class SearchServiceTest {
     @Mock
     private UserAccountRepository userAccountRepository;
     @Mock
+    private AppointmentRepository appointmentRepository;
+    @Mock
     private HttpServletRequest request;
 
     private SearchService searchService;
@@ -51,6 +55,7 @@ class SearchServiceTest {
                 transactionRepository,
                 documentRequestRepository,
                 userAccountRepository,
+                appointmentRepository,
                 request
         );
         userId = UUID.randomUUID();
@@ -88,8 +93,9 @@ class SearchServiceTest {
         Transaction transaction = createTestTransaction(transactionId, brokerId, userId);
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
         when(userAccountRepository.searchClientsOfBroker(userId, transactionId.toString())).thenReturn(List.of());
-        when(transactionRepository.searchTransactions(userId, transactionId.toString())).thenReturn(List.of());
+        when(transactionRepository.searchTransactions(eq(userId), eq(transactionId.toString()))).thenReturn(List.of());
         when(documentRequestRepository.searchDocuments(userId, transactionId.toString())).thenReturn(List.of());
+        when(appointmentRepository.searchAppointments(userId, transactionId.toString())).thenReturn(List.of());
 
         List<SearchResultDTO> results = searchService.search(transactionId.toString());
 
@@ -104,8 +110,9 @@ class SearchServiceTest {
         Transaction transaction = createTestTransaction(transactionId, otherUser, UUID.randomUUID());
         when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
         when(userAccountRepository.searchClientsOfBroker(userId, transactionId.toString())).thenReturn(List.of());
-        when(transactionRepository.searchTransactions(userId, transactionId.toString())).thenReturn(List.of());
+        when(transactionRepository.searchTransactions(eq(userId), eq(transactionId.toString()))).thenReturn(List.of());
         when(documentRequestRepository.searchDocuments(userId, transactionId.toString())).thenReturn(List.of());
+        when(appointmentRepository.searchAppointments(userId, transactionId.toString())).thenReturn(List.of());
 
         List<SearchResultDTO> results = searchService.search(transactionId.toString());
 
@@ -123,8 +130,9 @@ class SearchServiceTest {
         Transaction transaction = createTestTransaction(transactionId, brokerId, userId);
         
         when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
-        when(transactionRepository.searchTransactions(userId, query)).thenReturn(List.of(transaction));
+        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of(transaction));
         when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
+        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of());
 
         List<SearchResultDTO> results = searchService.search(query);
 
@@ -139,8 +147,9 @@ class SearchServiceTest {
         UserAccount user = new UserAccount("auth0|123", "john@example.com", "John", "Doe", UserRole.CLIENT, "en");
         
         when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of(user));
-        when(transactionRepository.searchTransactions(userId, query)).thenReturn(List.of());
+        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
         when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
+        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of());
 
         List<SearchResultDTO> results = searchService.search(query);
 
@@ -156,7 +165,7 @@ class SearchServiceTest {
         Document document = createTestDocument(transactionId, "Promise to Purchase");
         
         when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
-        when(transactionRepository.searchTransactions(userId, query)).thenReturn(List.of());
+        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
         when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of(document));
         when(transactionRepository.findByTransactionIdIn(List.of(transactionId))).thenReturn(List.of(transaction));
 
@@ -177,7 +186,7 @@ class SearchServiceTest {
         Transaction linkedTransaction = createTestTransaction(transactionId, userId, client.getId());
         
         when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of(client));
-        when(transactionRepository.searchTransactions(userId, query)).thenReturn(List.of());
+        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
         when(transactionRepository.findLinkedToUsers(List.of(client.getId()), userId)).thenReturn(List.of(linkedTransaction));
         when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
         when(documentRequestRepository.findLinkedToUsers(List.of(client.getId()), userId)).thenReturn(List.of());
@@ -226,7 +235,7 @@ class SearchServiceTest {
         tx.setPropertyAddress(new PropertyAddress(null, null, null, null)); // Null fields
         
         when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
-        when(transactionRepository.searchTransactions(userId, query)).thenReturn(List.of(tx));
+        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of(tx));
         when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
 
         // Act
@@ -244,7 +253,7 @@ class SearchServiceTest {
         Transaction tx = createTestTransaction(transactionId, brokerId, userId);
         tx.setPropertyAddress(new PropertyAddress("Street", "Montreal", null, "Zip")); // City only, no province
         
-        when(transactionRepository.searchTransactions(userId, query)).thenReturn(List.of(tx));
+        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of(tx));
 
         List<SearchResultDTO> results = searchService.search(query);
         assertThat(results.get(0).getSubtitle()).isEqualTo("Montreal");
@@ -313,7 +322,7 @@ class SearchServiceTest {
         // "Valid" length string but not a UUID
         String query = "NotAUUIDString"; 
         
-        when(transactionRepository.searchTransactions(userId, query)).thenReturn(List.of());
+        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
         
         // Should not throw exception
         List<SearchResultDTO> results = searchService.search(query);
@@ -324,10 +333,52 @@ class SearchServiceTest {
     void search_Users_WhenNoneFound_ReturnsEmpty() {
         String query = "Ghost";
         when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
-        when(transactionRepository.searchTransactions(userId, query)).thenReturn(List.of());
-        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
-
+        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
+        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of());
         List<SearchResultDTO> results = searchService.search(query);
         assertThat(results).isEmpty();
+    }
+
+    // ========== Appointment Search Tests ==========
+
+    @Test
+    void search_TextQuery_FindsAppointmentsByTitle() {
+        String query = "Meeting";
+        Appointment appointment = Appointment.builder()
+                .appointmentId(UUID.randomUUID())
+                .title("Client Meeting")
+                .fromDateTime(java.time.LocalDateTime.now())
+                .location("Office")
+                .build();
+
+        when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
+        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
+        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
+        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of(appointment));
+
+        List<SearchResultDTO> results = searchService.search(query);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getType()).isEqualTo(SearchResultDTO.SearchResultType.APPOINTMENT);
+        assertThat(results.get(0).getTitle()).isEqualTo("Client Meeting");
+        assertThat(results.get(0).getSubtitle()).contains("Office");
+    }
+
+    @Test
+    void search_AppointmentMap_HandlesNullLocation() {
+        String query = "Call";
+        Appointment appointment = Appointment.builder()
+                .appointmentId(UUID.randomUUID())
+                .title("Phone Call")
+                .fromDateTime(java.time.LocalDateTime.now())
+                .location(null) // Null location
+                .build();
+
+        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of(appointment));
+
+        List<SearchResultDTO> results = searchService.search(query);
+        
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getSubtitle()).doesNotContain("•"); // Should be just date/time
     }
 }
