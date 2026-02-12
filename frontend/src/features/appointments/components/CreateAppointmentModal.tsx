@@ -22,7 +22,7 @@ import {
 } from '@/shared/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
 import { useClientsForDisplay, type ClientDisplay } from '@/features/clients';
-import { useTransactions, type Transaction } from '@/features/transactions/api/queries';
+import { useTransactions, useTransactionProperties, type Transaction } from '@/features/transactions/api/queries';
 import { useAuth0 } from "@auth0/auth0-react";
 import { toast } from "sonner";
 import { useRequestAppointment } from "../api/mutations";
@@ -30,7 +30,7 @@ import { useRequestAppointment } from "../api/mutations";
 import { AlertTriangle } from "lucide-react";
 import { type Appointment } from "../types";
 
-type AppointmentType = 'inspection' | 'notary' | 'showing' | 'consultation' | 'walkthrough' | 'meeting' | 'other';
+type AppointmentType = 'inspection' | 'notary' | 'showing' | 'consultation' | 'walkthrough' | 'meeting' | 'house_visit' | 'other';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -122,6 +122,7 @@ export function CreateAppointmentModal({
   const [selectedTransactionId, setSelectedTransactionId] = useState('');
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [selectedPropertyId, setSelectedPropertyId] = useState('');
 
   const modalRef = useRef<HTMLDivElement>(null);
   const clientDropdownRef = useRef<HTMLDivElement>(null);
@@ -129,6 +130,11 @@ export function CreateAppointmentModal({
   // Fetch real client and transaction data
   const { data: clients = [] } = useClientsForDisplay({ enabled: isBroker });
   const { data: allTransactions = [] } = useTransactions({}, { enabled: true });
+
+  // Fetch properties for the selected transaction (needed for house_visit property picker)
+  const selectedTxDetails = allTransactions.find(tx => tx.transactionId === selectedTransactionId);
+  const isBuySide = selectedTxDetails?.side === 'BUY_SIDE';
+  const { data: transactionProperties = [] } = useTransactionProperties(selectedTransactionId);
   // We will need a way to fetch client transactions later, for now empty array if not broker to avoid 403
   // Actually, without modifying the hooks to accept 'enabled', we can't stop the query from running this way.
   // We MUST render useClientsForDisplay conditionally or update the hook.
@@ -413,6 +419,11 @@ export function CreateAppointmentModal({
       return;
     }
 
+    if (appointmentType === 'house_visit' && !selectedPropertyId) {
+      toast.error(t('propertyRequired', 'Please select a property for this house visit'));
+      return;
+    }
+
     // Validation for time
     const [startHour, startMin] = startTime.split(':').map(Number);
     const [endHour, endMin] = endTime.split(':').map(Number);
@@ -452,7 +463,8 @@ export function CreateAppointmentModal({
       date: date,
       startTime: startTime,
       endTime: endTime,
-      message: message
+      message: message,
+      propertyId: appointmentType === 'house_visit' ? selectedPropertyId : undefined
     }, {
       onSuccess: () => {
         const successMessageKey = isBroker ? 'appointmentSentToClient' : 'appointmentSentToBroker';
@@ -747,10 +759,54 @@ export function CreateAppointmentModal({
                 <SelectItem value="consultation">{t('consultation')}</SelectItem>
                 <SelectItem value="walkthrough">{t('walkthrough')}</SelectItem>
                 <SelectItem value="meeting">{t('meeting')}</SelectItem>
+                {isBuySide && (
+                  <SelectItem value="house_visit">{t('house_visit', 'House Visit')}</SelectItem>
+                )}
                 <SelectItem value="other">{t('other', 'Other')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {appointmentType === 'house_visit' && (
+            <div>
+              <label
+                htmlFor="property-select"
+                className="block mb-2 flex items-center justify-between text-foreground"
+              >
+                <span className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  {t('selectProperty', 'Select Property')}
+                </span>
+                <span
+                  className="text-destructive text-sm"
+                  aria-label="required"
+                >
+                  {t('required')}
+                </span>
+              </label>
+              <Select
+                value={selectedPropertyId}
+                onValueChange={setSelectedPropertyId}
+              >
+                <SelectTrigger id="property-select" className="w-full" aria-required="true">
+                  <SelectValue placeholder={t('selectProperty', 'Select Property')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {transactionProperties.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      {t('noPropertiesAvailable', 'No properties available')}
+                    </div>
+                  ) : (
+                    transactionProperties.map((prop) => (
+                      <SelectItem key={prop.propertyId} value={prop.propertyId}>
+                        {[prop.address?.street, prop.address?.city].filter(Boolean).join(', ') || prop.propertyId}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {appointmentType === 'other' && (
             <div>

@@ -11,5 +11,6 @@ public record AppointmentRequestDTO(
         LocalDate date,
         LocalTime startTime,
         LocalTime endTime,
-        String message) {
+        String message,
+        UUID propertyId) {
 }

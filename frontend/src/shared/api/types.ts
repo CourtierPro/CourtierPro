@@ -215,6 +215,7 @@ export interface Property {
   offerAmount?: number;
   centrisNumber?: string;
   notes?: string; // Only present for brokers
+  timesVisited?: number;
   createdAt: string;
   updatedAt: string;
 }

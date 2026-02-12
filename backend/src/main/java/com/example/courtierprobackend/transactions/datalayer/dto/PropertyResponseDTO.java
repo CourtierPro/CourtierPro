@@ -24,4 +24,5 @@ public class PropertyResponseDTO {
     private com.example.courtierprobackend.transactions.datalayer.enums.PropertyStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Integer timesVisited;
 }

@@ -410,6 +410,18 @@ public class TransactionController {
         return ResponseEntity.noContent().build();
     }
 
+    // ==================== HOUSE VISIT COUNT ENDPOINT ====================
+
+    @GetMapping("/{transactionId}/house-visit-count")
+    @PreAuthorize("hasAnyRole('BROKER', 'CLIENT')")
+    public ResponseEntity<Integer> getHouseVisitCount(
+            @PathVariable UUID transactionId,
+            @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
+            HttpServletRequest request) {
+        UUID userId = UserContextUtils.resolveUserId(request, brokerHeader);
+        return ResponseEntity.ok(service.getHouseVisitCount(transactionId, userId));
+    }
+
     // ==================== PROPERTY OFFER ENDPOINTS ====================
 
     @GetMapping("/properties/{propertyId}/offers")
