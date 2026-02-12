@@ -17,7 +17,8 @@
         "clientEngagement": "Engagement client",
         "trends": "Tendances",
         "activity": "Résumé d'activité",
-        "monthlyActivity": "Activité mensuelle"
+        "monthlyActivity": "Activité mensuelle",
+        "sellShowings": "Visites de vente"
     },
     "stats": {
         "totalTransactions": "Total des transactions",
@@ -75,7 +76,10 @@
         "busiestMonth": "Mois le plus chargé",
         "idleTransactions": "Transactions inactives (30+ jours)",
         "opened": "Ouvertes",
-        "closed": "Fermées"
+        "closed": "Fermées",
+        "totalSellShowings": "Total des visites",
+        "avgSellShowingsPerClosedTransaction": "Moy. par vente fermée",
+        "totalSellVisitors": "Total des visiteurs"
     },
     "stageLabels": {
         "buyerStages": "Étapes de l'acheteur",

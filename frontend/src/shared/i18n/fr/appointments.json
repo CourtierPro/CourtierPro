@@ -107,5 +107,21 @@
     "appointmentDeclined": "Rendez-vous refusé.",
     "appointmentCancelledSuccess": "Rendez-vous annulé.",
     "appointmentRescheduled": "Rendez-vous replanifié avec succès.",
-    "errorActionFailed": "L'action a échoué. Veuillez réessayer."
+    "errorActionFailed": "L'action a échoué. Veuillez réessayer.",
+    "open_house": "Portes ouvertes",
+    "private_showing": "Visite privée",
+    "numberOfVisitors": "Nombre de visiteurs",
+    "selectVisitor": "Sélectionner un visiteur",
+    "createNewVisitor": "Créer un nouveau visiteur",
+    "visitorRequired": "Un visiteur doit être sélectionné pour les visites privées",
+    "eventNotConcluded": "Le nombre de visiteurs peut être mis à jour après la fin de l'événement",
+    "updateVisitorCount": "Mettre à jour le nombre de visiteurs",
+    "visitorCountUpdated": "Nombre de visiteurs mis à jour avec succès",
+    "visitorName": "Nom du visiteur",
+    "visitorEmail": "Courriel",
+    "visitorPhone": "Téléphone",
+    "visitorNameRequired": "Le nom du visiteur est requis",
+    "visitorCreated": "Visiteur créé avec succès",
+    "saveVisitor": "Enregistrer le visiteur",
+    "cancelCreateVisitor": "Annuler"
 }

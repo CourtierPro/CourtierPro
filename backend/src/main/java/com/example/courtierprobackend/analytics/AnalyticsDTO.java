@@ -22,9 +22,14 @@ public record AnalyticsDTO(
         Map<String, Integer> buyerStageDistribution,
         Map<String, Integer> sellerStageDistribution,
 
-        // House Visits
+        // House Visits (Buy-Side)
         int totalHouseVisits,
         double avgHouseVisitsPerClosedTransaction,
+
+        // Showings (Sell-Side)
+        int totalSellShowings,
+        double avgSellShowingsPerClosedTransaction,
+        int totalSellVisitors,
 
         // Properties (Buy-Side)
         int totalProperties,

@@ -496,6 +496,8 @@
     "inspection": "Inspection",
     "walkthrough": "Visite des lieux",
     "appraisal": "Évaluation",
+    "open_house": "Portes ouvertes",
+    "private_showing": "Visite privée",
     "other": "Autre"
   },
   "setActive": "Définir actif",
@@ -787,5 +789,21 @@
       "MONTEREGIE": "Montérégie",
       "CENTRE_DU_QUEBEC": "Centre-du-Québec"
     }
-  }
+  },
+  "totalShowings": "Total des visites",
+  "totalVisitors": "Total des visiteurs",
+  "visitors": "Visiteurs",
+  "addVisitor": "Ajouter un visiteur",
+  "editVisitor": "Modifier le visiteur",
+  "deleteVisitor": "Supprimer le visiteur",
+  "visitorName": "Nom du visiteur",
+  "visitorEmail": "Courriel du visiteur",
+  "visitorPhone": "Téléphone du visiteur",
+  "timesVisited": "{{count}} visite",
+  "timesVisited_other": "{{count}} visites",
+  "noVisitors": "Aucun visiteur pour le moment",
+  "visitorAdded": "Visiteur ajouté avec succès",
+  "visitorUpdated": "Visiteur mis à jour avec succès",
+  "visitorDeleted": "Visiteur supprimé avec succès",
+  "confirmDeleteVisitor": "Êtes-vous sûr de vouloir supprimer ce visiteur ?"
 }

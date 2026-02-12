@@ -96,6 +96,12 @@ public class Appointment {
     @Column(name = "reminder_sent", nullable = false)
     private Boolean reminderSent = false;
 
+    @Column(name = "number_of_visitors")
+    private Integer numberOfVisitors;
+
+    @Column(name = "visitor_id")
+    private UUID visitorId;
+
     public Appointment() {
     }
 
@@ -335,5 +341,21 @@ public class Appointment {
 
     public void setReminderSent(Boolean reminderSent) {
         this.reminderSent = reminderSent;
+    }
+
+    public Integer getNumberOfVisitors() {
+        return numberOfVisitors;
+    }
+
+    public void setNumberOfVisitors(Integer numberOfVisitors) {
+        this.numberOfVisitors = numberOfVisitors;
+    }
+
+    public UUID getVisitorId() {
+        return visitorId;
+    }
+
+    public void setVisitorId(UUID visitorId) {
+        this.visitorId = visitorId;
     }
 }

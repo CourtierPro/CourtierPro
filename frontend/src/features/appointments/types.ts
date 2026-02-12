@@ -28,6 +28,8 @@ export interface Appointment {
     refusalReason?: string | null;
     cancellationReason?: string | null;
     cancelledBy?: string | null;
+    numberOfVisitors?: number | null;
+    visitorId?: string | null;
     createdAt: string;
     updatedAt: string;
 }

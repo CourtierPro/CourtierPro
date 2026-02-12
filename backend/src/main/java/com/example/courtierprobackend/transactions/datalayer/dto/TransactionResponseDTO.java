@@ -29,6 +29,8 @@ public class TransactionResponseDTO {
     private String archivedAt;
     private String notes;
     private Integer houseVisitCount;
+    private Integer totalShowings;
+    private Integer totalVisitors;
 }
 
 

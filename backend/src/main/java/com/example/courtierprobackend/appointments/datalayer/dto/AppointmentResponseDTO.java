@@ -30,5 +30,7 @@ public record AppointmentResponseDTO(
         UUID cancelledBy,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
-        UUID propertyId) {
+        UUID propertyId,
+        Integer numberOfVisitors,
+        UUID visitorId) {
 }

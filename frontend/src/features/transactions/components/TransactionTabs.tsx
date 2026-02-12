@@ -14,6 +14,7 @@ import { TransactionTimeline } from './TransactionTimeline';
 import { PropertyList } from './PropertyList';
 import { OfferList } from './OfferList';
 import { ParticipantsList } from './ParticipantsList';
+import { VisitorList } from './VisitorList';
 import { ConditionList } from './ConditionList';
 import { AddConditionModal } from './AddConditionModal';
 import { ConditionDetailModal } from './ConditionDetailModal';
@@ -281,6 +282,12 @@ export function TransactionTabs({
             transactionId={transaction.transactionId}
             isReadOnly={isReadOnly}
           />
+          {transaction.side === 'SELL_SIDE' && (
+            <VisitorList
+              transactionId={transaction.transactionId}
+              isBroker={!isReadOnly}
+            />
+          )}
         </TabsContent>
       )}
 

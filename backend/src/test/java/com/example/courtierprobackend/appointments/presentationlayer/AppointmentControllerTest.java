@@ -72,6 +72,8 @@ class AppointmentControllerTest {
                                 null,
                                 LocalDateTime.now(),
                                 LocalDateTime.now(),
+                                null,
+                                null,
                                 null);
         }
 
@@ -387,6 +389,7 @@ class AppointmentControllerTest {
                                 java.time.LocalTime.of(10, 0),
                                 java.time.LocalTime.of(11, 0),
                                 "Test message",
+                                null,
                                 null);
 
                 AppointmentResponseDTO responseDTO = createTestAppointmentDTO();

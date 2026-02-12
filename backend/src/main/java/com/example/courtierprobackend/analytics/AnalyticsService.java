@@ -37,6 +37,10 @@ public class AnalyticsService {
                 List<Transaction> allTransactions = transactionRepository.findAllByBrokerId(brokerId);
                 int total = allTransactions.size();
 
+                // Load all appointments once for use across multiple sections
+                List<Appointment> allAppointments = appointmentRepository
+                                .findByBrokerIdOrderByFromDateTimeAsc(brokerId);
+
                 // --- Transaction Overview ---
                 int active = 0, closed = 0, terminated = 0, buy = 0, sell = 0;
                 for (Transaction t : allTransactions) {
@@ -94,12 +98,11 @@ public class AnalyticsService {
                                                 t -> t.getSellerStage().name(),
                                                 Collectors.collectingAndThen(Collectors.counting(), Long::intValue)));
 
-                // --- House Visits ---
+                // --- House Visits (Buy-Side) ---
                 List<Transaction> buyTransactions = allTransactions.stream()
                                 .filter(t -> t.getSide() == TransactionSide.BUY_SIDE).toList();
 
-                // Single batch query → Map<transactionId, count>
-                Map<UUID, Integer> hvCountsByTxId = new java.util.HashMap<>();
+                Map<UUID, Integer> hvCountsByTxId = new HashMap<>();
                 if (!buyTransactions.isEmpty()) {
                         List<UUID> buyTxIds = buyTransactions.stream().map(Transaction::getTransactionId).toList();
                         for (Object[] row : appointmentRepository.countConfirmedHouseVisitsByTransactionIds(buyTxIds)) {
@@ -117,6 +120,35 @@ public class AnalyticsService {
                                         .mapToInt(t -> hvCountsByTxId.getOrDefault(t.getTransactionId(), 0))
                                         .sum();
                         avgHouseVisits = round((double) closedHV / closedBuyTransactions.size());
+                }
+
+                // --- Sell-Side Showings ---
+                List<Transaction> sellTransactionsForShowings = allTransactions.stream()
+                                .filter(t -> t.getSide() == TransactionSide.SELL_SIDE).toList();
+
+                Map<UUID, Integer> showingsCountsByTxId = new HashMap<>();
+                Map<UUID, Integer> visitorsCountsByTxId = new HashMap<>();
+                if (!sellTransactionsForShowings.isEmpty()) {
+                        List<UUID> sellTxIds = sellTransactionsForShowings.stream().map(Transaction::getTransactionId).toList();
+                        for (Object[] row : appointmentRepository.countConfirmedShowingsByTransactionIds(sellTxIds)) {
+                                showingsCountsByTxId.put((UUID) row[0], ((Number) row[1]).intValue());
+                        }
+                        for (Object[] row : appointmentRepository.sumVisitorsByTransactionIds(sellTxIds)) {
+                                visitorsCountsByTxId.put((UUID) row[0], ((Number) row[1]).intValue());
+                        }
+                }
+
+                int totalSellShowings = showingsCountsByTxId.values().stream().mapToInt(Integer::intValue).sum();
+                int totalSellVisitors = visitorsCountsByTxId.values().stream().mapToInt(Integer::intValue).sum();
+
+                List<Transaction> closedSellTransactions = sellTransactionsForShowings.stream()
+                                .filter(t -> t.getStatus() == TransactionStatus.CLOSED_SUCCESSFULLY).toList();
+                double avgSellShowings = 0.0;
+                if (!closedSellTransactions.isEmpty()) {
+                        int closedShowings = closedSellTransactions.stream()
+                                        .mapToInt(t -> showingsCountsByTxId.getOrDefault(t.getTransactionId(), 0))
+                                        .sum();
+                        avgSellShowings = round((double) closedShowings / closedSellTransactions.size());
                 }
 
                 // --- Properties (Buy-Side) ---
@@ -259,8 +291,6 @@ public class AnalyticsService {
                 double avgDocsPerTx = total > 0 ? round((double) totalDocuments / total) : 0;
 
                 // --- Appointments ---
-                List<Appointment> allAppointments = appointmentRepository
-                                .findByBrokerIdOrderByFromDateTimeAsc(brokerId);
                 int totalAppointments = allAppointments.size();
 
                 long confirmed = allAppointments.stream().filter(a -> a.getStatus() == AppointmentStatus.CONFIRMED)
@@ -341,6 +371,7 @@ public class AnalyticsService {
                                 openedPerMonth, closedPerMonth,
                                 buyerStageDistribution, sellerStageDistribution,
                                 totalHouseVisits, avgHouseVisits,
+                                totalSellShowings, avgSellShowings, totalSellVisitors,
                                 totalProperties, avgPropertiesPerBuy, propertyInterestRate,
                                 propertiesNeedingInfo, propertiesWithOffers, propertiesWithoutOffers,
                                 totalBuyerOffers, buyerOfferAcceptanceRate, avgOfferRounds,

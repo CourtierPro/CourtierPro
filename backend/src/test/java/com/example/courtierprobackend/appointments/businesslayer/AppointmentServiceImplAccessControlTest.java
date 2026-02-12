@@ -44,6 +44,8 @@ public class AppointmentServiceImplAccessControlTest {
     private com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService;
     @Mock
     private com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository propertyRepository;
+    @Mock
+    private com.example.courtierprobackend.transactions.datalayer.repositories.VisitorRepository visitorRepository;
 
     @BeforeEach
     void setUp() {
@@ -57,7 +59,8 @@ public class AppointmentServiceImplAccessControlTest {
                 timelineService,
                 notificationService,
                 transactionParticipantRepository,
-                propertyRepository);
+                propertyRepository,
+                visitorRepository);
         transactionId = UUID.randomUUID();
         brokerId = UUID.randomUUID();
         clientId = UUID.randomUUID();

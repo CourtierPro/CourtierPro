@@ -11,6 +11,7 @@ export interface AppointmentRequestDTO {
     endTime: string; // ISO time HH:mm
     message: string;
     propertyId?: string; // Required for house_visit type
+    visitorId?: string; // Required for private_showing type
 }
 
 export function useRequestAppointment() {
@@ -69,6 +70,23 @@ export function useCancelAppointment() {
             queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
             if (data.transactionId) {
                 queryClient.invalidateQueries({ queryKey: ['transactions', 'detail', data.transactionId, 'timeline'] });
+            }
+        },
+    });
+}
+
+export function useUpdateVisitorCount() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ appointmentId, numberOfVisitors }: { appointmentId: string; numberOfVisitors: number }) => {
+            const res = await axiosInstance.patch(`/appointments/${appointmentId}/visitor-count`, { numberOfVisitors });
+            return res.data;
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+            if (data.transactionId) {
+                queryClient.invalidateQueries({ queryKey: ['transactions', 'detail', data.transactionId] });
             }
         },
     });
