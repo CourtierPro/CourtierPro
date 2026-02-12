@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import api from '@/shared/api/axiosInstance';
 import { useSearchContext } from '@/features/search/context/useSearchContext';
 
-export type SearchResultType = 'TRANSACTION' | 'DOCUMENT' | 'USER' | 'PAGE' | 'APPOINTMENT' | 'ADDRESS';
+export type SearchResultType = 'TRANSACTION' | 'DOCUMENT' | 'USER' | 'PAGE' | 'APPOINTMENT';
 
 export interface SearchResult {
     id: string;

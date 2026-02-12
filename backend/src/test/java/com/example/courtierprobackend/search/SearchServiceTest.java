@@ -95,6 +95,7 @@ class SearchServiceTest {
         when(userAccountRepository.searchClientsOfBroker(userId, transactionId.toString())).thenReturn(List.of());
         when(transactionRepository.searchTransactions(eq(userId), eq(transactionId.toString()))).thenReturn(List.of());
         when(documentRequestRepository.searchDocuments(userId, transactionId.toString())).thenReturn(List.of());
+        when(appointmentRepository.searchAppointments(userId, transactionId.toString())).thenReturn(List.of());
 
         List<SearchResultDTO> results = searchService.search(transactionId.toString());
 
@@ -111,6 +112,7 @@ class SearchServiceTest {
         when(userAccountRepository.searchClientsOfBroker(userId, transactionId.toString())).thenReturn(List.of());
         when(transactionRepository.searchTransactions(eq(userId), eq(transactionId.toString()))).thenReturn(List.of());
         when(documentRequestRepository.searchDocuments(userId, transactionId.toString())).thenReturn(List.of());
+        when(appointmentRepository.searchAppointments(userId, transactionId.toString())).thenReturn(List.of());
 
         List<SearchResultDTO> results = searchService.search(transactionId.toString());
 
@@ -130,6 +132,7 @@ class SearchServiceTest {
         when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
         when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of(transaction));
         when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
+        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of());
 
         List<SearchResultDTO> results = searchService.search(query);
 
@@ -146,6 +149,7 @@ class SearchServiceTest {
         when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of(user));
         when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
         when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
+        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of());
 
         List<SearchResultDTO> results = searchService.search(query);
 
@@ -330,8 +334,7 @@ class SearchServiceTest {
         String query = "Ghost";
         when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
         when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
-        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
-
+        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of());
         List<SearchResultDTO> results = searchService.search(query);
         assertThat(results).isEmpty();
     }

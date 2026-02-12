@@ -57,6 +57,15 @@ public class SearchService {
         return new ArrayList<>(results);
     }
     
+    /**
+     * Attempts to interpret the free-text query as a UUID and, if successful,
+     * searches for matching transactions and documents that are visible to the
+     * given user. Any matches are added to the provided result set.
+     *
+     * @param query   the original search query string
+     * @param userId  the ID of the currently authenticated user
+     * @param results the collection to which matching search results are added
+     */
     private void searchById(String query, UUID userId, Set<SearchResultDTO> results) {
         try {
             UUID potentialId = UUID.fromString(query);
@@ -253,7 +262,7 @@ public class SearchService {
     }
 
     private SearchResultDTO mapAppointment(Appointment a) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d, h:mm a");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.getDefault());
         String subtitle = a.getFromDateTime().format(formatter);
         if (a.getLocation() != null && !a.getLocation().isEmpty()) {
             subtitle += " • " + a.getLocation();

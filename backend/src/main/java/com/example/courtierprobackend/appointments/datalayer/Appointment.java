@@ -18,6 +18,7 @@ import lombok.*;
 @Where(clause = "deleted_at IS NULL")
 @Builder
 @AllArgsConstructor
+@NoArgsConstructor
 public class Appointment {
 
     @Id
@@ -105,10 +106,6 @@ public class Appointment {
 
     @Column(name = "visitor_id")
     private UUID visitorId;
-
-    public Appointment() {
-        this.reminderSent = false;
-    }
 
     @PrePersist
     protected void onCreate() {

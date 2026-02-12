@@ -20,7 +20,7 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
                         "WHERE (LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
                         "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
                         "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%'))) AND " +
-                        "EXISTS (SELECT t FROM Transaction t WHERE (t.clientId = u.id OR t.brokerId = u.id) AND (t.brokerId = :brokerId OR t.clientId = :brokerId))")
+                        "EXISTS (SELECT t FROM Transaction t WHERE t.clientId = u.id AND t.brokerId = :brokerId)")
         List<UserAccount> searchClientsOfBroker(
                         @org.springframework.data.repository.query.Param("brokerId") UUID brokerId,
                         @org.springframework.data.repository.query.Param("query") String query);

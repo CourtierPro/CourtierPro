@@ -48,7 +48,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                         "LOWER(COALESCE(t.propertyAddress.postalCode, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
                         "LOWER(COALESCE(t.notes, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
                         "LOWER(COALESCE(t.centrisNumber, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-                        "LOWER(CAST(t.transactionId AS string)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
                         "EXISTS (SELECT p FROM Property p WHERE p.transactionId = t.transactionId AND (LOWER(p.centrisNumber) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(p.notes) LIKE LOWER(CONCAT('%', :query, '%')))))")
         List<Transaction> searchTransactions(@Param("userId") UUID userId, @Param("query") String query);
 
