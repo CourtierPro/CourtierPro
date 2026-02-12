@@ -40,7 +40,11 @@
     "appPreferences": "Préférences de l'application",
     "viewAllDocuments": "Voir tous les documents",
     "directory": "Répertoire",
-    "list": "Liste"
+    "list": "Liste",
+    "appointments": "Rendez-vous",
+    "calendar": "Calendrier",
+    "analytics": "Analytique",
+    "reports": "Rapports et statistiques"
   },
   "search": {
     "placeholder": "Tapez pour rechercher...",

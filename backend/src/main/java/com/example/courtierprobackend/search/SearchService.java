@@ -1,5 +1,7 @@
 package com.example.courtierprobackend.search;
 
+import com.example.courtierprobackend.appointments.datalayer.Appointment;
+import com.example.courtierprobackend.appointments.datalayer.AppointmentRepository;
 import com.example.courtierprobackend.documents.datalayer.Document;
 import com.example.courtierprobackend.documents.datalayer.DocumentRepository;
 import com.example.courtierprobackend.search.dto.SearchResultDTO;
@@ -12,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,6 +25,7 @@ public class SearchService {
     private final TransactionRepository transactionRepository;
     private final DocumentRepository documentRepository;
     private final UserAccountRepository userAccountRepository;
+    private final AppointmentRepository appointmentRepository;
     private final HttpServletRequest request;
 
     /**
@@ -32,22 +36,71 @@ public class SearchService {
             return List.of();
         }
 
+        // Expand query for potential bilingual synonyms (e.g. "notaire" <-> "notary")
+        Set<String> searchTerms = resolveSynonyms(query);
+
         UUID userId = UserContextUtils.resolveUserId(request);
         Set<SearchResultDTO> results = new LinkedHashSet<>();
 
         // 1. Direct ID search (if query is UUID)
         searchById(query, userId, results);
 
-        // 2. Search users and get matched IDs for related searches
-        List<UUID> matchedUserIds = searchUsers(userId, query, results);
+        for (String term : searchTerms) {
+            // 2. Search users
+            List<UUID> matchedUserIds = searchUsers(userId, term, results);
 
-        // 3. Search transactions (text + linked users)
-        searchTransactions(userId, query, matchedUserIds, results);
+            // 3. Search transactions
+            searchTransactions(userId, term, matchedUserIds, results);
 
-        // 4. Search documents (text + linked users)
-        searchDocuments(userId, query, matchedUserIds, results);
+            // 4. Search documents
+            searchDocuments(userId, term, matchedUserIds, results);
+
+            // 5. Search appointments
+            searchAppointments(userId, term, results);
+        }
 
         return new ArrayList<>(results);
+    }
+    
+    private Set<String> resolveSynonyms(String query) {
+        Set<String> terms = new HashSet<>();
+        terms.add(query);
+        
+        String lowerQuery = query.toLowerCase().trim();
+        
+        // Manual mapping of common bilingual search terms
+        if (lowerQuery.contains("notaire") || lowerQuery.contains("notariale")) {
+            terms.add("notary");
+        }
+        if (lowerQuery.contains("assurance")) {
+            terms.add("insurance");
+        }
+        if (lowerQuery.contains("hypothèque") || lowerQuery.contains("hypotheque")) {
+            terms.add("mortgage");
+        }
+        if (lowerQuery.contains("inspection")) {
+            terms.add("inspection"); // Same
+        }
+        if (lowerQuery.contains("signature")) {
+            terms.add("signing");
+        }
+        if (lowerQuery.contains("banque") || lowerQuery.contains("relevé") || lowerQuery.contains("releve")) {
+            terms.add("bank");
+            terms.add("statement");
+        }
+        
+        // Reverse mappings (English -> French equivalent/synonym context)
+        if (lowerQuery.contains("notary")) {
+            terms.add("notaire");
+        }
+        if (lowerQuery.contains("mortgage")) {
+            terms.add("hypotheque");
+        }
+        if (lowerQuery.contains("signing")) {
+            terms.add("signature");
+        }
+        
+        return terms;
     }
 
     /**
@@ -174,6 +227,13 @@ public class SearchService {
                 .collect(Collectors.toList()));
     }
 
+    private void searchAppointments(UUID userId, String query, Set<SearchResultDTO> results) {
+        appointmentRepository.searchAppointments(userId, query)
+                .stream()
+                .map(this::mapAppointment)
+                .forEach(results::add);
+    }
+
     private Map<UUID, Transaction> fetchTransactionMap(List<Document> documents) {
         if (documents.isEmpty()) {
             return Map.of();
@@ -238,6 +298,22 @@ public class SearchService {
                 .title(title.isEmpty() ? "Unknown User" : title)
                 .subtitle(u.getEmail())
                 .url("/contacts/" + u.getId())
+                .build();
+    }
+
+    private SearchResultDTO mapAppointment(Appointment a) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d, h:mm a");
+        String subtitle = a.getFromDateTime().format(formatter);
+        if (a.getLocation() != null && !a.getLocation().isEmpty()) {
+            subtitle += " • " + a.getLocation();
+        }
+
+        return SearchResultDTO.builder()
+                .id(a.getAppointmentId().toString())
+                .type(SearchResultDTO.SearchResultType.APPOINTMENT)
+                .title(a.getTitle())
+                .subtitle(subtitle)
+                .url("/appointments?focus=" + a.getAppointmentId())
                 .build();
     }
 }

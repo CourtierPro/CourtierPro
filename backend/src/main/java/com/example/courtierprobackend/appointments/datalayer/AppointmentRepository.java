@@ -149,4 +149,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         List<Appointment> findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotInAndDeletedAtIsNull(
                         LocalDateTime start,
                         LocalDateTime end, java.util.Collection<AppointmentStatus> statuses);
+
+        @Query("SELECT a FROM Appointment a WHERE (a.brokerId = :userId OR a.clientId = :userId) " +
+                "AND a.deletedAt IS NULL AND " +
+                "(LOWER(a.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+                "LOWER(COALESCE(a.notes, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+                "LOWER(COALESCE(a.location, '')) LIKE LOWER(CONCAT('%', :query, '%')))")
+        List<Appointment> searchAppointments(@Param("userId") UUID userId, @Param("query") String query);
 }

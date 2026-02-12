@@ -15,7 +15,7 @@ public class SearchResultDTO {
     /**
      * Defines the category of search result.
      * 
-     * <p>TRANSACTION, DOCUMENT, USER are returned by the backend.
+     * <p>TRANSACTION, DOCUMENT, USER, APPOINTMENT are returned by the backend.
      * PAGE is included for frontend-backend type compatibility, allowing
      * the frontend to use the same type definition for client-side
      * static route results (e.g., Dashboard, Settings). The backend
@@ -25,6 +25,7 @@ public class SearchResultDTO {
         TRANSACTION,
         DOCUMENT,
         USER,
+        APPOINTMENT,
         /** Used by frontend only for static page navigation results. */
         PAGE
     }

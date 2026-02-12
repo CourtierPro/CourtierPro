@@ -9,6 +9,7 @@ import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
+import com.example.courtierprobackend.appointments.datalayer.AppointmentRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserRole;
@@ -37,6 +38,8 @@ class SearchServiceTest {
     @Mock
     private UserAccountRepository userAccountRepository;
     @Mock
+    private AppointmentRepository appointmentRepository;
+    @Mock
     private HttpServletRequest request;
 
     private SearchService searchService;
@@ -51,6 +54,7 @@ class SearchServiceTest {
                 transactionRepository,
                 documentRequestRepository,
                 userAccountRepository,
+                appointmentRepository,
                 request
         );
         userId = UUID.randomUUID();

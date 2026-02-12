@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Search, Loader2, File, User, Building, LayoutDashboard } from "lucide-react";
+import { Search, Loader2, File, User, Building, LayoutDashboard, Calendar, MapPin } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -52,6 +52,8 @@ export function GlobalSearch() {
             case 'DOCUMENT': return <File className="mr-2 h-4 w-4" />;
             case 'USER': return <User className="mr-2 h-4 w-4" />;
             case 'PAGE': return <LayoutDashboard className="mr-2 h-4 w-4" />;
+            case 'APPOINTMENT': return <Calendar className="mr-2 h-4 w-4" />;
+            case 'ADDRESS': return <MapPin className="mr-2 h-4 w-4" />;
             default: return <Search className="mr-2 h-4 w-4" />;
         }
     }
