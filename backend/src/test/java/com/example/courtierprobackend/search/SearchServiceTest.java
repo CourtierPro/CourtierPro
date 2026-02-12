@@ -9,6 +9,7 @@ import com.example.courtierprobackend.security.UserContextFilter;
 import com.example.courtierprobackend.transactions.datalayer.PropertyAddress;
 import com.example.courtierprobackend.transactions.datalayer.Transaction;
 import com.example.courtierprobackend.transactions.datalayer.repositories.TransactionRepository;
+import com.example.courtierprobackend.appointments.datalayer.Appointment;
 import com.example.courtierprobackend.appointments.datalayer.AppointmentRepository;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccount;
 import com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository;
@@ -333,5 +334,48 @@ class SearchServiceTest {
 
         List<SearchResultDTO> results = searchService.search(query);
         assertThat(results).isEmpty();
+    }
+
+    // ========== Appointment Search Tests ==========
+
+    @Test
+    void search_TextQuery_FindsAppointmentsByTitle() {
+        String query = "Meeting";
+        Appointment appointment = Appointment.builder()
+                .appointmentId(UUID.randomUUID())
+                .title("Client Meeting")
+                .fromDateTime(java.time.LocalDateTime.now())
+                .location("Office")
+                .build();
+
+        when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
+        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
+        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
+        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of(appointment));
+
+        List<SearchResultDTO> results = searchService.search(query);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getType()).isEqualTo(SearchResultDTO.SearchResultType.APPOINTMENT);
+        assertThat(results.get(0).getTitle()).isEqualTo("Client Meeting");
+        assertThat(results.get(0).getSubtitle()).contains("Office");
+    }
+
+    @Test
+    void search_AppointmentMap_HandlesNullLocation() {
+        String query = "Call";
+        Appointment appointment = Appointment.builder()
+                .appointmentId(UUID.randomUUID())
+                .title("Phone Call")
+                .fromDateTime(java.time.LocalDateTime.now())
+                .location(null) // Null location
+                .build();
+
+        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of(appointment));
+
+        List<SearchResultDTO> results = searchService.search(query);
+        
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getSubtitle()).doesNotContain("•"); // Should be just date/time
     }
 }

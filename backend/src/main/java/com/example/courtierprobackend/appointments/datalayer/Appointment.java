@@ -5,6 +5,7 @@ import com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.*;
 
 /**
  * Appointment entity representing a scheduled meeting between broker and
@@ -12,6 +13,8 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "appointments")
+@Builder
+@AllArgsConstructor
 public class Appointment {
 
     @Id
@@ -88,6 +91,7 @@ public class Appointment {
     private UUID deletedBy;
 
     @Column(name = "reminder_sent", nullable = false)
+    @Builder.Default
     private Boolean reminderSent = false;
 
     public Appointment() {
