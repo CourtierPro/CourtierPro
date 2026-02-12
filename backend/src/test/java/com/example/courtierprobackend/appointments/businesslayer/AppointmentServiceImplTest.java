@@ -67,12 +67,20 @@ class AppointmentServiceImplTest {
         @Mock
         private com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService;
 
+        @Mock
+        private com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository propertyRepository;
+
+        @Mock
+        private com.example.courtierprobackend.transactions.datalayer.repositories.VisitorRepository visitorRepository;
+
         @BeforeEach
         void setUp() {
                 appointmentService = new AppointmentServiceImpl(appointmentRepository, userAccountRepository,
                                 transactionRepository, appointmentAuditService, emailService, timelineService,
                                 notificationService,
-                                transactionParticipantRepository);
+                                transactionParticipantRepository,
+                                propertyRepository,
+                                visitorRepository);
                 brokerId = UUID.randomUUID();
                 clientId = UUID.randomUUID();
                 transactionId = UUID.randomUUID();
@@ -121,7 +129,7 @@ class AppointmentServiceImplTest {
         void getAppointmentsForBroker_returnsAppointments() {
                 // Arrange
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
 
@@ -133,13 +141,13 @@ class AppointmentServiceImplTest {
                 assertThat(result.get(0).title()).isEqualTo("Test Appointment");
                 assertThat(result.get(0).brokerName()).isEqualTo("John Broker");
                 assertThat(result.get(0).clientName()).isEqualTo("Jane Client");
-                verify(appointmentRepository).findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId);
+                verify(appointmentRepository).findByBrokerIdOrderByFromDateTimeAsc(brokerId);
         }
 
         @Test
         void getAppointmentsForBroker_withNoAppointments_returnsEmptyList() {
                 // Arrange
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of());
 
                 // Act
@@ -154,7 +162,7 @@ class AppointmentServiceImplTest {
         @Test
         void getAppointmentsForClient_asClient_returnsAppointments() {
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, clientId,
@@ -166,7 +174,7 @@ class AppointmentServiceImplTest {
         @Test
         void getAppointmentsForClient_asBroker_returnsAppointments() {
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, brokerId,
@@ -178,7 +186,7 @@ class AppointmentServiceImplTest {
         void getAppointmentsForClient_asCoBroker_returnsAppointments() {
                 Appointment apt = createTestAppointment();
                 UUID coBrokerId = UUID.randomUUID();
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
                 com.example.courtierprobackend.transactions.datalayer.TransactionParticipant coBroker = new com.example.courtierprobackend.transactions.datalayer.TransactionParticipant();
@@ -195,7 +203,7 @@ class AppointmentServiceImplTest {
         void getAppointmentsForClient_forbiddenUser_returnsEmpty() {
                 Appointment apt = createTestAppointment();
                 UUID otherId = UUID.randomUUID();
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
                 when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
@@ -206,7 +214,7 @@ class AppointmentServiceImplTest {
 
         @Test
         void getAppointmentsForClient_withNoAppointments_returnsEmptyList() {
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                                 .thenReturn(List.of());
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, clientId,
                                 null);
@@ -266,7 +274,7 @@ class AppointmentServiceImplTest {
                 // Arrange
                 Appointment apt = createTestAppointment();
                 apt.setStatus(AppointmentStatus.CONFIRMED);
-                when(appointmentRepository.findByBrokerIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId,
+                when(appointmentRepository.findByBrokerIdAndStatusOrderByFromDateTimeAsc(brokerId,
                                 AppointmentStatus.CONFIRMED))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
@@ -278,7 +286,7 @@ class AppointmentServiceImplTest {
                 // Assert
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).status()).isEqualTo(AppointmentStatus.CONFIRMED);
-                verify(appointmentRepository).findByBrokerIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId,
+                verify(appointmentRepository).findByBrokerIdAndStatusOrderByFromDateTimeAsc(brokerId,
                                 AppointmentStatus.CONFIRMED);
         }
 
@@ -289,7 +297,7 @@ class AppointmentServiceImplTest {
                 // Arrange
                 Appointment apt = createTestAppointment();
                 apt.setStatus(AppointmentStatus.DECLINED);
-                when(appointmentRepository.findByClientIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId,
+                when(appointmentRepository.findByClientIdAndStatusOrderByFromDateTimeAsc(clientId,
                                 AppointmentStatus.DECLINED))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
@@ -303,7 +311,7 @@ class AppointmentServiceImplTest {
                 // Assert
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).status()).isEqualTo(AppointmentStatus.DECLINED);
-                verify(appointmentRepository).findByClientIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId,
+                verify(appointmentRepository).findByClientIdAndStatusOrderByFromDateTimeAsc(clientId,
                                 AppointmentStatus.DECLINED);
         }
 
@@ -369,7 +377,7 @@ class AppointmentServiceImplTest {
                 transaction.setClientId(clientId);
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
-                when(appointmentRepository.findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(transactionId))
+                when(appointmentRepository.findByTransactionIdOrderByFromDateTimeAsc(transactionId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
 
@@ -381,7 +389,7 @@ class AppointmentServiceImplTest {
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).transactionId()).isEqualTo(transactionId);
                 verify(appointmentRepository)
-                                .findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(transactionId);
+                                .findByTransactionIdOrderByFromDateTimeAsc(transactionId);
         }
 
         @Test
@@ -410,7 +418,7 @@ class AppointmentServiceImplTest {
                 transaction.setClientId(clientId);
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
-                when(appointmentRepository.findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(transactionId))
+                when(appointmentRepository.findByTransactionIdOrderByFromDateTimeAsc(transactionId))
                                 .thenReturn(List.of());
 
                 // Act
@@ -440,7 +448,7 @@ class AppointmentServiceImplTest {
                 UUID appointmentId = UUID.randomUUID();
                 Appointment apt = createTestAppointment();
                 apt.setAppointmentId(appointmentId);
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
                 mockUserAccounts();
 
@@ -450,7 +458,7 @@ class AppointmentServiceImplTest {
                 // Assert
                 assertThat(result).isNotNull();
                 assertThat(result.appointmentId()).isEqualTo(appointmentId);
-                verify(appointmentRepository).findByAppointmentIdAndDeletedAtIsNull(appointmentId);
+                verify(appointmentRepository).findByAppointmentId(appointmentId);
         }
 
         @Test
@@ -459,7 +467,7 @@ class AppointmentServiceImplTest {
                 UUID appointmentId = UUID.randomUUID();
                 Appointment apt = createTestAppointment();
                 apt.setAppointmentId(appointmentId);
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
 
                 // Act & Assert
@@ -473,7 +481,7 @@ class AppointmentServiceImplTest {
         void getAppointmentById_notFound_throwsNotFoundException() {
                 // Arrange
                 UUID appointmentId = UUID.randomUUID();
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.empty());
 
                 // Act & Assert
@@ -488,7 +496,7 @@ class AppointmentServiceImplTest {
         void mapToDTO_withUnknownUser_usesUnknownFallback() {
                 // Arrange
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt));
                 // Return empty list so user names are not found
                 when(userAccountRepository.findAllById(any())).thenReturn(List.of());
@@ -506,7 +514,7 @@ class AppointmentServiceImplTest {
         void getFullName_withNullFirstName_returnsLastNameOnly() {
                 // Arrange
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt));
 
                 UserAccount brokerUser = createUserAccount(brokerId, null, "BrokerLastName");
@@ -524,7 +532,7 @@ class AppointmentServiceImplTest {
         void getFullName_withNullLastName_returnsFirstNameOnly() {
                 // Arrange
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt));
 
                 UserAccount brokerUser = createUserAccount(brokerId, "John", null);
@@ -542,7 +550,7 @@ class AppointmentServiceImplTest {
         void getFullName_withBothNamesNull_returnsEmptyString() {
                 // Arrange
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt));
 
                 UserAccount brokerUser = createUserAccount(brokerId, null, null);
@@ -560,7 +568,7 @@ class AppointmentServiceImplTest {
         void getUserNamesMap_withDuplicateUsers_handlesCollision() {
                 // Arrange
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt));
 
                 // Simulate repository returning duplicate users for the same ID (edge case)
@@ -582,7 +590,7 @@ class AppointmentServiceImplTest {
         void mapToDTO_mapsAllFields() {
                 // Arrange
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
 
@@ -618,7 +626,7 @@ class AppointmentServiceImplTest {
                 apt2.setTitle("Appointment 2");
                 apt2.setAppointmentId(UUID.randomUUID());
 
-                when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+                when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                                 .thenReturn(List.of(apt1, apt2));
                 mockUserAccounts();
 
@@ -641,7 +649,7 @@ class AppointmentServiceImplTest {
                 apt.setAppointmentId(appointmentId);
                 // apt is initiated by BROKER (default in createTestAppointment)
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
                 when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArguments()[0]);
                 mockUserAccounts();
@@ -665,7 +673,7 @@ class AppointmentServiceImplTest {
                 Appointment apt = createTestAppointment();
                 apt.setAppointmentId(appointmentId);
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
                 when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArguments()[0]);
                 mockUserAccounts();
@@ -692,7 +700,7 @@ class AppointmentServiceImplTest {
                 apt.setStatus(AppointmentStatus.PROPOSED);
                 // apt initiated by BROKER
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
                 when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArguments()[0]);
                 mockUserAccounts();
@@ -725,7 +733,7 @@ class AppointmentServiceImplTest {
                 apt.setAppointmentId(appointmentId);
                 apt.setInitiatedBy(InitiatorType.BROKER); // Initiated by BROKER
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
 
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO reviewDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO(
@@ -746,7 +754,7 @@ class AppointmentServiceImplTest {
                 apt.setAppointmentId(appointmentId);
                 apt.setStatus(AppointmentStatus.CONFIRMED); // Already confirmed
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
 
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO reviewDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO(
@@ -766,7 +774,7 @@ class AppointmentServiceImplTest {
                 Appointment apt = createTestAppointment();
                 apt.setAppointmentId(appointmentId);
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
 
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO reviewDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO(
@@ -788,7 +796,7 @@ class AppointmentServiceImplTest {
                 Appointment apt = createTestAppointment();
                 apt.setAppointmentId(appointmentId);
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
                 mockUserAccounts();
 
@@ -809,7 +817,7 @@ class AppointmentServiceImplTest {
                 Appointment apt = createTestAppointment();
                 apt.setAppointmentId(appointmentId);
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
 
                 java.time.LocalDate newDate = java.time.LocalDate.now().plusDays(2);
@@ -833,7 +841,7 @@ class AppointmentServiceImplTest {
                 UUID requesterId = brokerId;
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Property Viewing", null, java.time.LocalDate.now().plusDays(1),
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Let's view this");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Let's view this", null, null);
 
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
@@ -865,7 +873,7 @@ class AppointmentServiceImplTest {
                 UUID requesterId = clientId;
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Property Viewing", null, java.time.LocalDate.now().plusDays(1),
-                                java.time.LocalTime.of(14, 0), java.time.LocalTime.of(15, 0), "Can we meet?");
+                                java.time.LocalTime.of(14, 0), java.time.LocalTime.of(15, 0), "Can we meet?", null, null);
 
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
@@ -894,7 +902,7 @@ class AppointmentServiceImplTest {
                 // Arrange
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Other", "Custom Title", java.time.LocalDate.now().plusDays(1),
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Details");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Details", null, null);
 
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
@@ -921,7 +929,7 @@ class AppointmentServiceImplTest {
                 // Arrange
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Other", "", java.time.LocalDate.now().plusDays(1), // empty title
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Details");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Details", null, null);
 
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
@@ -948,7 +956,7 @@ class AppointmentServiceImplTest {
                 // Arrange
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Type", "Title", java.time.LocalDate.now(),
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg", null, null);
 
                 when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
 
@@ -963,7 +971,7 @@ class AppointmentServiceImplTest {
                 // Arrange
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Type", "Title", java.time.LocalDate.now().plusDays(1),
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg", null, null);
 
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
@@ -984,7 +992,7 @@ class AppointmentServiceImplTest {
                 // Arrange
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Type", "Title", java.time.LocalDate.now(),
-                                java.time.LocalTime.of(12, 0), java.time.LocalTime.of(11, 0), "End before start");
+                                java.time.LocalTime.of(12, 0), java.time.LocalTime.of(11, 0), "End before start", null, null);
 
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
@@ -1036,7 +1044,7 @@ class AppointmentServiceImplTest {
         void requestAppointment_startTimeNotInFuture_throwsIllegalArgumentException() {
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Type", "Title", java.time.LocalDate.now().minusDays(1),
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Past date");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Past date", null, null);
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
                 transaction.setBrokerId(brokerId);
@@ -1054,7 +1062,7 @@ class AppointmentServiceImplTest {
                 apt.setBrokerId(brokerId);
                 apt.setClientId(clientId);
                 apt.setStatus(AppointmentStatus.CONFIRMED);
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(any())).thenReturn(Optional.of(apt));
+                when(appointmentRepository.findByAppointmentId(any())).thenReturn(Optional.of(apt));
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO(
                                 "Not allowed");
                 UUID otherUser = UUID.randomUUID();
@@ -1069,7 +1077,7 @@ class AppointmentServiceImplTest {
                 apt.setBrokerId(brokerId);
                 apt.setClientId(clientId);
                 apt.setStatus(AppointmentStatus.CONFIRMED);
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(any())).thenReturn(Optional.of(apt));
+                when(appointmentRepository.findByAppointmentId(any())).thenReturn(Optional.of(apt));
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO(
                                 "");
                 assertThatThrownBy(() -> appointmentService.cancelAppointment(UUID.randomUUID(), cancelDTO, brokerId))
@@ -1083,7 +1091,7 @@ class AppointmentServiceImplTest {
                 apt.setBrokerId(brokerId);
                 apt.setClientId(clientId);
                 apt.setStatus(AppointmentStatus.CANCELLED);
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(any())).thenReturn(Optional.of(apt));
+                when(appointmentRepository.findByAppointmentId(any())).thenReturn(Optional.of(apt));
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO(
                                 "Already cancelled");
                 assertThatThrownBy(() -> appointmentService.cancelAppointment(UUID.randomUUID(), cancelDTO, brokerId))
@@ -1095,7 +1103,7 @@ class AppointmentServiceImplTest {
         void requestAppointment_missingBrokerId_throwsIllegalStateException() {
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Type", "Title", java.time.LocalDate.now().plusDays(1),
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg", null, null);
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
                 transaction.setBrokerId(null); // missing brokerId
@@ -1110,7 +1118,7 @@ class AppointmentServiceImplTest {
         void requestAppointment_missingClientId_throwsIllegalStateException() {
                 com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
                                 transactionId, "Type", "Title", java.time.LocalDate.now().plusDays(1),
-                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg");
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Msg", null, null);
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
                 transaction.setBrokerId(brokerId);
@@ -1160,7 +1168,7 @@ class AppointmentServiceImplTest {
         @Test
         void getAppointmentsForClient_nullRequester_returnsEmpty() {
                 Appointment apt = createTestAppointment();
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
                 List<AppointmentResponseDTO> result = appointmentService.getAppointmentsForClient(clientId, null, null);
@@ -1171,7 +1179,7 @@ class AppointmentServiceImplTest {
         void getAppointmentsForClient_notRelated_returnsEmpty() {
                 Appointment apt = createTestAppointment();
                 UUID unrelatedId = UUID.randomUUID();
-                when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+                when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                                 .thenReturn(List.of(apt));
                 mockUserAccounts();
                 when(transactionParticipantRepository.findByTransactionId(transactionId)).thenReturn(List.of());
@@ -1179,4 +1187,328 @@ class AppointmentServiceImplTest {
                                 null);
                 assertThat(result).isEmpty();
         }
+
+        // ========== House Visit requestAppointment Tests ==========
+
+        @Test
+        void requestAppointment_houseVisit_sellSide_throwsIllegalArgumentException() {
+                UUID propertyId = UUID.randomUUID();
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                                transactionId, "house_visit", null, java.time.LocalDate.now().plusDays(1),
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Visit", propertyId, null);
+                Transaction transaction = new Transaction();
+                transaction.setTransactionId(transactionId);
+                transaction.setBrokerId(brokerId);
+                transaction.setClientId(clientId);
+                transaction.setSide(
+                                com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.SELL_SIDE);
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+                assertThatThrownBy(() -> appointmentService.requestAppointment(request, brokerId))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("buy-side transactions");
+        }
+
+        @Test
+        void requestAppointment_houseVisit_missingPropertyId_throwsIllegalArgumentException() {
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                                transactionId, "house_visit", null, java.time.LocalDate.now().plusDays(1),
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Visit", null, null);
+                Transaction transaction = new Transaction();
+                transaction.setTransactionId(transactionId);
+                transaction.setBrokerId(brokerId);
+                transaction.setClientId(clientId);
+                transaction.setSide(
+                                com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE);
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+                assertThatThrownBy(() -> appointmentService.requestAppointment(request, brokerId))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("Property must be selected");
+        }
+
+        @Test
+        void requestAppointment_houseVisit_success_setsPropertyId() {
+                UUID propertyId = UUID.randomUUID();
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                                transactionId, "house_visit", null, java.time.LocalDate.now().plusDays(1),
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Visit", propertyId, null);
+                Transaction transaction = new Transaction();
+                transaction.setTransactionId(transactionId);
+                transaction.setBrokerId(brokerId);
+                transaction.setClientId(clientId);
+                transaction.setSide(
+                                com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE);
+
+                com.example.courtierprobackend.transactions.datalayer.Property property = com.example.courtierprobackend.transactions.datalayer.Property
+                                .builder()
+                                .propertyId(propertyId)
+                                .transactionId(transactionId)
+                                .build();
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+                when(propertyRepository.findByPropertyId(propertyId)).thenReturn(Optional.of(property));
+                when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> {
+                        Appointment a = (Appointment) i.getArguments()[0];
+                        a.setAppointmentId(UUID.randomUUID());
+                        a.setCreatedAt(java.time.LocalDateTime.now());
+                        a.setUpdatedAt(java.time.LocalDateTime.now());
+                        return a;
+                });
+                mockUserAccounts();
+
+                AppointmentResponseDTO result = appointmentService.requestAppointment(request, brokerId);
+
+                assertThat(result).isNotNull();
+                assertThat(result.propertyId()).isEqualTo(propertyId);
+                assertThat(result.title()).isEqualTo("house_visit");
+        }
+
+        // ========== Open House / Private Showing requestAppointment Tests ==========
+
+        @Test
+        void requestAppointment_openHouse_sellSide_success() {
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                                transactionId, "open_house", null, java.time.LocalDate.now().plusDays(1),
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Open house event", null, null);
+                Transaction transaction = new Transaction();
+                transaction.setTransactionId(transactionId);
+                transaction.setBrokerId(brokerId);
+                transaction.setClientId(clientId);
+                transaction.setSide(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.SELL_SIDE);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+                when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> {
+                        Appointment a = (Appointment) i.getArguments()[0];
+                        a.setAppointmentId(UUID.randomUUID());
+                        a.setCreatedAt(LocalDateTime.now());
+                        a.setUpdatedAt(LocalDateTime.now());
+                        return a;
+                });
+                mockUserAccounts();
+
+                AppointmentResponseDTO result = appointmentService.requestAppointment(request, brokerId);
+
+                assertThat(result).isNotNull();
+                assertThat(result.title()).isEqualTo("open_house");
+                assertThat(result.numberOfVisitors()).isNull(); // not set until after event
+        }
+
+        @Test
+        void requestAppointment_openHouse_buySide_throwsIllegalArgument() {
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                                transactionId, "open_house", null, java.time.LocalDate.now().plusDays(1),
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Open house", null, null);
+                Transaction transaction = new Transaction();
+                transaction.setTransactionId(transactionId);
+                transaction.setBrokerId(brokerId);
+                transaction.setClientId(clientId);
+                transaction.setSide(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.BUY_SIDE);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+
+                assertThatThrownBy(() -> appointmentService.requestAppointment(request, brokerId))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("sell-side transactions");
+        }
+
+        @Test
+        void requestAppointment_privateShowing_sellSide_success() {
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                                transactionId, "private_showing", null, java.time.LocalDate.now().plusDays(1),
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Showing", null, null);
+                Transaction transaction = new Transaction();
+                transaction.setTransactionId(transactionId);
+                transaction.setBrokerId(brokerId);
+                transaction.setClientId(clientId);
+                transaction.setSide(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.SELL_SIDE);
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+                when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> {
+                        Appointment a = (Appointment) i.getArguments()[0];
+                        a.setAppointmentId(UUID.randomUUID());
+                        a.setCreatedAt(LocalDateTime.now());
+                        a.setUpdatedAt(LocalDateTime.now());
+                        return a;
+                });
+                mockUserAccounts();
+
+                AppointmentResponseDTO result = appointmentService.requestAppointment(request, brokerId);
+
+                assertThat(result).isNotNull();
+                assertThat(result.title()).isEqualTo("private_showing");
+                assertThat(result.numberOfVisitors()).isEqualTo(1); // default for private showing
+        }
+
+        @Test
+        void requestAppointment_privateShowing_withVisitor_success() {
+                UUID visitorId = UUID.randomUUID();
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                                transactionId, "private_showing", null, java.time.LocalDate.now().plusDays(1),
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Showing", null, visitorId);
+                Transaction transaction = new Transaction();
+                transaction.setTransactionId(transactionId);
+                transaction.setBrokerId(brokerId);
+                transaction.setClientId(clientId);
+                transaction.setSide(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.SELL_SIDE);
+
+                com.example.courtierprobackend.transactions.datalayer.Visitor visitor = com.example.courtierprobackend.transactions.datalayer.Visitor.builder()
+                                .visitorId(visitorId)
+                                .transactionId(transactionId)
+                                .name("Test Visitor")
+                                .build();
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+                when(visitorRepository.findByVisitorId(visitorId)).thenReturn(Optional.of(visitor));
+                when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> {
+                        Appointment a = (Appointment) i.getArguments()[0];
+                        a.setAppointmentId(UUID.randomUUID());
+                        a.setCreatedAt(LocalDateTime.now());
+                        a.setUpdatedAt(LocalDateTime.now());
+                        return a;
+                });
+                mockUserAccounts();
+
+                AppointmentResponseDTO result = appointmentService.requestAppointment(request, brokerId);
+
+                assertThat(result).isNotNull();
+                assertThat(result.visitorId()).isEqualTo(visitorId);
+                assertThat(result.numberOfVisitors()).isEqualTo(1);
+        }
+
+        @Test
+        void requestAppointment_privateShowing_visitorNotInTransaction_throws() {
+                UUID visitorId = UUID.randomUUID();
+                UUID otherTxId = UUID.randomUUID();
+                com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO request = new com.example.courtierprobackend.appointments.datalayer.dto.AppointmentRequestDTO(
+                                transactionId, "private_showing", null, java.time.LocalDate.now().plusDays(1),
+                                java.time.LocalTime.of(10, 0), java.time.LocalTime.of(11, 0), "Showing", null, visitorId);
+                Transaction transaction = new Transaction();
+                transaction.setTransactionId(transactionId);
+                transaction.setBrokerId(brokerId);
+                transaction.setClientId(clientId);
+                transaction.setSide(com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide.SELL_SIDE);
+
+                com.example.courtierprobackend.transactions.datalayer.Visitor visitor = com.example.courtierprobackend.transactions.datalayer.Visitor.builder()
+                                .visitorId(visitorId)
+                                .transactionId(otherTxId) // different transaction
+                                .name("Test Visitor")
+                                .build();
+
+                when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+                when(visitorRepository.findByVisitorId(visitorId)).thenReturn(Optional.of(visitor));
+
+                assertThatThrownBy(() -> appointmentService.requestAppointment(request, brokerId))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("Visitor does not belong to this transaction");
+        }
+
+        // ========== updateVisitorCount Tests ==========
+
+        @Test
+        void updateVisitorCount_openHouse_afterEvent_success() {
+                UUID appointmentId = UUID.randomUUID();
+                Appointment apt = createTestAppointment();
+                apt.setAppointmentId(appointmentId);
+                apt.setTitle("open_house");
+                apt.setStatus(AppointmentStatus.CONFIRMED);
+                apt.setFromDateTime(LocalDateTime.now().minusHours(3));
+                apt.setToDateTime(LocalDateTime.now().minusHours(2)); // event concluded
+
+                when(appointmentRepository.findByAppointmentId(appointmentId))
+                                .thenReturn(Optional.of(apt));
+                when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArguments()[0]);
+                mockUserAccounts();
+
+                AppointmentResponseDTO result = appointmentService.updateVisitorCount(appointmentId, 15, brokerId);
+
+                assertThat(result.numberOfVisitors()).isEqualTo(15);
+        }
+
+        @Test
+        void updateVisitorCount_openHouse_beforeEvent_throws() {
+                UUID appointmentId = UUID.randomUUID();
+                Appointment apt = createTestAppointment();
+                apt.setAppointmentId(appointmentId);
+                apt.setTitle("open_house");
+                apt.setStatus(AppointmentStatus.CONFIRMED);
+                apt.setFromDateTime(LocalDateTime.now().plusHours(1));
+                apt.setToDateTime(LocalDateTime.now().plusHours(2)); // event not concluded
+
+                when(appointmentRepository.findByAppointmentId(appointmentId))
+                                .thenReturn(Optional.of(apt));
+
+                assertThatThrownBy(() -> appointmentService.updateVisitorCount(appointmentId, 15, brokerId))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("after the event concludes");
+        }
+
+        @Test
+        void updateVisitorCount_privateShowing_success() {
+                UUID appointmentId = UUID.randomUUID();
+                Appointment apt = createTestAppointment();
+                apt.setAppointmentId(appointmentId);
+                apt.setTitle("private_showing");
+                apt.setStatus(AppointmentStatus.CONFIRMED);
+                apt.setFromDateTime(LocalDateTime.now().minusHours(3));
+                apt.setToDateTime(LocalDateTime.now().minusHours(2));
+
+                when(appointmentRepository.findByAppointmentId(appointmentId))
+                                .thenReturn(Optional.of(apt));
+                when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArguments()[0]);
+                mockUserAccounts();
+
+                AppointmentResponseDTO result = appointmentService.updateVisitorCount(appointmentId, 2, brokerId);
+
+                assertThat(result.numberOfVisitors()).isEqualTo(2);
+        }
+
+        @Test
+        void updateVisitorCount_wrongType_throws() {
+                UUID appointmentId = UUID.randomUUID();
+                Appointment apt = createTestAppointment();
+                apt.setAppointmentId(appointmentId);
+                apt.setTitle("meeting"); // not open_house or private_showing
+                apt.setStatus(AppointmentStatus.CONFIRMED);
+
+                when(appointmentRepository.findByAppointmentId(appointmentId))
+                                .thenReturn(Optional.of(apt));
+
+                assertThatThrownBy(() -> appointmentService.updateVisitorCount(appointmentId, 5, brokerId))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("open house or private showing");
+        }
+
+        @Test
+        void updateVisitorCount_notBroker_throwsForbidden() {
+                UUID appointmentId = UUID.randomUUID();
+                Appointment apt = createTestAppointment();
+                apt.setAppointmentId(appointmentId);
+                apt.setTitle("open_house");
+                apt.setFromDateTime(LocalDateTime.now().minusHours(3));
+                apt.setToDateTime(LocalDateTime.now().minusHours(2));
+
+                when(appointmentRepository.findByAppointmentId(appointmentId))
+                                .thenReturn(Optional.of(apt));
+
+                UUID otherUser = UUID.randomUUID();
+                assertThatThrownBy(() -> appointmentService.updateVisitorCount(appointmentId, 5, otherUser))
+                                .isInstanceOf(ForbiddenException.class)
+                                .hasMessageContaining("Only the broker");
+        }
+
+        @Test
+        void updateVisitorCount_notConfirmed_throws() {
+                UUID appointmentId = UUID.randomUUID();
+                Appointment apt = createTestAppointment();
+                apt.setAppointmentId(appointmentId);
+                apt.setTitle("open_house");
+                apt.setStatus(AppointmentStatus.PROPOSED); // not confirmed
+
+                when(appointmentRepository.findByAppointmentId(appointmentId))
+                                .thenReturn(Optional.of(apt));
+
+                assertThatThrownBy(() -> appointmentService.updateVisitorCount(appointmentId, 5, brokerId))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("confirmed appointments");
+        }
 }
+

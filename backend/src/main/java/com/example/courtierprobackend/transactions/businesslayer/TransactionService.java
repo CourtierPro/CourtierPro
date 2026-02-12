@@ -59,6 +59,20 @@ public interface TransactionService {
 
     List<ParticipantResponseDTO> getParticipants(UUID transactionId, UUID userId);
 
+    // House visit statistics (for buyer transactions)
+    int getHouseVisitCount(UUID transactionId, UUID userId);
+
+    // Visitors (for seller transactions)
+    List<com.example.courtierprobackend.transactions.datalayer.dto.VisitorResponseDTO> getVisitors(UUID transactionId, UUID userId);
+
+    com.example.courtierprobackend.transactions.datalayer.dto.VisitorResponseDTO addVisitor(UUID transactionId,
+            com.example.courtierprobackend.transactions.datalayer.dto.VisitorRequestDTO dto, UUID brokerId);
+
+    com.example.courtierprobackend.transactions.datalayer.dto.VisitorResponseDTO updateVisitor(UUID transactionId, UUID visitorId,
+            com.example.courtierprobackend.transactions.datalayer.dto.VisitorRequestDTO dto, UUID brokerId);
+
+    void removeVisitor(UUID transactionId, UUID visitorId, UUID brokerId);
+
     // Properties (for buyer transactions)
     List<PropertyResponseDTO> getProperties(UUID transactionId, UUID userId, boolean isBroker);
 

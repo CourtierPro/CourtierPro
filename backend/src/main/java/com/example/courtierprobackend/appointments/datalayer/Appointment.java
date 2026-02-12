@@ -3,6 +3,8 @@ package com.example.courtierprobackend.appointments.datalayer;
 import com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus;
 import com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Where;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.*;
@@ -13,8 +15,12 @@ import lombok.*;
  */
 @Entity
 @Table(name = "appointments")
+<<<<<<< HEAD
 @Builder
 @AllArgsConstructor
+=======
+@Where(clause = "deleted_at IS NULL")
+>>>>>>> dc694a9c80b3683afa708d9d27afab22fb7f4046
 public class Appointment {
 
     @Id
@@ -29,6 +35,9 @@ public class Appointment {
 
     @Column(name = "transaction_id")
     private UUID transactionId;
+
+    @Column(name = "property_id")
+    private UUID propertyId;
 
     @Column(name = "broker_id", nullable = false)
     private UUID brokerId;
@@ -94,6 +103,12 @@ public class Appointment {
     @Builder.Default
     private Boolean reminderSent = false;
 
+    @Column(name = "number_of_visitors")
+    private Integer numberOfVisitors;
+
+    @Column(name = "visitor_id")
+    private UUID visitorId;
+
     public Appointment() {
     }
 
@@ -153,6 +168,14 @@ public class Appointment {
 
     public void setTransactionId(UUID transactionId) {
         this.transactionId = transactionId;
+    }
+
+    public UUID getPropertyId() {
+        return propertyId;
+    }
+
+    public void setPropertyId(UUID propertyId) {
+        this.propertyId = propertyId;
     }
 
     public UUID getBrokerId() {
@@ -325,5 +348,21 @@ public class Appointment {
 
     public void setReminderSent(Boolean reminderSent) {
         this.reminderSent = reminderSent;
+    }
+
+    public Integer getNumberOfVisitors() {
+        return numberOfVisitors;
+    }
+
+    public void setNumberOfVisitors(Integer numberOfVisitors) {
+        this.numberOfVisitors = numberOfVisitors;
+    }
+
+    public UUID getVisitorId() {
+        return visitorId;
+    }
+
+    public void setVisitorId(UUID visitorId) {
+        this.visitorId = visitorId;
     }
 }

@@ -22,15 +22,18 @@ import {
 } from '@/shared/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
 import { useClientsForDisplay, type ClientDisplay } from '@/features/clients';
-import { useTransactions, type Transaction } from '@/features/transactions/api/queries';
+import { useTransactions, useTransactionProperties, type Transaction } from '@/features/transactions/api/queries';
 import { useAuth0 } from "@auth0/auth0-react";
 import { toast } from "sonner";
 import { useRequestAppointment } from "../api/mutations";
+import { getLocalDateString } from '@/shared/utils/date';
+import { useTransactionVisitors } from "@/features/transactions/api/queries";
+import { useAddVisitor } from "@/features/transactions/api/mutations";
 
 import { AlertTriangle } from "lucide-react";
 import { type Appointment } from "../types";
 
-type AppointmentType = 'inspection' | 'notary' | 'showing' | 'consultation' | 'walkthrough' | 'meeting' | 'other';
+type AppointmentType = 'inspection' | 'notary' | 'showing' | 'consultation' | 'walkthrough' | 'meeting' | 'house_visit' | 'open_house' | 'private_showing' | 'other';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -71,46 +74,10 @@ export function CreateAppointmentModal({
   const { t, i18n } = useTranslation('appointments');
   const { user } = useAuth0();
   const { mutate: requestAppointment, isPending } = useRequestAppointment();
+  const { mutate: addVisitor, isPending: isCreatingVisitor } = useAddVisitor();
 
-  // Determine user role (naive check, prefer robust role hook if available)
-  // Assuming roles are in a specific claim or just checking if user is broker based on metadata isn't easy without a helper.
-  // Ideally, we have a useUserRole hook. For now, we can check the namespace if available or rely on backend.
-  // Actually, let's use a simpler heuristic or just default text if we can't easily determine.
-  // But wait, the previous code didn't have user info.
-  // Let's import useUserContext if it exists, otherwise just generic text or check user.
-
-  // Checking typical Auth0 namespace for roles
-  // Determine user role
   const userRoles = (user?.['https://courtierpro.dev/roles'] as string[]) || [];
   const isBroker = userRoles.includes('BROKER');
-
-  // Mock user id retrieval - in real app, we should have this from auth context
-  // For now, we rely on the fact that for clients, the backend endpoints resolve "me" or we need to pass it.
-  // Actually, we need the current user's client ID if we are a client.
-  // Since we don't have a global "user profile" context easily accessible here yet, 
-  // we might need to rely on the backend filtering for /transactions/my-transactions or similar?
-  // Previous code used useClientTransactions(clientId).
-  // Let's assume for now we can't easily get the ID without a query. 
-  // However, `useTransactions` might be failing because it calls `/transactions`.
-  // `useTransactions` takes filters. maybe we can pass a filter?
-
-  // Correction: client viewing this modal needs to see THEIR transactions.
-  // There is `useClientTransactions(clientId)` but we need the clientId.
-  // If we can't get it easily, maybe we can use a new endpoint or the existing one with a query param?
-  // Wait, `useTransactions` calls `/transactions`. If that endpoint is broker-only, `useTransactions` is broker-only.
-  // We need `useClientTransactions` hook which calls `/clients/{id}/transactions`.
-  // BUT we need the ID. 
-  // Alternative: The backend might have a `/transactions` endpoint that works for clients too (returning their own)? 
-  // The user says "403". So likely `/transactions` is broker only.
-
-  // Let's assume we can get the client ID from the user object if it was mapped, but Auth0 user.sub 
-  // might not match our DB UUID.
-  // Let's try to disable the queries for now if !isBroker to verify at least the modal renders.
-
-  // Actually, if I am a client, I need to pick a transaction.
-  // I need to fetch MY transactions.
-  // Does `useTransactions` support filtering by "me"?
-  // Let's simply disable `useClientsForDisplay` for non-brokers.
 
   const [appointmentType, setAppointmentType] = useState<AppointmentType | ''>('');
   const [customTitle, setCustomTitle] = useState('');
@@ -122,6 +89,12 @@ export function CreateAppointmentModal({
   const [selectedTransactionId, setSelectedTransactionId] = useState('');
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [selectedPropertyId, setSelectedPropertyId] = useState('');
+  const [selectedVisitorId, setSelectedVisitorId] = useState('');
+  const [showNewVisitorForm, setShowNewVisitorForm] = useState(false);
+  const [newVisitorName, setNewVisitorName] = useState('');
+  const [newVisitorEmail, setNewVisitorEmail] = useState('');
+  const [newVisitorPhone, setNewVisitorPhone] = useState('');
 
   const modalRef = useRef<HTMLDivElement>(null);
   const clientDropdownRef = useRef<HTMLDivElement>(null);
@@ -129,6 +102,13 @@ export function CreateAppointmentModal({
   // Fetch real client and transaction data
   const { data: clients = [] } = useClientsForDisplay({ enabled: isBroker });
   const { data: allTransactions = [] } = useTransactions({}, { enabled: true });
+
+  // Fetch properties for the selected transaction (needed for house_visit property picker)
+  const selectedTxDetails = allTransactions.find(tx => tx.transactionId === selectedTransactionId);
+  const isBuySide = selectedTxDetails?.side === 'BUY_SIDE';
+  const isSellSide = selectedTxDetails?.side === 'SELL_SIDE';
+  const { data: transactionProperties = [] } = useTransactionProperties(selectedTransactionId);
+  const { data: transactionVisitors = [] } = useTransactionVisitors(selectedTransactionId);
   // We will need a way to fetch client transactions later, for now empty array if not broker to avoid 403
   // Actually, without modifying the hooks to accept 'enabled', we can't stop the query from running this way.
   // We MUST render useClientsForDisplay conditionally or update the hook.
@@ -138,13 +118,7 @@ export function CreateAppointmentModal({
   // For clients, allTransactions contains only their own transactions (backend filtered).
   const transactions = allTransactions;
 
-  const getMinDate = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+  const getMinDate = () => getLocalDateString();
 
   const getTimeSlots = () => {
     const slots: string[] = [];
@@ -196,8 +170,17 @@ export function CreateAppointmentModal({
 
   const handleTransactionSelect = (txId: string) => {
     setSelectedTransactionId(txId);
+    setSelectedPropertyId('');
 
     const tx = transactions.find(t => t.transactionId === txId);
+
+    if (tx && tx.side !== 'BUY_SIDE' && appointmentType === 'house_visit') {
+      setAppointmentType('');
+    }
+    if (tx && tx.side !== 'SELL_SIDE' && (appointmentType === 'open_house' || appointmentType === 'private_showing')) {
+      setAppointmentType('');
+    }
+    setSelectedVisitorId('');
 
     if (tx && tx.clientId && tx.clientId !== selectedClientId) {
       const client = getClientDetails(tx.clientId);
@@ -413,6 +396,12 @@ export function CreateAppointmentModal({
       return;
     }
 
+    if (appointmentType === 'house_visit' && !selectedPropertyId) {
+      toast.error(t('propertyRequired', 'Please select a property for this house visit'));
+      return;
+    }
+
+
     // Validation for time
     const [startHour, startMin] = startTime.split(':').map(Number);
     const [endHour, endMin] = endTime.split(':').map(Number);
@@ -452,7 +441,9 @@ export function CreateAppointmentModal({
       date: date,
       startTime: startTime,
       endTime: endTime,
-      message: message
+      message: message,
+      propertyId: appointmentType === 'house_visit' ? selectedPropertyId : undefined,
+      visitorId: appointmentType === 'private_showing' ? selectedVisitorId : undefined
     }, {
       onSuccess: () => {
         const successMessageKey = isBroker ? 'appointmentSentToClient' : 'appointmentSentToBroker';
@@ -747,10 +738,189 @@ export function CreateAppointmentModal({
                 <SelectItem value="consultation">{t('consultation')}</SelectItem>
                 <SelectItem value="walkthrough">{t('walkthrough')}</SelectItem>
                 <SelectItem value="meeting">{t('meeting')}</SelectItem>
+                {isBuySide && (
+                  <SelectItem value="house_visit">{t('house_visit', 'House Visit')}</SelectItem>
+                )}
+                {isSellSide && (
+                  <>
+                    <SelectItem value="open_house">{t('open_house')}</SelectItem>
+                    <SelectItem value="private_showing">{t('private_showing')}</SelectItem>
+                  </>
+                )}
                 <SelectItem value="other">{t('other', 'Other')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {appointmentType === 'private_showing' && (
+            <div>
+              <label
+                htmlFor="visitor-select"
+                className="block mb-2 flex items-center justify-between text-foreground"
+              >
+                <span className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  {t('selectVisitor')}
+                </span>
+              </label>
+              <Select
+                value={selectedVisitorId}
+                onValueChange={(value) => {
+                  if (value === '__create_new__') {
+                    setSelectedVisitorId('');
+                    setShowNewVisitorForm(true);
+                  } else {
+                    setSelectedVisitorId(value);
+                    setShowNewVisitorForm(false);
+                  }
+                }}
+              >
+                <SelectTrigger id="visitor-select" className="w-full">
+                  <SelectValue placeholder={t('selectVisitor')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {transactionVisitors.map((visitor) => (
+                    <SelectItem key={visitor.visitorId} value={visitor.visitorId}>
+                      {visitor.name}{visitor.email ? ` (${visitor.email})` : ''}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__create_new__">
+                    <span className="flex items-center gap-1.5 text-primary font-medium">
+                      + {t('createNewVisitor')}
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              {showNewVisitorForm && (
+                <div className="mt-3 p-4 rounded-lg border-2 border-primary/20 bg-primary/5 space-y-3">
+                  <p className="text-sm font-medium text-foreground">{t('createNewVisitor')}</p>
+                  <div>
+                    <label htmlFor="new-visitor-name" className="block text-sm mb-1 text-foreground">
+                      {t('visitorName')} <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      id="new-visitor-name"
+                      value={newVisitorName}
+                      onChange={(e) => setNewVisitorName(e.target.value)}
+                      placeholder={t('visitorName')}
+                      aria-required="true"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="new-visitor-email" className="block text-sm mb-1 text-foreground">
+                      {t('visitorEmail')}
+                    </label>
+                    <Input
+                      id="new-visitor-email"
+                      type="email"
+                      value={newVisitorEmail}
+                      onChange={(e) => setNewVisitorEmail(e.target.value)}
+                      placeholder={t('visitorEmail')}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="new-visitor-phone" className="block text-sm mb-1 text-foreground">
+                      {t('visitorPhone')}
+                    </label>
+                    <Input
+                      id="new-visitor-phone"
+                      type="tel"
+                      value={newVisitorPhone}
+                      onChange={(e) => setNewVisitorPhone(e.target.value)}
+                      placeholder={t('visitorPhone')}
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={!newVisitorName.trim() || isCreatingVisitor}
+                      onClick={() => {
+                        if (!newVisitorName.trim()) {
+                          toast.error(t('visitorNameRequired'));
+                          return;
+                        }
+                        addVisitor({
+                          transactionId: selectedTransactionId,
+                          data: {
+                            name: newVisitorName.trim(),
+                            email: newVisitorEmail.trim() || undefined,
+                            phoneNumber: newVisitorPhone.trim() || undefined,
+                          },
+                        }, {
+                          onSuccess: (created) => {
+                            toast.success(t('visitorCreated'));
+                            setSelectedVisitorId(created.visitorId);
+                            setShowNewVisitorForm(false);
+                            setNewVisitorName('');
+                            setNewVisitorEmail('');
+                            setNewVisitorPhone('');
+                          },
+                        });
+                      }}
+                    >
+                      {isCreatingVisitor ? '...' : t('saveVisitor')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowNewVisitorForm(false);
+                        setNewVisitorName('');
+                        setNewVisitorEmail('');
+                        setNewVisitorPhone('');
+                      }}
+                    >
+                      {t('cancelCreateVisitor')}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {appointmentType === 'house_visit' && (
+            <div>
+              <label
+                htmlFor="property-select"
+                className="block mb-2 flex items-center justify-between text-foreground"
+              >
+                <span className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  {t('selectProperty', 'Select Property')}
+                </span>
+                <span
+                  className="text-destructive text-sm"
+                  aria-label="required"
+                >
+                  {t('required')}
+                </span>
+              </label>
+              <Select
+                value={selectedPropertyId}
+                onValueChange={setSelectedPropertyId}
+              >
+                <SelectTrigger id="property-select" className="w-full" aria-required="true">
+                  <SelectValue placeholder={t('selectProperty', 'Select Property')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {transactionProperties.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      {t('noPropertiesAvailable', 'No properties available')}
+                    </div>
+                  ) : (
+                    transactionProperties.map((prop) => (
+                      <SelectItem key={prop.propertyId} value={prop.propertyId}>
+                        {[prop.address?.street, prop.address?.city].filter(Boolean).join(', ') || prop.propertyId}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {appointmentType === 'other' && (
             <div>

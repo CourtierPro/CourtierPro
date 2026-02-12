@@ -28,6 +28,9 @@ public class TransactionResponseDTO {
     private Boolean archived;
     private String archivedAt;
     private String notes;
+    private Integer houseVisitCount;
+    private Integer totalShowings;
+    private Integer totalVisitors;
 }
 
 

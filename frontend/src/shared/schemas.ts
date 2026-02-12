@@ -73,20 +73,18 @@ export type StageUpdateFormValues = z.infer<typeof stageUpdateSchema>;
 
 // Document Schemas
 export const requestDocumentSchema = z.object({
-    docType: z.nativeEnum(DocumentTypeEnum),
+    docType: z.nativeEnum(DocumentTypeEnum).optional(),
     customTitle: z.string().trim().optional(),
     instructions: z.string().trim().optional(),
     stage: z.string().min(1, "stageRequired"),
     dueDate: z.date().optional(),
-    requiresSignature: z.boolean().optional().default(false),
-}).superRefine((data, ctx) => {
-    if (data.docType === DocumentTypeEnum.OTHER && (!data.customTitle || data.customTitle.trim().length === 0)) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "documentTitleRequired",
-            path: ["customTitle"],
-        });
-    }
+    requiresSignature: z.boolean().optional(),
+}).refine((data) => !!data.docType, {
+    message: "documentTypeRequired",
+    path: ["docType"],
+}).refine((data) => !(data.docType === DocumentTypeEnum.OTHER && !data.customTitle), {
+    message: "documentTitleRequired",
+    path: ["customTitle"],
 });
 
 export type RequestDocumentFormValues = z.infer<typeof requestDocumentSchema>;

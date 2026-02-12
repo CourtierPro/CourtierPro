@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { MapPin, Tag } from 'lucide-react';
+import { MapPin, Tag, Eye } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { Section } from '@/shared/components/branded/Section';
 import type { Property, PropertyOfferStatus } from '@/shared/api/types';
@@ -79,11 +79,19 @@ export function PropertyCard({ property, onClick, isActive }: PropertyCardProps)
                             </div>
                         </div>
                     </div>
-                    {isActive && (
-                        <Badge variant="default" className="bg-primary text-primary-foreground h-6 shrink-0 ml-auto">
-                            {t('active')}
-                        </Badge>
-                    )}
+                    <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                        {property.timesVisited != null && property.timesVisited > 0 && (
+                            <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/20 dark:text-violet-400 dark:border-violet-500/30">
+                                <Eye className="w-3 h-3 mr-1" />
+                                {t('timesVisited', '{{count}} visit', { count: property.timesVisited })}
+                            </Badge>
+                        )}
+                        {isActive && (
+                            <Badge variant="default" className="bg-primary text-primary-foreground h-6">
+                                {t('active')}
+                            </Badge>
+                        )}
+                    </div>
                 </div>
 
                 {/* Price and Status Row */}
@@ -118,3 +126,4 @@ export function PropertyCard({ property, onClick, isActive }: PropertyCardProps)
         </Section>
     );
 }
+

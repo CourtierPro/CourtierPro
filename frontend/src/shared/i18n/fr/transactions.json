@@ -3,6 +3,7 @@
   "propertyRejected": "Propriété marquée comme pas intéressée",
   "noteRequired": "Une note est requise",
   "infoRequested": "Information demandée",
+  "houseVisits": "Visites de maison",
   "timeline.documentDetailsUpdatedNote": "Le courtier {{brokerName}} a mis à jour la demande de document",
   "title": "Toutes les Transactions",
   "subtitle": "Suivre et gérer les transactions des clients à toutes les étapes",
@@ -384,6 +385,8 @@
   "address": "Adresse",
   "askingPrice": "Prix demandé",
   "offerAmount": "Montant de l'offre",
+  "timesVisited": "{{count}} visite",
+  "timesVisited_other": "{{count}} visites",
   "centrisNumber": "Numéro Centris",
   "centrisNumberPlaceholder": "ex. 12345678",
   "offerStatusLabel": "Statut de l'offre",
@@ -493,6 +496,8 @@
     "inspection": "Inspection",
     "walkthrough": "Visite des lieux",
     "appraisal": "Évaluation",
+    "open_house": "Portes ouvertes",
+    "private_showing": "Visite privée",
     "other": "Autre"
   },
   "setActive": "Définir actif",
@@ -784,5 +789,21 @@
       "MONTEREGIE": "Montérégie",
       "CENTRE_DU_QUEBEC": "Centre-du-Québec"
     }
-  }
+  },
+  "totalShowings": "Total des visites",
+  "totalVisitors": "Total des visiteurs",
+  "visitors": "Visiteurs",
+  "addVisitor": "Ajouter un visiteur",
+  "editVisitor": "Modifier le visiteur",
+  "deleteVisitor": "Supprimer le visiteur",
+  "visitorName": "Nom du visiteur",
+  "visitorEmail": "Courriel du visiteur",
+  "visitorPhone": "Téléphone du visiteur",
+  "timesVisited": "{{count}} visite",
+  "timesVisited_other": "{{count}} visites",
+  "noVisitors": "Aucun visiteur pour le moment",
+  "visitorAdded": "Visiteur ajouté avec succès",
+  "visitorUpdated": "Visiteur mis à jour avec succès",
+  "visitorDeleted": "Visiteur supprimé avec succès",
+  "confirmDeleteVisitor": "Êtes-vous sûr de vouloir supprimer ce visiteur ?"
 }

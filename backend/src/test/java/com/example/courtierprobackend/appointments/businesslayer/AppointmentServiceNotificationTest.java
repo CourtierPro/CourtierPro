@@ -71,12 +71,20 @@ class AppointmentServiceNotificationTest {
         @Mock
         private com.example.courtierprobackend.audit.timeline_audit.businesslayer.TimelineService timelineService;
 
+        @Mock
+        private com.example.courtierprobackend.transactions.datalayer.repositories.PropertyRepository propertyRepository;
+
+        @Mock
+        private com.example.courtierprobackend.transactions.datalayer.repositories.VisitorRepository visitorRepository;
+
         @BeforeEach
         void setUp() {
                 appointmentService = new AppointmentServiceImpl(appointmentRepository, userAccountRepository,
                                 transactionRepository, appointmentAuditService, emailService, timelineService,
                                 notificationService,
-                                transactionParticipantRepository);
+                                transactionParticipantRepository,
+                                propertyRepository,
+                                visitorRepository);
 
                 brokerId = UUID.randomUUID();
                 clientId = UUID.randomUUID();
@@ -108,7 +116,7 @@ class AppointmentServiceNotificationTest {
                 // Arrange
                 AppointmentRequestDTO request = new AppointmentRequestDTO(
                                 transactionId, "Viewing", "Notes", LocalDate.now().plusDays(1),
-                                LocalTime.of(10, 0), LocalTime.of(11, 0), "Message");
+                                LocalTime.of(10, 0), LocalTime.of(11, 0), "Message", null, null);
 
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(transactionId);
@@ -162,7 +170,7 @@ class AppointmentServiceNotificationTest {
                 appointment.setStatus(AppointmentStatus.PROPOSED);
                 appointment.setInitiatedBy(InitiatorType.BROKER); // Initiated by Broker
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(appointment));
                 when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -209,7 +217,7 @@ class AppointmentServiceNotificationTest {
                 appointment.setStatus(AppointmentStatus.PROPOSED);
                 appointment.setInitiatedBy(InitiatorType.BROKER);
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(appointment));
                 when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -257,7 +265,7 @@ class AppointmentServiceNotificationTest {
                 appointment.setStatus(AppointmentStatus.CONFIRMED); // Confirmed appointment
                 appointment.setInitiatedBy(InitiatorType.BROKER);
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(appointment));
                 when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -306,7 +314,7 @@ class AppointmentServiceNotificationTest {
 
                 // Mock returns list with one appointment
                 when(appointmentRepository
-                                .findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotInAndDeletedAtIsNull(
+                                .findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotIn(
                                                 any(LocalDateTime.class), any(LocalDateTime.class), any()))
                                 .thenReturn(List.of(upcoming));
 
@@ -341,7 +349,7 @@ class AppointmentServiceNotificationTest {
                 // Mock returns empty list (simulating query filtering out already sent
                 // reminders)
                 when(appointmentRepository
-                                .findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotInAndDeletedAtIsNull(
+                                .findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotIn(
                                                 any(LocalDateTime.class), any(LocalDateTime.class), any()))
                                 .thenReturn(Collections.emptyList());
 
