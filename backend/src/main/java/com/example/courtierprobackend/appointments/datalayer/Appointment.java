@@ -107,6 +107,7 @@ public class Appointment {
     private UUID visitorId;
 
     public Appointment() {
+        this.reminderSent = false;
     }
 
     @PrePersist
