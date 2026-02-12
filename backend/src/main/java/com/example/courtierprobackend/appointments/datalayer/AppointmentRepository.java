@@ -254,4 +254,19 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                         "AND a.deletedAt IS NULL " +
                         "GROUP BY a.transactionId")
         List<Object[]> countConfirmedShowingsByTransactionIds(@Param("transactionIds") List<UUID> transactionIds);
+
+        /**
+         * Find appointments for analytics filtering.
+         */
+        @Query("SELECT a FROM Appointment a " +
+                "WHERE a.brokerId = :brokerId " +
+                "AND (:startDate IS NULL OR a.fromDateTime >= :startDate) " +
+                "AND (:endDate IS NULL OR a.fromDateTime <= :endDate) " +
+                "AND ((:clientIds) IS NULL OR a.clientId IN (:clientIds)) " +
+                "ORDER BY a.fromDateTime ASC")
+        List<Appointment> findForAnalytics(
+                @Param("brokerId") UUID brokerId,
+                @Param("startDate") LocalDateTime startDate,
+                @Param("endDate") LocalDateTime endDate,
+                @Param("clientIds") java.util.List<UUID> clientIds);
 }

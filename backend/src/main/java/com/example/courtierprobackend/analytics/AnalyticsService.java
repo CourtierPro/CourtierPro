@@ -1,5 +1,7 @@
 package com.example.courtierprobackend.analytics;
 
+import com.example.courtierprobackend.audit.analytics_export_audit.datalayer.AnalyticsExportAuditEvent;
+import com.example.courtierprobackend.audit.analytics_export_audit.datalayer.AnalyticsExportAuditRepository;
 import com.example.courtierprobackend.appointments.datalayer.Appointment;
 import com.example.courtierprobackend.appointments.datalayer.AppointmentRepository;
 import com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus;
@@ -10,19 +12,34 @@ import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEn
 import com.example.courtierprobackend.transactions.datalayer.*;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
 import com.example.courtierprobackend.transactions.datalayer.repositories.*;
+import com.lowagie.text.*;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AnalyticsService {
 
         private final TransactionRepository transactionRepository;
@@ -32,14 +49,42 @@ public class AnalyticsService {
         private final OfferRepository offerRepository;
         private final ConditionRepository conditionRepository;
         private final PropertyOfferRepository propertyOfferRepository;
+        private final AnalyticsExportAuditRepository analyticsExportAuditRepository;
+        private final com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
 
-        public AnalyticsDTO getAnalytics(UUID brokerId) {
-                List<Transaction> allTransactions = transactionRepository.findAllByBrokerId(brokerId);
+        public AnalyticsDTO getAnalytics(UUID brokerId, AnalyticsFilterRequest filters) {
+                LocalDateTime startDateTime = filters.getStartDate() != null ? filters.getStartDate().atStartOfDay() : null;
+                LocalDateTime endDateTime = filters.getEndDate() != null ? filters.getEndDate().atTime(LocalTime.MAX) : null;
+
+                List<UUID> clientIds = null;
+                boolean clientFilterApplied = false;
+                if (filters.getClientName() != null && !filters.getClientName().isBlank()) {
+                        clientIds = userAccountRepository.findIdsBySearchQuery(filters.getClientName());
+                        clientFilterApplied = true;
+                }
+
+                List<Transaction> allTransactions;
+                List<Appointment> allAppointments;
+
+                if (clientFilterApplied && (clientIds == null || clientIds.isEmpty())) {
+                        allTransactions = Collections.emptyList();
+                        allAppointments = Collections.emptyList();
+                } else {
+                        allTransactions = transactionRepository.findForAnalytics(
+                                brokerId,
+                                startDateTime,
+                                endDateTime,
+                                filters.getTransactionType(),
+                                clientIds);
+
+                        allAppointments = appointmentRepository.findForAnalytics(
+                                brokerId,
+                                startDateTime,
+                                endDateTime,
+                                clientIds);
+                }
+
                 int total = allTransactions.size();
-
-                // Load all appointments once for use across multiple sections
-                List<Appointment> allAppointments = appointmentRepository
-                                .findByBrokerIdOrderByFromDateTimeAsc(brokerId);
 
                 // --- Transaction Overview ---
                 int active = 0, closed = 0, terminated = 0, buy = 0, sell = 0;
@@ -153,6 +198,7 @@ public class AnalyticsService {
 
                 // --- Properties (Buy-Side) ---
                 List<Property> allProperties = new ArrayList<>();
+                // Optimization: Could batch fetch properties
                 for (Transaction t : buyTransactions) {
                         allProperties.addAll(propertyRepository
                                         .findByTransactionIdOrderByCreatedAtDesc(t.getTransactionId()));
@@ -387,6 +433,135 @@ public class AnalyticsService {
                                 totalActiveClients, multiTxClients,
                                 (int) byBroker, (int) byClient,
                                 busiestMonth, idleTransactions);
+        }
+
+        public byte[] exportAnalyticsCsv(UUID brokerId, AnalyticsFilterRequest filters) {
+                AnalyticsDTO data = getAnalytics(brokerId, filters);
+                String brokerName = userAccountRepository.findById(brokerId)
+                        .map(u -> u.getFirstName() + " " + u.getLastName())
+                        .orElse("Unknown Broker");
+
+                try (ByteArrayOutputStream out = new ByteArrayOutputStream();
+                     CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(out, StandardCharsets.UTF_8),
+                             CSVFormat.DEFAULT.withHeader("Category", "Metric", "Value"))) {
+
+                        printer.printRecord("Meta", "Broker", brokerName);
+                        printer.printRecord("Meta", "Generated Date", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+
+                        // Transaction Overview
+                        printer.printRecord("Transaction Overview", "Total Transactions", data.totalTransactions());
+                        printer.printRecord("Transaction Overview", "Active Transactions", data.activeTransactions());
+                        printer.printRecord("Transaction Overview", "Closed Transactions", data.closedTransactions());
+                        printer.printRecord("Transaction Overview", "Success Rate (%)", data.successRate());
+                        printer.printRecord("Transaction Overview", "Avg Duration (Days)", data.avgTransactionDurationDays());
+
+                        // Buy Side
+                        printer.printRecord("Buy Side", "Total Buy Transactions", data.buyTransactions());
+                        printer.printRecord("Buy Side", "Total House Visits", data.totalHouseVisits());
+                        printer.printRecord("Buy Side", "Avg Visits/Closed Tx", data.avgHouseVisitsPerClosedTransaction());
+
+                        // Sell Side
+                        printer.printRecord("Sell Side", "Total Sell Transactions", data.sellTransactions());
+                        printer.printRecord("Sell Side", "Total Showings", data.totalSellShowings());
+                        printer.printRecord("Sell Side", "Avg Showings/Closed Tx", data.avgSellShowingsPerClosedTransaction());
+
+                        printer.flush();
+
+                        logExportAudit(brokerId, "CSV", filters);
+
+                        return out.toByteArray();
+                } catch (IOException e) {
+                        log.error("Error generating CSV export", e);
+                        throw new RuntimeException("Failed to generate CSV export", e);
+                }
+        }
+
+        public byte[] exportAnalyticsPdf(UUID brokerId, AnalyticsFilterRequest filters) {
+                AnalyticsDTO data = getAnalytics(brokerId, filters);
+                String brokerName = userAccountRepository.findById(brokerId)
+                        .map(u -> u.getFirstName() + " " + u.getLastName())
+                        .orElse("Unknown Broker");
+
+                try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                        com.lowagie.text.Document document = new com.lowagie.text.Document(PageSize.A4);
+                        PdfWriter.getInstance(document, out);
+
+                        document.open();
+
+                        // Title
+                        Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
+                        Paragraph title = new Paragraph("CourtierPro Analytics Report", titleFont);
+                        title.setAlignment(Element.ALIGN_CENTER);
+                        document.add(title);
+                        document.add(Chunk.NEWLINE);
+
+                        // Metadata
+                        Font metaFont = FontFactory.getFont(FontFactory.HELVETICA, 12);
+                        document.add(new Paragraph("Broker: " + brokerName, metaFont));
+                        document.add(new Paragraph("Generated Date: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")), metaFont));
+                        if (filters.getStartDate() != null && filters.getEndDate() != null) {
+                                document.add(new Paragraph("Period: " + filters.getStartDate() + " to " + filters.getEndDate(), metaFont));
+                        }
+                        document.add(Chunk.NEWLINE);
+
+                        // Table
+                        PdfPTable table = new PdfPTable(2);
+                        table.setWidthPercentage(100);
+                        table.setSpacingBefore(10f);
+                        table.setSpacingAfter(10f);
+
+                        addTableHeader(table, "Metric");
+                        addTableHeader(table, "Value");
+
+                        addTableRow(table, "Total Transactions", String.valueOf(data.totalTransactions()));
+                        addTableRow(table, "Active Transactions", String.valueOf(data.activeTransactions()));
+                        addTableRow(table, "Closed Transactions", String.valueOf(data.closedTransactions()));
+                        addTableRow(table, "Success Rate", data.successRate() + "%");
+                        addTableRow(table, "Avg Duration", data.avgTransactionDurationDays() + " days");
+                        
+                        addTableRow(table, "Buy Transactions", String.valueOf(data.buyTransactions()));
+                        addTableRow(table, "Total House Visits", String.valueOf(data.totalHouseVisits()));
+                        
+                        addTableRow(table, "Sell Transactions", String.valueOf(data.sellTransactions()));
+                        addTableRow(table, "Total Showings", String.valueOf(data.totalSellShowings()));
+
+                        document.add(table);
+                        document.close();
+
+                        logExportAudit(brokerId, "PDF", filters);
+
+                        return out.toByteArray();
+                } catch (Exception e) {
+                        log.error("Error generating PDF export", e);
+                        throw new RuntimeException("Failed to generate PDF export", e);
+                }
+        }
+
+        private void addTableHeader(PdfPTable table, String headerTitle) {
+                PdfPCell header = new PdfPCell();
+                header.setBackgroundColor(java.awt.Color.LIGHT_GRAY);
+                header.setBorderWidth(2);
+                header.setPhrase(new Phrase(headerTitle));
+                table.addCell(header);
+        }
+
+        private void addTableRow(PdfPTable table, String key, String value) {
+                table.addCell(key);
+                table.addCell(value);
+        }
+
+        private void logExportAudit(UUID brokerId, String type, AnalyticsFilterRequest filters) {
+                String filterString = String.format("Start:%s, End:%s, Type:%s, Client:%s",
+                        filters.getStartDate(), filters.getEndDate(), filters.getTransactionType(), filters.getClientName());
+
+                AnalyticsExportAuditEvent event = AnalyticsExportAuditEvent.builder()
+                        .brokerId(brokerId)
+                        .timestamp(LocalDateTime.now())
+                        .exportType(type)
+                        .filtersApplied(filterString)
+                        .build();
+                
+                analyticsExportAuditRepository.save(event);
         }
 
         private double round(double value) {

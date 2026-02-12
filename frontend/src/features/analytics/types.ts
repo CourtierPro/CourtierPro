@@ -82,3 +82,10 @@ export interface AnalyticsData {
     busiestMonth: string;
     idleTransactions: number;
 }
+
+export interface AnalyticsFilter {
+    startDate?: string; // ISO date string (YYYY-MM-DD)
+    endDate?: string;   // ISO date string (YYYY-MM-DD)
+    transactionType?: 'BUY_SIDE' | 'SELL_SIDE';
+    clientName?: string;
+}
