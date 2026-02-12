@@ -81,17 +81,18 @@
         "sellerStages": "Seller Stages"
     },
     "stages": {
-        "FINANCIAL_PREPARATION": "Financial Preparation",
-        "PROPERTY_SEARCH": "Property Search",
-        "OFFER_AND_NEGOTIATION": "Offer & Negotiation",
-        "INSPECTION_AND_CONDITIONS": "Inspection & Conditions",
-        "CLOSING_PREPARATION": "Closing Preparation",
-        "NOTARIAL_ACTS": "Notarial Acts",
-        "POST_CLOSING": "Post-Closing",
-        "LISTING_PREPARATION": "Listing Preparation",
-        "MARKETING_AND_SHOWINGS": "Marketing & Showings",
-        "OFFER_REVIEW_AND_NEGOTIATION": "Offer Review & Negotiation",
-        "CONDITIONAL_PERIOD": "Conditional Period"
+        "BUYER_FINANCIAL_PREPARATION": "Financial Preparation",
+        "BUYER_PROPERTY_SEARCH": "Property Search",
+        "BUYER_OFFER_AND_NEGOTIATION": "Offer & Negotiation",
+        "BUYER_FINANCING_AND_CONDITIONS": "Financing & Conditions",
+        "BUYER_NOTARY_AND_SIGNING": "Notary & Signing",
+        "BUYER_POSSESSION": "Possession",
+        "SELLER_INITIAL_CONSULTATION": "Initial Consultation",
+        "SELLER_PUBLISH_LISTING": "Publish Listing",
+        "SELLER_OFFER_AND_NEGOTIATION": "Offer & Negotiation",
+        "SELLER_FINANCING_AND_CONDITIONS": "Financing & Conditions",
+        "SELLER_NOTARY_AND_SIGNING": "Notary & Signing",
+        "SELLER_HANDOVER": "Handover"
     },
     "formatters": {
         "percent": "{{value}}%",

@@ -81,17 +81,18 @@
         "sellerStages": "Étapes du vendeur"
     },
     "stages": {
-        "FINANCIAL_PREPARATION": "Préparation financière",
-        "PROPERTY_SEARCH": "Recherche de propriété",
-        "OFFER_AND_NEGOTIATION": "Offre et négociation",
-        "INSPECTION_AND_CONDITIONS": "Inspection et conditions",
-        "CLOSING_PREPARATION": "Préparation de la clôture",
-        "NOTARIAL_ACTS": "Actes notariés",
-        "POST_CLOSING": "Post-clôture",
-        "LISTING_PREPARATION": "Préparation de l'inscription",
-        "MARKETING_AND_SHOWINGS": "Marketing et visites",
-        "OFFER_REVIEW_AND_NEGOTIATION": "Révision et négociation d'offres",
-        "CONDITIONAL_PERIOD": "Période conditionnelle"
+        "BUYER_FINANCIAL_PREPARATION": "Préparation financière",
+        "BUYER_PROPERTY_SEARCH": "Recherche de propriété",
+        "BUYER_OFFER_AND_NEGOTIATION": "Offre et négociation",
+        "BUYER_FINANCING_AND_CONDITIONS": "Financement et conditions",
+        "BUYER_NOTARY_AND_SIGNING": "Notaire et signature",
+        "BUYER_POSSESSION": "Prise de possession",
+        "SELLER_INITIAL_CONSULTATION": "Consultation initiale",
+        "SELLER_PUBLISH_LISTING": "Publication de l'inscription",
+        "SELLER_OFFER_AND_NEGOTIATION": "Offre et négociation",
+        "SELLER_FINANCING_AND_CONDITIONS": "Financement et conditions",
+        "SELLER_NOTARY_AND_SIGNING": "Notaire et signature",
+        "SELLER_HANDOVER": "Remise des clés"
     },
     "formatters": {
         "percent": "{{value}} %",

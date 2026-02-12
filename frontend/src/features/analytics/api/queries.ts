@@ -14,6 +14,6 @@ export function useAnalytics() {
             const res = await axiosInstance.get<AnalyticsData>('/analytics');
             return res.data;
         },
-        staleTime: 5 * 60 * 1000,
+        staleTime: 30 * 1000,
     });
 }

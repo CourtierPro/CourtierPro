@@ -268,6 +268,8 @@ export function AnalyticsPage() {
             <StatLine label={t("stats.declinedAppointmentRate")} value={formatPercent(data.declinedAppointmentRate)} icon={<XCircle className="h-4 w-4" />} variant={data.declinedAppointmentRate > 0 ? "warning" : "default"} />
             <StatLine label={t("stats.cancelledAppointmentRate")} value={formatPercent(data.cancelledAppointmentRate)} icon={<XCircle className="h-4 w-4" />} variant={data.cancelledAppointmentRate > 0 ? "warning" : "default"} />
             <StatLine label={t("stats.avgAppointmentsPerTransaction")} value={data.avgAppointmentsPerTransaction} icon={<Calendar className="h-4 w-4" />} />
+            <StatLine label={t("stats.appointmentsByBroker")} value={data.appointmentsByBroker} icon={<UserCheck className="h-4 w-4" />} />
+            <StatLine label={t("stats.appointmentsByClient")} value={data.appointmentsByClient} icon={<Users className="h-4 w-4" />} />
           </div>
         </Section>
       </div>
@@ -290,10 +292,7 @@ export function AnalyticsPage() {
             <KpiCard title={t("stats.totalActiveClients")} value={data.totalActiveClients} icon={<Users className="h-5 w-5" />} />
             <KpiCard title={t("stats.clientsWithMultipleTransactions")} value={data.clientsWithMultipleTransactions} icon={<UserCheck className="h-5 w-5" />} />
           </div>
-          <div className="space-y-2">
-            <StatLine label={t("stats.appointmentsByBroker")} value={data.appointmentsByBroker} icon={<UserCheck className="h-4 w-4" />} />
-            <StatLine label={t("stats.appointmentsByClient")} value={data.appointmentsByClient} icon={<Users className="h-4 w-4" />} />
-          </div>
+
         </Section>
 
         <Section title={t("sections.trends")}>
