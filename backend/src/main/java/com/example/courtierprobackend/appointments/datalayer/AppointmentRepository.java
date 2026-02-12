@@ -260,8 +260,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
          */
         @Query("SELECT a FROM Appointment a " +
                 "WHERE a.brokerId = :brokerId " +
-                "AND (:startDate IS NULL OR a.fromDateTime >= :startDate) " +
-                "AND (:endDate IS NULL OR a.fromDateTime <= :endDate) " +
+                "AND (cast(:startDate as timestamp) IS NULL OR a.fromDateTime >= :startDate) " +
+                "AND (cast(:endDate as timestamp) IS NULL OR a.fromDateTime <= :endDate) " +
                 "ORDER BY a.fromDateTime ASC")
         List<Appointment> findForAnalytics(
                 @Param("brokerId") UUID brokerId,
@@ -270,8 +270,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
         @Query("SELECT a FROM Appointment a " +
                 "WHERE a.brokerId = :brokerId " +
-                "AND (:startDate IS NULL OR a.fromDateTime >= :startDate) " +
-                "AND (:endDate IS NULL OR a.fromDateTime <= :endDate) " +
+                "AND (cast(:startDate as timestamp) IS NULL OR a.fromDateTime >= :startDate) " +
+                "AND (cast(:endDate as timestamp) IS NULL OR a.fromDateTime <= :endDate) " +
                 "AND a.clientId IN (:clientIds) " +
                 "ORDER BY a.fromDateTime ASC")
         List<Appointment> findForAnalyticsWithClients(

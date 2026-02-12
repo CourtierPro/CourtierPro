@@ -191,7 +191,7 @@ export function TransactionCreateForm({ onNavigate, isModal = false }: Transacti
                             setValue('initialStage', stages[0], { shouldValidate: true });
                           }
                         }}
-                        defaultValue={field.value}
+                        value={field.value}
                         className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                       >
                         <FormItem>

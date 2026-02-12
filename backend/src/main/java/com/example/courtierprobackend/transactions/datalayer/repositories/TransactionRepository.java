@@ -77,8 +77,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
         @Query("SELECT t FROM Transaction t " +
                 "WHERE t.brokerId = :brokerId " +
-                "AND (:startDate IS NULL OR t.openedAt >= :startDate) " +
-                "AND (:endDate IS NULL OR t.openedAt <= :endDate) " +
+                "AND (cast(:startDate as timestamp) IS NULL OR t.openedAt >= :startDate) " +
+                "AND (cast(:endDate as timestamp) IS NULL OR t.openedAt <= :endDate) " +
                 "AND (:side IS NULL OR t.side = :side)")
         List<Transaction> findForAnalytics(
                 @Param("brokerId") UUID brokerId,
@@ -88,8 +88,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
         @Query("SELECT t FROM Transaction t " +
                 "WHERE t.brokerId = :brokerId " +
-                "AND (:startDate IS NULL OR t.openedAt >= :startDate) " +
-                "AND (:endDate IS NULL OR t.openedAt <= :endDate) " +
+                "AND (cast(:startDate as timestamp) IS NULL OR t.openedAt >= :startDate) " +
+                "AND (cast(:endDate as timestamp) IS NULL OR t.openedAt <= :endDate) " +
                 "AND (:side IS NULL OR t.side = :side) " +
                 "AND t.clientId IN (:clientIds)")
         List<Transaction> findForAnalyticsWithClients(
