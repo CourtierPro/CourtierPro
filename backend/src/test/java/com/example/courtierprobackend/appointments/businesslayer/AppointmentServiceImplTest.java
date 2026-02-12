@@ -1413,7 +1413,7 @@ class AppointmentServiceImplTest {
                 apt.setFromDateTime(LocalDateTime.now().minusHours(3));
                 apt.setToDateTime(LocalDateTime.now().minusHours(2)); // event concluded
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
                 when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArguments()[0]);
                 mockUserAccounts();
@@ -1433,7 +1433,7 @@ class AppointmentServiceImplTest {
                 apt.setFromDateTime(LocalDateTime.now().plusHours(1));
                 apt.setToDateTime(LocalDateTime.now().plusHours(2)); // event not concluded
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
 
                 assertThatThrownBy(() -> appointmentService.updateVisitorCount(appointmentId, 15, brokerId))
@@ -1451,7 +1451,7 @@ class AppointmentServiceImplTest {
                 apt.setFromDateTime(LocalDateTime.now().minusHours(3));
                 apt.setToDateTime(LocalDateTime.now().minusHours(2));
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
                 when(appointmentRepository.save(any(Appointment.class))).thenAnswer(i -> i.getArguments()[0]);
                 mockUserAccounts();
@@ -1469,7 +1469,7 @@ class AppointmentServiceImplTest {
                 apt.setTitle("meeting"); // not open_house or private_showing
                 apt.setStatus(AppointmentStatus.CONFIRMED);
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
 
                 assertThatThrownBy(() -> appointmentService.updateVisitorCount(appointmentId, 5, brokerId))
@@ -1486,7 +1486,7 @@ class AppointmentServiceImplTest {
                 apt.setFromDateTime(LocalDateTime.now().minusHours(3));
                 apt.setToDateTime(LocalDateTime.now().minusHours(2));
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
 
                 UUID otherUser = UUID.randomUUID();
@@ -1503,7 +1503,7 @@ class AppointmentServiceImplTest {
                 apt.setTitle("open_house");
                 apt.setStatus(AppointmentStatus.PROPOSED); // not confirmed
 
-                when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId))
+                when(appointmentRepository.findByAppointmentId(appointmentId))
                                 .thenReturn(Optional.of(apt));
 
                 assertThatThrownBy(() -> appointmentService.updateVisitorCount(appointmentId, 5, brokerId))

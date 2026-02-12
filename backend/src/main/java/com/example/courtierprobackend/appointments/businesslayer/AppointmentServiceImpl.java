@@ -755,7 +755,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         @Override
         @Transactional
         public AppointmentResponseDTO updateVisitorCount(UUID appointmentId, int numberOfVisitors, UUID requesterId) {
-                Appointment appointment = appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId)
+                Appointment appointment = appointmentRepository.findByAppointmentId(appointmentId)
                                 .orElseThrow(() -> new NotFoundException("Appointment not found: " + appointmentId));
 
                 // Verify requester is the broker on this appointment
