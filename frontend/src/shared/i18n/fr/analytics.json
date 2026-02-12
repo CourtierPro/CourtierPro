@@ -3,6 +3,7 @@
     "subtitle": "Aperçu de votre activité de courtage et indicateurs clés de performance.",
     "loading": "Chargement des analyses...",
     "empty": "Aucune donnée pour le moment. Les analyses apparaîtront une fois vos transactions créées.",
+    "error": "Impossible de charger les analyses. Veuillez réessayer.",
     "sections": {
         "overview": "Aperçu des transactions",
         "houseVisits": "Visites de maison",

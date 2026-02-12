@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import i18n from "@/shared/i18n/i18n";
 import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { KpiCard } from "@/shared/components/branded/KpiCard";
 import { Section } from "@/shared/components/branded/Section";
@@ -35,12 +36,18 @@ import {
 import { Card, CardContent } from "@/shared/components/ui/card";
 
 function formatCurrency(value: number): string {
-  if (value === 0) return "$0";
-  return "$" + value.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  return new Intl.NumberFormat(i18n.language, {
+    style: "currency",
+    currency: "CAD",
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 function formatPercent(value: number): string {
-  return value + "%";
+  return new Intl.NumberFormat(i18n.language, {
+    style: "percent",
+    maximumFractionDigits: 1,
+  }).format(value / 100);
 }
 
 export function AnalyticsPage() {
@@ -60,7 +67,7 @@ export function AnalyticsPage() {
     return (
       <div className="space-y-6">
         <PageHeader title={t("title")} subtitle={t("subtitle")} />
-        <ErrorState message={t("empty")} onRetry={() => refetch()} />
+        <ErrorState message={t("error")} onRetry={() => refetch()} />
       </div>
     );
   }

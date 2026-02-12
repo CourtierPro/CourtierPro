@@ -202,8 +202,13 @@ export function CreateAppointmentModal({
 
   const handleTransactionSelect = (txId: string) => {
     setSelectedTransactionId(txId);
+    setSelectedPropertyId('');
 
     const tx = transactions.find(t => t.transactionId === txId);
+
+    if (tx && tx.side !== 'BUY_SIDE' && appointmentType === 'house_visit') {
+      setAppointmentType('');
+    }
 
     if (tx && tx.clientId && tx.clientId !== selectedClientId) {
       const client = getClientDetails(tx.clientId);

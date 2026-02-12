@@ -3,6 +3,7 @@
     "subtitle": "Overview of your brokerage activity and key performance indicators.",
     "loading": "Loading analytics...",
     "empty": "No data yet. Analytics will appear once you create transactions.",
+    "error": "Failed to load analytics. Please try again.",
     "sections": {
         "overview": "Transaction Overview",
         "houseVisits": "House Visits",
