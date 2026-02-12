@@ -15,12 +15,9 @@ import lombok.*;
  */
 @Entity
 @Table(name = "appointments")
-<<<<<<< HEAD
+@Where(clause = "deleted_at IS NULL")
 @Builder
 @AllArgsConstructor
-=======
-@Where(clause = "deleted_at IS NULL")
->>>>>>> dc694a9c80b3683afa708d9d27afab22fb7f4046
 public class Appointment {
 
     @Id
@@ -134,6 +131,10 @@ public class Appointment {
                 throw new IllegalArgumentException("Appointment end time must be after start time");
             }
         }
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 
     // Getters and Setters
@@ -336,10 +337,6 @@ public class Appointment {
 
     public void setDeletedBy(UUID deletedBy) {
         this.deletedBy = deletedBy;
-    }
-
-    public boolean isDeleted() {
-        return deletedAt != null;
     }
 
     public Boolean getReminderSent() {
