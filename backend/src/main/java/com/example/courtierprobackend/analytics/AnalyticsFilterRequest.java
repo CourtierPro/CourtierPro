@@ -8,6 +8,8 @@ import java.time.LocalDate;
 
 @Data
 @Builder
+@lombok.NoArgsConstructor
+@lombok.AllArgsConstructor
 public class AnalyticsFilterRequest {
     private LocalDate startDate;
     private LocalDate endDate;

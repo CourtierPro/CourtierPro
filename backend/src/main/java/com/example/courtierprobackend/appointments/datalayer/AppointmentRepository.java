@@ -262,9 +262,19 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                 "WHERE a.brokerId = :brokerId " +
                 "AND (:startDate IS NULL OR a.fromDateTime >= :startDate) " +
                 "AND (:endDate IS NULL OR a.fromDateTime <= :endDate) " +
-                "AND ((:clientIds) IS NULL OR a.clientId IN (:clientIds)) " +
                 "ORDER BY a.fromDateTime ASC")
         List<Appointment> findForAnalytics(
+                @Param("brokerId") UUID brokerId,
+                @Param("startDate") LocalDateTime startDate,
+                @Param("endDate") LocalDateTime endDate);
+
+        @Query("SELECT a FROM Appointment a " +
+                "WHERE a.brokerId = :brokerId " +
+                "AND (:startDate IS NULL OR a.fromDateTime >= :startDate) " +
+                "AND (:endDate IS NULL OR a.fromDateTime <= :endDate) " +
+                "AND a.clientId IN (:clientIds) " +
+                "ORDER BY a.fromDateTime ASC")
+        List<Appointment> findForAnalyticsWithClients(
                 @Param("brokerId") UUID brokerId,
                 @Param("startDate") LocalDateTime startDate,
                 @Param("endDate") LocalDateTime endDate,

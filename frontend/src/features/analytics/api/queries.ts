@@ -7,16 +7,20 @@ export const analyticsKeys = {
     summary: (filters?: AnalyticsFilter) => [...analyticsKeys.all, 'summary', filters] as const,
 };
 
+const buildAnalyticsParams = (filters?: AnalyticsFilter): URLSearchParams => {
+    const params = new URLSearchParams();
+    if (filters?.startDate) params.append('startDate', filters.startDate);
+    if (filters?.endDate) params.append('endDate', filters.endDate);
+    if (filters?.transactionType) params.append('transactionType', filters.transactionType);
+    if (filters?.clientName) params.append('clientName', filters.clientName);
+    return params;
+};
+
 export function useAnalytics(filters?: AnalyticsFilter) {
     return useQuery({
         queryKey: analyticsKeys.summary(filters),
         queryFn: async () => {
-            const params = new URLSearchParams();
-            if (filters?.startDate) params.append('startDate', filters.startDate);
-            if (filters?.endDate) params.append('endDate', filters.endDate);
-            if (filters?.transactionType) params.append('transactionType', filters.transactionType);
-            if (filters?.clientName) params.append('clientName', filters.clientName);
-
+            const params = buildAnalyticsParams(filters);
             const res = await axiosInstance.get<AnalyticsData>('/analytics', { params });
             return res.data;
         },
@@ -25,11 +29,7 @@ export function useAnalytics(filters?: AnalyticsFilter) {
 }
 
 export const exportAnalyticsCsv = async (filters?: AnalyticsFilter) => {
-    const params = new URLSearchParams();
-    if (filters?.startDate) params.append('startDate', filters.startDate);
-    if (filters?.endDate) params.append('endDate', filters.endDate);
-    if (filters?.transactionType) params.append('transactionType', filters.transactionType);
-    if (filters?.clientName) params.append('clientName', filters.clientName);
+    const params = buildAnalyticsParams(filters);
 
     const response = await axiosInstance.get('/analytics/export/csv', {
         params,
@@ -43,14 +43,11 @@ export const exportAnalyticsCsv = async (filters?: AnalyticsFilter) => {
     document.body.appendChild(link);
     link.click();
     link.remove();
+    window.URL.revokeObjectURL(url);
 };
 
 export const exportAnalyticsPdf = async (filters?: AnalyticsFilter) => {
-    const params = new URLSearchParams();
-    if (filters?.startDate) params.append('startDate', filters.startDate);
-    if (filters?.endDate) params.append('endDate', filters.endDate);
-    if (filters?.transactionType) params.append('transactionType', filters.transactionType);
-    if (filters?.clientName) params.append('clientName', filters.clientName);
+    const params = buildAnalyticsParams(filters);
 
     const response = await axiosInstance.get('/analytics/export/pdf', {
         params,
@@ -64,4 +61,5 @@ export const exportAnalyticsPdf = async (filters?: AnalyticsFilter) => {
     document.body.appendChild(link);
     link.click();
     link.remove();
+    window.URL.revokeObjectURL(url);
 };

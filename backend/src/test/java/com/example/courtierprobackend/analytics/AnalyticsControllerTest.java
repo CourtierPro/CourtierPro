@@ -72,10 +72,17 @@ class AnalyticsControllerTest {
             "October", 2
         );
 
+        AnalyticsFilterRequest filters = AnalyticsFilterRequest.builder()
+                .startDate(LocalDate.parse("2023-01-01"))
+                .endDate(LocalDate.parse("2023-12-31"))
+                .transactionType(TransactionSide.BUY_SIDE)
+                .clientName("John")
+                .build();
+
         when(analyticsService.getAnalytics(eq(brokerId), any(AnalyticsFilterRequest.class))).thenReturn(mockDto);
 
         ResponseEntity<AnalyticsDTO> response = controller.getAnalytics(
-                null, jwt, request, LocalDate.parse("2023-01-01"), LocalDate.parse("2023-12-31"), TransactionSide.BUY_SIDE, "John");
+                null, jwt, request, filters);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
@@ -89,10 +96,14 @@ class AnalyticsControllerTest {
         Jwt jwt = createJwt();
         byte[] csvContent = "Category,Metric,Value\nMeta,Broker,Test".getBytes();
 
+        AnalyticsFilterRequest filters = AnalyticsFilterRequest.builder()
+                .startDate(LocalDate.parse("2023-01-01"))
+                .build();
+
         when(analyticsService.exportAnalyticsCsv(eq(brokerId), any(AnalyticsFilterRequest.class))).thenReturn(csvContent);
 
         ResponseEntity<byte[]> response = controller.exportAnalyticsCsv(
-                null, jwt, request, LocalDate.parse("2023-01-01"), null, null, null);
+                null, jwt, request, filters);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getHeaders().getFirst("Content-Type")).isEqualTo("text/csv");
@@ -108,10 +119,14 @@ class AnalyticsControllerTest {
         Jwt jwt = createJwt();
         byte[] pdfContent = "%PDF-1.4...".getBytes();
 
+        AnalyticsFilterRequest filters = AnalyticsFilterRequest.builder()
+                .clientName("Smith")
+                .build();
+
         when(analyticsService.exportAnalyticsPdf(eq(brokerId), any(AnalyticsFilterRequest.class))).thenReturn(pdfContent);
 
         ResponseEntity<byte[]> response = controller.exportAnalyticsPdf(
-                null, jwt, request, null, null, null, "Smith");
+                null, jwt, request, filters);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getHeaders().getFirst("Content-Type")).isEqualTo("application/pdf");

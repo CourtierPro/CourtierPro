@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { useTranslation } from "react-i18next";
@@ -129,7 +130,7 @@ export function AnalyticsPage() {
       await exportAnalyticsCsv(appliedFilters);
     } catch (error) {
       console.error("Failed to export CSV", error);
-      // Ideally show a toast here
+      toast.error(t("exportCsvFailed", "Failed to export CSV"));
     }
   };
 
@@ -138,7 +139,7 @@ export function AnalyticsPage() {
       await exportAnalyticsPdf(appliedFilters);
     } catch (error) {
       console.error("Failed to export PDF", error);
-      // Ideally show a toast here
+      toast.error(t("exportPdfFailed", "Failed to export PDF"));
     }
   };
 
@@ -151,7 +152,7 @@ export function AnalyticsPage() {
     );
   }
 
-  if (isError || !data && !isLoading) {
+  if (isError || !data) {
     return (
       <div className="space-y-6">
         <PageHeader title={t("title")} subtitle={t("subtitle")} />

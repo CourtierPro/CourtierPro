@@ -25,17 +25,8 @@ public class AnalyticsController {
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request,
-            @RequestParam(required = false) LocalDate startDate,
-            @RequestParam(required = false) LocalDate endDate,
-            @RequestParam(required = false) com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide transactionType,
-            @RequestParam(required = false) String clientName) {
+            AnalyticsFilterRequest filters) {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
-        AnalyticsFilterRequest filters = AnalyticsFilterRequest.builder()
-                .startDate(startDate)
-                .endDate(endDate)
-                .transactionType(transactionType)
-                .clientName(clientName)
-                .build();
         return ResponseEntity.ok(analyticsService.getAnalytics(brokerId, filters));
     }
 
@@ -45,18 +36,8 @@ public class AnalyticsController {
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request,
-            @RequestParam(required = false) LocalDate startDate,
-            @RequestParam(required = false) LocalDate endDate,
-            @RequestParam(required = false) com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide transactionType,
-            @RequestParam(required = false) String clientName) {
+            AnalyticsFilterRequest filters) {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
-        AnalyticsFilterRequest filters = AnalyticsFilterRequest.builder()
-                .startDate(startDate)
-                .endDate(endDate)
-                .transactionType(transactionType)
-                .clientName(clientName)
-                .build();
-
         byte[] csvData = analyticsService.exportAnalyticsCsv(brokerId, filters);
 
         return ResponseEntity.ok()
@@ -71,18 +52,8 @@ public class AnalyticsController {
             @RequestHeader(value = "x-broker-id", required = false) String brokerHeader,
             @AuthenticationPrincipal Jwt jwt,
             HttpServletRequest request,
-            @RequestParam(required = false) LocalDate startDate,
-            @RequestParam(required = false) LocalDate endDate,
-            @RequestParam(required = false) com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide transactionType,
-            @RequestParam(required = false) String clientName) {
+            AnalyticsFilterRequest filters) {
         UUID brokerId = UserContextUtils.resolveUserId(request, brokerHeader);
-        AnalyticsFilterRequest filters = AnalyticsFilterRequest.builder()
-                .startDate(startDate)
-                .endDate(endDate)
-                .transactionType(transactionType)
-                .clientName(clientName)
-                .build();
-
         byte[] pdfData = analyticsService.exportAnalyticsPdf(brokerId, filters);
 
         return ResponseEntity.ok()

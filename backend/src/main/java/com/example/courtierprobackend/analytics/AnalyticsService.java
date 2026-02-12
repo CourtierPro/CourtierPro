@@ -59,7 +59,7 @@ public class AnalyticsService {
                 List<UUID> clientIds = null;
                 boolean clientFilterApplied = false;
                 if (filters.getClientName() != null && !filters.getClientName().isBlank()) {
-                        clientIds = userAccountRepository.findIdsBySearchQuery(filters.getClientName());
+                        clientIds = userAccountRepository.findIdsBySearchQuery(brokerId, filters.getClientName());
                         clientFilterApplied = true;
                 }
 
@@ -69,19 +69,41 @@ public class AnalyticsService {
                 if (clientFilterApplied && (clientIds == null || clientIds.isEmpty())) {
                         allTransactions = Collections.emptyList();
                         allAppointments = Collections.emptyList();
-                } else {
-                        allTransactions = transactionRepository.findForAnalytics(
+                } else if (clientIds != null) {
+                        allTransactions = transactionRepository.findForAnalyticsWithClients(
                                 brokerId,
                                 startDateTime,
                                 endDateTime,
                                 filters.getTransactionType(),
                                 clientIds);
 
-                        allAppointments = appointmentRepository.findForAnalytics(
+                        allAppointments = appointmentRepository.findForAnalyticsWithClients(
                                 brokerId,
                                 startDateTime,
                                 endDateTime,
                                 clientIds);
+                } else {
+                        allTransactions = transactionRepository.findForAnalytics(
+                                brokerId,
+                                startDateTime,
+                                endDateTime,
+                                filters.getTransactionType());
+
+                        allAppointments = appointmentRepository.findForAnalytics(
+                                brokerId,
+                                startDateTime,
+                                endDateTime);
+                }
+
+                // Fix for mixed metrics: If transaction type is selected, filter appointments to match those transactions
+                if (filters.getTransactionType() != null) {
+                        Set<UUID> transactionIds = allTransactions.stream()
+                                .map(Transaction::getTransactionId)
+                                .collect(Collectors.toSet());
+                        
+                        allAppointments = allAppointments.stream()
+                                .filter(a -> a.getTransactionId() != null && transactionIds.contains(a.getTransactionId()))
+                                .collect(Collectors.toList());
                 }
 
                 int total = allTransactions.size();

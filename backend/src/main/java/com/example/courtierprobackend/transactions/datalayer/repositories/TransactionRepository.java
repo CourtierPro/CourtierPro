@@ -79,9 +79,20 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                 "WHERE t.brokerId = :brokerId " +
                 "AND (:startDate IS NULL OR t.openedAt >= :startDate) " +
                 "AND (:endDate IS NULL OR t.openedAt <= :endDate) " +
-                "AND (:side IS NULL OR t.side = :side) " +
-                "AND ((:clientIds) IS NULL OR t.clientId IN (:clientIds))")
+                "AND (:side IS NULL OR t.side = :side)")
         List<Transaction> findForAnalytics(
+                @Param("brokerId") UUID brokerId,
+                @Param("startDate") LocalDateTime startDate,
+                @Param("endDate") LocalDateTime endDate,
+                @Param("side") com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide side);
+
+        @Query("SELECT t FROM Transaction t " +
+                "WHERE t.brokerId = :brokerId " +
+                "AND (:startDate IS NULL OR t.openedAt >= :startDate) " +
+                "AND (:endDate IS NULL OR t.openedAt <= :endDate) " +
+                "AND (:side IS NULL OR t.side = :side) " +
+                "AND t.clientId IN (:clientIds)")
+        List<Transaction> findForAnalyticsWithClients(
                 @Param("brokerId") UUID brokerId,
                 @Param("startDate") LocalDateTime startDate,
                 @Param("endDate") LocalDateTime endDate,
