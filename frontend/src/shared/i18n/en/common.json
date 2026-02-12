@@ -40,7 +40,11 @@
     "appPreferences": "App preferences",
     "viewAllDocuments": "View all documents",
     "directory": "Directory",
-    "list": "List"
+    "list": "List",
+    "appointments": "Appointments",
+    "calendar": "Calendar",
+    "analytics": "Analytics",
+    "reports": "Reports & Insights"
   },
   "search": {
     "placeholder": "Type to search...",

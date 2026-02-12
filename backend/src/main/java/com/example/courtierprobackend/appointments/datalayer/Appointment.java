@@ -7,6 +7,7 @@ import org.hibernate.annotations.Where;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.*;
 
 /**
  * Appointment entity representing a scheduled meeting between broker and
@@ -15,6 +16,9 @@ import java.util.UUID;
 @Entity
 @Table(name = "appointments")
 @Where(clause = "deleted_at IS NULL")
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Appointment {
 
     @Id
@@ -94,6 +98,7 @@ public class Appointment {
     private UUID deletedBy;
 
     @Column(name = "reminder_sent", nullable = false)
+    @Builder.Default
     private Boolean reminderSent = false;
 
     @Column(name = "number_of_visitors")
@@ -101,9 +106,6 @@ public class Appointment {
 
     @Column(name = "visitor_id")
     private UUID visitorId;
-
-    public Appointment() {
-    }
 
     @PrePersist
     protected void onCreate() {
@@ -127,6 +129,10 @@ public class Appointment {
                 throw new IllegalArgumentException("Appointment end time must be after start time");
             }
         }
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 
     // Getters and Setters
@@ -329,10 +335,6 @@ public class Appointment {
 
     public void setDeletedBy(UUID deletedBy) {
         this.deletedBy = deletedBy;
-    }
-
-    public boolean isDeleted() {
-        return deletedAt != null;
     }
 
     public Boolean getReminderSent() {

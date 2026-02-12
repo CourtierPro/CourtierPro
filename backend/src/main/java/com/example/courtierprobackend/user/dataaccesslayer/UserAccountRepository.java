@@ -17,11 +17,10 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
         List<UserAccount> findByActiveTrue();
 
         @org.springframework.data.jpa.repository.Query("SELECT DISTINCT u FROM UserAccount u " +
-                        "JOIN Transaction t ON t.clientId = u.id " +
-                        "WHERE t.brokerId = :brokerId AND " +
-                        "(LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+                        "WHERE (LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
                         "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-                        "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')))")
+                        "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%'))) AND " +
+                        "EXISTS (SELECT t FROM Transaction t WHERE t.clientId = u.id AND t.brokerId = :brokerId)")
         List<UserAccount> searchClientsOfBroker(
                         @org.springframework.data.repository.query.Param("brokerId") UUID brokerId,
                         @org.springframework.data.repository.query.Param("query") String query);

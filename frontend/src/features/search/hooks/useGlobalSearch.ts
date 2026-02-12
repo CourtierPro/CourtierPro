@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import api from '@/shared/api/axiosInstance';
 import { useSearchContext } from '@/features/search/context/useSearchContext';
 
-export type SearchResultType = 'TRANSACTION' | 'DOCUMENT' | 'USER' | 'PAGE';
+export type SearchResultType = 'TRANSACTION' | 'DOCUMENT' | 'USER' | 'PAGE' | 'APPOINTMENT';
 
 export interface SearchResult {
     id: string;
@@ -23,12 +23,14 @@ export function useGlobalSearch() {
 
     // Moved STATIC_ROUTES inside the hook and translated
     const staticRoutes: SearchResult[] = useMemo(() => [
-        { id: 'dashboard', type: 'PAGE', title: t('nav.dashboard', 'Dashboard'), subtitle: t('nav.home', 'Home'), url: '/dashboard' },
-        { id: 'profile', type: 'PAGE', title: t('nav.profile', 'Profile'), subtitle: t('nav.manageAccount', 'Manage your account'), url: '/profile' },
-        { id: 'settings', type: 'PAGE', title: t('nav.settings', 'Settings'), subtitle: t('nav.appPreferences', 'App preferences'), url: '/settings' },
-        { id: 'transactions', type: 'PAGE', title: t('nav.transactions', 'Transactions'), subtitle: t('nav.list', 'List'), url: '/transactions' },
-        { id: 'documents', type: 'PAGE', title: t('nav.documents', 'Documents'), subtitle: t('nav.viewAllDocuments', 'View all documents'), url: '/documents' },
-        { id: 'contacts', type: 'PAGE', title: t('nav.contacts', 'Contacts'), subtitle: t('nav.directory', 'Directory'), url: '/contacts' },
+        { id: 'dashboard', type: 'PAGE', title: t('navigation.dashboard', 'Dashboard'), subtitle: t('navigation.home', 'Home'), url: '/dashboard' },
+        { id: 'profile', type: 'PAGE', title: t('navigation.profile', 'Profile'), subtitle: t('navigation.manageAccount', 'Manage your account'), url: '/profile' },
+        { id: 'settings', type: 'PAGE', title: t('navigation.settings', 'Settings'), subtitle: t('navigation.appPreferences', 'App preferences'), url: '/settings' },
+        { id: 'transactions', type: 'PAGE', title: t('navigation.transactions', 'Transactions'), subtitle: t('navigation.list', 'List'), url: '/transactions' },
+        { id: 'documents', type: 'PAGE', title: t('navigation.documents', 'Documents'), subtitle: t('navigation.viewAllDocuments', 'View all documents'), url: '/documents' },
+        { id: 'contacts', type: 'PAGE', title: t('navigation.contacts', 'Contacts'), subtitle: t('navigation.directory', 'Directory'), url: '/contacts' },
+        { id: 'appointments', type: 'PAGE', title: t('navigation.appointments', 'Appointments'), subtitle: t('navigation.calendar', 'Calendar'), url: '/appointments' },
+        { id: 'analytics', type: 'PAGE', title: t('navigation.analytics', 'Analytics'), subtitle: t('navigation.reports', 'Reports & Insights'), url: '/analytics' },
     ], [t]); // Dependency on t for re-evaluation if language changes
 
     // Backend Search
