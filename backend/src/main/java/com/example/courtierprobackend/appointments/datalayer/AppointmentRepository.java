@@ -176,4 +176,15 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                         "AND a.deletedAt IS NULL " +
                         "GROUP BY a.propertyId")
         List<Object[]> countConfirmedHouseVisitsByPropertyIds(@Param("propertyIds") List<UUID> propertyIds);
+
+        /**
+         * Batch count confirmed house visits per transaction for a list of transaction IDs.
+         * Returns rows of [transactionId, count].
+         */
+        @Query("SELECT a.transactionId, COUNT(a) FROM Appointment a " +
+                        "WHERE a.transactionId IN :transactionIds " +
+                        "AND a.title = 'house_visit' AND a.status = com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED " +
+                        "AND a.deletedAt IS NULL " +
+                        "GROUP BY a.transactionId")
+        List<Object[]> countConfirmedHouseVisitsByTransactionIds(@Param("transactionIds") List<UUID> transactionIds);
 }

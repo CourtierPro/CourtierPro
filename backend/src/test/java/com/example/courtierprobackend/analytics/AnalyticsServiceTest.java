@@ -291,8 +291,11 @@ class AnalyticsServiceTest {
             Transaction sell = buildSellTransaction(TransactionStatus.ACTIVE, SellerStage.SELLER_PUBLISH_LISTING);
 
             setupDefaultMocks(List.of(buy1, buy2, sell));
-            when(appointmentRepository.countConfirmedHouseVisitsByTransactionId(buy1.getTransactionId())).thenReturn(3);
-            when(appointmentRepository.countConfirmedHouseVisitsByTransactionId(buy2.getTransactionId())).thenReturn(5);
+            when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(any()))
+                    .thenReturn(List.of(
+                            new Object[]{buy1.getTransactionId(), 3L},
+                            new Object[]{buy2.getTransactionId(), 5L}
+                    ));
 
             AnalyticsDTO result = analyticsService.getAnalytics(brokerId);
 
@@ -306,9 +309,12 @@ class AnalyticsServiceTest {
             Transaction active = buildBuyTransaction(TransactionStatus.ACTIVE, BuyerStage.BUYER_PROPERTY_SEARCH);
 
             setupDefaultMocks(List.of(closed1, closed2, active));
-            when(appointmentRepository.countConfirmedHouseVisitsByTransactionId(closed1.getTransactionId())).thenReturn(4);
-            when(appointmentRepository.countConfirmedHouseVisitsByTransactionId(closed2.getTransactionId())).thenReturn(6);
-            when(appointmentRepository.countConfirmedHouseVisitsByTransactionId(active.getTransactionId())).thenReturn(2);
+            when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(any()))
+                    .thenReturn(List.of(
+                            new Object[]{closed1.getTransactionId(), 4L},
+                            new Object[]{closed2.getTransactionId(), 6L},
+                            new Object[]{active.getTransactionId(), 2L}
+                    ));
 
             AnalyticsDTO result = analyticsService.getAnalytics(brokerId);
 
@@ -449,7 +455,7 @@ class AnalyticsServiceTest {
             setupDocumentMocks(List.of(tx));
             setupConditionMocks(List.of(tx));
             setupOfferMocks(List.of(tx));
-            when(appointmentRepository.countConfirmedHouseVisitsByTransactionId(any())).thenReturn(0);
+            when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(any())).thenReturn(Collections.emptyList());
 
             Appointment confirmed = buildAppointment(AppointmentStatus.CONFIRMED, InitiatorType.BROKER, LocalDateTime.now().plusDays(5));
             Appointment declined = buildAppointment(AppointmentStatus.DECLINED, InitiatorType.CLIENT, LocalDateTime.now().minusDays(2));
@@ -477,7 +483,7 @@ class AnalyticsServiceTest {
             setupDocumentMocks(List.of(tx));
             setupConditionMocks(List.of(tx));
             setupOfferMocks(List.of(tx));
-            when(appointmentRepository.countConfirmedHouseVisitsByTransactionId(any())).thenReturn(0);
+            when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(any())).thenReturn(Collections.emptyList());
 
             Appointment byBroker1 = buildAppointment(AppointmentStatus.CONFIRMED, InitiatorType.BROKER, LocalDateTime.now().minusDays(1));
             Appointment byBroker2 = buildAppointment(AppointmentStatus.PROPOSED, InitiatorType.BROKER, LocalDateTime.now().minusDays(2));
@@ -589,7 +595,7 @@ class AnalyticsServiceTest {
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(transactions);
         when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
                 .thenReturn(Collections.emptyList());
-        when(appointmentRepository.countConfirmedHouseVisitsByTransactionId(any())).thenReturn(0);
+        when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(any())).thenReturn(Collections.emptyList());
         setupPropertyMocks(transactions);
         setupDocumentMocks(transactions);
         setupConditionMocks(transactions);

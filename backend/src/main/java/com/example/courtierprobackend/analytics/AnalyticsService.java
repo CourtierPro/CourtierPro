@@ -92,19 +92,25 @@ public class AnalyticsService {
         // --- House Visits ---
         List<Transaction> buyTransactions = allTransactions.stream()
                 .filter(t -> t.getSide() == TransactionSide.BUY_SIDE).toList();
-        int totalHouseVisits = 0;
-        for (Transaction t : buyTransactions) {
-            totalHouseVisits += appointmentRepository.countConfirmedHouseVisitsByTransactionId(t.getTransactionId());
+
+        // Single batch query → Map<transactionId, count>
+        Map<UUID, Integer> hvCountsByTxId = new java.util.HashMap<>();
+        if (!buyTransactions.isEmpty()) {
+            List<UUID> buyTxIds = buyTransactions.stream().map(Transaction::getTransactionId).toList();
+            for (Object[] row : appointmentRepository.countConfirmedHouseVisitsByTransactionIds(buyTxIds)) {
+                hvCountsByTxId.put((UUID) row[0], ((Number) row[1]).intValue());
+            }
         }
+
+        int totalHouseVisits = hvCountsByTxId.values().stream().mapToInt(Integer::intValue).sum();
 
         List<Transaction> closedBuyTransactions = buyTransactions.stream()
                 .filter(t -> t.getStatus() == TransactionStatus.CLOSED_SUCCESSFULLY).toList();
         double avgHouseVisits = 0.0;
         if (!closedBuyTransactions.isEmpty()) {
-            int closedHV = 0;
-            for (Transaction t : closedBuyTransactions) {
-                closedHV += appointmentRepository.countConfirmedHouseVisitsByTransactionId(t.getTransactionId());
-            }
+            int closedHV = closedBuyTransactions.stream()
+                    .mapToInt(t -> hvCountsByTxId.getOrDefault(t.getTransactionId(), 0))
+                    .sum();
             avgHouseVisits = round((double) closedHV / closedBuyTransactions.size());
         }
 
