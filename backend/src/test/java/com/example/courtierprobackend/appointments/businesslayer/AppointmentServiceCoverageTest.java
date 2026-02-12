@@ -88,7 +88,7 @@ class AppointmentServiceCoverageTest {
         unauthorized.setBrokerId(otherId);
         // Requester is broker -> NOT authorized for other broker's apt (unless shared via transaction)
 
-        when(appointmentRepository.findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId))
+        when(appointmentRepository.findByClientIdOrderByFromDateTimeAsc(clientId))
                 .thenReturn(List.of(authorized, unauthorized));
         
         when(transactionParticipantRepository.findByTransactionId(any())).thenReturn(new ArrayList<>());
@@ -209,7 +209,7 @@ class AppointmentServiceCoverageTest {
         apt.setClientId(clientId);
         apt.setInitiatedBy(InitiatorType.CLIENT);
 
-        when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId)).thenReturn(Optional.of(apt));
+        when(appointmentRepository.findByAppointmentId(appointmentId)).thenReturn(Optional.of(apt));
 
         AppointmentReviewDTO review = new AppointmentReviewDTO(
                 AppointmentReviewDTO.ReviewAction.CONFIRM, // Not RESCHEDULE
@@ -231,7 +231,7 @@ class AppointmentServiceCoverageTest {
         apt.setInitiatedBy(InitiatorType.BROKER);
         apt.setCancelledBy(clientId); // Cancelled by client
 
-        when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId)).thenReturn(Optional.of(apt));
+        when(appointmentRepository.findByAppointmentId(appointmentId)).thenReturn(Optional.of(apt));
 
         AppointmentReviewDTO review = new AppointmentReviewDTO(
                 AppointmentReviewDTO.ReviewAction.RESCHEDULE,
@@ -254,7 +254,7 @@ class AppointmentServiceCoverageTest {
         apt.setTransactionId(transactionId);
         apt.setInitiatedBy(InitiatorType.CLIENT);
 
-        when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId)).thenReturn(Optional.of(apt));
+        when(appointmentRepository.findByAppointmentId(appointmentId)).thenReturn(Optional.of(apt));
         when(appointmentRepository.save(any())).thenReturn(apt);
 
         AppointmentReviewDTO review = new AppointmentReviewDTO(
@@ -282,7 +282,7 @@ class AppointmentServiceCoverageTest {
         apt.setClientId(clientId);
         apt.setTransactionId(transactionId);
 
-        when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId)).thenReturn(Optional.of(apt));
+        when(appointmentRepository.findByAppointmentId(appointmentId)).thenReturn(Optional.of(apt));
         when(appointmentRepository.save(any())).thenReturn(apt);
         
         // Mock recipient
@@ -308,7 +308,7 @@ class AppointmentServiceCoverageTest {
         apt.setClientId(clientId);
         apt.setTransactionId(transactionId);
 
-        when(appointmentRepository.findByAppointmentIdAndDeletedAtIsNull(appointmentId)).thenReturn(Optional.of(apt));
+        when(appointmentRepository.findByAppointmentId(appointmentId)).thenReturn(Optional.of(apt));
         when(appointmentRepository.save(any())).thenReturn(apt);
         
         doThrow(new RuntimeException("Timeline DB down"))

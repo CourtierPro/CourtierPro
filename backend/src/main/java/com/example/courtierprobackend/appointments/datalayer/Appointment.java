@@ -3,6 +3,8 @@ package com.example.courtierprobackend.appointments.datalayer;
 import com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus;
 import com.example.courtierprobackend.appointments.datalayer.enums.InitiatorType;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Where;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -12,6 +14,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "appointments")
+@Where(clause = "deleted_at IS NULL")
 public class Appointment {
 
     @Id

@@ -102,5 +102,10 @@
     "reschedule": "Replanifier",
     "originalTime": "Heure originale",
     "onlyCancellerCanReschedule": "Seule la partie qui a annulé peut replanifier.",
-    "appointmentRequestFailed": "Impossible de planifier le rendez-vous. Il est possible que l'heure soit déjà passée."
+    "appointmentRequestFailed": "Impossible de planifier le rendez-vous. Il est possible que l'heure soit déjà passée.",
+    "appointmentConfirmed": "Rendez-vous confirmé avec succès.",
+    "appointmentDeclined": "Rendez-vous refusé.",
+    "appointmentCancelledSuccess": "Rendez-vous annulé.",
+    "appointmentRescheduled": "Rendez-vous replanifié avec succès.",
+    "errorActionFailed": "L'action a échoué. Veuillez réessayer."
 }

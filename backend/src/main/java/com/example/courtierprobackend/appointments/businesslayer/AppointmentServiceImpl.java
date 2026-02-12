@@ -83,7 +83,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         @Override
         public List<AppointmentResponseDTO> getAppointmentsForBroker(UUID brokerId) {
                 List<Appointment> appointments = appointmentRepository
-                                .findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId);
+                                .findByBrokerIdOrderByFromDateTimeAsc(brokerId);
                 return mapToDTOs(appointments);
         }
 
@@ -91,7 +91,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         public List<AppointmentResponseDTO> getAppointmentsForClient(UUID clientId, UUID requesterId,
                         String requesterEmail) {
                 List<Appointment> allAppointments = appointmentRepository
-                                .findByClientIdAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId);
+                                .findByClientIdOrderByFromDateTimeAsc(clientId);
                 final UUID finalRequesterId = requesterId;
                 final String finalRequesterEmail = requesterEmail;
                 List<Appointment> filtered = allAppointments.stream().filter(apt -> {
@@ -153,7 +153,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         public List<AppointmentResponseDTO> getAppointmentsForBrokerByStatus(
                         UUID brokerId, AppointmentStatus status) {
                 List<Appointment> appointments = appointmentRepository
-                                .findByBrokerIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId, status);
+                                .findByBrokerIdAndStatusOrderByFromDateTimeAsc(brokerId, status);
                 return mapToDTOs(appointments);
         }
 
@@ -161,7 +161,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         public List<AppointmentResponseDTO> getAppointmentsForClientByStatus(
                         UUID clientId, AppointmentStatus status, UUID requesterId, String requesterEmail) {
                 List<Appointment> appointments = appointmentRepository
-                                .findByClientIdAndStatusAndDeletedAtIsNullOrderByFromDateTimeAsc(clientId, status);
+                                .findByClientIdAndStatusOrderByFromDateTimeAsc(clientId, status);
                 final UUID finalRequesterId = requesterId;
                 final String finalRequesterEmail = requesterEmail;
                 List<Appointment> filtered = appointments.stream().filter(apt -> {
@@ -231,14 +231,14 @@ public class AppointmentServiceImpl implements AppointmentService {
                 }
 
                 List<Appointment> appointments = appointmentRepository
-                                .findByTransactionIdAndDeletedAtIsNullOrderByFromDateTimeAsc(transactionId);
+                                .findByTransactionIdOrderByFromDateTimeAsc(transactionId);
                 return mapToDTOs(appointments);
         }
 
         @Override
         public AppointmentResponseDTO getAppointmentById(UUID appointmentId, UUID requesterId) {
                 Appointment appointment = appointmentRepository
-                                .findByAppointmentIdAndDeletedAtIsNull(appointmentId)
+                                .findByAppointmentId(appointmentId)
                                 .orElseThrow(() -> new NotFoundException("Appointment not found: " + appointmentId));
 
                 if (!appointment.getBrokerId().equals(requesterId) && !appointment.getClientId().equals(requesterId)) {
@@ -422,7 +422,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                         com.example.courtierprobackend.appointments.datalayer.dto.AppointmentReviewDTO reviewDTO,
                         UUID reviewerId) {
                 Appointment appointment = appointmentRepository
-                                .findByAppointmentIdAndDeletedAtIsNull(appointmentId)
+                                .findByAppointmentId(appointmentId)
                                 .orElseThrow(() -> new NotFoundException("Appointment not found: " + appointmentId));
 
                 boolean isBroker = appointment.getBrokerId().equals(reviewerId);
@@ -633,7 +633,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                         com.example.courtierprobackend.appointments.datalayer.dto.AppointmentCancellationDTO cancelDTO,
                         UUID requesterId) {
                 Appointment appointment = appointmentRepository
-                                .findByAppointmentIdAndDeletedAtIsNull(appointmentId)
+                                .findByAppointmentId(appointmentId)
                                 .orElseThrow(() -> new NotFoundException("Appointment not found: " + appointmentId));
 
                 boolean isBroker = appointment.getBrokerId().equals(requesterId);
@@ -764,7 +764,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
                 List<AppointmentStatus> excluded = List.of(AppointmentStatus.CANCELLED, AppointmentStatus.DECLINED);
                 List<Appointment> appointments = appointmentRepository
-                                .findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotInAndDeletedAtIsNull(
+                                .findByFromDateTimeBetweenAndReminderSentFalseAndStatusNotIn(
                                                 startWindow, endWindow,
                                                 excluded);
 

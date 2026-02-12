@@ -108,6 +108,7 @@ export function UploadForClientModal({
             instructions: '',
             stage: currentStage,
             dueDate: undefined,
+            requiresSignature: false,
         },
     });
 
@@ -184,11 +185,12 @@ export function UploadForClientModal({
             return;
         }
 
-        // If a file is selected, show progress
         if (file && onUploadFile) {
             setIsUploading(true);
             setUploadProgress(0);
         }
+
+        if (!data.docType) return;
 
         try {
             const documentId = await onSubmit(
@@ -236,6 +238,8 @@ export function UploadForClientModal({
 
         setIsUploading(true);
         setUploadProgress(0);
+
+        if (!data.docType) return;
 
         try {
             const documentId = await onSubmit(

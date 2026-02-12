@@ -1,7 +1,7 @@
 import axiosInstance from "@/shared/api/axiosInstance";
 
 // Types
-export type ResourceType = "TRANSACTION" | "DOCUMENT_REQUEST";
+export type ResourceType = "TRANSACTION" | "DOCUMENT_REQUEST" | "APPOINTMENT";
 
 export interface ResourceItem {
     id: string;

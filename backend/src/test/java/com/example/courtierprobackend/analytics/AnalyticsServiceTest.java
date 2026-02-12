@@ -158,7 +158,7 @@ class AnalyticsServiceTest {
         @Test
         void getAnalytics_noTransactions_returnsAllZeros() {
             when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(Collections.emptyList());
-            when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+            when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                     .thenReturn(Collections.emptyList());
 
             AnalyticsDTO result = analyticsService.getAnalytics(brokerId);
@@ -462,7 +462,7 @@ class AnalyticsServiceTest {
             Appointment cancelled = buildAppointment(AppointmentStatus.CANCELLED, InitiatorType.BROKER, LocalDateTime.now().minusDays(1));
             Appointment proposed = buildAppointment(AppointmentStatus.PROPOSED, InitiatorType.CLIENT, LocalDateTime.now().minusDays(3));
 
-            when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+            when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                     .thenReturn(List.of(confirmed, declined, cancelled, proposed));
 
             AnalyticsDTO result = analyticsService.getAnalytics(brokerId);
@@ -489,7 +489,7 @@ class AnalyticsServiceTest {
             Appointment byBroker2 = buildAppointment(AppointmentStatus.PROPOSED, InitiatorType.BROKER, LocalDateTime.now().minusDays(2));
             Appointment byClient = buildAppointment(AppointmentStatus.CONFIRMED, InitiatorType.CLIENT, LocalDateTime.now().minusDays(3));
 
-            when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+            when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                     .thenReturn(List.of(byBroker1, byBroker2, byClient));
 
             AnalyticsDTO result = analyticsService.getAnalytics(brokerId);
@@ -593,7 +593,7 @@ class AnalyticsServiceTest {
 
     private void setupDefaultMocks(List<Transaction> transactions) {
         when(transactionRepository.findAllByBrokerId(brokerId)).thenReturn(transactions);
-        when(appointmentRepository.findByBrokerIdAndDeletedAtIsNullOrderByFromDateTimeAsc(brokerId))
+        when(appointmentRepository.findByBrokerIdOrderByFromDateTimeAsc(brokerId))
                 .thenReturn(Collections.emptyList());
         when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(any())).thenReturn(Collections.emptyList());
         setupPropertyMocks(transactions);
