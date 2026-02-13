@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/shared/components/ui/card";
+import { Card, CardHeader, CardContent, CardDescription } from "@/shared/components/ui/card";
 import { cn } from "@/shared/utils/utils";
 import { type ReactNode, type HTMLAttributes, forwardRef } from "react";
 
