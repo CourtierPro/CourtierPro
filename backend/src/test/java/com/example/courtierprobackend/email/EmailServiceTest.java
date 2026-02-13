@@ -335,6 +335,92 @@ class EmailServiceTest {
     }
 
     @Test
+    void escapeHtml_ShouldEscapeSpecialCharacters() {
+        String input = "Me & My <HTML> \"Quotes\" 'Single'";
+        String expected = "Me &amp; My &lt;HTML&gt; &quot;Quotes&quot; &#39;Single&#39;";
+        assertThat(emailService.escapeHtml(input)).isEqualTo(expected);
+    }
+
+    @Test
+    void escapeHtml_ShouldHandleNull() {
+        assertThat(emailService.escapeHtml(null)).isEqualTo("");
+    }
+
+    @Test
+    void translateDocumentStatus_ShouldCoverAllBranches() {
+        assertThat(emailService.translateDocumentStatus(null, false)).isEqualTo("");
+        assertThat(emailService.translateDocumentStatus("REQUESTED", true)).isEqualTo("Demandé");
+        assertThat(emailService.translateDocumentStatus("SUBMITTED", true)).isEqualTo("Soumis");
+        assertThat(emailService.translateDocumentStatus("APPROVED", true)).isEqualTo("Approuvé");
+        assertThat(emailService.translateDocumentStatus("NEEDS_REVISION", true)).isEqualTo("À réviser");
+        assertThat(emailService.translateDocumentStatus("REJECTED", true)).isEqualTo("Rejeté");
+        assertThat(emailService.translateDocumentStatus("UNKNOWN", true)).isEqualTo("UNKNOWN");
+
+        assertThat(emailService.translateDocumentStatus("REQUESTED", false)).isEqualTo("Requested");
+        assertThat(emailService.translateDocumentStatus("SUBMITTED", false)).isEqualTo("Submitted");
+        assertThat(emailService.translateDocumentStatus("APPROVED", false)).isEqualTo("Approved");
+        assertThat(emailService.translateDocumentStatus("NEEDS_REVISION", false)).isEqualTo("Needs Revision");
+        assertThat(emailService.translateDocumentStatus("REJECTED", false)).isEqualTo("Rejected");
+    }
+
+    @Test
+    void translateDocumentType_ShouldCoverAllBranches() {
+        assertThat(emailService.translateDocumentType(null, true)).isEqualTo("Autre");
+        assertThat(emailService.translateDocumentType(null, false)).isEqualTo("Other");
+        assertThat(emailService.translateDocumentType("MORTGAGE_PRE_APPROVAL", true)).isEqualTo("Pré-approbation hypothécaire");
+        assertThat(emailService.translateDocumentType("MORTGAGE_APPROVAL", true)).isEqualTo("Approbation hypothécaire");
+        assertThat(emailService.translateDocumentType("PROOF_OF_FUNDS", true)).isEqualTo("Preuve de fonds");
+        assertThat(emailService.translateDocumentType("PROOF_OF_INCOME", true)).isEqualTo("Preuve de revenu");
+        assertThat(emailService.translateDocumentType("UNKNOWN", true)).isEqualTo("UNKNOWN");
+
+        assertThat(emailService.translateDocumentType("MORTGAGE_PRE_APPROVAL", false)).isEqualTo("Mortgage Pre-Approval");
+        assertThat(emailService.translateDocumentType("MORTGAGE_APPROVAL", false)).isEqualTo("Mortgage Approval");
+        assertThat(emailService.translateDocumentType("PROOF_OF_FUNDS", false)).isEqualTo("Proof of Funds");
+    }
+
+    @Test
+    void translateAppointmentTitle_ShouldCoverAllBranches() {
+        assertThat(emailService.translateAppointmentTitle(null, true)).isEqualTo("Rendez-vous");
+        assertThat(emailService.translateAppointmentTitle(null, false)).isEqualTo("Appointment");
+        assertThat(emailService.translateAppointmentTitle("house_visit", true)).isEqualTo("Visite de maison");
+        assertThat(emailService.translateAppointmentTitle("open_house", true)).isEqualTo("Portes ouvertes");
+        assertThat(emailService.translateAppointmentTitle("inspection", true)).isEqualTo("Inspection");
+        assertThat(emailService.translateAppointmentTitle("notary", true)).isEqualTo("Notaire");
+        assertThat(emailService.translateAppointmentTitle("meeting", true)).isEqualTo("Réunion");
+        assertThat(emailService.translateAppointmentTitle("UNKNOWN", true)).isEqualTo("UNKNOWN");
+
+        assertThat(emailService.translateAppointmentTitle("house_visit", false)).isEqualTo("House Visit");
+    }
+
+    @Test
+    void sendWeeklyDigestEmail_French_ShouldCoverAllBilingualBranches() throws Exception {
+        var broker = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(broker.getEmail()).thenReturn("broker@test.com");
+        when(broker.getPreferredLanguage()).thenReturn("fr");
+
+        var appt = mock(com.example.courtierprobackend.appointments.datalayer.Appointment.class);
+        when(appt.getTitle()).thenReturn("house_visit");
+        when(appt.getFromDateTime()).thenReturn(java.time.LocalDateTime.now());
+        when(appt.getLocation()).thenReturn("Chez le client");
+
+        var doc = mock(com.example.courtierprobackend.documents.datalayer.Document.class);
+        when(doc.getCustomTitle()).thenReturn(null);
+        when(doc.getDocType()).thenReturn(com.example.courtierprobackend.documents.datalayer.enums.DocumentTypeEnum.MORTGAGE_PRE_APPROVAL);
+        when(doc.getStatus()).thenReturn(com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum.REQUESTED);
+
+        var tx = mock(com.example.courtierprobackend.transactions.datalayer.Transaction.class);
+        var propertyAddress = mock(com.example.courtierprobackend.transactions.datalayer.PropertyAddress.class);
+        when(propertyAddress.getStreet()).thenReturn("123 Rue de la Paix");
+        when(tx.getPropertyAddress()).thenReturn(propertyAddress);
+        when(tx.getLastUpdated()).thenReturn(java.time.LocalDateTime.now().minusDays(15));
+
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendWeeklyDigestEmail(broker, java.util.List.of(appt), java.util.List.of(doc), java.util.List.of(tx));
+            transportMock.verify(() -> Transport.send(any(Message.class)), times(1));
+        }
+    }
+
+    @Test
     void sendWeeklyDigestEmail_ShouldLogExceptionOnIOException() throws Exception {
         var broker = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
         when(broker.getEmail()).thenReturn("broker@test.com");

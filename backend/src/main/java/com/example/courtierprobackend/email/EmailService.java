@@ -1142,7 +1142,7 @@ public class EmailService {
     /**
      * Translate document status enum to human-readable text
      */
-    private String translateDocumentStatus(Object status, boolean isFrench) {
+    String translateDocumentStatus(Object status, boolean isFrench) {
         if (status == null)
             return "";
         String statusStr = status.toString();
