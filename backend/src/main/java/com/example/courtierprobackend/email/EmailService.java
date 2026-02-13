@@ -634,8 +634,13 @@ public class EmailService {
         if (body != null && body.toLowerCase().contains("</html>")) {
             bodyWithFooter = body;
         } else {
-            // Close any open paragraphs and add footer to snippets
-            bodyWithFooter = (body != null ? body.replaceAll("</p>$", "") : "") + "</p>" + getEmailFooter();
+            // Robustly handle trailing whitespace and potential null/empty bodies for snippets
+            String normalizedBody = (body != null) ? body.replaceAll("</p>\\s*$", "") : "";
+            if (normalizedBody.isEmpty()) {
+                bodyWithFooter = getEmailFooter();
+            } else {
+                bodyWithFooter = normalizedBody + "</p>" + getEmailFooter();
+            }
         }
 
         if ("ses".equalsIgnoreCase(emailProvider)) {

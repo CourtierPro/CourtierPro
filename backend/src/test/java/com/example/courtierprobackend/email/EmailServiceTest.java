@@ -517,4 +517,48 @@ class EmailServiceTest {
             assertThat(content).contains("<hr"); // Default footer separator
         }
     }
+
+    @Test
+    void sendEmail_SnippetWithWhitespace_ShouldAppendFooterCorrectly() throws Exception {
+        String snippet = "<p>Hello</p>  \n ";
+        
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendEmail("test@test.com", "Test", snippet);
+            
+            ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(messageCaptor.capture()));
+            
+            String content = messageCaptor.getValue().getContent().toString();
+            assertThat(content).contains("<p>Hello</p>");
+            assertThat(content).doesNotContain("<p>Hello</p></p>"); // Verify it didn't double close
+            assertThat(content).contains("<hr");
+        }
+    }
+
+    @Test
+    void sendEmail_NullBody_ShouldReturnJustFooter() throws Exception {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendEmail("test@test.com", "Test", null);
+            
+            ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(messageCaptor.capture()));
+            
+            String content = messageCaptor.getValue().getContent().toString();
+            assertThat(content).isEqualTo(emailService.getEmailFooter());
+            assertThat(content).doesNotStartWith("</p>");
+        }
+    }
+
+    @Test
+    void sendEmail_EmptyBody_ShouldReturnJustFooter() throws Exception {
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendEmail("test@test.com", "Test", "");
+            
+            ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(messageCaptor.capture()));
+            
+            String content = messageCaptor.getValue().getContent().toString();
+            assertThat(content).isEqualTo(emailService.getEmailFooter());
+        }
+    }
 }
