@@ -26,8 +26,6 @@ interface SidebarProps {
   onClose: () => void;
   language: "en" | "fr"; // currently unused, but kept for compatibility with AppShell
   userRole: "broker" | "client" | "admin";
-  currentRoute: string;
-  onNavigate: (route: string) => void;
 }
 
 interface NavItem {
@@ -40,8 +38,6 @@ export function Sidebar({
   isOpen,
   onClose,
   userRole,
-  currentRoute,
-  onNavigate,
 }: SidebarProps) {
   const { t } = useTranslation("sidebar");
 

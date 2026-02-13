@@ -100,8 +100,6 @@ export function AppShell({ children }: AppShellProps) {
         onClose={() => setSidebarOpen(false)}
         language={language}
         userRole={userRole}
-        currentRoute={location.pathname}
-        onNavigate={handleNavigate}
       />
 
       {/* Main content */}
