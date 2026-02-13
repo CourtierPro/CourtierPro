@@ -117,21 +117,42 @@ class WeeklyDigestServiceTest {
     }
 
     @Test
-    void sendWeeklyDigests_OptOutPath_DisabledBroker() {
-        // SCENARIO: The Opt-Out Path (Disabled Broker)
+    void sendWeeklyDigests_ShouldCatchAndLogExceptionForIndividualBroker() {
         // Arrange
-        // The service layer relies on the repository to filter enabled brokers.
-        // If the repository returns an empty list (meaning no brokers found with toggle = true),
-        // the service should never attempt to aggregate or send.
-        
+        UserAccount broker1 = new UserAccount();
+        broker1.setId(UUID.randomUUID());
+        broker1.setEmail("fail@test.com");
+        broker1.setWeeklyDigestEnabled(true);
+
+        UserAccount broker2 = new UserAccount();
+        broker2.setId(UUID.randomUUID());
+        broker2.setEmail("success@test.com");
+        broker2.setWeeklyDigestEnabled(true);
+
         when(userAccountRepository.findByRoleAndWeeklyDigestEnabledTrueAndActiveTrue(UserRole.BROKER))
+                .thenReturn(List.of(broker1, broker2));
+
+        // Make broker1 fail during data aggregation
+        when(appointmentRepository.findByBrokerIdAndDateRange(eq(broker1.getId()), any(), any()))
+                .thenThrow(new RuntimeException("Aggregation failed"));
+
+        // Make broker2 succeed with an appointment
+        Appointment appt = new Appointment();
+        appt.setTitle("Meeting");
+        appt.setFromDateTime(LocalDateTime.now().plusDays(1));
+        when(appointmentRepository.findByBrokerIdAndDateRange(eq(broker2.getId()), any(), any()))
+                .thenReturn(List.of(appt));
+        when(documentRepository.findPendingDocumentsForWeeklyDigest(eq(broker2.getId())))
+                .thenReturn(new ArrayList<>());
+        when(transactionRepository.findStalledTransactions(eq(broker2.getId()), any()))
                 .thenReturn(new ArrayList<>());
 
         // Act
         weeklyDigestService.sendWeeklyDigests();
 
         // Assert
-        verify(emailService, never()).sendWeeklyDigestEmail(any(), anyList(), anyList(), anyList());
-        verify(appointmentRepository, never()).findByBrokerIdAndDateRange(any(), any(), any());
+        // Verify emailService was only called for broker2
+        verify(emailService, times(1)).sendWeeklyDigestEmail(eq(broker2), anyList(), anyList(), anyList());
+        verify(emailService, never()).sendWeeklyDigestEmail(eq(broker1), anyList(), anyList(), anyList());
     }
 }

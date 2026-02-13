@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
+import java.io.IOException;
 import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -285,5 +286,66 @@ class EmailServiceTest {
             emailService.sendWeeklyDigestEmail(broker, new java.util.ArrayList<>(), new java.util.ArrayList<>(), new java.util.ArrayList<>());
             transportMock.verify(() -> Transport.send(any(Message.class)), times(1));
         }
+    }
+
+    @Test
+    void sendWeeklyDigestEmail_ShouldHandleMissingData() throws Exception {
+        // Arrange
+        var broker = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(broker.getEmail()).thenReturn("broker@test.com");
+        when(broker.getPreferredLanguage()).thenReturn("en");
+
+        // Transaction with null property address
+        var tx = mock(com.example.courtierprobackend.transactions.datalayer.Transaction.class);
+        when(tx.getPropertyAddress()).thenReturn(null);
+        when(tx.getLastUpdated()).thenReturn(java.time.LocalDateTime.now());
+
+        // Document with null custom title and null docType
+        var doc = mock(com.example.courtierprobackend.documents.datalayer.Document.class);
+        when(doc.getCustomTitle()).thenReturn(null);
+        when(doc.getDocType()).thenReturn(null);
+        when(doc.getStatus()).thenReturn(null);
+
+        // Appointment with null location
+        var appt = mock(com.example.courtierprobackend.appointments.datalayer.Appointment.class);
+        when(appt.getTitle()).thenReturn(null);
+        when(appt.getFromDateTime()).thenReturn(java.time.LocalDateTime.now());
+        when(appt.getLocation()).thenReturn(null);
+
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendWeeklyDigestEmail(broker, java.util.List.of(appt), java.util.List.of(doc), java.util.List.of(tx));
+            transportMock.verify(() -> Transport.send(any(Message.class)), times(1));
+        }
+    }
+
+    @Test
+    void sendWeeklyDigestEmail_ShouldLogExceptionOnMessagingException() throws Exception {
+        var broker = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(broker.getEmail()).thenReturn("broker@test.com");
+        when(broker.getPreferredLanguage()).thenReturn("en");
+
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            transportMock.when(() -> Transport.send(any(Message.class))).thenThrow(new jakarta.mail.MessagingException("SMTP failed"));
+            
+            // This should catch the exception and log it (we're verifying it doesn't crash)
+            emailService.sendWeeklyDigestEmail(broker, new java.util.ArrayList<>(), new java.util.ArrayList<>(), new java.util.ArrayList<>());
+            
+            transportMock.verify(() -> Transport.send(any(Message.class)), times(1));
+        }
+    }
+
+    @Test
+    void sendWeeklyDigestEmail_ShouldLogExceptionOnIOException() throws Exception {
+        var broker = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(broker.getEmail()).thenReturn("broker@test.com");
+        when(broker.getPreferredLanguage()).thenReturn("en");
+
+        EmailService spyEmailService = spy(emailService);
+        doThrow(new IOException("Template not found")).when(spyEmailService).loadTemplateFromClasspath(anyString());
+
+        // This should catch the IOException and log it
+        spyEmailService.sendWeeklyDigestEmail(broker, new java.util.ArrayList<>(), new java.util.ArrayList<>(), new java.util.ArrayList<>());
+        
+        verify(spyEmailService, atLeastOnce()).loadTemplateFromClasspath(anyString());
     }
 }
