@@ -1,0 +1,12 @@
+Résumé Hebdomadaire du Courtier ({{dateRange}})
+
+Rendez-vous à venir (7 prochains jours):
+{{upcomingAppointmentsText}}
+
+Documents en attente:
+{{pendingDocumentsText}}
+
+Transactions stagnantes (14+ jours d'inactivité):
+{{stalledTransactionsText}}
+
+Vous recevez cet e-mail car le résumé hebdomadaire est activé dans les paramètres de votre profil CourtierPro.

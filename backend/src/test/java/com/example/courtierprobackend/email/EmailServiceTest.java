@@ -23,9 +23,6 @@ import static org.mockito.Mockito.*;
  * Unit tests for EmailService.
  * Mocks OrganizationSettingsService and Transport.send() to test email logic without sending real emails.
  */
-
-
-
 class EmailServiceTest {
 
     @Mock
@@ -142,7 +139,6 @@ class EmailServiceTest {
 
     @Test
     void sendPasswordSetupEmail_FrenchSubjectAndBodyFallbacks() throws Exception {
-        // Lines 76, 80 - French fallback subject and body when settings are null/blank
         OrganizationSettingsResponseModel settings = OrganizationSettingsResponseModel.builder()
                 .defaultLanguage("fr")
                 .inviteSubjectEn("Subject EN")
@@ -158,9 +154,9 @@ class EmailServiceTest {
             transportMock.verify(() -> Transport.send(any(Message.class)), times(1));
         }
     }
+
     @Test
     void sendDocumentSubmittedNotification_SendsEmailIfNotificationsEnabled() throws Exception {
-        // Arrange
         var brokerEmail = "broker@example.com";
         var uploaderName = "Uploader";
         var documentName = "DocName";
@@ -198,9 +194,7 @@ class EmailServiceTest {
 
         var request = mock(Document.class);
 
-        // Should not throw or send email
         emailService.sendDocumentSubmittedNotification(request, brokerEmail, "Uploader", "DocName", "Type", "en");
-        // No need to verify Transport.send, as it should not be called
     }
 
     @Test
@@ -254,6 +248,42 @@ class EmailServiceTest {
             transportMock.when(() -> Transport.send(any(Message.class))).thenThrow(new jakarta.mail.MessagingException("fail"));
             boolean result = emailService.sendPasswordSetupEmail("user@example.com", "http://link", "en");
             assertThat(result).isFalse();
+        }
+    }
+
+    @Test
+    void sendWeeklyDigestEmail_ShouldSendEmailWithFormattedContent() throws Exception {
+        var broker = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(broker.getEmail()).thenReturn("broker@test.com");
+        when(broker.getPreferredLanguage()).thenReturn("en");
+
+        var appt = mock(com.example.courtierprobackend.appointments.datalayer.Appointment.class);
+        when(appt.getTitle()).thenReturn("Meeting");
+        when(appt.getFromDateTime()).thenReturn(java.time.LocalDateTime.now());
+        when(appt.getLocation()).thenReturn("Office");
+
+        var doc = mock(com.example.courtierprobackend.documents.datalayer.Document.class);
+        when(doc.getCustomTitle()).thenReturn("Pending Doc");
+        when(doc.getStatus()).thenReturn(com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEnum.REQUESTED);
+
+        var tx = mock(com.example.courtierprobackend.transactions.datalayer.Transaction.class);
+        when(tx.getLastUpdated()).thenReturn(java.time.LocalDateTime.now().minusDays(15));
+
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendWeeklyDigestEmail(broker, java.util.List.of(appt), java.util.List.of(doc), java.util.List.of(tx));
+            transportMock.verify(() -> Transport.send(any(Message.class)), times(1));
+        }
+    }
+
+    @Test
+    void sendWeeklyDigestEmail_French_ShouldSendEmailWithFrenchContent() throws Exception {
+        var broker = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(broker.getEmail()).thenReturn("broker@test.com");
+        when(broker.getPreferredLanguage()).thenReturn("fr");
+
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendWeeklyDigestEmail(broker, new java.util.ArrayList<>(), new java.util.ArrayList<>(), new java.util.ArrayList<>());
+            transportMock.verify(() -> Transport.send(any(Message.class)), times(1));
         }
     }
 }

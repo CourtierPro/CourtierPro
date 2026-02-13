@@ -29,5 +29,7 @@
     "on": "Activées",
     "off": "Désactivées",
     "update": "Mettre à jour",
-    "emailChangeSent": "Confirmation envoyée au nouveau courriel. Veuillez vérifier votre boîte de réception."
+    "emailChangeSent": "Confirmation envoyée au nouveau courriel. Veuillez vérifier votre boîte de réception.",
+    "weeklyDigestLabel": "Digest hebdomadaire",
+    "weeklyDigestDescription": "Recevez un résumé hebdomadaire par courriel de vos tâches et rendez-vous en attente."
 }

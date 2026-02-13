@@ -1169,6 +1169,92 @@ public class EmailService {
     }
 
     /**
+     * Send the weekly digest email to a broker.
+     */
+    public void sendWeeklyDigestEmail(
+            com.example.courtierprobackend.user.dataaccesslayer.UserAccount broker,
+            java.util.List<com.example.courtierprobackend.appointments.datalayer.Appointment> appointments,
+            java.util.List<com.example.courtierprobackend.documents.datalayer.Document> documents,
+            java.util.List<com.example.courtierprobackend.transactions.datalayer.Transaction> transactions) {
+        try {
+            boolean isFrench = "fr".equalsIgnoreCase(broker.getPreferredLanguage());
+            String dateRange = java.time.LocalDate.now().toString() + " - " + java.time.LocalDate.now().plusDays(7).toString();
+
+            String subject = isFrench ? "Résumé Hebdomadaire CourtierPro" : "CourtierPro Weekly Digest";
+
+            String htmlTemplate = loadTemplateFromClasspath(isFrench ? "email-templates/defaults/weekly_digest_fr.html"
+                    : "email-templates/defaults/weekly_digest_en.html");
+            String txtTemplate = loadTemplateFromClasspath(isFrench ? "email-templates/defaults/weekly_digest_fr.txt"
+                    : "email-templates/defaults/weekly_digest_en.txt");
+
+            String htmlBody = htmlTemplate
+                    .replace("{{dateRange}}", dateRange)
+                    .replace("{{upcomingAppointmentsList}}", formatAppointmentsHtml(appointments, isFrench))
+                    .replace("{{pendingDocumentsList}}", formatDocumentsHtml(documents, isFrench))
+                    .replace("{{stalledTransactionsList}}", formatTransactionsHtml(transactions, isFrench));
+
+            // Note: sendEmail currently only supports HTML. If we want TXT fallback, we'd need a MimeMultipart email.
+            // For now, CourtierPro seems to use HTML-only emails and convertPlainTextToHtml for simple ones.
+            // We'll follow the pattern and send the HTML body.
+
+            sendEmail(broker.getEmail(), subject, htmlBody);
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            logger.error("Failed to send weekly digest email to {}", broker.getEmail(), e);
+        } catch (IOException e) {
+            logger.error("Failed to load weekly digest templates", e);
+        }
+    }
+
+    private String formatAppointmentsHtml(java.util.List<com.example.courtierprobackend.appointments.datalayer.Appointment> appointments, boolean isFrench) {
+        if (appointments.isEmpty()) {
+            return "<p class=\"empty-state\">" + (isFrench ? "Aucun rendez-vous prévu." : "No upcoming appointments.") + "</p>";
+        }
+        StringBuilder sb = new StringBuilder("<ul>");
+        for (var appt : appointments) {
+            String title = translateAppointmentTitle(appt.getTitle(), isFrench);
+            sb.append("<li><strong>").append(escapeHtml(title)).append("</strong>: ")
+                    .append(appt.getFromDateTime().toLocalDate()).append(" ")
+                    .append(appt.getFromDateTime().toLocalTime())
+                    .append(" - ").append(escapeHtml(appt.getLocation()))
+                    .append("</li>");
+        }
+        sb.append("</ul>");
+        return sb.toString();
+    }
+
+    private String formatDocumentsHtml(java.util.List<com.example.courtierprobackend.documents.datalayer.Document> documents, boolean isFrench) {
+        if (documents.isEmpty()) {
+            return "<p class=\"empty-state\">" + (isFrench ? "Aucun document en attente." : "No pending documents.") + "</p>";
+        }
+        StringBuilder sb = new StringBuilder("<ul>");
+        for (var doc : documents) {
+            String status = translateDocumentStatus(doc.getStatus(), isFrench);
+            String docName = doc.getCustomTitle() != null ? doc.getCustomTitle() : translateDocumentType(doc.getDocType() != null ? doc.getDocType().name() : null, isFrench);
+            sb.append("<li>").append(escapeHtml(docName))
+                    .append(" (").append(escapeHtml(status)).append(")")
+                    .append("</li>");
+        }
+        sb.append("</ul>");
+        return sb.toString();
+    }
+
+    private String formatTransactionsHtml(java.util.List<com.example.courtierprobackend.transactions.datalayer.Transaction> transactions, boolean isFrench) {
+        if (transactions.isEmpty()) {
+            return "<p class=\"empty-state\">" + (isFrench ? "Aucune transaction stagnante." : "No stalled transactions.") + "</p>";
+        }
+        StringBuilder sb = new StringBuilder("<ul>");
+        for (var tx : transactions) {
+            String address = tx.getPropertyAddress() != null ? tx.getPropertyAddress().getStreet() : (isFrench ? "Adresse inconnue" : "Unknown Address");
+            sb.append("<li>").append(escapeHtml(address))
+                    .append(" - ").append(isFrench ? "Dernière mise à jour : " : "Last updated: ")
+                    .append(tx.getLastUpdated().toLocalDate())
+                    .append("</li>");
+        }
+        sb.append("</ul>");
+        return sb.toString();
+    }
+
+    /**
      * Generates a standard email footer
      */
     String getEmailFooter() {

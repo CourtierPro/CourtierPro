@@ -100,4 +100,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                 @Param("endDate") LocalDateTime endDate,
                 @Param("side") com.example.courtierprobackend.transactions.datalayer.enums.TransactionSide side,
                 @Param("clientIds") java.util.List<UUID> clientIds);
+
+        @Query("SELECT t FROM Transaction t WHERE t.brokerId = :brokerId " +
+                        "AND t.status = com.example.courtierprobackend.transactions.datalayer.enums.TransactionStatus.ACTIVE " +
+                        "AND t.lastUpdated < :threshold")
+        List<Transaction> findStalledTransactions(@Param("brokerId") java.util.UUID brokerId,
+                        @Param("threshold") java.time.LocalDateTime threshold);
 }

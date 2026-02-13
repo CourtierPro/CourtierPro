@@ -20,4 +20,5 @@ public class UserResponse {
 
     boolean emailNotificationsEnabled;
     boolean inAppNotificationsEnabled;
+    boolean weeklyDigestEnabled;
 }

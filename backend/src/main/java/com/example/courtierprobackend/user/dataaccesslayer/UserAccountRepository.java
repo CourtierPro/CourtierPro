@@ -34,4 +34,6 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
                         @org.springframework.data.repository.query.Param("brokerId") UUID brokerId,
                         @org.springframework.data.repository.query.Param("query") String query);
 
+        List<UserAccount> findByRoleAndWeeklyDigestEnabledTrueAndActiveTrue(UserRole role);
+
 }
