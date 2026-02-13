@@ -10,6 +10,7 @@ import jakarta.mail.Message;
 import jakarta.mail.Transport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
@@ -421,6 +422,56 @@ class EmailServiceTest {
     }
 
     @Test
+    void sendWeeklyDigestEmail_NullValues_ShouldUseFallbacks() throws Exception {
+        var broker = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(broker.getEmail()).thenReturn("broker@test.com");
+        when(broker.getPreferredLanguage()).thenReturn("en");
+
+        // Appointment with null location
+        var appt = mock(com.example.courtierprobackend.appointments.datalayer.Appointment.class);
+        when(appt.getTitle()).thenReturn("meeting");
+        when(appt.getFromDateTime()).thenReturn(java.time.LocalDateTime.now());
+        when(appt.getLocation()).thenReturn(null);
+
+        // Transaction with null street
+        var tx = mock(com.example.courtierprobackend.transactions.datalayer.Transaction.class);
+        var propertyAddress = mock(com.example.courtierprobackend.transactions.datalayer.PropertyAddress.class);
+        when(propertyAddress.getStreet()).thenReturn(null);
+        when(tx.getPropertyAddress()).thenReturn(propertyAddress);
+        when(tx.getLastUpdated()).thenReturn(java.time.LocalDateTime.now());
+
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendWeeklyDigestEmail(broker, java.util.List.of(appt), new java.util.ArrayList<>(), java.util.List.of(tx));
+            
+            ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(messageCaptor.capture()));
+            
+            String content = messageCaptor.getValue().getContent().toString();
+            assertThat(content).contains("No location specified");
+            assertThat(content).contains("Unknown Address");
+        }
+    }
+
+    @Test
+    void sendWeeklyDigestEmail_BlankLocation_ShouldUseFallback() throws Exception {
+        var broker = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
+        when(broker.getEmail()).thenReturn("broker@test.com");
+        when(broker.getPreferredLanguage()).thenReturn("en");
+
+        var appt = mock(com.example.courtierprobackend.appointments.datalayer.Appointment.class);
+        when(appt.getTitle()).thenReturn("meeting");
+        when(appt.getFromDateTime()).thenReturn(java.time.LocalDateTime.now());
+        when(appt.getLocation()).thenReturn("   "); // Blank
+
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendWeeklyDigestEmail(broker, java.util.List.of(appt), new java.util.ArrayList<>(), new java.util.ArrayList<>());
+            ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(messageCaptor.capture()));
+            assertThat(messageCaptor.getValue().getContent().toString()).contains("No location specified");
+        }
+    }
+
+    @Test
     void sendWeeklyDigestEmail_ShouldLogExceptionOnIOException() throws Exception {
         var broker = mock(com.example.courtierprobackend.user.dataaccesslayer.UserAccount.class);
         when(broker.getEmail()).thenReturn("broker@test.com");
@@ -433,5 +484,37 @@ class EmailServiceTest {
         spyEmailService.sendWeeklyDigestEmail(broker, new java.util.ArrayList<>(), new java.util.ArrayList<>(), new java.util.ArrayList<>());
         
         verify(spyEmailService, atLeastOnce()).loadTemplateFromClasspath(anyString());
+    }
+
+    @Test
+    void sendEmail_FullHtml_ShouldNotAppendDuplicateFooter() throws Exception {
+        String fullHtml = "<html><body>Test Content</body></html>";
+        
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendEmail("test@test.com", "Test", fullHtml);
+            
+            ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(messageCaptor.capture()));
+            
+            String content = messageCaptor.getValue().getContent().toString();
+            assertThat(content).isEqualTo(fullHtml);
+            assertThat(content).doesNotContain("<hr"); // Part of the default footer
+        }
+    }
+
+    @Test
+    void sendEmail_Snippet_ShouldAppendFooter() throws Exception {
+        String snippet = "<p>Hello</p>";
+        
+        try (MockedStatic<Transport> transportMock = mockStatic(Transport.class)) {
+            emailService.sendEmail("test@test.com", "Test", snippet);
+            
+            ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+            transportMock.verify(() -> Transport.send(messageCaptor.capture()));
+            
+            String content = messageCaptor.getValue().getContent().toString();
+            assertThat(content).contains(snippet);
+            assertThat(content).contains("<hr"); // Default footer separator
+        }
     }
 }

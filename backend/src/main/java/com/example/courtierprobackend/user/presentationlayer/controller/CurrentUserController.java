@@ -112,9 +112,7 @@ public class CurrentUserController {
         }
 
         // Handle preferredLanguage update
-        if (updateRequest.getPreferredLanguage() == null) {
-            throw new BadRequestException("Invalid language. Allowed values: en, fr");
-        } else {
+        if (updateRequest.getPreferredLanguage() != null) {
             String newLanguage = updateRequest.getPreferredLanguage();
             if (!ALLOWED_LANGUAGES.contains(newLanguage.toLowerCase())) {
                 throw new BadRequestException("Invalid language. Allowed values: en, fr");

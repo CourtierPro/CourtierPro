@@ -628,8 +628,15 @@ public class EmailService {
 
     boolean sendEmail(String to, String subject, String body)
             throws MessagingException, UnsupportedEncodingException {
-        // Close any open paragraphs and add footer
-        String bodyWithFooter = body.replaceAll("</p>$", "") + "</p>" + getEmailFooter();
+        // Detect if the body is a full HTML document.
+        // If it contains </html>, we assume it's a complete template and don't append the footer.
+        String bodyWithFooter;
+        if (body != null && body.toLowerCase().contains("</html>")) {
+            bodyWithFooter = body;
+        } else {
+            // Close any open paragraphs and add footer to snippets
+            bodyWithFooter = (body != null ? body.replaceAll("</p>$", "") : "") + "</p>" + getEmailFooter();
+        }
 
         if ("ses".equalsIgnoreCase(emailProvider)) {
             return sendEmailSes(to, subject, bodyWithFooter);
@@ -1210,12 +1217,18 @@ public class EmailService {
         StringBuilder sb = new StringBuilder("<ul>");
         for (var appt : appointments) {
             String title = translateAppointmentTitle(appt.getTitle(), isFrench);
-            String location = appt.getLocation() != null ? appt.getLocation() : (isFrench ? "N/A" : "N/A"); // Using N/A for both for now, or "Lieu inconnu"
+            String location = appt.getLocation();
+            
             sb.append("<li><strong>").append(escapeHtml(title)).append("</strong>: ")
                     .append(appt.getFromDateTime().toLocalDate()).append(" ")
-                    .append(appt.getFromDateTime().toLocalTime())
-                    .append(" - ").append(escapeHtml(location))
-                    .append("</li>");
+                    .append(appt.getFromDateTime().toLocalTime());
+            
+            if (location != null && !location.trim().isEmpty()) {
+                sb.append(" - ").append(escapeHtml(location));
+            } else {
+                sb.append(" (").append(isFrench ? "Lieu non spécifié" : "No location specified").append(")");
+            }
+            sb.append("</li>");
         }
         sb.append("</ul>");
         return sb.toString();
@@ -1243,7 +1256,9 @@ public class EmailService {
         }
         StringBuilder sb = new StringBuilder("<ul>");
         for (var tx : transactions) {
-            String address = tx.getPropertyAddress() != null ? tx.getPropertyAddress().getStreet() : (isFrench ? "Adresse inconnue" : "Unknown Address");
+            String address = (tx.getPropertyAddress() != null && tx.getPropertyAddress().getStreet() != null) 
+                    ? tx.getPropertyAddress().getStreet() 
+                    : (isFrench ? "Adresse inconnue" : "Unknown Address");
             sb.append("<li>").append(escapeHtml(address))
                     .append(" - ").append(isFrench ? "Dernière mise à jour : " : "Last updated: ")
                     .append(tx.getLastUpdated().toLocalDate())

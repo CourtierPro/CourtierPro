@@ -48,7 +48,7 @@ public class WeeklyDigestService {
     public void sendWeeklyDigests() {
         log.info("Starting weekly digest job...");
         
-        List<UserAccount> brokers = userAccountRepository.findByRoleAndWeeklyDigestEnabledTrueAndActiveTrue(UserRole.BROKER);
+        List<UserAccount> brokers = userAccountRepository.findByRoleAndWeeklyDigestEnabledTrueAndEmailNotificationsEnabledTrueAndActiveTrue(UserRole.BROKER);
         
         for (UserAccount broker : brokers) {
             try {

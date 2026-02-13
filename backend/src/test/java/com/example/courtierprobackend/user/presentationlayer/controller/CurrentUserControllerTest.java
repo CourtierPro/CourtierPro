@@ -271,21 +271,6 @@ class CurrentUserControllerTest {
                     .hasMessageContaining("Invalid language");
         }
 
-        @Test
-        void updateCurrentUser_WithNullLanguage_ThrowsBadRequest() {
-            UUID internalId = UUID.randomUUID();
-            UserAccount account = new UserAccount();
-
-            when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(internalId);
-            when(userAccountRepository.findById(internalId)).thenReturn(Optional.of(account));
-
-                com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
-                updateRequest.setPreferredLanguage(null);
-
-                assertThatThrownBy(() -> controller.updateCurrentUser(request, updateRequest))
-                    .isInstanceOf(BadRequestException.class)
-                    .hasMessageContaining("Invalid language");
-        }
 
         @Test
         void updateCurrentUser_NoInternalId_ThrowsUnauthorized() {
@@ -388,6 +373,29 @@ class CurrentUserControllerTest {
             assertThat(account.isEmailNotificationsEnabled()).isTrue(); // Unchanged
             assertThat(account.isInAppNotificationsEnabled()).isFalse(); // Updated
             assertThat(account.isWeeklyDigestEnabled()).isFalse(); // Unchanged
+        }
+
+        @Test
+        void updateCurrentUser_WithoutLanguage_Succeeds() {
+            UUID internalId = UUID.randomUUID();
+            UserAccount account = new UserAccount();
+            account.setPreferredLanguage("en");
+            UserResponse response = UserResponse.builder().build();
+
+            when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(internalId);
+            when(userAccountRepository.findById(internalId)).thenReturn(Optional.of(account));
+            when(userAccountRepository.save(account)).thenReturn(account);
+            when(userMapper.toResponse(account)).thenReturn(response);
+
+            com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
+            updateRequest.setPreferredLanguage(null);
+            updateRequest.setWeeklyDigestEnabled(true);
+
+            ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updateRequest);
+
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(account.getPreferredLanguage()).isEqualTo("en"); // Remains unchanged
+            assertThat(account.isWeeklyDigestEnabled()).isTrue();
         }
     }
 

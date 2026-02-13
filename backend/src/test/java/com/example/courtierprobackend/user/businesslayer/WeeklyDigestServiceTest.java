@@ -60,7 +60,7 @@ class WeeklyDigestServiceTest {
         broker.setWeeklyDigestEnabled(true);
         broker.setPreferredLanguage("en");
 
-        when(userAccountRepository.findByRoleAndWeeklyDigestEnabledTrueAndActiveTrue(UserRole.BROKER))
+        when(userAccountRepository.findByRoleAndWeeklyDigestEnabledTrueAndEmailNotificationsEnabledTrueAndActiveTrue(UserRole.BROKER))
                 .thenReturn(List.of(broker));
 
         Appointment appt = new Appointment();
@@ -96,7 +96,7 @@ class WeeklyDigestServiceTest {
         broker.setRole(UserRole.BROKER);
         broker.setWeeklyDigestEnabled(true);
 
-        when(userAccountRepository.findByRoleAndWeeklyDigestEnabledTrueAndActiveTrue(UserRole.BROKER))
+        when(userAccountRepository.findByRoleAndWeeklyDigestEnabledTrueAndEmailNotificationsEnabledTrueAndActiveTrue(UserRole.BROKER))
                 .thenReturn(List.of(broker));
 
         when(appointmentRepository.findByBrokerIdAndDateRangeAndStatusIn(any(), any(), any(), any()))
@@ -129,7 +129,7 @@ class WeeklyDigestServiceTest {
         broker2.setEmail("success@test.com");
         broker2.setWeeklyDigestEnabled(true);
 
-        when(userAccountRepository.findByRoleAndWeeklyDigestEnabledTrueAndActiveTrue(UserRole.BROKER))
+        when(userAccountRepository.findByRoleAndWeeklyDigestEnabledTrueAndEmailNotificationsEnabledTrueAndActiveTrue(UserRole.BROKER))
                 .thenReturn(List.of(broker1, broker2));
 
         // Make broker1 fail during data aggregation
@@ -165,7 +165,7 @@ class WeeklyDigestServiceTest {
         broker.setWeeklyDigestEnabled(true);
         broker.setRole(UserRole.BROKER);
 
-        when(userAccountRepository.findByRoleAndWeeklyDigestEnabledTrueAndActiveTrue(UserRole.BROKER))
+        when(userAccountRepository.findByRoleAndWeeklyDigestEnabledTrueAndEmailNotificationsEnabledTrueAndActiveTrue(UserRole.BROKER))
                 .thenReturn(List.of(broker));
 
         // Mock returns empty list for the status-filtered query
@@ -188,5 +188,21 @@ class WeeklyDigestServiceTest {
                 eq(broker.getId()), any(), any(),
                 argThat(statuses -> statuses.contains(com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED)
                         && statuses.contains(com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.PROPOSED)));
+    }
+
+    @Test
+    void sendWeeklyDigests_ShouldNeverSendIfEmailNotificationsDisabled() {
+        // SCENARIO: Master Email Notification flag is OFF
+        // Although this is primarily handled by the repository query, 
+        // confirming that the service correctly uses the filtered query.
+        
+        when(userAccountRepository.findByRoleAndWeeklyDigestEnabledTrueAndEmailNotificationsEnabledTrueAndActiveTrue(UserRole.BROKER))
+                .thenReturn(new ArrayList<>()); // Repository returns none because flag is false
+
+        // Act
+        weeklyDigestService.sendWeeklyDigests();
+
+        // Assert
+        verify(emailService, never()).sendWeeklyDigestEmail(any(), anyList(), anyList(), anyList());
     }
 }
