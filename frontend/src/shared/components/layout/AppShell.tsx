@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useTranslation } from "react-i18next";
+import { useArrowNavigation } from "@/shared/hooks/useArrowNavigation";
 
 import { Sidebar } from "@/shared/components/layout/Sidebar";
 import { TopNav } from "@/shared/components/layout/TopNav";
@@ -26,7 +27,10 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { i18n } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
+
+  // Enable global arrow key navigation
+  useArrowNavigation();
 
   // language context
   const { language, setLanguage } = useLanguage();
@@ -84,6 +88,12 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="min-h-screen flex bg-background text-foreground pt-16">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:p-4 focus:bg-background focus:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        {t("skipToContent", "Skip to main content")}
+      </a>
       {/* Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -97,6 +107,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         <TopNav
+          isMenuOpen={sidebarOpen}
           onMenuToggle={() => setSidebarOpen((prev) => !prev)}
           language={language}
           onLanguageChange={handleLanguageChange}
@@ -105,7 +116,11 @@ export function AppShell({ children }: AppShellProps) {
           onNavigate={handleNavigate}
         />
 
-        <main className="flex-1 bg-muted/40 p-4 overflow-auto">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 bg-muted/40 p-4 overflow-auto focus:outline-none"
+        >
           <ErrorBoundary key={location.pathname}>
             {children}
           </ErrorBoundary>

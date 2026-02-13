@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/utils/utils";
 
@@ -19,16 +19,7 @@ interface QuickLinksGridProps {
 }
 
 export function QuickLinksGrid({ links, className }: QuickLinksGridProps) {
-    const navigate = useNavigate();
-
-    const handleClick = (link: QuickLink) => {
-        if (link.disabled) return;
-        if (link.onClick) {
-            link.onClick();
-        } else if (link.href) {
-            navigate(link.href);
-        }
-    };
+    // navigate is still used if button logic is complex but we prefer Link for standard navigations
 
     return (
         <div
@@ -39,24 +30,47 @@ export function QuickLinksGrid({ links, className }: QuickLinksGridProps) {
         >
             {links.map((link) => {
                 const isDefault = link.variant === "default";
+                const commonClasses = cn(
+                    "h-auto flex-col gap-3 py-5 px-4",
+                    "transition-all duration-200",
+                    link.disabled && "opacity-50 cursor-not-allowed",
+                    !link.disabled && !isDefault && "hover:bg-primary/10 hover:border-primary/50",
+                    isDefault && "hover:bg-primary/90"
+                );
+
+                const content = (
+                    <>
+                        <span className={cn(isDefault ? "text-primary-foreground" : "text-primary")}>{link.icon}</span>
+                        <span className={cn("text-sm font-medium text-center leading-tight", isDefault && "text-primary-foreground")}>
+                            {link.label}
+                        </span>
+                    </>
+                );
+
+                if (link.href && !link.disabled) {
+                    return (
+                        <Button
+                            key={link.id}
+                            variant={link.variant || "outline"}
+                            className={commonClasses}
+                            asChild
+                        >
+                            <Link to={link.href}>
+                                {content}
+                            </Link>
+                        </Button>
+                    );
+                }
+
                 return (
                     <Button
                         key={link.id}
                         variant={link.variant || "outline"}
                         disabled={link.disabled}
-                        className={cn(
-                            "h-auto flex-col gap-3 py-5 px-4",
-                            "transition-all duration-200",
-                            link.disabled && "opacity-50 cursor-not-allowed",
-                            !link.disabled && !isDefault && "hover:bg-primary/10 hover:border-primary/50",
-                            isDefault && "hover:bg-primary/90"
-                        )}
-                        onClick={() => handleClick(link)}
+                        className={commonClasses}
+                        onClick={link.onClick}
                     >
-                        <span className={cn(isDefault ? "text-primary-foreground" : "text-primary")}>{link.icon}</span>
-                        <span className={cn("text-sm font-medium text-center leading-tight", isDefault && "text-primary-foreground")}>
-                            {link.label}
-                        </span>
+                        {content}
                     </Button>
                 );
             })}

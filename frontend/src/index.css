@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -9,7 +9,8 @@
   --card-foreground: oklch(0.2079 0.0399 265.7275);
   --popover: oklch(1.0000 0 0);
   --popover-foreground: oklch(0.2079 0.0399 265.7275);
-  --primary: oklch(0.6996 0.2020 44.4414);
+  /* Adjusted primary color to meet WCAG AA contrast (4.5:1) with white text */
+  --primary: oklch(0.5746 0.2020 44.4414);
   --primary-foreground: oklch(0.9848 0 0);
   --secondary: oklch(0.9684 0.0068 247.8951);
   --secondary-foreground: oklch(0.2079 0.0399 265.7275);
@@ -29,7 +30,7 @@
   --chart-5: oklch(0.7368 0.1713 132.1407);
   --sidebar: oklch(0.9838 0.0035 247.8583);
   --sidebar-foreground: oklch(0.2079 0.0399 265.7275);
-  --sidebar-primary: oklch(0.6996 0.2020 44.4414);
+  --sidebar-primary: oklch(0.5746 0.2020 44.4414);
   --sidebar-primary-foreground: oklch(0.9848 0 0);
   --sidebar-accent: oklch(0.9514 0.0105 247.9370);
   --sidebar-accent-foreground: oklch(0.2079 0.0399 265.7275);
@@ -84,7 +85,7 @@
   --chart-5: oklch(0.7368 0.1713 132.1407);
   --sidebar: oklch(0.145 0.04 261.26);
   --sidebar-foreground: oklch(0.9838 0.0035 247.8583);
-  --sidebar-primary: oklch(0.6996 0.2020 44.4414);
+  --sidebar-primary: oklch(0.5746 0.2020 44.4414);
   --sidebar-primary-foreground: oklch(0.9848 0 0);
   --sidebar-accent: oklch(0.2943 0.0396 259.9648);
   --sidebar-accent-foreground: oklch(0.9838 0.0035 247.8583);
@@ -115,7 +116,9 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+
   --color-popover: var(--popover);
+
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
@@ -354,5 +357,13 @@ body {
 
   to {
     clip-path: circle(var(--r) at var(--x) var(--y));
+  }
+}
+
+@layer base {
+  :focus-visible {
+    /* outline: 2px solid var(--ring); */
+    outline-offset: 2px;
+    @apply ring-2 ring-ring;
   }
 }
