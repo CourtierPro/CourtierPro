@@ -18,15 +18,15 @@ System_Boundary(cp, "CourtierPro System") {
 
   Container_Boundary(main_db, "courtierpro-db (PostgreSQL 15)", $tags="storage-postgres") {
 
-    ' User Management schema (Unified)
-    Component(UserAccountTables, "User Schema", "Tables", "user_accounts, organization_settings")
+    ' User Management schema
+    Component(UserAccountTables, "User Schema", "Tables", "user_accounts, organization_settings, organization_settings_audit")
 
     ' Transaction schema
-    Component(TransactionTables, "Transaction Schema", "Tables", "transactions, timeline_entries, transaction_participants")
+    Component(TransactionTables, "Transaction Schema", "Tables", "transactions, timeline_entries, transaction_participants, properties, property_offers, offers, conditions, visitors")
     Component(PinnedTransactionTable, "Pinned Transactions", "Table", "pinned_transactions")
 
     ' Document schema
-    Component(DocumentTables, "Document Schema", "Tables", "documents, document_versions")
+    Component(DocumentTables, "Document Schema", "Tables", "documents, document_versions, document_conditions, transaction_stage_checklist_state, offer_documents")
 
     ' Appointment schema
     Component(AppointmentTables, "Appointment Schema", "Tables", "appointments")
@@ -36,34 +36,33 @@ System_Boundary(cp, "CourtierPro System") {
 
     ' Analytics schema
     Component(AnalyticsTables, "Analytics Schema", "Tables", "broker_metrics_snapshots")
-    
+
     ' Audit schema
-    Component(AuditTables, "Audit Schema", "Tables", "login_audit_events, logout_audit_events, broadcast_audit, admin_deletion_audit_logs, organization_settings_audit, password_reset_events")
+    Component(AuditTables, "Audit Schema", "Tables", "login_audit_events, logout_audit_events, broadcast_audit, admin_deletion_audit_logs, password_reset_events, system_alerts")
   }
 
-  ' Key repository-facing container for context
-  Container(backend_api, "CourtierPro Backend API", "Spring Boot 3", "Repositories & domain logic", $sprite="spring_original", $tags="microService-java")
+  Container(backend_api, "CourtierPro Backend API", "Spring Boot 3 (Java 17)", "Repositories & domain logic", $sprite="spring_original", $tags="microService-java")
 }
 
 ' Logical FKs between schema components
-Rel(TransactionTables, UserAccountTables, "FK client_id/broker_id → user_accounts")
-Rel(DocumentTables, TransactionTables, "FK transaction_id → transactions")
-Rel(AppointmentTables, TransactionTables, "FK transaction_id → transactions")
-Rel(AppointmentTables, UserAccountTables, "FK participants → user_accounts")
+Rel(TransactionTables, UserAccountTables, "FK client_id/broker_id -> user_accounts")
+Rel(DocumentTables, TransactionTables, "FK transaction_id -> transactions (embedded in TransactionRef)")
+Rel(AppointmentTables, TransactionTables, "FK transaction_id -> transactions")
+Rel(AppointmentTables, UserAccountTables, "FK broker_id/client_id -> user_accounts")
 
-Rel(PinnedTransactionTable, TransactionTables, "FK transaction_id → transactions")
-Rel(PinnedTransactionTable, UserAccountTables, "FK broker_id → user_accounts")
+Rel(PinnedTransactionTable, TransactionTables, "FK transaction_id -> transactions")
+Rel(PinnedTransactionTable, UserAccountTables, "FK broker_id -> user_accounts")
 
-Rel(AnalyticsTables, UserAccountTables, "FK broker_id → user_accounts")
+Rel(NotificationTables, UserAccountTables, "FK recipient_id -> user_accounts")
 
-' Backend API uses schemas via repositories (high level)
-Rel(backend_api, UserAccountTables, "Uses via UserAccountRepository", "JDBC/R2DBC")
-Rel(backend_api, TransactionTables, "Uses via TransactionRepository", "JDBC/R2DBC")
-Rel(backend_api, DocumentTables, "Uses via DocumentRepository & DocumentVersion access", "JDBC/R2DBC")
-Rel(backend_api, AppointmentTables, "Uses via AppointmentRepository", "JDBC/R2DBC")
-Rel(backend_api, NotificationTables, "Uses via NotificationRepository", "JDBC/R2DBC")
-Rel(backend_api, AnalyticsTables, "Uses via BrokerMetricsRepository", "JDBC/R2DBC")
-Rel(backend_api, AuditTables, "Uses via Audit Repositories", "JDBC/R2DBC")
+' Backend API uses schemas via repositories
+Rel(backend_api, UserAccountTables, "Uses via UserAccountRepository", "JDBC")
+Rel(backend_api, TransactionTables, "Uses via TransactionRepository", "JDBC")
+Rel(backend_api, DocumentTables, "Uses via DocumentRepository, ChecklistStateRepository", "JDBC")
+Rel(backend_api, AppointmentTables, "Uses via AppointmentRepository", "JDBC")
+Rel(backend_api, NotificationTables, "Uses via NotificationRepository", "JDBC")
+Rel(backend_api, AnalyticsTables, "Uses via DashboardService (computed)", "JDBC")
+Rel(backend_api, AuditTables, "Uses via Audit Repositories", "JDBC")
 
 SHOW_LEGEND()
 @enduml

@@ -19,32 +19,29 @@ AddElementTag("webApp", $bgColor="#e34f26", $fontColor="white", $legendText="Web
 AddRelTag("purple-line", $lineColor="purple", $legendText="API Calls (REST)")
 AddRelTag("blue-line", $lineColor="blue", $legendText="Auth / Sessions")
 AddRelTag("green-line", $lineColor="green", $legendText="Documents (R2)")
-AddRelTag("orange-line", $lineColor="orange", $legendText="Appointments (domain data)")
-AddRelTag("red-line", $lineColor="red", $legendText="Analytics (domain data)")
 
 LAYOUT_TOP_DOWN()
 SHOW_PERSON_OUTLINE()
 
-
 title CourtierPro — C4 Level 2 (Containers)
 
 System_Boundary(cp, "CourtierPro System") {
-    Container(frontend_app, "Static Hosting (delivery)", "CloudFront • HTML5/CSS", "Delivers the static site shell and the React SPA build.", $sprite="html5", $tags="webApp")
-    Container(web_spa, "CourtierPro Web App", "React 18 + Vite", "Single SPA with role-based sections (Broker, Client, Admin); i18n en/fr.", $sprite="react", $tags="framework-react")
-    Container(backend_api, "CourtierPro Backend API", "Spring Boot 3 (WebFlux)", "REST/JSON over HTTPS; authentication, business logic, file links, notifications.", $sprite="spring_original", $tags="microService-java")
-    ContainerDb(main_db, "courtierpro-db", "PostgreSQL 15", "Shared schema; context-owned tables.", $sprite="postgresql", $tags="storage-postgres")
+    Container(frontend_app, "Static Hosting (delivery)", "Nginx (VM) / HTML5/CSS", "Delivers the static site shell and the React SPA build.", $sprite="html5", $tags="webApp")
+    Container(web_spa, "CourtierPro Web App", "React 19 + Vite + TypeScript", "Single-page application with role-based views (Broker, Client, Admin); bilingual i18n (EN/FR). Uses shadcn/ui (Radix), TanStack React Query, react-hook-form + Zod, Tailwind CSS 4.", $sprite="react", $tags="framework-react")
+    Container(backend_api, "CourtierPro Backend API", "Spring Boot 3 (Java 17)", "REST/JSON API over HTTPS; OAuth2 resource server, layered DDD architecture, business logic, file management via pre-signed URLs, email notifications.", $sprite="spring_original", $tags="microService-java")
+    ContainerDb(main_db, "courtierpro-db", "PostgreSQL 15", "Shared schema with bounded-context-owned tables. Flyway migrations (V1__init_schema.sql).", $sprite="postgresql", $tags="storage-postgres")
 }
 
 together {
-Person(broker, "Broker", "Licensed real estate broker in Quebec; manages client files, stages, and appointments.")
+Person(broker, "Broker", "Licensed real estate broker in Quebec; manages client files, stages, appointments, and analytics.")
 Person(client, "Client", "Buyer/Seller; views transaction progress, uploads documents, requests appointments.")
-Person(admin, "Admin", "System administration and configuration (users, roles, templates).")
+Person(admin, "Admin", "System administrator; manages users, roles, organization settings, audit logs.")
 }
 
 together {
-System_Ext(auth0, "Auth0", "Identity provider for authentication and OIDC tokens.")
-System_Ext(r2, "Cloudflare R2", "S3-compatible object storage for uploaded documents.")
-System_Ext(ses, "AWS SES", "Transactional emails for notifications.")
+System_Ext(auth0, "Auth0", "Identity provider for OAuth2/OIDC authentication and role management (ADMIN, BROKER, CLIENT).")
+System_Ext(r2, "Cloudflare R2", "S3-compatible object storage for uploaded documents and offer attachments.")
+System_Ext(ses, "AWS SES", "Transactional email delivery with bilingual template support (EN/FR).")
 }
 
 Rel(broker, frontend_app, "Visits", "HTTPS")
@@ -57,11 +54,12 @@ Rel(client, web_spa, "Uses", "HTTPS")
 Rel(admin, web_spa, "Uses", "HTTPS")
 
 Rel(web_spa, backend_api, "API calls", "JSON/REST/HTTPS", $tags="purple-line")
-Rel(backend_api, main_db, "Reads/Writes", "JDBC/R2DBC")
+Rel(backend_api, main_db, "Reads/Writes", "JDBC (HikariCP)")
 
-Rel(backend_api, auth0, "OIDC", "HTTPS", $tags="blue-line")
-Rel(web_spa, auth0, "Login redirect", "HTTPS", $tags="blue-line")
-Rel(backend_api, r2, "R2 pre-signed ops", "HTTPS", $tags="green-line")
-Rel(backend_api, ses, "Transactional email", "HTTPS")
+Rel(backend_api, auth0, "Validates JWT tokens", "HTTPS/OIDC", $tags="blue-line")
+Rel(web_spa, auth0, "Login redirect / token refresh", "HTTPS/OIDC", $tags="blue-line")
+Rel(backend_api, r2, "Upload/download via pre-signed URLs", "HTTPS/S3 API", $tags="green-line")
+Rel(backend_api, ses, "Sends transactional emails", "HTTPS")
 
+SHOW_LEGEND()
 @enduml

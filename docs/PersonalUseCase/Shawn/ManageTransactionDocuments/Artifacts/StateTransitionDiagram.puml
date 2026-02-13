@@ -5,95 +5,77 @@ skinparam state {
   ArrowColor Black
 }
 
-title State Transition Diagram: Document Status
+title State Transition Diagram: Document Status Lifecycle
 
-[*] --> REQUESTED : Broker creates\ndocument request
+[*] --> DRAFT : Broker creates\ndocument (default)
+
+state DRAFT #LightGray {
+  DRAFT : Document created but not yet sent/shared
+  DRAFT : Broker can attach files, edit details
+  DRAFT : Not visible to client
+}
 
 state REQUESTED #LightYellow {
-  REQUESTED : Document has been requested
+  REQUESTED : Document request sent to client
   REQUESTED : Awaiting submission from expected party
+  REQUESTED : Email + in-app notification sent
 }
 
 state SUBMITTED #LightBlue {
-  SUBMITTED : Document has been uploaded
-  SUBMITTED : Awaiting broker review
+  SUBMITTED : Document/file has been uploaded
+  SUBMITTED : Awaiting broker review (REQUEST flow)
+  SUBMITTED : Or shared with client (UPLOAD flow)
 }
 
 state APPROVED #LightGreen {
   APPROVED : Document accepted by broker
+  APPROVED : Stage checklist auto-checked
   APPROVED : (Terminal State)
 }
 
 state NEEDS_REVISION #Orange {
-  NEEDS_REVISION : Document requires changes
-  NEEDS_REVISION : Client must resubmit
+  NEEDS_REVISION : Broker requested changes
+  NEEDS_REVISION : Client must resubmit with corrections
+  NEEDS_REVISION : Feedback notes provided
 }
 
 state REJECTED #LightCoral {
-  REJECTED : Document permanently rejected
+  REJECTED : Document permanently rejected by broker
+  REJECTED : With rejection reason
   REJECTED : (Terminal State)
 }
 
-' Transitions from REQUESTED
-REQUESTED --> SUBMITTED : Client/Broker uploads file\n[file valid]
-REQUESTED --> REQUESTED : Upload fails\n[file invalid]
+' === REQUEST FLOW TRANSITIONS ===
+DRAFT --> REQUESTED : Broker sends request\n[sendDocumentRequest]\n(requiresSignature? source doc must exist)
+DRAFT -[#blue]-> DRAFT : Broker uploads\nreference file\n[uploadFileToDocument]
 
-' Transitions from SUBMITTED
-SUBMITTED --> APPROVED : Broker approves
-SUBMITTED --> NEEDS_REVISION : Broker requests revision\n[with feedback notes]
-SUBMITTED --> REJECTED : Broker rejects\n[with reason]
+REQUESTED --> SUBMITTED : Client/Broker uploads file\n[submitDocument]\n[file valid, stored in R2]
+REQUESTED --> REQUESTED : Upload fails\n[file invalid / too large]
 
-' Transitions from NEEDS_REVISION
-NEEDS_REVISION --> SUBMITTED : Client uploads revised file
+SUBMITTED --> APPROVED : Broker approves\n[reviewDocument: APPROVED]
+SUBMITTED --> NEEDS_REVISION : Broker requests revision\n[reviewDocument: NEEDS_REVISION]\n(with feedback notes)
+SUBMITTED --> REJECTED : Broker rejects\n[reviewDocument: REJECTED]\n(with reason)
+
+NEEDS_REVISION --> SUBMITTED : Client uploads revised file\n[submitDocument]
+
+' === UPLOAD FLOW TRANSITIONS ===
+DRAFT -[#green,dashed]-> SUBMITTED : Broker shares with client\n[shareDocumentWithClient]\n(UPLOAD flow only;\nvisibleToClient=true)
 
 ' Terminal states
 APPROVED --> [*]
 REJECTED --> [*]
 
-note right of REQUESTED
-  **Entry Actions:**
-  - Record timeline entry
-  - Notify client of request
-  
-  **Invariants:**
-  - versions is empty
+note right of DRAFT
+  **REQUEST flow:** DRAFT -> REQUESTED -> SUBMITTED -> review
+  **UPLOAD flow:** DRAFT -> SUBMITTED (shared)
+  Broker can also create directly as REQUESTED
+  (skipping DRAFT) via createDocument with status=REQUESTED
 end note
 
-note right of SUBMITTED
-  **Entry Actions:**
-  - Create DocumentVersion
-  - Upload file to Cloudflare R2
-  - Notify broker
-  
-  **Invariants:**
-  - At least one DocumentVersion exists
-end note
-
-note right of APPROVED
-  **Entry Actions:**
-  - Record approval in timeline
-  - Notify client of approval
-  
-  **Invariants:**
-  - Cannot transition to other states
-end note
-
-note left of NEEDS_REVISION
-  **Entry Actions:**
-  - Save broker feedback
-  - Notify client with notes
-  
-  **Guard Conditions:**
-  - brokerNotes is populated
-end note
-
-note left of REJECTED
-  **Entry Actions:**
-  - Save rejection reason
-  - Notify client
-  
-  **Invariants:**
-  - Cannot transition to other states
+note bottom of NEEDS_REVISION
+  Client resubmits, returning
+  to SUBMITTED for re-review.
+  This cycle can repeat.
 end note
 
 @enduml

@@ -1,0 +1,117 @@
+@startuml ActivityDiagram_RequestFlow
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E8F4FD
+skinparam ActivityBorderColor #1976D2
+skinparam ActivityFontSize 12
+skinparam ArrowColor #424242
+skinparam PartitionBackgroundColor #F5F5F5
+skinparam PartitionBorderColor #BDBDBD
+skinparam DiamondBackgroundColor #FFF9C4
+skinparam DiamondBorderColor #F9A825
+
+title **Manage Transaction Documents - REQUEST Flow**\n(Broker requests, Client uploads)
+
+|#E3F2FD| Broker |
+|#E8F5E9| Client |
+|#FFF3E0| System |
+
+start
+
+|#E3F2FD| Broker |
+:Navigate to transaction documents;
+:Click "Request Document";
+:Fill form: type, stage, expectedFrom,
+notes, dueDate, requiresSignature;
+
+|#FFF3E0| System |
+:Create Document (status = DRAFT, flow = REQUEST);
+
+|#E3F2FD| Broker |
+if (Requires signature?) then (yes)
+  :Upload source document for client to sign;
+else (no)
+  :(Optional) Attach reference file;
+endif
+
+:Click "Send Request";
+
+|#FFF3E0| System |
+:Validate request (signature source exists if required);
+:Transition status DRAFT -> REQUESTED;
+:Notify Client (email + in-app);
+
+|#E8F5E9| Client |
+:Receive notification;
+:Navigate to transaction documents;
+:View pending request;
+
+if (Requires signature?) then (yes)
+  :Download source document;
+  :Sign document externally;
+  :Upload signed copy;
+else (no)
+  :Upload requested document;
+endif
+
+|#FFF3E0| System |
+if (File valid?) then (yes)
+  :Store file in Cloudflare R2;
+  :Create DocumentVersion (uploaderType = CLIENT);
+  :Transition status REQUESTED -> SUBMITTED;
+  :Notify Broker (email + in-app);
+else (no)
+  :Return validation error;
+  stop
+endif
+
+|#E3F2FD| Broker |
+:Receive notification;
+:Download and review file via pre-signed URL;
+:Select review decision;
+
+|#FFF3E0| System |
+switch (Decision?)
+case (APPROVED)
+  :Status -> APPROVED;
+  :Auto-check stage checklist item;
+case (NEEDS_REVISION)
+  :Status -> NEEDS_REVISION;
+case (REJECTED)
+  :Status -> REJECTED;
+endswitch
+
+:Notify Client of decision (email + in-app);
+
+if (Decision?) then (NEEDS_REVISION)
+  |#E8F5E9| Client |
+  :Receive revision feedback;
+  :Upload corrected document;
+
+  |#FFF3E0| System |
+  :Create new DocumentVersion;
+  :Transition status NEEDS_REVISION -> SUBMITTED;
+  :Notify Broker (email + in-app);
+
+  note right
+    Broker reviews again
+    (review cycle repeats
+    until APPROVED or REJECTED)
+  end note
+else (APPROVED / REJECTED)
+endif
+
+stop
+
+legend right
+  |= Color |= Actor |
+  | <#E3F2FD> | Broker |
+  | <#E8F5E9> | Client |
+  | <#FFF3E0> | System |
+  ----
+  **Status lifecycle:**
+  DRAFT -> REQUESTED -> SUBMITTED
+  -> APPROVED / NEEDS_REVISION / REJECTED
+endlegend
+
+@enduml

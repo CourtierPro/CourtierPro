@@ -61,7 +61,7 @@ Extra Information:
 
 =========================================================
 
-All PlantUML artifacts (in directory ECP/OwnedUseCase/Artifacts):
+All PlantUML artifacts (in ManageTransactionDocuments/Artifacts):
 	- Use Case Diagram (High Level and covers all of CourtierPro System, must include the "Manage Transaction Documents" use case, "Manage Transactions" use case, "View Broker Analytics Dashboard" use case, and "Manage Appointments" use case among others)
 	- DDD Domain Model (For entire CourtierPro System, entities, value objects, aggregates, aggregate invariants)
 	- C4 Level 1 (System Context Diagram)
@@ -76,10 +76,9 @@ All PlantUML artifacts (in directory ECP/OwnedUseCase/Artifacts):
 
 Instructions:
 	- The owned/specific use case we will be working on is "Manage Transaction Documents"
-	- In OwnedUseCase.txt, generate the deliverables in the order they are listed above.
-	- All PlantUML artifacts should be generated in the directory ECP/OwnedUseCase/Artifacts as .puml files, and in OwnedUseCase.txt, will be referenced with the following format "[Paste X Diagram]" where X is the name of the diagram.
+	- In OwnedUseCase.md, generate the deliverables in the order they are listed above.
+	- All PlantUML artifacts should be generated in the directory ManageTransactionDocuments/Artifacts as .puml files, and in OwnedUseCase.md, will be referenced with the following format "[Paste X Diagram]" where X is the name of the diagram.
 	- The alignment explanation required for each deliverable should be fully written and under the proper section.
 	- We will break the task into 6 smaller tasks, firstly generating the artifacts that aren't in the deliverables and are system wide diagrams and not specific to the owned/specific use case(Use Case Diagram, DDD Domain Model, C4 Level 1, C4 Level 2, and C4 Level 3), and then each of the 5 sections of the deliverables.
 	- For each task, we shall do in 2 phases, first gather the necessary context from the code (directory CourtierPro), and then generate the artifact(s) and alignment explanation.
 	- Draft puml files can be referenced from the docs/diagrams directory, but the final puml files should be generated in the Artifacts directory.
-

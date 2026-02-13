@@ -8,66 +8,112 @@ package "Presentation Layer" #LightBlue {
     - service: DocumentService
     --
     + getDocuments(transactionId, userId): List<DocumentResponseDTO>
-    + createDocument(transactionId, dto): DocumentResponseDTO
+    + createDocument(transactionId, dto, userId): DocumentResponseDTO
     + getDocument(transactionId, documentId, userId): DocumentResponseDTO
-    + updateDocument(transactionId, documentId, dto): DocumentResponseDTO
-    + deleteDocument(transactionId, documentId): void
+    + updateDocument(transactionId, documentId, dto, userId): DocumentResponseDTO
+    + deleteDocument(transactionId, documentId, userId): void
     + submitDocument(transactionId, documentId, file, userId, type): DocumentResponseDTO
-    + getDocumentDownloadUrl(transactionId, documentId, versionId): Map<String, String>
+    + uploadFileToDocument(transactionId, documentId, file, userId): DocumentResponseDTO
+    + getDocumentDownloadUrl(transactionId, documentId, versionId): Map
     + reviewDocument(transactionId, documentId, reviewDto, brokerId): DocumentResponseDTO
+    + sendDocumentRequest(transactionId, documentId, brokerId): DocumentResponseDTO
+    + shareDocumentWithClient(transactionId, documentId, brokerId): DocumentResponseDTO
+    + getStageChecklist(transactionId, stage, userId): StageChecklistResponseDTO
+    + setChecklistManualState(transactionId, itemKey, dto, brokerId): StageChecklistResponseDTO
   }
-  
+
   class GlobalDocumentController {
     - service: DocumentService
     --
-    + getDocumentById(documentId, userId): Map<String, String>
+    + getAllDocumentsForUser(userId): List<DocumentResponseDTO>
+    + getOutstandingDocuments(brokerId): List<OutstandingDocumentDTO>
+    + sendDocumentReminder(documentId, brokerId): void
   }
-  
+
   class DocumentRequestDTO {
     + docType: DocumentTypeEnum
     + customTitle: String
     + expectedFrom: DocumentPartyEnum
-    + relatedBuyerStage: BuyerStage
-    + relatedSellerStage: SellerStage
     + stage: StageEnum
     + brokerNotes: String
     + visibleToClient: Boolean
-    + linkedConditionIds: List<UUID>
+    + conditionIds: List<UUID>
+    + dueDate: LocalDateTime
+    + status: DocumentStatusEnum
+    + flow: DocumentFlowEnum
+    + requiresSignature: Boolean
   }
-  
+
   class DocumentResponseDTO {
     + documentId: UUID
-    + transactionId: UUID
+    + transactionRef: TransactionRef
     + docType: DocumentTypeEnum
     + customTitle: String
     + status: DocumentStatusEnum
     + expectedFrom: DocumentPartyEnum
     + stage: StageEnum
+    + flow: DocumentFlowEnum
+    + requiresSignature: Boolean
     + brokerNotes: String
     + visibleToClient: Boolean
-    + versions: List<DocumentVersionDTO>
+    + versions: List<DocumentVersionResponseDTO>
     + lastUpdatedAt: LocalDateTime
+    + dueDate: LocalDateTime
   }
-  
+
   class DocumentReviewRequestDTO {
     + decision: DocumentStatusEnum
-    + brokerNotes: String
+    + comments: String
   }
-  
-  class DocumentVersionDTO {
+
+  class DocumentVersionResponseDTO {
     + versionId: UUID
-    + fileName: String
-    + mimeType: String
     + uploadedAt: LocalDateTime
-    + uploadedByParty: DocumentPartyEnum
-    + uploadedByName: String
+    + uploadedBy: UploadedBy
+    + storageObject: StorageObject
   }
-  
+
+  class OutstandingDocumentDTO {
+    + id: UUID
+    + title: String
+    + transactionAddress: String
+    + clientName: String
+    + clientEmail: String
+    + dueDate: LocalDateTime
+    + daysOutstanding: Integer
+    + status: String
+  }
+
+  class StageChecklistResponseDTO {
+    + stage: String
+    + items: List<StageChecklistItemDTO>
+  }
+
+  class StageChecklistItemDTO {
+    + itemKey: String
+    + label: String
+    + docType: DocumentTypeEnum
+    + flow: DocumentFlowEnum
+    + requiresSignature: Boolean
+    + checked: Boolean
+    + source: String
+    + documentId: UUID
+    + documentStatus: DocumentStatusEnum
+  }
+
+  class ChecklistToggleRequestDTO {
+    + stage: String
+    + checked: Boolean
+  }
+
   ' Intra-package relationships
   DocumentController ..> DocumentRequestDTO : receives
   DocumentController ..> DocumentResponseDTO : returns
   DocumentController ..> DocumentReviewRequestDTO : receives
-  DocumentResponseDTO ..> DocumentVersionDTO : contains
+  DocumentController ..> StageChecklistResponseDTO : returns
+  GlobalDocumentController ..> OutstandingDocumentDTO : returns
+  DocumentResponseDTO ..> DocumentVersionResponseDTO : contains
+  StageChecklistResponseDTO ..> StageChecklistItemDTO : contains
 }
 
 @enduml

@@ -29,33 +29,48 @@ System_Boundary(cp, "CourtierPro System") {
   Person(client, "Client", "Buyer/Seller working with the brokerage")
   Person(admin, "Admin", "Administrative staff / system admin")
 
-  Container_Boundary(web_spa, "CourtierPro Web App (React 18 + Vite)", $tags="framework-react") {
+  Container_Boundary(web_spa, "CourtierPro Web App (React 19 + Vite + TypeScript)", $tags="framework-react") {
 
     ' Shell & Infrastructure
-    Component(AppShell, "Dashboard Shell", "React Router Layout", "Top navigation, sidebar, route outlet", $tags="shell-infra")
-    Component(AuthGuard, "AuthGuard", "React + Auth0 hooks", "Protects routes, injects user/roles", $tags="shell-infra")
-    Component(I18nProvider, "I18nProvider", "react-i18next", "EN/FR translations and language toggle", $tags="shell-infra")
-    Component(ApiClient, "ApiClient", "Axios wrapper", "Central REST client with token & error handling", $tags="shell-infra")
-    Component(NotificationBanner, "NotificationCenter", "React Component", "Global alerts and status banners", $tags="shell-infra")
+    Component(AppShell, "Dashboard Shell", "React Router Layout", "AppHeader, Sidebar, route outlet, responsive layout", $tags="shell-infra")
+    Component(AuthGuard, "AuthGuard", "React + @auth0/auth0-react", "Protects routes, injects user context and roles", $tags="shell-infra")
+    Component(I18nProvider, "I18nProvider", "react-i18next", "EN/FR translations via JSON files in shared/i18n/{en,fr}/", $tags="shell-infra")
+    Component(ApiClient, "ApiClient (axiosInstance)", "Axios wrapper", "Central REST client with Auth0 bearer token injection and error handling", $tags="shell-infra")
+    Component(QueryClient, "QueryClient", "TanStack React Query", "Server state management with caching, invalidation, and optimistic updates", $tags="shell-infra")
+    Component(NotificationCenter, "NotificationCenter", "React Component", "Global notification display and toast alerts", $tags="shell-infra")
 
-    ' Shared role-aware pages (Broker + Client)
-    Component(DashboardPage, "DashboardPage", "React Page", "Role-aware dashboard for broker & client (My Day + summaries)", $tags="broker-area,client-area")
-    Component(TransactionsPage, "TransactionsPage", "React Page", "Role-aware transactions list for broker & client", $tags="broker-area,client-area")
-    Component(TransactionPage, "TransactionPage", "React Page", "Role-aware transaction detail page (docs + appointments)", $tags="broker-area,client-area")
+    ' Dashboard pages
+    Component(BrokerDashboardPage, "BrokerDashboardPage", "React Page", "Broker dashboard: stats, pinned transactions, upcoming appointments, action cards", $tags="broker-area")
+    Component(ClientDashboardPage, "ClientDashboardPage", "React Page", "Client dashboard: active transactions count, documents needed", $tags="client-area")
+    Component(AdminDashboardPage, "AdminDashboardPage", "React Page", "Admin dashboard: user stats, system health, audit summary", $tags="admin-area")
 
-    ' Domain feature components
-    Component(MyDayWidget, "MyDayWidget", "React Component", "Shows tasks, due documents, and upcoming appointments for today", $tags="broker-area,client-area")
-    Component(TransactionsList, "TransactionsList", "React Component", "Lists and filters active/closed transactions", $tags="broker-area,client-area")
-    Component(TransactionDetailsView, "TransactionDetailsView", "React Component", "Shows transaction timeline, stages, and key info", $tags="broker-area,client-area")
-    Component(DocumentsCenter, "DocumentsCenter", "React Component", "Document checklist, upload, and signing status", $tags="broker-area,client-area")
-    Component(AppointmentsCenter, "AppointmentsCenter", "React Component", "Appointments list/calendar and actions", $tags="broker-area,client-area")
+    ' Transaction pages
+    Component(TransactionsPage, "BrokerTransactionsPage", "React Page", "Broker transactions list with filters (status, stage, side)", $tags="broker-area")
+    Component(ClientTransactionsPage, "ClientTransactionsPage", "React Page", "Client transaction list view", $tags="client-area")
+    Component(TransactionDetailsPage, "TransactionDetailsPage", "React Page", "Transaction detail: timeline, stages, documents tab, appointments tab", $tags="broker-area,client-area")
 
-    ' Admin workspace
-    Component(AdminUsersPage, "AdminUsersPage", "React Page", "Manage users (brokers, clients, admins)", $tags="admin-area")
-    Component(AdminOrgSettingsPage, "AdminOrgSettingsPage", "React Page", "Org-level settings and templates", $tags="admin-area")
+    ' Document feature components
+    Component(DocumentsCenter, "DocumentsCenter", "React Component", "Document list with status filter bar, stage selector, and checklist panel", $tags="broker-area,client-area")
+    Component(DocumentCard, "DocumentCard", "React Component", "Single document: version history, status badge, download/upload actions", $tags="broker-area,client-area")
+    Component(RequestDocumentModal, "RequestDocumentModal", "React Component", "Broker creates document request (type, party, notes, due date, stage)", $tags="broker-area")
+    Component(UploadForClientModal, "UploadForClientModal", "React Component", "Broker uploads document for client (UPLOAD flow)", $tags="broker-area")
+    Component(DocumentReviewModal, "DocumentReviewModal", "React Component", "Broker reviews: approve, request revision, or reject with comments", $tags="broker-area")
+    Component(StageChecklistPanel, "StageChecklistPanel", "React Component", "Stage-driven document checklist with auto/manual check states", $tags="broker-area")
+    Component(OutstandingDocsDashboard, "OutstandingDocumentsDashboard", "React Component", "Broker dashboard: overdue documents with reminder action", $tags="broker-area")
+
+    ' Appointment feature
+    Component(AppointmentsPage, "AppointmentsPage", "React Page", "Appointment list/calendar with request, confirm, cancel actions", $tags="broker-area,client-area")
+
+    ' Analytics
+    Component(AnalyticsPage, "AnalyticsPage", "React Page", "Broker analytics: metrics, charts, performance data", $tags="broker-area")
+
+    ' Admin pages
+    Component(AdminUsersPage, "AdminUsersPage", "React Page", "Manage users: create, activate/deactivate, password reset", $tags="admin-area")
+    Component(AdminSettingsPage, "AdminSettingsPage", "React Page", "Organization settings: email templates, defaults", $tags="admin-area")
+    Component(AuditPages, "AuditPages", "React Pages", "Login audit, logout audit, password reset audit, system logs", $tags="admin-area")
   }
 
-  Container(backend_api, "CourtierPro Backend API", "Spring Boot 3", "Domain logic & persistence", $sprite="spring_original", $tags="microService-java")
+  Container(backend_api, "CourtierPro Backend API", "Spring Boot 3 (Java 17)", "Domain logic & persistence", $sprite="spring_original", $tags="microService-java")
 }
 
 ' User relationships
@@ -64,38 +79,45 @@ Rel(client, AppShell, "Uses via browser", "HTTPS")
 Rel(admin, AppShell, "Uses via browser", "HTTPS")
 
 ' Shell / infrastructure relationships
-Rel(AppShell, NotificationBanner, "Renders notifications region", "Composition")
 Rel(AppShell, AuthGuard, "Wraps protected routes")
 Rel(AppShell, I18nProvider, "Provides i18n context")
+Rel(AppShell, NotificationCenter, "Renders notification region")
 
 ' AppShell renders main pages
-Rel(AppShell, DashboardPage, "Renders", "Composition")
+Rel(AppShell, BrokerDashboardPage, "Renders", "Composition")
+Rel(AppShell, ClientDashboardPage, "Renders", "Composition")
+Rel(AppShell, AdminDashboardPage, "Renders", "Composition")
 Rel(AppShell, TransactionsPage, "Renders", "Composition")
-Rel(AppShell, TransactionPage, "Renders", "Composition")
+Rel(AppShell, ClientTransactionsPage, "Renders", "Composition")
+Rel(AppShell, TransactionDetailsPage, "Renders", "Composition")
+Rel(AppShell, AppointmentsPage, "Renders", "Composition")
+Rel(AppShell, AnalyticsPage, "Renders", "Composition")
 Rel(AppShell, AdminUsersPage, "Renders", "Composition")
-Rel(AppShell, AdminOrgSettingsPage, "Renders", "Composition")
+Rel(AppShell, AdminSettingsPage, "Renders", "Composition")
+Rel(AppShell, AuditPages, "Renders", "Composition")
 
-' Dashboard / transactions composition
-Rel(DashboardPage, MyDayWidget, "Embeds", "Composition")
-Rel(DashboardPage, TransactionsList, "Embeds summary list", "Composition")
+' Transaction detail page composition
+Rel(TransactionDetailsPage, DocumentsCenter, "Embeds documents section", "Composition")
 
-Rel(TransactionsPage, TransactionsList, "Embeds", "Composition")
+' Documents feature composition
+Rel(DocumentsCenter, DocumentCard, "Renders per document", "Composition")
+Rel(DocumentsCenter, StageChecklistPanel, "Embeds checklist", "Composition")
+Rel(DocumentsCenter, RequestDocumentModal, "Opens on request action", "Composition")
+Rel(DocumentsCenter, UploadForClientModal, "Opens on upload-for-client action", "Composition")
+Rel(DocumentCard, DocumentReviewModal, "Opens on review action", "Composition")
 
-Rel(TransactionPage, TransactionDetailsView, "Embeds", "Composition")
-Rel(TransactionPage, DocumentsCenter, "Embeds docs section", "Composition")
-Rel(TransactionPage, AppointmentsCenter, "Embeds appointments section", "Composition")
+' Broker dashboard composition
+Rel(BrokerDashboardPage, OutstandingDocsDashboard, "Embeds outstanding docs", "Composition")
 
-' Domain components and admin pages using ApiClient
-Rel(MyDayWidget, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
-Rel(TransactionsList, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
-Rel(TransactionDetailsView, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
-Rel(DocumentsCenter, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line,green-line")
-Rel(AppointmentsCenter, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
+' All feature components use ApiClient -> QueryClient
+Rel(DocumentsCenter, ApiClient, "Uses (React Query hooks)", "JSON/REST", $tags="purple-line,green-line")
+Rel(TransactionsPage, ApiClient, "Uses", "JSON/REST", $tags="purple-line")
+Rel(AppointmentsPage, ApiClient, "Uses", "JSON/REST", $tags="purple-line")
+Rel(BrokerDashboardPage, ApiClient, "Uses", "JSON/REST", $tags="purple-line")
+Rel(AdminUsersPage, ApiClient, "Uses", "JSON/REST", $tags="purple-line")
+Rel(AdminSettingsPage, ApiClient, "Uses", "JSON/REST", $tags="purple-line")
 
-Rel(AdminUsersPage, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
-Rel(AdminOrgSettingsPage, ApiClient, "Uses", "JSON/REST/HTTPS", $tags="purple-line")
-
-' ApiClient calls backend container
+Rel(ApiClient, QueryClient, "Manages cache")
 Rel(ApiClient, backend_api, "Calls", "JSON/REST/HTTPS", $tags="purple-line")
 
 SHOW_LEGEND()

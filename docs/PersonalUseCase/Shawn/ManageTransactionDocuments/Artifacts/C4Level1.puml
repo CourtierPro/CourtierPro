@@ -1,32 +1,29 @@
 @startuml C4Level1
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
 
+LAYOUT_TOP_DOWN()
+SHOW_PERSON_OUTLINE()
+
 title CourtierPro — System Context (C4 Level 1)
 
-' ==== USERS ====
-Person(client, "Client (Buyer / Seller)", "A client working with the brokerage to buy or sell a property. Views their transaction progress, sees required documents, and requests appointments.")
-Person(broker, "Broker", "Licensed real estate broker. Manages client transactions, updates stages, reviews documents, confirms appointments, and communicates with clients.")
-Person(admin, "Administrative Staff / System Admin", "Internal staff who manages platform access, configuration, and overall data integrity for the brokerage.")
+Person(client, "Client (Buyer / Seller)", "A client working with the brokerage to buy or sell a property. Views transaction progress, uploads/downloads documents, requests appointments.")
+Person(broker, "Broker", "Licensed real estate broker in Quebec. Manages client transactions, updates stages, reviews documents, schedules appointments, and views analytics.")
+Person(admin, "Admin", "System administrator who manages platform access, organization settings, audit logs, and system configuration.")
 
-' ==== MAIN SYSTEM ====
-System(courtierPro, "CourtierPro", "Bilingual broker–client management and communication platform for real estate transactions. Provides transaction tracking, document management, appointment scheduling, and broker-facing analytics.")
+System(courtierPro, "CourtierPro", "Bilingual (EN/FR) broker-client management platform for Quebec real estate brokerages. Provides transaction lifecycle tracking, document management (request/upload/review/sign workflows), appointment scheduling, notifications, and broker analytics dashboard.")
 
-' ==== EXTERNAL SERVICES ====
-System_Ext(auth0, "Auth0", "Identity provider used for authentication and role-based access (Client / Broker / Admin).")
-System_Ext(cloudflareR2, "Cloudflare R2", "S3-compatible object storage for client-submitted documents, broker-provided files, and other transaction-related artifacts.")
-System_Ext(amazonSES, "Amazon SES", "Email delivery service used for status updates, document decisions, and appointment confirmations/reminders.")
+System_Ext(auth0, "Auth0", "Cloud identity provider for OAuth2/OIDC authentication, MFA, and role-based access control (ADMIN, BROKER, CLIENT).")
+System_Ext(cloudflareR2, "Cloudflare R2", "S3-compatible object storage for client-submitted documents, broker-provided files, offer attachments, and other transaction-related artifacts.")
+System_Ext(amazonSES, "AWS SES", "Email delivery service for transactional notifications: document requests, stage updates, appointment confirmations, reminders, and broadcast messages.")
 
-' ==== RELATIONSHIPS (USERS <-> COURTIERPRO) ====
-client --> courtierPro : "Logs in to view transaction status, upload documents, request appointments, receive updates"
-broker --> courtierPro : "Tracks all active clients, updates transaction stages, reviews documents, confirms appointments, views workload analytics"
-admin --> courtierPro  : "Manages user access, configures system settings, maintains data integrity"
+client --> courtierPro : "Views transaction status, uploads/downloads documents, requests/confirms appointments, receives notifications"
+broker --> courtierPro : "Manages transactions, reviews documents, schedules appointments, views analytics dashboard, sends reminders"
+admin --> courtierPro : "Manages user access, configures organization settings, views audit logs, sends broadcast notifications"
 
-' ==== RELATIONSHIPS (COURTIERPRO <-> EXTERNAL SERVICES) ====
-courtierPro --> auth0     : "Delegates authentication and enforces role-based access"
-courtierPro --> cloudflareR2  : "Stores and retrieves transaction documents and supporting files"
-courtierPro --> amazonSES : "Sends transactional emails (stage updates, document approval results, appointment confirmations)"
+courtierPro --> auth0     : "Delegates authentication and enforces role-based access via JWT"
+courtierPro --> cloudflareR2  : "Stores and retrieves documents via pre-signed URLs (S3-compatible API)"
+courtierPro --> amazonSES : "Sends transactional emails (document requests, stage updates, appointment confirmations, reminders)"
 
-' --- spacing tweaks ---
 skinparam nodesep 80
 skinparam ranksep 150
 @enduml

@@ -5,20 +5,21 @@ title Infrastructure Layer
 
 package "Infrastructure Layer" #LightCoral {
   interface ObjectStorageService {
-    + uploadFile(transactionId, documentId, file): StorageObject
+    + uploadFile(txId, docId, file): StorageObject
     + getPreSignedUrl(s3Key, expirationMinutes): String
     + deleteFile(s3Key): void
   }
-  
+
   class ObjectStorageServiceImpl {
-    - s3Client: S3Client  // Connects to Cloudflare R2 (S3-compatible)
+    - s3Client: S3Client
     - bucketName: String
     --
-    + uploadFile(transactionId, documentId, file): StorageObject
+    + uploadFile(txId, docId, file): StorageObject
     + getPreSignedUrl(s3Key, expirationMinutes): String
-    - generateS3Key(transactionId, documentId, fileName): String
+    + deleteFile(s3Key): void
+    - generateS3Key(txId, docId, fileName): String
   }
-  
+
   ' Intra-package relationships
   ObjectStorageServiceImpl ..|> ObjectStorageService : implements
 }

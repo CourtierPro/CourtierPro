@@ -1,0 +1,125 @@
+@startuml DesignLevelSequenceDiagram_CreateRequest
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam ParticipantBackgroundColor #E3F2FD
+skinparam ParticipantBorderColor #1976D2
+skinparam SequenceLifeLineBorderColor #757575
+skinparam ArrowColor #424242
+
+title DLSD Flow 1: Broker Creates Document Request (DRAFT -> Send)
+
+actor "Broker" as BrokerActor
+
+box "Frontend (React 19 SPA)" #E0F7FA
+  participant "DocumentsCenter" as FE
+  participant "axiosInstance" as Axios
+end box
+
+box "Presentation Layer" #E8F5E9
+  participant "DocumentController" as DocCtrl
+end box
+
+box "Business Layer" #FFF3E0
+  participant "DocumentServiceImpl" as DocSvc
+  participant "EmailService" as EmailSvc
+  participant "NotificationService" as NotifSvc
+end box
+
+box "Data / Infrastructure" #F3E5F5
+  participant "DocumentRepository" as DocRepo
+  participant "TransactionRepository" as TxRepo
+  participant "UserAccountRepository" as UserRepo
+  participant "ObjectStorageService" as Storage
+end box
+
+== Step 1: Create Document as DRAFT ==
+
+BrokerActor -> FE: Opens RequestDocumentModal
+FE -> Axios: POST /transactions/{txId}/documents
+Axios -> DocCtrl: createDocument(txId, dto, userId)
+activate DocCtrl
+
+DocCtrl -> DocSvc: createDocument(txId, dto, userId)
+activate DocSvc
+
+DocSvc -> TxRepo: findByTransactionId(txId)
+TxRepo --> DocSvc: Transaction
+
+note right of DocSvc: Validate broker has EDIT_DOCUMENTS permission
+
+DocSvc -> DocRepo: save(Document{status=DRAFT, flow=REQUEST})
+DocRepo --> DocSvc: Document
+
+DocSvc --> DocCtrl: DocumentResponseDTO
+deactivate DocSvc
+DocCtrl --> Axios: HTTP 201
+deactivate DocCtrl
+Axios --> FE: Document (DRAFT)
+FE --> BrokerActor: Show created document
+
+== Step 2 (Optional): Attach Reference File ==
+
+BrokerActor -> FE: Uploads reference file to DRAFT
+FE -> Axios: POST /transactions/{txId}/documents/{docId}/upload (multipart)
+Axios -> DocCtrl: uploadFileToDocument(txId, docId, file, userId)
+activate DocCtrl
+
+DocCtrl -> DocSvc: uploadFileToDocument(txId, docId, file, userId, BROKER)
+activate DocSvc
+
+DocSvc -> DocRepo: findByDocumentId(docId)
+DocRepo --> DocSvc: Document
+
+note right of DocSvc: validateFile(file) - type, size
+
+DocSvc -> Storage: uploadFile(txId, docId, file)
+Storage --> DocSvc: StorageObject{s3Key, fileName, mimeType, sizeBytes}
+
+note right of DocSvc
+  Create DocumentVersion (uploaderType=BROKER)
+  Status remains DRAFT
+end note
+
+DocSvc -> DocRepo: save(document)
+
+DocSvc --> DocCtrl: DocumentResponseDTO
+deactivate DocSvc
+DocCtrl --> Axios: HTTP 200
+deactivate DocCtrl
+Axios --> FE: Document (DRAFT, version added)
+FE --> BrokerActor: Show attached file
+
+== Step 3: Send Request (DRAFT -> REQUESTED) ==
+
+BrokerActor -> FE: Clicks "Send Request"
+FE -> Axios: POST /transactions/{txId}/documents/{docId}/send
+Axios -> DocCtrl: sendDocumentRequest(txId, docId, brokerId)
+activate DocCtrl
+
+DocCtrl -> DocSvc: sendDocumentRequest(docId, brokerId)
+activate DocSvc
+
+DocSvc -> DocRepo: findByDocumentId(docId)
+DocRepo --> DocSvc: Document
+
+note right of DocSvc
+  Validate: status == DRAFT
+  If requiresSignature, versions must exist
+end note
+
+DocSvc -> DocRepo: save(document{status=REQUESTED})
+
+DocSvc -> UserRepo: findById(clientId)
+UserRepo --> DocSvc: UserAccount (client)
+
+DocSvc -> EmailSvc: sendDocumentRequestedNotification(clientEmail, ...)
+DocSvc -> NotifSvc: createDocumentNotification(category=DOCUMENT)
+
+DocSvc --> DocCtrl: DocumentResponseDTO
+deactivate DocSvc
+DocCtrl --> Axios: HTTP 200
+deactivate DocCtrl
+Axios --> FE: Document (REQUESTED)
+FE --> BrokerActor: Show updated status
+
+@enduml

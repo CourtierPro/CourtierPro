@@ -1,0 +1,66 @@
+@startuml ActivityDiagram_UploadFlow
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E8F4FD
+skinparam ActivityBorderColor #1976D2
+skinparam ActivityFontSize 12
+skinparam ArrowColor #424242
+skinparam PartitionBackgroundColor #F5F5F5
+skinparam PartitionBorderColor #BDBDBD
+skinparam DiamondBackgroundColor #FFF9C4
+skinparam DiamondBorderColor #F9A825
+
+title **Manage Transaction Documents - UPLOAD Flow**\n(Broker uploads, Client downloads)
+
+|#E3F2FD| Broker |
+|#E8F5E9| Client |
+|#FFF3E0| System |
+
+start
+
+|#E3F2FD| Broker |
+:Navigate to transaction documents;
+:Click "Upload for Client";
+:Fill form: type, stage, notes;
+:Select and upload document file;
+
+|#FFF3E0| System |
+if (File valid?) then (yes)
+  :Create Document (status = DRAFT, flow = UPLOAD);
+  :Store file in Cloudflare R2;
+  :Create DocumentVersion (uploaderType = BROKER);
+else (no)
+  :Return validation error;
+  stop
+endif
+
+|#E3F2FD| Broker |
+:Review draft document;
+:Click "Share with Client";
+
+|#FFF3E0| System |
+:Transition status DRAFT -> SUBMITTED;
+:Set visibleToClient = true;
+:Notify Client (email + in-app);
+:Auto-check stage checklist item;
+
+|#E8F5E9| Client |
+:Receive notification;
+:Navigate to transaction documents;
+:View shared document;
+:Download document via pre-signed URL;
+
+stop
+
+legend right
+  |= Color |= Actor |
+  | <#E3F2FD> | Broker |
+  | <#E8F5E9> | Client |
+  | <#FFF3E0> | System |
+  ----
+  **Status lifecycle:**
+  DRAFT -> SUBMITTED (shared)
+  No client upload or broker review needed.
+endlegend
+
+@enduml

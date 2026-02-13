@@ -7,76 +7,146 @@ actor "Broker" as Broker
 actor "Client" as Client
 participant "CourtierPro\nSystem" as System
 
-== Scenario 1: Broker Creates Document Request ==
+== Scenario 1: Broker Creates Document Request (REQUEST Flow) ==
 
-Broker -> System: navigateToDocuments(transactionId)
-System --> Broker: documentsList, requestableTypes
+Broker -> System: getDocumentsForTransaction(transactionId, userId)
+System --> Broker: documentsList (with statuses and versions)
 
-Broker -> System: createDocument(transactionId, docType, expectedFrom, notes, visible)
-System --> Broker: createdDocument
+Broker -> System: createDocument(transactionId, {docType, expectedFrom,\nstage, notes, dueDate, status=DRAFT, flow=REQUEST})
+System --> Broker: createdDocument (status=DRAFT)
 
 note right of System
   System internally:
-  - Validates transaction
-  - Creates Document (REQUESTED or DRAFT)
+  - Validates transaction exists and broker has EDIT_DOCUMENTS permission
+  - Creates Document entity with status=DRAFT, flow=REQUEST
   - Records timeline entry
-  - Sends notification to Client
 end note
 
-== Scenario 2: Client Submits Document ==
+opt Broker attaches reference file to DRAFT
+  Broker -> System: uploadFileToDocument(transactionId, documentId, file)
+  System --> Broker: updatedDocument (new version added, status stays DRAFT)
+end
 
-Client -> System: getDocumentsForTransaction(transactionId)
-System --> Client: pendingDocuments
+Broker -> System: sendDocumentRequest(transactionId, documentId)
+System --> Broker: updatedDocument (status=REQUESTED)
+
+note right of System
+  System internally:
+  - If requiresSignature=true, validates source document exists
+  - Updates status DRAFT -> REQUESTED
+  - Sends bilingual email to Client (via EmailService)
+  - Creates in-app Notification (category=DOCUMENT)
+  - Records timeline entry
+end note
+
+== Scenario 2: Broker Uploads Document for Client (UPLOAD Flow) ==
+
+Broker -> System: createDocument(transactionId, {docType, stage,\nnotes, status=DRAFT, flow=UPLOAD})
+System --> Broker: createdDocument (status=DRAFT, flow=UPLOAD)
+
+Broker -> System: uploadFileToDocument(transactionId, documentId, file)
+System --> Broker: updatedDocument (version added)
+
+Broker -> System: shareDocumentWithClient(transactionId, documentId)
+System --> Broker: updatedDocument (status=SUBMITTED, visibleToClient=true)
+
+note right of System
+  System internally:
+  - Updates status DRAFT -> SUBMITTED
+  - Sets visibleToClient=true
+  - Sends email notification to Client
+  - Creates in-app notification
+  - Auto-checks stage checklist item
+end note
+
+== Scenario 3: Client Submits Document ==
+
+Client -> System: getDocumentsForTransaction(transactionId, userId)
+System --> Client: pendingDocuments (filtered: DRAFT hidden, visibleToClient only)
 
 Client -> System: submitDocument(transactionId, documentId, file)
-System --> Client: updatedDocument
+System --> Client: updatedDocument (status=SUBMITTED)
 
 note right of System
   System internally:
-  - Validates file (type, size)
-  - Uploads to Cloudflare R2
-  - Creates DocumentVersion
-  - Updates status to SUBMITTED
-  - Notifies Broker
+  - Validates file (type, size constraints)
+  - Uploads file to Cloudflare R2 via ObjectStorageService
+  - Creates DocumentVersion (uploaderType=CLIENT)
+  - Updates status REQUESTED -> SUBMITTED
+  - Sends email notification to Broker
+  - Creates in-app notification
+  - Records timeline entry
 end note
 
-== Scenario 3: Broker Reviews Document ==
+== Scenario 4: Broker Reviews Document ==
 
-Broker -> System: getDocumentsForTransaction(transactionId)
+Broker -> System: getDocumentsForTransaction(transactionId, userId)
 System --> Broker: documentsWithSubmissions
 
-Broker -> System: getDocumentDownloadUrl(requestId, documentId)
-System --> Broker: preSignedUrl
+Broker -> System: getDocumentDownloadUrl(transactionId, documentId, versionId)
+System --> Broker: preSignedUrl (from Cloudflare R2, time-limited)
 
-Broker -> System: reviewDocument(documentId, decision, notes)
+Broker -> System: reviewDocument(transactionId, documentId,\n{decision, comments})
 System --> Broker: updatedDocument
 
 note right of System
   decision can be:
-  - APPROVED
-  - NEEDS_REVISION
-  - REJECTED
-  
-  System notifies Client of decision
+  - APPROVED -> terminal state, checklist auto-checked
+  - NEEDS_REVISION -> client must resubmit
+  - REJECTED -> terminal state
+
+  System sends bilingual email to Client
+  with decision and broker comments.
+  Creates in-app notification.
 end note
 
-== Scenario 4: Download Document ==
+== Scenario 5: Client Downloads Document ==
 
-Client -> System: getDocumentDownloadUrl(documentId, versionId)
-alt Authorized
+Client -> System: getDocumentDownloadUrl(transactionId, documentId, versionId)
+alt Authorized (participant in transaction)
   System --> Client: preSignedUrl
 else Not Authorized
-  System --> Client: accessDeniedError
+  System --> Client: 403 Forbidden
 end
 
-== Scenario 5: Broker Deletes Document Request ==
+== Scenario 6: Broker Sends Document Reminder ==
 
-Broker -> System: deleteDocument(documentId)
+Broker -> System: getOutstandingDocuments()
+System --> Broker: outstandingDocumentsList (REQUESTED/NEEDS_REVISION, past due)
+
+Broker -> System: sendDocumentReminder(documentId)
 System --> Broker: success
 
 note right of System
-  System soft-deletes request
-  and logs to audit trail
+  Re-sends document request email to Client
+  using same template as original request.
 end note
+
+== Scenario 7: Broker Deletes Document ==
+
+Broker -> System: deleteDocument(transactionId, documentId)
+System --> Broker: success
+
+note right of System
+  Soft-delete: sets deletedAt timestamp
+  and deletedBy userId.
+  Document no longer appears in active lists.
+end note
+
+== Scenario 8: Stage Checklist Management ==
+
+Broker -> System: getStageChecklist(transactionId, stage)
+System --> Broker: checklistItems (auto + manual states)
+
+note right of System
+  System builds checklist from StageDocumentTemplateRegistry.
+  Each item auto-checked when matching document is
+  APPROVED (REQUEST) or SUBMITTED (UPLOAD).
+end note
+
+opt Broker manually overrides checklist item
+  Broker -> System: setChecklistManualState(transactionId, stage, itemKey, checked)
+  System --> Broker: updatedChecklist
+end
 
 @enduml

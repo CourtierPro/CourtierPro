@@ -1,0 +1,143 @@
+@startuml UseCaseDiagram
+left to right direction
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor<<core>> #LightBlue
+  BackgroundColor<<support>> #LightGreen
+  BackgroundColor<<admin>> #LightYellow
+  BorderColor Black
+}
+
+title CourtierPro - High-Level Use Case Diagram
+
+actor "Broker" as Broker
+actor "Client\n(Buyer/Seller)" as Client
+actor "Admin" as Admin
+
+' External actors
+actor "Auth0\n(Identity Provider)" as Auth0 <<external>>
+actor "Cloudflare R2\n(Object Storage)" as R2 <<external>>
+actor "AWS SES\n(Email Service)" as SES <<external>>
+
+rectangle "CourtierPro System" {
+
+  ' ===== CORE USE CASES =====
+  usecase "Manage Transactions" as UC_T1 <<core>>
+  usecase "Manage Transaction\nDocuments" as UC_D1 <<core>>
+  usecase "Manage Appointments" as UC_A1 <<core>>
+  usecase "View Broker Analytics\nDashboard" as UC_AN1 <<core>>
+
+  ' ===== TRANSACTION SUB-CASES =====
+  usecase "Create Transaction" as UC_T2 <<support>>
+  usecase "Advance Transaction\nStage" as UC_T3 <<support>>
+  usecase "Manage Offers &\nConditions" as UC_T4 <<support>>
+  usecase "Pin/Archive\nTransaction" as UC_T5 <<support>>
+  usecase "View Transaction\nTimeline" as UC_T6 <<support>>
+
+  ' ===== DOCUMENT SUB-CASES =====
+  usecase "Request Document\nfrom Client" as UC_D2 <<support>>
+  usecase "Upload Document\nfor Client" as UC_D3 <<support>>
+  usecase "Submit Document" as UC_D4 <<support>>
+  usecase "Review Document" as UC_D5 <<support>>
+  usecase "Download Document" as UC_D6 <<support>>
+  usecase "Request Signature" as UC_D7 <<support>>
+  usecase "Send Document\nReminder" as UC_D8 <<support>>
+  usecase "Manage Stage\nChecklist" as UC_D9 <<support>>
+
+  ' ===== APPOINTMENT SUB-CASES =====
+  usecase "Request Appointment" as UC_A2 <<support>>
+  usecase "Confirm/Decline\nAppointment" as UC_A3 <<support>>
+  usecase "Cancel Appointment" as UC_A4 <<support>>
+
+  ' ===== DASHBOARD SUB-CASES =====
+  usecase "View Pending\nDocument Reviews" as UC_AN2 <<support>>
+  usecase "View Expiring Offers" as UC_AN3 <<support>>
+  usecase "View Approaching\nCondition Deadlines" as UC_AN4 <<support>>
+  usecase "View Outstanding\nDocuments" as UC_AN5 <<support>>
+
+  ' ===== ADMIN USE CASES =====
+  usecase "Manage Users" as UC_ADM1 <<admin>>
+  usecase "Manage Organization\nSettings" as UC_ADM2 <<admin>>
+  usecase "View Audit Logs" as UC_ADM3 <<admin>>
+  usecase "Send Broadcast\nNotification" as UC_ADM4 <<admin>>
+
+  ' ===== COMMON USE CASES =====
+  usecase "Authenticate User" as UC_AUTH <<support>>
+  usecase "Manage Profile &\nPreferences" as UC_PROF <<support>>
+  usecase "View Notifications" as UC_NOT <<support>>
+  usecase "Search System" as UC_SEARCH <<support>>
+
+  ' ===== BROKER RELATIONSHIPS =====
+  Broker --> UC_T1
+  Broker --> UC_D1
+  Broker --> UC_A1
+  Broker --> UC_AN1
+  Broker --> UC_AUTH
+  Broker --> UC_PROF
+  Broker --> UC_NOT
+  Broker --> UC_SEARCH
+
+  ' ===== CLIENT RELATIONSHIPS =====
+  Client --> UC_D4 : submits files
+  Client --> UC_D6 : downloads files
+  Client --> UC_A2 : requests meetings
+  Client --> UC_A3 : confirms/declines
+  Client --> UC_A4 : cancels
+  Client --> UC_AUTH
+  Client --> UC_PROF
+  Client --> UC_NOT
+  Client --> UC_T6 : views progress
+
+  ' ===== ADMIN RELATIONSHIPS =====
+  Admin --> UC_ADM1
+  Admin --> UC_ADM2
+  Admin --> UC_ADM3
+  Admin --> UC_ADM4
+  Admin --> UC_AUTH
+
+  ' ===== TRANSACTION INCLUDES =====
+  UC_T1 ..> UC_T2 : <<include>>
+  UC_T1 ..> UC_T3 : <<include>>
+  UC_T1 ..> UC_T4 : <<include>>
+  UC_T1 ..> UC_T5 : <<include>>
+  UC_T1 ..> UC_T6 : <<include>>
+
+  ' ===== DOCUMENT INCLUDES =====
+  UC_D1 ..> UC_D2 : <<include>>
+  UC_D1 ..> UC_D3 : <<include>>
+  UC_D1 ..> UC_D5 : <<include>>
+  UC_D1 ..> UC_D6 : <<include>>
+  UC_D1 ..> UC_D8 : <<include>>
+  UC_D1 ..> UC_D9 : <<include>>
+
+  ' ===== DOCUMENT EXTENDS =====
+  UC_D7 ..> UC_D2 : <<extend>>\n[requiresSignature = true]
+  UC_D4 ..> UC_D2 : <<extend>>\n[client uploads requested file]
+
+  ' ===== APPOINTMENT INCLUDES =====
+  UC_A1 ..> UC_A2 : <<include>>
+  UC_A1 ..> UC_A3 : <<include>>
+  UC_A1 ..> UC_A4 : <<include>>
+
+  ' ===== DASHBOARD INCLUDES =====
+  UC_AN1 ..> UC_AN2 : <<include>>
+  UC_AN1 ..> UC_AN3 : <<include>>
+  UC_AN1 ..> UC_AN4 : <<include>>
+  UC_AN1 ..> UC_AN5 : <<include>>
+
+  ' ===== CROSS-DOMAIN RELATIONSHIPS =====
+  UC_D1 ..> UC_T1 : <<include>>\n[documents belong to transactions]
+  UC_A1 ..> UC_T1 : <<include>>\n[appointments linked to transactions]
+}
+
+' ===== EXTERNAL SYSTEM RELATIONSHIPS =====
+UC_AUTH --> Auth0 : delegates authentication
+UC_D4 --> R2 : stores files
+UC_D3 --> R2 : stores files
+UC_D6 --> R2 : retrieves files
+UC_D2 --> SES : sends request email
+UC_D8 --> SES : sends reminder email
+UC_A2 --> SES : sends notification
+UC_ADM4 --> SES : sends broadcast
+
+@enduml

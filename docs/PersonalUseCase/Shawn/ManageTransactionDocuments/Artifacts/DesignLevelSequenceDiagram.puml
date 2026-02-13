@@ -1,104 +1,184 @@
 @startuml DesignLevelSequenceDiagram
-!pragma teoz true
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam ParticipantBackgroundColor #E3F2FD
+skinparam ParticipantBorderColor #1976D2
+skinparam SequenceLifeLineBorderColor #757575
+skinparam ArrowColor #424242
 
-title Design Level Sequence Diagram: Submit Document Flow
+title Design Level Sequence Diagram: Manage Transaction Documents
 
-actor "Client" as Client
-participant "DocumentsCenter\n<<React Component>>" as UI
-participant "ApiClient\n<<Axios>>" as ApiClient
-participant "DocumentController\n<<REST Controller>>" as Controller
-participant "DocumentService\n<<Application Service>>" as Service
-participant "TransactionRepository\n<<Repository>>" as TxnRepo
-participant "DocumentRepository\n<<Repository>>" as DocRepo
-participant "ObjectStorageService\n<<Infrastructure>>" as S3
-participant "NotificationService\n<<Application Service>>" as Notif
-database "PostgreSQL" as DB
-database "Cloudflare R2" as R2Store
+actor "Broker" as BrokerActor
+actor "Client" as ClientActor
 
-== Client Uploads Document ==
+box "Frontend (React 19 SPA)" #E0F7FA
+  participant "DocumentsCenter" as FE
+  participant "axiosInstance" as Axios
+end box
 
-Client -> UI: selectFile(file)
-activate UI
-UI -> UI: validateFileClient(file)
-UI --> Client: showUploadPreview
+box "Presentation Layer" #E8F5E9
+  participant "DocumentController" as DocCtrl
+end box
 
-Client -> UI: confirmUpload()
-UI -> ApiClient: POST /transactions/{id}/documents/{reqId}/submit
-activate ApiClient
-ApiClient -> Controller: submitDocument(transactionId, requestId, file)
-activate Controller
+box "Business Layer" #FFF3E0
+  participant "DocumentServiceImpl" as DocSvc
+  participant "EmailService" as EmailSvc
+  participant "NotificationService" as NotifSvc
+end box
 
-Controller -> Controller: resolveUserId(request)
-Controller -> Controller: determineUploaderType(jwt)
-Controller -> Service: submitDocument(transactionId, requestId, file, userId, uploaderType)
-activate Service
+box "Data / Infrastructure" #F3E5F5
+  participant "DocumentRepository" as DocRepo
+  participant "TransactionRepository" as TxRepo
+  participant "UserAccountRepository" as UserRepo
+  participant "ChecklistStateRepo" as CheckRepo
+  participant "ObjectStorageService" as Storage
+end box
 
-' Validate Transaction Access
-Service -> TxnRepo: findById(transactionId)
-activate TxnRepo
-TxnRepo -> DB: SELECT * FROM transactions WHERE id = ?
-DB --> TxnRepo: Transaction
-TxnRepo --> Service: Transaction
-deactivate TxnRepo
+== Flow 1: Broker Creates Document Request (DRAFT -> Send) ==
 
-Service -> Service: validateUserAccess(transaction, userId)
+BrokerActor -> FE: Opens RequestDocumentModal
+FE -> Axios: POST /transactions/{txId}/documents
+Axios -> DocCtrl: createDocument(txId, dto, userId)
+activate DocCtrl
 
-' Validate Document Request
-Service -> DocRepo: findByRequestId(requestId)
-activate DocRepo
-DocRepo -> DB: SELECT * FROM documents WHERE document_id = ?
-DB --> DocRepo: Document
-DocRepo --> Service: Document
-deactivate DocRepo
+DocCtrl -> DocSvc: createDocument(txId, dto, userId)
+activate DocSvc
 
-Service -> Service: validateCanSubmit(document)
+DocSvc -> TxRepo: findByTransactionId(txId)
+TxRepo --> DocSvc: Transaction
 
-' Validate File
-Service -> Service: validateFile(file)
-note right: Check file type, size constraints
+note right of DocSvc: Validate broker has EDIT_DOCUMENTS permission
 
-' Upload to Cloudflare R2
-Service -> S3: uploadFile(transactionId, requestId, file)
-activate S3
-S3 -> R2Store: PutObject(bucket, key, fileContent)
-R2Store --> S3: uploadResult
-S3 --> Service: StorageObject(s3Key, fileName, mimeType)
-deactivate S3
+DocSvc -> DocRepo: save(Document{status=DRAFT, flow=REQUEST})
+DocRepo --> DocSvc: Document
 
-' Create DocumentVersion
-Service -> Service: createDocumentVersion(document, storageObject, uploadedBy)
+DocSvc --> DocCtrl: DocumentResponseDTO
+deactivate DocSvc
+DocCtrl --> Axios: HTTP 201
+deactivate DocCtrl
+Axios --> FE: Document (DRAFT)
+FE --> BrokerActor: Show created document
 
-' Update Document
-Service -> Service: updateStatus(SUBMITTED)
-Service -> DocRepo: save(document)
-activate DocRepo
-DocRepo -> DB: UPDATE documents SET status = 'SUBMITTED' ...
-DocRepo -> DB: INSERT INTO document_versions ...
-DB --> DocRepo: savedEntity
-DocRepo --> Service: updatedDocument
-deactivate DocRepo
+...Broker optionally attaches file via uploadFileToDocument...
 
-' Send Notification
-Service -> Notif: notifyDocumentSubmitted(document)
-activate Notif
-Notif -> Notif: createNotification(brokerId, DOCUMENT, message)
-Notif -> DB: INSERT INTO notifications ...
-Notif -> Notif: sendEmail(brokerEmail, template)
-Notif --> Service: void
-deactivate Notif
+BrokerActor -> FE: Clicks "Send Request"
+FE -> Axios: POST /transactions/{txId}/documents/{docId}/send
+Axios -> DocCtrl: sendDocumentRequest(txId, docId, brokerId)
+activate DocCtrl
 
-' Map to DTO
-Service -> Service: mapToDTO(document)
-Service --> Controller: DocumentResponseDTO
-deactivate Service
+DocCtrl -> DocSvc: sendDocumentRequest(docId, brokerId)
+activate DocSvc
 
-Controller --> ApiClient: HTTP 200 + JSON body
-deactivate Controller
-ApiClient --> UI: response
-deactivate ApiClient
+DocSvc -> DocRepo: findByDocumentId(docId)
+DocRepo --> DocSvc: Document
 
-UI -> UI: refreshDocumentsList()
-UI --> Client: showSuccessToast
-deactivate UI
+note right of DocSvc
+  Validate: status == DRAFT
+  If requiresSignature, versions must exist
+end note
+
+DocSvc -> DocRepo: save(document{status=REQUESTED})
+
+DocSvc -> UserRepo: findById(clientId)
+UserRepo --> DocSvc: UserAccount (client)
+
+DocSvc -> EmailSvc: sendDocumentRequestedNotification(clientEmail, ...)
+DocSvc -> NotifSvc: createDocumentNotification(category=DOCUMENT)
+
+DocSvc --> DocCtrl: DocumentResponseDTO
+deactivate DocSvc
+DocCtrl --> Axios: HTTP 200
+deactivate DocCtrl
+Axios --> FE: Document (REQUESTED)
+FE --> BrokerActor: Show updated status
+
+== Flow 2: Client Submits Document ==
+
+ClientActor -> FE: Selects file and clicks Upload
+FE -> Axios: POST /transactions/{txId}/documents/{docId}/submit (multipart)
+Axios -> DocCtrl: submitDocument(txId, docId, file, userId, CLIENT)
+activate DocCtrl
+
+DocCtrl -> DocSvc: submitDocument(txId, docId, file, userId, CLIENT)
+activate DocSvc
+
+DocSvc -> DocRepo: findByDocumentId(docId)
+DocRepo --> DocSvc: Document
+
+note right of DocSvc
+  validateFile(file) - type, size
+  validateCanSubmit(doc) - status in [REQUESTED, NEEDS_REVISION]
+end note
+
+DocSvc -> Storage: uploadFile(txId, docId, file)
+Storage --> DocSvc: StorageObject{s3Key, fileName, mimeType, sizeBytes}
+
+note right of DocSvc
+  Create DocumentVersion (uploaderType=CLIENT)
+  Set status = SUBMITTED
+end note
+
+DocSvc -> DocRepo: save(document)
+
+DocSvc -> UserRepo: findById(brokerId)
+UserRepo --> DocSvc: UserAccount (broker)
+
+DocSvc -> EmailSvc: sendDocumentSubmittedNotification(brokerEmail, ...)
+DocSvc -> NotifSvc: createDocumentNotification(for broker)
+
+DocSvc --> DocCtrl: DocumentResponseDTO
+deactivate DocSvc
+DocCtrl --> Axios: HTTP 200
+deactivate DocCtrl
+Axios --> FE: Document (SUBMITTED)
+FE --> ClientActor: Show success
+
+== Flow 3: Broker Reviews Document ==
+
+BrokerActor -> FE: Clicks Review on submitted document
+
+FE -> Axios: GET .../versions/{verId}/download
+Axios -> DocCtrl: getDocumentDownloadUrl(txId, docId, verId)
+activate DocCtrl
+DocCtrl -> DocSvc: getDocumentDownloadUrl(docId, verId, userId)
+DocSvc -> Storage: getPreSignedUrl(s3Key, 15)
+Storage --> DocSvc: preSignedUrl
+DocSvc --> DocCtrl: url
+DocCtrl --> Axios: HTTP 200 {url}
+deactivate DocCtrl
+Axios --> FE: preSignedUrl
+FE --> BrokerActor: Opens document in browser
+
+BrokerActor -> FE: Selects decision in DocumentReviewModal
+FE -> Axios: PATCH /transactions/{txId}/documents/{docId}/review
+Axios -> DocCtrl: reviewDocument(txId, docId, {decision, comments}, brokerId)
+activate DocCtrl
+
+DocCtrl -> DocSvc: reviewDocument(txId, docId, dto, brokerId)
+activate DocSvc
+
+DocSvc -> DocRepo: findByDocumentId(docId)
+DocRepo --> DocSvc: Document
+
+note right of DocSvc
+  validateCanReview(doc) - status == SUBMITTED
+  Set status = decision, brokerNotes = comments
+end note
+
+DocSvc -> DocRepo: save(document)
+
+opt decision == APPROVED
+  DocSvc -> CheckRepo: upsert auto-check for stage checklist item
+end
+
+DocSvc -> EmailSvc: sendDocumentStatusUpdatedNotification(...)
+DocSvc -> NotifSvc: createDocumentNotification(for client)
+
+DocSvc --> DocCtrl: DocumentResponseDTO
+deactivate DocSvc
+DocCtrl --> Axios: HTTP 200
+deactivate DocCtrl
+Axios --> FE: Document (APPROVED / NEEDS_REVISION / REJECTED)
+FE --> BrokerActor: Show updated status
 
 @enduml
