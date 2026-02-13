@@ -383,7 +383,7 @@ export default function ShowcasePage() {
           title="Avatar"
           code={`<div className="flex gap-4">
   <Avatar>
-    <AvatarImage src="https://github.com/shadcn.png" />
+    <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
     <AvatarFallback>CN</AvatarFallback>
   </Avatar>
   <Avatar>
@@ -393,7 +393,7 @@ export default function ShowcasePage() {
         >
           <div className="flex gap-4">
             <Avatar>
-              <AvatarImage src="https://github.com/shadcn.png" />
+              <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
               <AvatarFallback>CN</AvatarFallback>
             </Avatar>
             <Avatar>
@@ -856,7 +856,7 @@ export default function ShowcasePage() {
   <HoverCardContent className="w-80">
     <div className="flex justify-between space-x-4">
       <Avatar>
-        <AvatarImage src="https://github.com/vercel.png" />
+        <AvatarImage src="https://github.com/vercel.png" alt="@vercel" />
         <AvatarFallback>VC</AvatarFallback>
       </Avatar>
       <div className="space-y-1">
@@ -881,7 +881,7 @@ export default function ShowcasePage() {
             <HoverCardContent className="w-80">
               <div className="flex justify-between space-x-4">
                 <Avatar>
-                  <AvatarImage src="https://github.com/vercel.png" />
+                  <AvatarImage src="https://github.com/vercel.png" alt="@vercel" />
                   <AvatarFallback>VC</AvatarFallback>
                 </Avatar>
                 <div className="space-y-1">

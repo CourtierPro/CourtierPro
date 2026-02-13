@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Globe, Mail, Pencil, Eye, Heading2, Square, Lightbulb, Bold as BoldIcon, Italic as ItalicIcon, Highlighter, Minus } from "lucide-react";
 
+import { PageHeader } from "@/shared/components/branded/PageHeader";
 import { InviteUserModal } from "@/features/admin/components/InviteUserModal";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -1005,12 +1006,10 @@ export function AdminSettingsPage() {
       <div className="min-h-screen bg-muted/40 p-12">
         <div className="mx-auto max-w-6xl space-y-8">
           {/* HEADER */}
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("settings.title")}</h1>
-            <p className="text-muted-foreground">
-              {t("settings.subtitle")}
-            </p>
-          </div>
+          <PageHeader 
+            title={t("settings.title")}
+            subtitle={t("settings.subtitle")}
+          />
 
           {/* ALERTS */}
           {error && (

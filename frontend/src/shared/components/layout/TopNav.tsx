@@ -19,6 +19,7 @@ interface NotificationItem {
 }
 
 interface TopNavProps {
+  isMenuOpen: boolean;
   onMenuToggle: () => void;
   language: "en" | "fr";
   onLanguageChange: (lang: "en" | "fr") => void;
@@ -30,6 +31,7 @@ interface TopNavProps {
 }
 
 export function TopNav({
+  isMenuOpen,
   onMenuToggle,
   language,
   onLanguageChange,
@@ -97,7 +99,7 @@ export function TopNav({
       aria-label="Main navigation"
       style={{ viewTransitionName: 'topnav' } as React.CSSProperties}
     >
-      {/* Left section */}
+      {/* Left section, including Logo and Hamburger */}
       <div className="flex items-center gap-4">
         {/* Mobile menu toggle */}
         <Button
@@ -106,7 +108,8 @@ export function TopNav({
           onClick={onMenuToggle}
           className="md:hidden"
           aria-label={t("menu")}
-          aria-expanded="false"
+          aria-expanded={isMenuOpen}
+          aria-controls="sidebar-nav"
         >
           <Menu className="w-6 h-6 text-foreground" />
         </Button>
@@ -144,6 +147,7 @@ export function TopNav({
             variant="outline"
             className="relative h-9 w-9 p-0 md:h-9 md:w-60 md:justify-start md:px-3 md:text-muted-foreground"
             onClick={() => setIsOpen(true)}
+            aria-label={t("searchPlaceholder", "Search...")}
           >
             <Search className="h-4 w-4 md:mr-2" />
             <span className="hidden md:inline-flex">{t("searchPlaceholder", "Search...")}</span>
