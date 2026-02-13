@@ -8,6 +8,11 @@ import { useEffect } from 'react';
  * - Inputs/Textareas where cursor movement is needed
  * - Elements that already handle arrow keys (like Radix UI components)
  */
+// Hook implementation starts here
+// This hook provides global arrow key navigation support.
+// While standard accessibility guidelines recommend Tab/Shift+Tab,
+// arrow key navigation is a common expectation for dashboard-like interfaces.
+// We include strict safeguards to avoid interfering with native input behavior.
 export function useArrowNavigation() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -21,22 +26,20 @@ export function useArrowNavigation() {
 
       // 3. SAFETY CHECK: Ignore if we are inside a text input, textarea, or contenteditable
       // We must let the user move the cursor inside these.
-      if (
-        activeElement.tagName === 'INPUT' ||
+      if (activeElement.tagName === 'INPUT') {
+        // Exception: If the input is type="button/submit/reset/checkbox/image", arrows are possibly safe.
+        // Radio buttons use arrows for selection, so we must ignore them too.
+        // Checkboxes use space to toggle, so arrows are okay, but we explicitly allow them here.
+        const inputType = (activeElement as HTMLInputElement).type;
+        if (!['button', 'submit', 'reset', 'image', 'checkbox'].includes(inputType)) {
+          return;
+        }
+      } else if (
         activeElement.tagName === 'TEXTAREA' ||
         activeElement.isContentEditable ||
         activeElement.tagName === 'SELECT' // Select uses arrows to change options
       ) {
-        // Exception: If the input is type="button/submit/reset/checkbox/radio", arrows are possibly safe, 
-        // BUT radio buttons use arrows for selection, so we must ignore them too.
-        // Checkboxes use space to toggle, so arrows are okay, but let's be safe and ignore all inputs for now except specifically safe ones if needed.
-        const inputType = (activeElement as HTMLInputElement).type;
-        if (activeElement.tagName === 'INPUT' && !['button', 'submit', 'reset', 'image', 'checkbox'].includes(inputType)) {
-          return;
-        }
-        if (activeElement.tagName === 'TEXTAREA' || activeElement.isContentEditable || activeElement.tagName === 'SELECT') {
-          return;
-        }
+        return;
       }
 
       // 4. SAFETY CHECK: Ignore if the element is part of a complex widget that handles its own arrows
@@ -56,7 +59,7 @@ export function useArrowNavigation() {
         .filter(el => {
           const element = el as HTMLElement;
           return !element.hasAttribute('disabled') && 
-                 !element.getAttribute('aria-hidden') && 
+                 element.getAttribute('aria-hidden') !== 'true' && 
                  element.offsetParent !== null; // Visible only
         }) as HTMLElement[];
 

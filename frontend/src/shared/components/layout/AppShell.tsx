@@ -90,7 +90,7 @@ export function AppShell({ children }: AppShellProps) {
     <div className="min-h-screen flex bg-background text-foreground pt-16">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:p-4 focus:bg-background focus:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-[100] focus:p-4 focus:bg-background focus:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
       >
         {t("skipToContent", "Skip to main content")}
       </a>
