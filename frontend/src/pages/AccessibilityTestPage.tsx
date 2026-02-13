@@ -45,7 +45,14 @@ export function AccessibilityTestPage() {
         </div>
       </Section>
 
-      <Section title="3. Semantic Links vs Buttons" description="Verify links use <a> and buttons use <button>.">
+      <Section
+        title="3. Semantic Links vs Buttons"
+        description={
+          <>
+            Verify links use <code>&lt;a&gt;</code> and buttons use <code>&lt;button&gt;</code>.
+          </>
+        }
+      >
         <div className="flex gap-4 items-center">
           <Button onClick={() => alert("Action triggered!")}>
             I am a &lt;button&gt; (Action)

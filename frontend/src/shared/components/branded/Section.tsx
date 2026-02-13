@@ -4,7 +4,7 @@ import { type ReactNode, type HTMLAttributes, forwardRef } from "react";
 
 interface SectionProps extends HTMLAttributes<HTMLDivElement> {
     title?: string;
-    description?: string;
+    description?: ReactNode;
     children: ReactNode;
     action?: ReactNode;
 }
