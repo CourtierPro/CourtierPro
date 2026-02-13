@@ -66,7 +66,7 @@ class WeeklyDigestServiceTest {
         Appointment appt = new Appointment();
         appt.setTitle("Meeting");
         appt.setFromDateTime(LocalDateTime.now().plusDays(1));
-        when(appointmentRepository.findByBrokerIdAndDateRange(any(), any(), any()))
+        when(appointmentRepository.findByBrokerIdAndDateRangeAndStatusIn(any(), any(), any(), any()))
                 .thenReturn(List.of(appt));
 
         Document doc = new Document();
@@ -99,7 +99,7 @@ class WeeklyDigestServiceTest {
         when(userAccountRepository.findByRoleAndWeeklyDigestEnabledTrueAndActiveTrue(UserRole.BROKER))
                 .thenReturn(List.of(broker));
 
-        when(appointmentRepository.findByBrokerIdAndDateRange(any(), any(), any()))
+        when(appointmentRepository.findByBrokerIdAndDateRangeAndStatusIn(any(), any(), any(), any()))
                 .thenReturn(new ArrayList<>());
 
         when(documentRepository.findPendingDocumentsForWeeklyDigest(any()))
@@ -133,14 +133,14 @@ class WeeklyDigestServiceTest {
                 .thenReturn(List.of(broker1, broker2));
 
         // Make broker1 fail during data aggregation
-        when(appointmentRepository.findByBrokerIdAndDateRange(eq(broker1.getId()), any(), any()))
+        when(appointmentRepository.findByBrokerIdAndDateRangeAndStatusIn(eq(broker1.getId()), any(), any(), any()))
                 .thenThrow(new RuntimeException("Aggregation failed"));
 
         // Make broker2 succeed with an appointment
         Appointment appt = new Appointment();
         appt.setTitle("Meeting");
         appt.setFromDateTime(LocalDateTime.now().plusDays(1));
-        when(appointmentRepository.findByBrokerIdAndDateRange(eq(broker2.getId()), any(), any()))
+        when(appointmentRepository.findByBrokerIdAndDateRangeAndStatusIn(eq(broker2.getId()), any(), any(), any()))
                 .thenReturn(List.of(appt));
         when(documentRepository.findPendingDocumentsForWeeklyDigest(eq(broker2.getId())))
                 .thenReturn(new ArrayList<>());
@@ -154,5 +154,39 @@ class WeeklyDigestServiceTest {
         // Verify emailService was only called for broker2
         verify(emailService, times(1)).sendWeeklyDigestEmail(eq(broker2), anyList(), anyList(), anyList());
         verify(emailService, never()).sendWeeklyDigestEmail(eq(broker1), anyList(), anyList(), anyList());
+    }
+
+    @Test
+    void sendWeeklyDigests_ShouldFilterCancelledAndDeclinedAppointments() {
+        // Arrange
+        UserAccount broker = new UserAccount();
+        broker.setId(UUID.randomUUID());
+        broker.setEmail("broker@test.com");
+        broker.setWeeklyDigestEnabled(true);
+        broker.setRole(UserRole.BROKER);
+
+        when(userAccountRepository.findByRoleAndWeeklyDigestEnabledTrueAndActiveTrue(UserRole.BROKER))
+                .thenReturn(List.of(broker));
+
+        // Mock returns empty list for the status-filtered query
+        when(appointmentRepository.findByBrokerIdAndDateRangeAndStatusIn(any(), any(), any(), any()))
+                .thenReturn(new ArrayList<>());
+        when(documentRepository.findPendingDocumentsForWeeklyDigest(any()))
+                .thenReturn(new ArrayList<>());
+        when(transactionRepository.findStalledTransactions(any(), any()))
+                .thenReturn(new ArrayList<>());
+
+        // Act
+        weeklyDigestService.sendWeeklyDigests();
+
+        // Assert
+        // Should not send email because all sections (after filtering) are empty
+        verify(emailService, never()).sendWeeklyDigestEmail(any(), anyList(), anyList(), anyList());
+
+        // Verify we actually passed the correct statuses to the repository
+        verify(appointmentRepository).findByBrokerIdAndDateRangeAndStatusIn(
+                eq(broker.getId()), any(), any(),
+                argThat(statuses -> statuses.contains(com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED)
+                        && statuses.contains(com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.PROPOSED)));
     }
 }

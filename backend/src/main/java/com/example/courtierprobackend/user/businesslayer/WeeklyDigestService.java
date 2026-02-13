@@ -66,9 +66,11 @@ public class WeeklyDigestService {
         LocalDateTime nextWeek = now.plusDays(7);
         LocalDateTime thresholdStalled = now.minusDays(14);
 
-        // 1. Upcoming appointments (next 7 days)
-        List<Appointment> upcomingAppointments = appointmentRepository.findByBrokerIdAndDateRange(
-                broker.getId(), now, nextWeek);
+        // 1. Upcoming appointments (next 7 days, excluding CANCELLED/DECLINED)
+        List<Appointment> upcomingAppointments = appointmentRepository.findByBrokerIdAndDateRangeAndStatusIn(
+                broker.getId(), now, nextWeek, Arrays.asList(
+                        com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.CONFIRMED,
+                        com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus.PROPOSED));
 
         // 2. Pending documents (REQUESTED, SUBMITTED, NEEDS_REVISION)
         List<Document> pendingDocuments = documentRepository.findPendingDocumentsForWeeklyDigest(broker.getId());

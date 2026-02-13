@@ -70,12 +70,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         List<Appointment> findByClientIdAndStatusOrderByFromDateTimeAsc(
                         UUID clientId, AppointmentStatus status);
 
-        /**
-         * Find appointments for a broker that overlap with a date range and have
-         * specific status.
-         * An appointment overlaps if it starts before the range ends AND ends after the
-         * range starts.
-         */
         @Query("SELECT a FROM Appointment a WHERE a.brokerId = :brokerId " +
                         "AND a.status = :status " +
                         "AND a.fromDateTime < :toDate AND a.toDateTime > :fromDate " +
@@ -85,6 +79,20 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                         @Param("fromDate") LocalDateTime fromDate,
                         @Param("toDate") LocalDateTime toDate,
                         @Param("status") AppointmentStatus status);
+
+        /**
+         * Find appointments for a broker that overlap with a date range and have
+         * any of the specified statuses.
+         */
+        @Query("SELECT a FROM Appointment a WHERE a.brokerId = :brokerId " +
+                        "AND a.status IN :statuses " +
+                        "AND a.fromDateTime < :toDate AND a.toDateTime > :fromDate " +
+                        "ORDER BY a.fromDateTime ASC")
+        List<Appointment> findByBrokerIdAndDateRangeAndStatusIn(
+                        @Param("brokerId") UUID brokerId,
+                        @Param("fromDate") LocalDateTime fromDate,
+                        @Param("toDate") LocalDateTime toDate,
+                        @Param("statuses") java.util.Collection<AppointmentStatus> statuses);
 
         /**
          * Find appointments for a client that overlap with a date range and have
