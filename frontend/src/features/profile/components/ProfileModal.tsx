@@ -13,6 +13,8 @@ import {
 import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar';
 import { Separator } from '@/shared/components/ui/separator';
 import { Badge } from '@/shared/components/ui/badge';
+import { Switch } from '@/shared/components/ui/switch';
+import { Label } from '@/shared/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -80,12 +82,14 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     const [emailChangeMsg, setEmailChangeMsg] = useState<string | null>(null);
     const [emailNotifications, setEmailNotifications] = useState(user?.emailNotificationsEnabled ?? true);
     const [inAppNotifications, setInAppNotifications] = useState(user?.inAppNotificationsEnabled ?? true);
+    const [weeklyDigest, setWeeklyDigest] = useState(user?.weeklyDigestEnabled ?? true);
 
     // Sync state when user changes
     React.useEffect(() => {
         setEmailInput(user?.email || '');
         setEmailNotifications(user?.emailNotificationsEnabled ?? true);
         setInAppNotifications(user?.inAppNotificationsEnabled ?? true);
+        setWeeklyDigest(user?.weeklyDigestEnabled ?? true);
     }, [user]);
 
     const handleLanguageChange = (newLanguage: string) => {
@@ -126,7 +130,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         }
     };
 
-    const handleNotificationChange = (type: 'email' | 'inApp', value: boolean) => {
+    const handleNotificationChange = (type: 'email' | 'inApp' | 'weeklyDigest', value: boolean) => {
         if (!user) return;
         if (type === 'email') {
             setEmailNotifications(value);
@@ -134,10 +138,16 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 emailNotificationsEnabled: value,
                 preferredLanguage: user.preferredLanguage || 'en'
             });
-        } else {
+        } else if (type === 'inApp') {
             setInAppNotifications(value);
             updateProfile.mutate({
                 inAppNotificationsEnabled: value,
+                preferredLanguage: user.preferredLanguage || 'en'
+            });
+        } else if (type === 'weeklyDigest') {
+            setWeeklyDigest(value);
+            updateProfile.mutate({
+                weeklyDigestEnabled: value,
                 preferredLanguage: user.preferredLanguage || 'en'
             });
         }
@@ -295,6 +305,37 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                                     </div>
                                 </div>
                             </section>
+
+                            {/* Digest Settings - Only for Brokers */}
+                            {user.role === 'BROKER' && (
+                                <section>
+                                    <h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                                        <Bell className="h-4 w-4" />
+                                        {t('weeklyDigestLabel', 'Weekly Digest')}
+                                    </h4>
+                                    <div className="space-y-4 pl-6">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="space-y-1">
+                                                <Label
+                                                    htmlFor="weekly-digest-switch"
+                                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                                >
+                                                    {t('weeklyDigestLabel', 'Weekly Digest')}
+                                                </Label>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {t('weeklyDigestDescription', 'Receive a weekly email summary of your pending tasks and appointments.')}
+                                                </p>
+                                            </div>
+                                            <Switch
+                                                id="weekly-digest-switch"
+                                                checked={weeklyDigest}
+                                                onCheckedChange={(checked) => handleNotificationChange('weeklyDigest', checked)}
+                                                disabled={updateProfile.isPending}
+                                            />
+                                        </div>
+                                    </div>
+                                </section>
+                            )}
                         </div>
                     </>
                 )}

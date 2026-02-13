@@ -16,6 +16,7 @@ export interface UserProfile {
     preferredLanguage: string;
     emailNotificationsEnabled: boolean;
     inAppNotificationsEnabled: boolean;
+    weeklyDigestEnabled: boolean;
 }
 
 export function useUserProfile() {

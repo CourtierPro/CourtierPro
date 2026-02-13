@@ -29,5 +29,7 @@
     "on": "On",
     "off": "Off",
     "update": "Update",
-    "emailChangeSent": "Confirmation sent to new email. Please check your inbox."
+    "emailChangeSent": "Confirmation sent to new email. Please check your inbox.",
+    "weeklyDigestLabel": "Weekly Digest",
+    "weeklyDigestDescription": "Receive a weekly email summary of your pending tasks and appointments."
 }

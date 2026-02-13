@@ -7,6 +7,7 @@ export interface UpdateProfileData {
     email?: string;
     emailNotificationsEnabled?: boolean;
     inAppNotificationsEnabled?: boolean;
+    weeklyDigestEnabled?: boolean;
 }
 
 export function useUpdateUserProfile() {
