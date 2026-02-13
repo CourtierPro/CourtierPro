@@ -1184,8 +1184,6 @@ public class EmailService {
 
             String htmlTemplate = loadTemplateFromClasspath(isFrench ? "email-templates/defaults/weekly_digest_fr.html"
                     : "email-templates/defaults/weekly_digest_en.html");
-            String txtTemplate = loadTemplateFromClasspath(isFrench ? "email-templates/defaults/weekly_digest_fr.txt"
-                    : "email-templates/defaults/weekly_digest_en.txt");
 
             String htmlBody = htmlTemplate
                     .replace("{{dateRange}}", dateRange)

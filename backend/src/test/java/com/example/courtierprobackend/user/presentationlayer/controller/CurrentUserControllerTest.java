@@ -91,12 +91,14 @@ class CurrentUserControllerTest {
         com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
         updateRequest.setEmailNotificationsEnabled(true);
         updateRequest.setInAppNotificationsEnabled(false);
+        updateRequest.setWeeklyDigestEnabled(true);
         updateRequest.setPreferredLanguage("en");
 
         ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updateRequest);
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(account.isEmailNotificationsEnabled()).isTrue();
         assertThat(account.isInAppNotificationsEnabled()).isFalse();
+        assertThat(account.isWeeklyDigestEnabled()).isTrue();
     }
 
     @Mock

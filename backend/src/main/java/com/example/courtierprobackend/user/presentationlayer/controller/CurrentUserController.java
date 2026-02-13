@@ -107,6 +107,9 @@ public class CurrentUserController {
         if (updateRequest.getInAppNotificationsEnabled() != null) {
             account.setInAppNotificationsEnabled(updateRequest.getInAppNotificationsEnabled());
         }
+        if (updateRequest.getWeeklyDigestEnabled() != null) {
+            account.setWeeklyDigestEnabled(updateRequest.getWeeklyDigestEnabled());
+        }
 
         // Handle preferredLanguage update
         if (updateRequest.getPreferredLanguage() == null) {
