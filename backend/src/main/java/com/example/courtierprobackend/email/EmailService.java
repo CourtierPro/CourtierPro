@@ -1210,10 +1210,11 @@ public class EmailService {
         StringBuilder sb = new StringBuilder("<ul>");
         for (var appt : appointments) {
             String title = translateAppointmentTitle(appt.getTitle(), isFrench);
+            String location = appt.getLocation() != null ? appt.getLocation() : (isFrench ? "N/A" : "N/A"); // Using N/A for both for now, or "Lieu inconnu"
             sb.append("<li><strong>").append(escapeHtml(title)).append("</strong>: ")
                     .append(appt.getFromDateTime().toLocalDate()).append(" ")
                     .append(appt.getFromDateTime().toLocalTime())
-                    .append(" - ").append(escapeHtml(appt.getLocation()))
+                    .append(" - ").append(escapeHtml(location))
                     .append("</li>");
         }
         sb.append("</ul>");
