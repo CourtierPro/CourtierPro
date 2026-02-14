@@ -19,6 +19,45 @@ interface PipelineFunnelChartProps {
     data: PipelineStageDTO[];
 }
 
+interface ClientRow {
+    clientName: string;
+    stageIndex: number;
+    stageName: string;
+    avgDays: number;
+}
+
+interface TooltipPayload {
+    payload: ClientRow;
+}
+
+const CustomTooltip = ({ active, payload, t }: {
+    active?: boolean;
+    payload?: TooltipPayload[];
+    t: (key: string, options?: { value: string }) => string
+}) => {
+    if (active && payload && payload.length) {
+        const row = payload[0].payload;
+        return (
+            <div className="bg-popover/95 backdrop-blur-sm border border-primary/20 p-3 rounded-lg shadow-xl text-sm leading-relaxed">
+                <p className="font-bold mb-2 border-b border-primary/10 pb-1 text-primary italic">
+                    {row.clientName}
+                </p>
+                <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-4">
+                        <span className="text-muted-foreground text-xs">{t("transactionPipeline")}:</span>
+                        <span className="font-semibold text-xs">{row.stageName}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                        <span className="text-muted-foreground text-xs">{t("stats.avgDuration")}:</span>
+                        <span className="font-bold text-xs">{row.avgDays.toFixed(1)} {t("formatters.days", { value: "" }).trim()}</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
+
 export function PipelineFunnelChart({ data }: PipelineFunnelChartProps) {
     const { t } = useTranslation("analytics");
     const [currentPage, setCurrentPage] = useState(0);
@@ -34,7 +73,7 @@ export function PipelineFunnelChart({ data }: PipelineFunnelChartProps) {
         avgDays: s.avgDays
     }));
 
-    const clientRows: any[] = [];
+    const clientRows: ClientRow[] = [];
 
     data.forEach((stage, stageIndex) => {
         if (stage.clients) {
@@ -55,30 +94,6 @@ export function PipelineFunnelChart({ data }: PipelineFunnelChartProps) {
     // Pagination Logic
     const totalPages = Math.ceil(clientRows.length / pageSize);
     const paginatedRows = clientRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
-
-    const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] }) => {
-        if (active && payload && payload.length) {
-            const row = payload[0].payload;
-            return (
-                <div className="bg-popover/95 backdrop-blur-sm border border-primary/20 p-3 rounded-lg shadow-xl text-sm leading-relaxed">
-                    <p className="font-bold mb-2 border-b border-primary/10 pb-1 text-primary italic">
-                        {row.clientName}
-                    </p>
-                    <div className="space-y-1">
-                        <div className="flex items-center justify-between gap-4">
-                            <span className="text-muted-foreground text-xs">{t("transactionPipeline")}:</span>
-                            <span className="font-semibold text-xs">{row.stageName}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                            <span className="text-muted-foreground text-xs">{t("stats.avgDuration")}:</span>
-                            <span className="font-bold text-xs">{row.avgDays.toFixed(1)} {t("formatters.days", { value: "" }).trim()}</span>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-        return null;
-    };
 
     if (clientRows.length === 0) {
         const isBuyer = data[0]?.stageName.startsWith('BUYER');
@@ -109,6 +124,11 @@ export function PipelineFunnelChart({ data }: PipelineFunnelChartProps) {
     // Calculate height based on pageSize or remaining clients
     const displayCount = Math.min(pageSize, paginatedRows.length);
     const chartHeight = Math.max(400, displayCount * 40 + 100);
+
+    // Casting t to satisfy the simplified Tooltip type if necessary, 
+    // but in reality useTranslation returns a complex type.
+    // For linting, we just need to ensure we don't use 'any'.
+    const translate = (key: string, options?: { value: string }) => t(key, options);
 
     return (
         <div className="relative group/chart">
@@ -198,7 +218,7 @@ export function PipelineFunnelChart({ data }: PipelineFunnelChartProps) {
                             className="text-muted-foreground italic"
                         />
 
-                        <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'currentColor', opacity: 0.03 }} />
+                        <RechartsTooltip content={<CustomTooltip t={translate} />} cursor={{ fill: 'currentColor', opacity: 0.03 }} />
 
                         <Bar
                             dataKey="stageIndex"
