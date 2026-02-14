@@ -35,6 +35,7 @@ public class UserMapper {
                 .preferredLanguage(account.getPreferredLanguage())
                 .emailNotificationsEnabled(account.isEmailNotificationsEnabled())
                 .inAppNotificationsEnabled(account.isInAppNotificationsEnabled())
+                .weeklyDigestEnabled(account.isWeeklyDigestEnabled())
                 .build();
     }
 }

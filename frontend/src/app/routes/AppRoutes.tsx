@@ -48,6 +48,10 @@ const InternalServerErrorPage = lazy(() => import("@/pages/status/InternalServer
 const ServiceUnavailablePage = lazy(() => import("@/pages/status/ServiceUnavailablePage").then(module => ({ default: module.ServiceUnavailablePage })));
 const NotFoundPage = lazy(() => import("@/pages/status/NotFoundPage").then(module => ({ default: module.NotFoundPage })));
 
+// Accessibility Test
+const AccessibilityTestPage = lazy(() => import("@/pages/AccessibilityTestPage").then(module => ({ default: module.AccessibilityTestPage })));
+
+
 export function AppRoutes() {
     const { user } = useAuth0();
     const role: AppRole | null = getRoleFromUser(user);
@@ -300,8 +304,18 @@ export function AppRoutes() {
                     }
                 />
 
+                {/* Accessibility Test */}
+                <Route
+                    path="/dev/accessibility"
+                    element={
+                        <RequireRole allowed={["admin", "broker", "client"]}>
+                            <AppShell>
+                                <AccessibilityTestPage />
+                            </AppShell>
+                        </RequireRole>
+                    }
+                />
 
-                {/* Showcase */}
                 <Route
                     path="/dev/showcase"
                     element={

@@ -72,4 +72,11 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
                         "ORDER BY d.dueDate ASC")
         List<Document> findOutstandingDocumentsForBroker(@Param("brokerId") UUID brokerId,
                         @Param("now") LocalDateTime now);
+
+        @Query("SELECT d FROM Document d " +
+                        "JOIN Transaction t ON d.transactionRef.transactionId = t.transactionId " +
+                        "WHERE t.brokerId = :brokerId " +
+                        "AND d.status IN ('REQUESTED', 'SUBMITTED', 'NEEDS_REVISION') " +
+                        "ORDER BY d.status DESC, d.lastUpdatedAt ASC")
+        List<Document> findPendingDocumentsForWeeklyDigest(@Param("brokerId") UUID brokerId);
 }

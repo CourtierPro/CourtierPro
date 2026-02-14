@@ -91,12 +91,14 @@ class CurrentUserControllerTest {
         com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
         updateRequest.setEmailNotificationsEnabled(true);
         updateRequest.setInAppNotificationsEnabled(false);
+        updateRequest.setWeeklyDigestEnabled(true);
         updateRequest.setPreferredLanguage("en");
 
         ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updateRequest);
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(account.isEmailNotificationsEnabled()).isTrue();
         assertThat(account.isInAppNotificationsEnabled()).isFalse();
+        assertThat(account.isWeeklyDigestEnabled()).isTrue();
     }
 
     @Mock
@@ -269,21 +271,6 @@ class CurrentUserControllerTest {
                     .hasMessageContaining("Invalid language");
         }
 
-        @Test
-        void updateCurrentUser_WithNullLanguage_ThrowsBadRequest() {
-            UUID internalId = UUID.randomUUID();
-            UserAccount account = new UserAccount();
-
-            when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(internalId);
-            when(userAccountRepository.findById(internalId)).thenReturn(Optional.of(account));
-
-                com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
-                updateRequest.setPreferredLanguage(null);
-
-                assertThatThrownBy(() -> controller.updateCurrentUser(request, updateRequest))
-                    .isInstanceOf(BadRequestException.class)
-                    .hasMessageContaining("Invalid language");
-        }
 
         @Test
         void updateCurrentUser_NoInternalId_ThrowsUnauthorized() {
@@ -359,6 +346,97 @@ class CurrentUserControllerTest {
             assertThat(account.getPreferredLanguage()).isEqualTo("en");
             verify(userAccountRepository).save(account);
             verify(auth0ManagementClient).updateUserLanguage("auth0|syncfail789", "en");
+        }
+
+        @Test
+        void updateCurrentUser_PartialNotificationUpdates() {
+            UUID internalId = UUID.randomUUID();
+            UserAccount account = new UserAccount();
+            account.setEmailNotificationsEnabled(true);
+            account.setInAppNotificationsEnabled(true);
+            account.setWeeklyDigestEnabled(false);
+            UserResponse response = UserResponse.builder().build();
+
+            when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(internalId);
+            when(userAccountRepository.findById(internalId)).thenReturn(Optional.of(account));
+            when(userAccountRepository.save(account)).thenReturn(account);
+            when(userMapper.toResponse(account)).thenReturn(response);
+
+            com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
+            updateRequest.setEmailNotificationsEnabled(null);
+            updateRequest.setInAppNotificationsEnabled(false);
+            updateRequest.setWeeklyDigestEnabled(null);
+            updateRequest.setPreferredLanguage("en");
+
+            controller.updateCurrentUser(request, updateRequest);
+
+            assertThat(account.isEmailNotificationsEnabled()).isTrue(); // Unchanged
+            assertThat(account.isInAppNotificationsEnabled()).isFalse(); // Updated
+            assertThat(account.isWeeklyDigestEnabled()).isFalse(); // Unchanged
+        }
+
+        @Test
+        void updateCurrentUser_WithoutLanguage_Succeeds() {
+            UUID internalId = UUID.randomUUID();
+            UserAccount account = new UserAccount();
+            account.setPreferredLanguage("en");
+            UserResponse response = UserResponse.builder().build();
+
+            when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(internalId);
+            when(userAccountRepository.findById(internalId)).thenReturn(Optional.of(account));
+            when(userAccountRepository.save(account)).thenReturn(account);
+            when(userMapper.toResponse(account)).thenReturn(response);
+
+            com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest updateRequest = new com.example.courtierprobackend.user.presentationlayer.request.UpdateUserProfileRequest();
+            updateRequest.setPreferredLanguage(null);
+            updateRequest.setWeeklyDigestEnabled(true);
+
+            ResponseEntity<UserResponse> result = controller.updateCurrentUser(request, updateRequest);
+
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(account.getPreferredLanguage()).isEqualTo("en"); // Remains unchanged
+            assertThat(account.isWeeklyDigestEnabled()).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/me/mfa-status")
+    class GetMfaStatusTests {
+        @Test
+        void getMfaStatus_UserNotFoundInDb_FallbackToJwt() throws Exception {
+            String auth0Id = "auth0|jwt_only";
+            when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(UUID.randomUUID());
+            when(userAccountRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+            when(jwt.getClaimAsString("sub")).thenReturn(auth0Id);
+            when(auth0ManagementClient.isMfaEnabled(auth0Id)).thenReturn(true);
+
+            ResponseEntity<Map<String, Object>> result = controller.getMfaStatus(request, jwt);
+
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(result.getBody().get("mfaEnabled")).isEqualTo(true);
+        }
+
+        @Test
+        void getMfaStatus_Auth0IdNotFound_ThrowsUnauthorized() {
+            when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(null);
+            
+            assertThatThrownBy(() -> controller.getMfaStatus(request, null))
+                    .isInstanceOf(UnauthorizedException.class);
+        }
+
+        @Test
+        void getMfaStatus_Auth0SyncFails_ReturnsFalse() throws Exception {
+            String auth0Id = "auth0|fail";
+            UserAccount account = new UserAccount();
+            account.setAuth0UserId(auth0Id);
+            when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(UUID.randomUUID());
+            when(userAccountRepository.findById(any(UUID.class))).thenReturn(Optional.of(account));
+            when(auth0ManagementClient.isMfaEnabled(auth0Id)).thenThrow(new RuntimeException("API error"));
+
+            ResponseEntity<Map<String, Object>> result = controller.getMfaStatus(request, jwt);
+
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(result.getBody().get("mfaEnabled")).isEqualTo(false);
         }
     }
 }

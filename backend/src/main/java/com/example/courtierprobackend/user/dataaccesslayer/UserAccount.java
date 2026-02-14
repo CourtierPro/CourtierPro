@@ -28,6 +28,9 @@ public class UserAccount {
     @Column(nullable = false)
     private boolean inAppNotificationsEnabled = true;
 
+    @Column(nullable = false)
+    private boolean weeklyDigestEnabled = true;
+
     private String firstName;
     private String lastName;
 
@@ -66,6 +69,7 @@ public class UserAccount {
         this.preferredLanguage = preferredLanguage;
         this.emailNotificationsEnabled = true;
         this.inAppNotificationsEnabled = true;
+        this.weeklyDigestEnabled = true;
         this.active = true;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
@@ -88,6 +92,11 @@ public class UserAccount {
 
     public void setInAppNotificationsEnabled(boolean enabled) {
         this.inAppNotificationsEnabled = enabled;
+        this.updatedAt = Instant.now();
+    }
+
+    public void setWeeklyDigestEnabled(boolean enabled) {
+        this.weeklyDigestEnabled = enabled;
         this.updatedAt = Instant.now();
     }
 
