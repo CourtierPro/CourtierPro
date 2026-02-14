@@ -82,8 +82,7 @@
         "closed": "Closed",
         "totalSellShowings": "Total Showings",
         "avgSellShowingsPerClosedTransaction": "Avg. per Closed Sell",
-        "totalSellVisitors": "Total Visitors",
-        "client": "Client"
+        "totalSellVisitors": "Total Visitors"
     },
     "stageLabels": {
         "buyerStages": "Buyer Stages",

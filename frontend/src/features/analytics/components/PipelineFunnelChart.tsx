@@ -44,7 +44,7 @@ const CustomTooltip = ({ active, payload, t }: {
                 </p>
                 <div className="space-y-1">
                     <div className="flex items-center justify-between gap-4">
-                        <span className="text-muted-foreground text-xs">{t("transactionPipeline")}:</span>
+                        <span className="text-muted-foreground text-xs">{t("sections.transactionPipeline")}:</span>
                         <span className="font-semibold text-xs">{row.stageName}</span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
@@ -125,9 +125,6 @@ export function PipelineFunnelChart({ data }: PipelineFunnelChartProps) {
     const displayCount = Math.min(pageSize, paginatedRows.length);
     const chartHeight = Math.max(400, displayCount * 40 + 100);
 
-    // Casting t to satisfy the simplified Tooltip type if necessary, 
-    // but in reality useTranslation returns a complex type.
-    // For linting, we just need to ensure we don't use 'any'.
     const translate = (key: string, options?: { value: string }) => t(key, options);
 
     return (

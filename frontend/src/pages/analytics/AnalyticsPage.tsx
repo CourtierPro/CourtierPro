@@ -421,10 +421,16 @@ export function AnalyticsPage() {
 
                 <div className="w-full">
                   <TabsContent value="buyer" className="animate-in fade-in zoom-in-95 duration-500">
-                    <PipelineFunnelChart data={data.buyerPipeline} />
+                    <PipelineFunnelChart
+                      data={data.buyerPipeline}
+                      key={`buyer-${JSON.stringify(appliedFilters)}`}
+                    />
                   </TabsContent>
                   <TabsContent value="seller" className="animate-in fade-in zoom-in-95 duration-500">
-                    <PipelineFunnelChart data={data.sellerPipeline} />
+                    <PipelineFunnelChart
+                      data={data.sellerPipeline}
+                      key={`seller-${JSON.stringify(appliedFilters)}`}
+                    />
                   </TabsContent>
                 </div>
               </Tabs>
