@@ -498,6 +498,25 @@ public class AnalyticsService {
                 }
         }
 
+        // ── PDF Color Palette ──────────────────────────────────────────
+        private static final java.awt.Color NAVY       = new java.awt.Color(27, 42, 74);   // #1B2A4A
+        private static final java.awt.Color ACCENT     = new java.awt.Color(59, 130, 246); // #3B82F6
+        private static final java.awt.Color WHITE      = java.awt.Color.WHITE;
+        private static final java.awt.Color ROW_ALT    = new java.awt.Color(248, 249, 250); // #F8F9FA
+        private static final java.awt.Color BORDER_CLR = new java.awt.Color(222, 226, 230); // #DEE2E6
+        private static final java.awt.Color TEXT_DARK  = new java.awt.Color(33, 37, 41);    // #212529
+        private static final java.awt.Color TEXT_MUTED = new java.awt.Color(108, 117, 125); // #6C757D
+
+        // Section accent colors
+        private static final java.awt.Color SEC_TRANSACTIONS  = new java.awt.Color(59, 130, 246);  // Blue
+        private static final java.awt.Color SEC_BUY_SIDE      = new java.awt.Color(16, 185, 129);  // Green
+        private static final java.awt.Color SEC_SELL_SIDE      = new java.awt.Color(139, 92, 246);  // Purple
+        private static final java.awt.Color SEC_DOCUMENTS     = new java.awt.Color(245, 158, 11);  // Amber
+        private static final java.awt.Color SEC_APPOINTMENTS  = new java.awt.Color(236, 72, 153);  // Pink
+        private static final java.awt.Color SEC_CONDITIONS    = new java.awt.Color(20, 184, 166);  // Teal
+        private static final java.awt.Color SEC_CLIENTS       = new java.awt.Color(249, 115, 22);  // Orange
+        private static final java.awt.Color SEC_TRENDS        = new java.awt.Color(99, 102, 241);  // Indigo
+
         public byte[] exportAnalyticsPdf(UUID brokerId, AnalyticsFilterRequest filters) {
                 AnalyticsDTO data = getAnalytics(brokerId, filters);
                 String brokerName = userAccountRepository.findById(brokerId)
@@ -505,49 +524,129 @@ public class AnalyticsService {
                         .orElse("Unknown Broker");
 
                 try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                        com.lowagie.text.Document document = new com.lowagie.text.Document(PageSize.A4);
-                        PdfWriter.getInstance(document, out);
+                        com.lowagie.text.Document document = new com.lowagie.text.Document(
+                                PageSize.A4, 40, 40, 40, 60);
+                        PdfWriter writer = PdfWriter.getInstance(document, out);
+                        writer.setPageEvent(new PdfFooterEvent());
 
                         document.open();
 
-                        // Title
-                        Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
-                        Paragraph title = new Paragraph("CourtierPro Analytics Report", titleFont);
-                        title.setAlignment(Element.ALIGN_CENTER);
-                        document.add(title);
-                        document.add(Chunk.NEWLINE);
+                        // ── Header Banner ──
+                        addReportHeader(document, brokerName, filters);
 
-                        // Metadata
-                        Font metaFont = FontFactory.getFont(FontFactory.HELVETICA, 12);
-                        document.add(new Paragraph("Broker: " + brokerName, metaFont));
-                        document.add(new Paragraph("Generated Date: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")), metaFont));
-                        if (filters.getStartDate() != null && filters.getEndDate() != null) {
-                                document.add(new Paragraph("Period: " + filters.getStartDate() + " to " + filters.getEndDate(), metaFont));
-                        }
-                        document.add(Chunk.NEWLINE);
+                        // ── Section 1: Transaction Overview ──
+                        addSectionTitle(document, "Transaction Overview", SEC_TRANSACTIONS);
+                        PdfPTable txTable = createStyledTable();
+                        addStyledHeader(txTable, "Metric", "Value", SEC_TRANSACTIONS);
+                        int row = 0;
+                        addStyledRow(txTable, "Total Transactions",    String.valueOf(data.totalTransactions()),     row++ % 2 == 1);
+                        addStyledRow(txTable, "Active Transactions",   String.valueOf(data.activeTransactions()),    row++ % 2 == 1);
+                        addStyledRow(txTable, "Closed Transactions",   String.valueOf(data.closedTransactions()),    row++ % 2 == 1);
+                        addStyledRow(txTable, "Terminated Transactions", String.valueOf(data.terminatedTransactions()), row++ % 2 == 1);
+                        addStyledRow(txTable, "Buy-Side Transactions", String.valueOf(data.buyTransactions()),       row++ % 2 == 1);
+                        addStyledRow(txTable, "Sell-Side Transactions", String.valueOf(data.sellTransactions()),     row++ % 2 == 1);
+                        addStyledRow(txTable, "Success Rate",          data.successRate() + "%",                     row++ % 2 == 1);
+                        addStyledRow(txTable, "Avg Duration",          data.avgTransactionDurationDays() + " days",  row++ % 2 == 1);
+                        addStyledRow(txTable, "Longest Duration",      data.longestDurationDays() + " days",         row++ % 2 == 1);
+                        addStyledRow(txTable, "Shortest Duration",     data.shortestDurationDays() + " days",        row++ % 2 == 1);
+                        document.add(txTable);
 
-                        // Table
-                        PdfPTable table = new PdfPTable(2);
-                        table.setWidthPercentage(100);
-                        table.setSpacingBefore(10f);
-                        table.setSpacingAfter(10f);
+                        // ── Section 2: Buy-Side Metrics ──
+                        addSectionTitle(document, "Buy-Side Metrics", SEC_BUY_SIDE);
+                        PdfPTable buyTable = createStyledTable();
+                        addStyledHeader(buyTable, "Metric", "Value", SEC_BUY_SIDE);
+                        row = 0;
+                        addStyledRow(buyTable, "Total House Visits",       String.valueOf(data.totalHouseVisits()),                row++ % 2 == 1);
+                        addStyledRow(buyTable, "Avg Visits / Closed Tx",   String.valueOf(data.avgHouseVisitsPerClosedTransaction()), row++ % 2 == 1);
+                        addStyledRow(buyTable, "Total Properties",         String.valueOf(data.totalProperties()),                 row++ % 2 == 1);
+                        addStyledRow(buyTable, "Avg Properties / Buy Tx",  String.valueOf(data.avgPropertiesPerBuyTransaction()),  row++ % 2 == 1);
+                        addStyledRow(buyTable, "Property Interest Rate",   data.propertyInterestRate() + "%",                     row++ % 2 == 1);
+                        addStyledRow(buyTable, "Properties Needing Info",  String.valueOf(data.propertiesNeedingInfo()),           row++ % 2 == 1);
+                        addStyledRow(buyTable, "Properties With Offers",   String.valueOf(data.propertiesWithOffers()),            row++ % 2 == 1);
+                        addStyledRow(buyTable, "Properties Without Offers", String.valueOf(data.propertiesWithoutOffers()),        row++ % 2 == 1);
+                        addStyledRow(buyTable, "Total Buyer Offers",       String.valueOf(data.totalBuyerOffers()),                row++ % 2 == 1);
+                        addStyledRow(buyTable, "Buyer Offer Acceptance",   data.buyerOfferAcceptanceRate() + "%",                  row++ % 2 == 1);
+                        addStyledRow(buyTable, "Avg Offer Rounds",         String.valueOf(data.avgOfferRounds()),                  row++ % 2 == 1);
+                        addStyledRow(buyTable, "Avg Buyer Offer Amount",   "$" + String.format("%,.2f", data.avgBuyerOfferAmount()), row++ % 2 == 1);
+                        addStyledRow(buyTable, "Expired / Withdrawn",      String.valueOf(data.expiredOrWithdrawnOffers()),        row++ % 2 == 1);
+                        addStyledRow(buyTable, "Counter-Offer Rate",       data.buyerCounterOfferRate() + "%",                    row++ % 2 == 1);
+                        document.add(buyTable);
 
-                        addTableHeader(table, "Metric");
-                        addTableHeader(table, "Value");
+                        // ── Section 3: Sell-Side Metrics ──
+                        addSectionTitle(document, "Sell-Side Metrics", SEC_SELL_SIDE);
+                        PdfPTable sellTable = createStyledTable();
+                        addStyledHeader(sellTable, "Metric", "Value", SEC_SELL_SIDE);
+                        row = 0;
+                        addStyledRow(sellTable, "Total Showings",            String.valueOf(data.totalSellShowings()),                    row++ % 2 == 1);
+                        addStyledRow(sellTable, "Avg Showings / Closed Tx",  String.valueOf(data.avgSellShowingsPerClosedTransaction()),  row++ % 2 == 1);
+                        addStyledRow(sellTable, "Total Visitors",            String.valueOf(data.totalSellVisitors()),                    row++ % 2 == 1);
+                        addStyledRow(sellTable, "Total Received Offers",     String.valueOf(data.totalOffers()),                          row++ % 2 == 1);
+                        addStyledRow(sellTable, "Offer Acceptance Rate",     data.receivedOfferAcceptanceRate() + "%",                    row++ % 2 == 1);
+                        addStyledRow(sellTable, "Avg Received Offer",        "$" + String.format("%,.2f", data.avgReceivedOfferAmount()), row++ % 2 == 1);
+                        addStyledRow(sellTable, "Highest Offer",             "$" + String.format("%,.2f", data.highestOfferAmount()),     row++ % 2 == 1);
+                        addStyledRow(sellTable, "Lowest Offer",              "$" + String.format("%,.2f", data.lowestOfferAmount()),      row++ % 2 == 1);
+                        addStyledRow(sellTable, "Avg Offers / Sell Tx",      String.valueOf(data.avgOffersPerSellTransaction()),          row++ % 2 == 1);
+                        addStyledRow(sellTable, "Pending / Under Review",    String.valueOf(data.pendingOrReviewOffers()),                row++ % 2 == 1);
+                        addStyledRow(sellTable, "Counter-Offer Rate",        data.receivedCounterOfferRate() + "%",                       row++ % 2 == 1);
+                        document.add(sellTable);
 
-                        addTableRow(table, "Total Transactions", String.valueOf(data.totalTransactions()));
-                        addTableRow(table, "Active Transactions", String.valueOf(data.activeTransactions()));
-                        addTableRow(table, "Closed Transactions", String.valueOf(data.closedTransactions()));
-                        addTableRow(table, "Success Rate", data.successRate() + "%");
-                        addTableRow(table, "Avg Duration", data.avgTransactionDurationDays() + " days");
-                        
-                        addTableRow(table, "Buy Transactions", String.valueOf(data.buyTransactions()));
-                        addTableRow(table, "Total House Visits", String.valueOf(data.totalHouseVisits()));
-                        
-                        addTableRow(table, "Sell Transactions", String.valueOf(data.sellTransactions()));
-                        addTableRow(table, "Total Showings", String.valueOf(data.totalSellShowings()));
+                        // ── Section 4: Documents ──
+                        addSectionTitle(document, "Documents", SEC_DOCUMENTS);
+                        PdfPTable docTable = createStyledTable();
+                        addStyledHeader(docTable, "Metric", "Value", SEC_DOCUMENTS);
+                        row = 0;
+                        addStyledRow(docTable, "Total Documents",        String.valueOf(data.totalDocuments()),           row++ % 2 == 1);
+                        addStyledRow(docTable, "Pending Documents",      String.valueOf(data.pendingDocuments()),         row++ % 2 == 1);
+                        addStyledRow(docTable, "Completion Rate",        data.documentCompletionRate() + "%",             row++ % 2 == 1);
+                        addStyledRow(docTable, "Needing Revision",       String.valueOf(data.documentsNeedingRevision()), row++ % 2 == 1);
+                        addStyledRow(docTable, "Avg Documents / Tx",     String.valueOf(data.avgDocumentsPerTransaction()), row++ % 2 == 1);
+                        document.add(docTable);
 
-                        document.add(table);
+                        // ── Section 5: Appointments ──
+                        addSectionTitle(document, "Appointments", SEC_APPOINTMENTS);
+                        PdfPTable apptTable = createStyledTable();
+                        addStyledHeader(apptTable, "Metric", "Value", SEC_APPOINTMENTS);
+                        row = 0;
+                        addStyledRow(apptTable, "Total Appointments",    String.valueOf(data.totalAppointments()),             row++ % 2 == 1);
+                        addStyledRow(apptTable, "Confirmation Rate",     data.appointmentConfirmationRate() + "%",             row++ % 2 == 1);
+                        addStyledRow(apptTable, "Declined Rate",         data.declinedAppointmentRate() + "%",                 row++ % 2 == 1);
+                        addStyledRow(apptTable, "Cancelled Rate",        data.cancelledAppointmentRate() + "%",                row++ % 2 == 1);
+                        addStyledRow(apptTable, "Upcoming Appointments", String.valueOf(data.upcomingAppointments()),          row++ % 2 == 1);
+                        addStyledRow(apptTable, "Avg Appointments / Tx", String.valueOf(data.avgAppointmentsPerTransaction()), row++ % 2 == 1);
+                        document.add(apptTable);
+
+                        // ── Section 6: Conditions ──
+                        addSectionTitle(document, "Conditions", SEC_CONDITIONS);
+                        PdfPTable condTable = createStyledTable();
+                        addStyledHeader(condTable, "Metric", "Value", SEC_CONDITIONS);
+                        row = 0;
+                        addStyledRow(condTable, "Total Conditions",       String.valueOf(data.totalConditions()),              row++ % 2 == 1);
+                        addStyledRow(condTable, "Satisfied Rate",         data.conditionSatisfiedRate() + "%",                 row++ % 2 == 1);
+                        addStyledRow(condTable, "Approaching Deadline",   String.valueOf(data.conditionsApproachingDeadline()), row++ % 2 == 1);
+                        addStyledRow(condTable, "Overdue",                String.valueOf(data.overdueConditions()),             row++ % 2 == 1);
+                        addStyledRow(condTable, "Avg Conditions / Tx",    String.valueOf(data.avgConditionsPerTransaction()),  row++ % 2 == 1);
+                        document.add(condTable);
+
+                        // ── Section 7: Client Engagement ──
+                        addSectionTitle(document, "Client Engagement", SEC_CLIENTS);
+                        PdfPTable clientTable = createStyledTable();
+                        addStyledHeader(clientTable, "Metric", "Value", SEC_CLIENTS);
+                        row = 0;
+                        addStyledRow(clientTable, "Total Active Clients",       String.valueOf(data.totalActiveClients()),                row++ % 2 == 1);
+                        addStyledRow(clientTable, "Clients w/ Multiple Tx",     String.valueOf(data.clientsWithMultipleTransactions()),   row++ % 2 == 1);
+                        addStyledRow(clientTable, "Appointments by Broker",     String.valueOf(data.appointmentsByBroker()),              row++ % 2 == 1);
+                        addStyledRow(clientTable, "Appointments by Client",     String.valueOf(data.appointmentsByClient()),              row++ % 2 == 1);
+                        document.add(clientTable);
+
+                        // ── Section 8: Trends ──
+                        addSectionTitle(document, "Trends", SEC_TRENDS);
+                        PdfPTable trendTable = createStyledTable();
+                        addStyledHeader(trendTable, "Metric", "Value", SEC_TRENDS);
+                        row = 0;
+                        addStyledRow(trendTable, "Busiest Month",        data.busiestMonth(),                           row++ % 2 == 1);
+                        addStyledRow(trendTable, "Idle Transactions",    String.valueOf(data.idleTransactions()),       row++ % 2 == 1);
+                        document.add(trendTable);
+
                         document.close();
 
                         logExportAudit(brokerId, "PDF", filters);
@@ -559,17 +658,172 @@ public class AnalyticsService {
                 }
         }
 
-        private void addTableHeader(PdfPTable table, String headerTitle) {
-                PdfPCell header = new PdfPCell();
-                header.setBackgroundColor(java.awt.Color.LIGHT_GRAY);
-                header.setBorderWidth(2);
-                header.setPhrase(new Phrase(headerTitle));
-                table.addCell(header);
+        // ── PDF Helper Methods ───────────────────────────────────────────
+
+        private void addReportHeader(com.lowagie.text.Document document, String brokerName,
+                                     AnalyticsFilterRequest filters) throws DocumentException {
+                // Navy banner
+                PdfPTable banner = new PdfPTable(1);
+                banner.setWidthPercentage(100);
+                banner.setSpacingAfter(0);
+
+                Font bannerTitleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, WHITE);
+                Font bannerSubFont = FontFactory.getFont(FontFactory.HELVETICA, 10, new java.awt.Color(200, 210, 230));
+
+                Paragraph bannerContent = new Paragraph();
+                bannerContent.add(new Chunk("CourtierPro Analytics Report", bannerTitleFont));
+                bannerContent.add(Chunk.NEWLINE);
+                bannerContent.add(new Chunk("Professional Broker Performance Summary", bannerSubFont));
+
+                PdfPCell bannerCell = new PdfPCell(bannerContent);
+                bannerCell.setBackgroundColor(NAVY);
+                bannerCell.setPadding(20);
+                bannerCell.setPaddingBottom(15);
+                bannerCell.setBorder(Rectangle.NO_BORDER);
+                bannerCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                banner.addCell(bannerCell);
+                document.add(banner);
+
+                // Accent line
+                PdfPTable accentLine = new PdfPTable(1);
+                accentLine.setWidthPercentage(100);
+                accentLine.setSpacingAfter(15);
+                PdfPCell lineCell = new PdfPCell(new Phrase(""));
+                lineCell.setBackgroundColor(ACCENT);
+                lineCell.setFixedHeight(3);
+                lineCell.setBorder(Rectangle.NO_BORDER);
+                accentLine.addCell(lineCell);
+                document.add(accentLine);
+
+                // Metadata row
+                Font metaLabelFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, TEXT_MUTED);
+                Font metaValueFont = FontFactory.getFont(FontFactory.HELVETICA, 10, TEXT_DARK);
+
+                PdfPTable metaTable = new PdfPTable(filters.getStartDate() != null && filters.getEndDate() != null ? 3 : 2);
+                metaTable.setWidthPercentage(100);
+                metaTable.setSpacingAfter(20);
+
+                addMetaCell(metaTable, "BROKER", brokerName, metaLabelFont, metaValueFont);
+                addMetaCell(metaTable, "GENERATED",
+                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' HH:mm")),
+                        metaLabelFont, metaValueFont);
+                if (filters.getStartDate() != null && filters.getEndDate() != null) {
+                        addMetaCell(metaTable, "PERIOD",
+                                filters.getStartDate() + "  to  " + filters.getEndDate(),
+                                metaLabelFont, metaValueFont);
+                }
+                document.add(metaTable);
         }
 
-        private void addTableRow(PdfPTable table, String key, String value) {
-                table.addCell(key);
-                table.addCell(value);
+        private void addMetaCell(PdfPTable table, String label, String value,
+                                 Font labelFont, Font valueFont) {
+                Paragraph p = new Paragraph();
+                p.add(new Chunk(label, labelFont));
+                p.add(Chunk.NEWLINE);
+                p.add(new Chunk(value, valueFont));
+                PdfPCell cell = new PdfPCell(p);
+                cell.setBorder(Rectangle.NO_BORDER);
+                cell.setPadding(5);
+                table.addCell(cell);
+        }
+
+        private void addSectionTitle(com.lowagie.text.Document document, String title,
+                                     java.awt.Color accentColor) throws DocumentException {
+                // Spacer
+                document.add(new Paragraph(" "));
+
+                // Colored left-bar + title
+                PdfPTable header = new PdfPTable(new float[]{4f, 96f});
+                header.setWidthPercentage(100);
+                header.setSpacingAfter(6);
+
+                PdfPCell colorBar = new PdfPCell(new Phrase(""));
+                colorBar.setBackgroundColor(accentColor);
+                colorBar.setBorder(Rectangle.NO_BORDER);
+                colorBar.setFixedHeight(24);
+                header.addCell(colorBar);
+
+                Font sectionFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13, TEXT_DARK);
+                PdfPCell titleCell = new PdfPCell(new Phrase(title, sectionFont));
+                titleCell.setBorder(Rectangle.NO_BORDER);
+                titleCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                titleCell.setPaddingLeft(8);
+                header.addCell(titleCell);
+
+                document.add(header);
+        }
+
+        private PdfPTable createStyledTable() throws DocumentException {
+                PdfPTable table = new PdfPTable(new float[]{55f, 45f});
+                table.setWidthPercentage(100);
+                table.setSpacingAfter(5);
+                return table;
+        }
+
+        private void addStyledHeader(PdfPTable table, String col1, String col2,
+                                     java.awt.Color bgColor) {
+                Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, WHITE);
+
+                PdfPCell c1 = new PdfPCell(new Phrase(col1, headerFont));
+                c1.setBackgroundColor(bgColor);
+                c1.setPadding(8);
+                c1.setBorderWidth(0);
+                table.addCell(c1);
+
+                PdfPCell c2 = new PdfPCell(new Phrase(col2, headerFont));
+                c2.setBackgroundColor(bgColor);
+                c2.setPadding(8);
+                c2.setBorderWidth(0);
+                table.addCell(c2);
+        }
+
+        private void addStyledRow(PdfPTable table, String label, String value, boolean alternate) {
+                Font labelFont = FontFactory.getFont(FontFactory.HELVETICA, 9, TEXT_DARK);
+                Font valueFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, TEXT_DARK);
+                java.awt.Color bg = alternate ? ROW_ALT : WHITE;
+
+                PdfPCell c1 = new PdfPCell(new Phrase(label, labelFont));
+                c1.setBackgroundColor(bg);
+                c1.setPadding(7);
+                c1.setBorderWidthTop(0);
+                c1.setBorderWidthLeft(0);
+                c1.setBorderWidthRight(0);
+                c1.setBorderWidthBottom(0.5f);
+                c1.setBorderColorBottom(BORDER_CLR);
+                table.addCell(c1);
+
+                PdfPCell c2 = new PdfPCell(new Phrase(value, valueFont));
+                c2.setBackgroundColor(bg);
+                c2.setPadding(7);
+                c2.setBorderWidthTop(0);
+                c2.setBorderWidthLeft(0);
+                c2.setBorderWidthRight(0);
+                c2.setBorderWidthBottom(0.5f);
+                c2.setBorderColorBottom(BORDER_CLR);
+                c2.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                table.addCell(c2);
+        }
+
+        // ── Page Footer Event ────────────────────────────────────────────
+
+        private static class PdfFooterEvent extends com.lowagie.text.pdf.PdfPageEventHelper {
+                @Override
+                public void onEndPage(PdfWriter writer, com.lowagie.text.Document document) {
+                        Font footerFont = FontFactory.getFont(FontFactory.HELVETICA, 8, TEXT_MUTED);
+                        Phrase left = new Phrase("Confidential — CourtierPro", footerFont);
+                        Phrase right = new Phrase("Page " + writer.getPageNumber(), footerFont);
+
+                        float x = document.left();
+                        float xEnd = document.right();
+                        float y = document.bottom() - 20;
+
+                        com.lowagie.text.pdf.ColumnText.showTextAligned(
+                                writer.getDirectContent(),
+                                Element.ALIGN_LEFT, left, x, y, 0);
+                        com.lowagie.text.pdf.ColumnText.showTextAligned(
+                                writer.getDirectContent(),
+                                Element.ALIGN_RIGHT, right, xEnd, y, 0);
+                }
         }
 
         private void logExportAudit(UUID brokerId, String type, AnalyticsFilterRequest filters) {
