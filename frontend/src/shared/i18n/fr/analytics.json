@@ -43,13 +43,13 @@
         "propertiesWithOffers": "Avec offres",
         "propertiesWithoutOffers": "Sans offres",
         "totalBuyerOffers": "Offres faites",
-        "buyerOfferAcceptanceRate": "Taux d'acceptation",
+        "receivedOfferAcceptanceRate": "Taux d'acceptation",
         "avgOfferRounds": "Moy. de tours de négociation",
         "avgBuyerOfferAmount": "Montant moy. de l'offre",
         "expiredOrWithdrawnOffers": "Expirées / Retirées",
         "buyerCounterOfferRate": "Taux de contre-offre",
         "totalOffers": "Offres reçues",
-        "receivedOfferAcceptanceRate": "Taux d'acceptation",
+        "buyerOfferAcceptanceRate": "Taux d'acceptation",
         "avgReceivedOfferAmount": "Montant moyen",
         "highestOfferAmount": "Offre la plus élevée",
         "lowestOfferAmount": "Offre la plus basse",
@@ -106,5 +106,8 @@
         "percent": "{{value}} %",
         "currency": "{{value}} $",
         "days": "{{value}} jours"
+    },
+    "units": {
+        "days": "jours"
     }
 }

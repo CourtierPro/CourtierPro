@@ -70,7 +70,7 @@
         "totalConditions": "Total Conditions",
         "conditionSatisfiedRate": "Satisfied Rate",
         "conditionsApproachingDeadline": "Approaching Deadline",
-        "overdueConditions": "Overdue",
+        "overdueConditions": "En retard",
         "avgConditionsPerTransaction": "Avg. per Transaction",
         "totalActiveClients": "Active Clients",
         "clientsWithMultipleTransactions": "Multi-Transaction Clients",
@@ -106,5 +106,8 @@
         "percent": "{{value}}%",
         "currency": "${{value}}",
         "days": "{{value}} days"
+    },
+    "units": {
+        "days": "days"
     }
 }

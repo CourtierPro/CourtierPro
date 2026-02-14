@@ -23,7 +23,7 @@ interface ClientRow {
     clientName: string;
     stageIndex: number;
     stageName: string;
-    avgDays: number;
+    daysInStage: number;
 }
 
 interface TooltipPayload {
@@ -49,7 +49,7 @@ const CustomTooltip = ({ active, payload, t }: {
                     </div>
                     <div className="flex items-center justify-between gap-4">
                         <span className="text-muted-foreground text-xs">{t("stats.avgDuration")}:</span>
-                        <span className="font-bold text-xs">{row.avgDays.toFixed(1)} {t("formatters.days", { value: "" }).trim()}</span>
+                        <span className="font-bold text-xs">{row.daysInStage.toFixed(1)} {t("units.days")}</span>
                     </div>
                 </div>
             </div>
@@ -82,7 +82,7 @@ export function PipelineFunnelChart({ data }: PipelineFunnelChartProps) {
                     clientName: client.clientName,
                     stageIndex: stageIndex + 1,
                     stageName: t(`stages.${stage.stageName}`, stage.stageName),
-                    avgDays: client.daysInStage
+                    daysInStage: client.daysInStage
                 });
             });
         }
@@ -93,7 +93,9 @@ export function PipelineFunnelChart({ data }: PipelineFunnelChartProps) {
 
     // Pagination Logic
     const totalPages = Math.ceil(clientRows.length / pageSize);
-    const paginatedRows = clientRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+    // Ensure currentPage is valid if data changes
+    const validPage = Math.min(currentPage, Math.max(0, totalPages - 1));
+    const paginatedRows = clientRows.slice(validPage * pageSize, (validPage + 1) * pageSize);
 
     if (clientRows.length === 0) {
         const isBuyer = data[0]?.stageName.startsWith('BUYER');
