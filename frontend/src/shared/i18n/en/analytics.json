@@ -3,6 +3,8 @@
     "subtitle": "Overview of your brokerage activity and key performance indicators.",
     "loading": "Loading analytics...",
     "empty": "No data yet. Analytics will appear once you create transactions.",
+    "emptyBuyerPipeline": "No active buyers in the pipeline. Let's find new opportunities!",
+    "emptySellerPipeline": "No properties for sale at the moment. Time to prospect!",
     "error": "Failed to load analytics. Please try again.",
     "sections": {
         "overview": "Transaction Overview",
@@ -18,7 +20,8 @@
         "trends": "Trends",
         "activity": "Activity Summary",
         "monthlyActivity": "Monthly Activity",
-        "sellShowings": "Sell-Side Showings"
+        "sellShowings": "Sell-Side Showings",
+        "transactionPipeline": "Transaction Pipeline"
     },
     "stats": {
         "totalTransactions": "Total Transactions",
@@ -67,7 +70,7 @@
         "totalConditions": "Total Conditions",
         "conditionSatisfiedRate": "Satisfied Rate",
         "conditionsApproachingDeadline": "Approaching Deadline",
-        "overdueConditions": "Overdue",
+        "overdueConditions": "En retard",
         "avgConditionsPerTransaction": "Avg. per Transaction",
         "totalActiveClients": "Active Clients",
         "clientsWithMultipleTransactions": "Multi-Transaction Clients",
@@ -103,5 +106,8 @@
         "percent": "{{value}}%",
         "currency": "${{value}}",
         "days": "{{value}} days"
+    },
+    "units": {
+        "days": "days"
     }
 }

@@ -5,9 +5,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
 
 @Repository
 public interface TimelineEntryRepository extends JpaRepository<TimelineEntry, UUID> {
@@ -23,5 +25,11 @@ public interface TimelineEntryRepository extends JpaRepository<TimelineEntry, UU
      * ordered by timestamp descending (most recent first).
      */
     Page<TimelineEntry> findByTransactionIdInOrderByTimestampDesc(Set<UUID> transactionIds, Pageable pageable);
-}
 
+    /**
+     * Batch fetch specific event types for a set of transactions, ordered by time.
+     * Used for analytics pipeline calculations.
+     */
+    List<TimelineEntry> findByTransactionIdInAndTypeInOrderByTimestampAsc(Collection<UUID> transactionIds,
+            Collection<TimelineEntryType> types);
+}

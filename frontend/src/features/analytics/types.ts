@@ -14,6 +14,8 @@ export interface AnalyticsData {
     transactionsClosedPerMonth: Record<string, number>;
     buyerStageDistribution: Record<string, number>;
     sellerStageDistribution: Record<string, number>;
+    buyerPipeline: PipelineStageDTO[];
+    sellerPipeline: PipelineStageDTO[];
 
     // House Visits (Buy-Side)
     totalHouseVisits: number;
@@ -81,6 +83,18 @@ export interface AnalyticsData {
     // Trends
     busiestMonth: string;
     idleTransactions: number;
+}
+
+export interface PipelineStageDTO {
+    stageName: string;
+    count: number;
+    avgDays: number;
+    clients: ClientStageInfoDTO[];
+}
+
+export interface ClientStageInfoDTO {
+    clientName: string;
+    daysInStage: number;
 }
 
 export interface AnalyticsFilter {

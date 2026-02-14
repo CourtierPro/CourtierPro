@@ -12,7 +12,18 @@ import com.example.courtierprobackend.documents.datalayer.enums.DocumentStatusEn
 import com.example.courtierprobackend.transactions.datalayer.*;
 import com.example.courtierprobackend.transactions.datalayer.enums.*;
 import com.example.courtierprobackend.transactions.datalayer.repositories.*;
-import com.lowagie.text.*;
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntry;
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntryRepository;
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.Enum.TimelineEntryType;
+import com.lowagie.text.Chunk;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.Element;
+import com.lowagie.text.Font;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
@@ -34,7 +45,6 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,10 +61,13 @@ public class AnalyticsService {
         private final PropertyOfferRepository propertyOfferRepository;
         private final AnalyticsExportAuditRepository analyticsExportAuditRepository;
         private final com.example.courtierprobackend.user.dataaccesslayer.UserAccountRepository userAccountRepository;
+        private final TimelineEntryRepository timelineEntryRepository;
 
         public AnalyticsDTO getAnalytics(UUID brokerId, AnalyticsFilterRequest filters) {
-                LocalDateTime startDateTime = filters.getStartDate() != null ? filters.getStartDate().atStartOfDay() : null;
-                LocalDateTime endDateTime = filters.getEndDate() != null ? filters.getEndDate().atTime(LocalTime.MAX) : null;
+                LocalDateTime startDateTime = filters.getStartDate() != null ? filters.getStartDate().atStartOfDay()
+                                : null;
+                LocalDateTime endDateTime = filters.getEndDate() != null ? filters.getEndDate().atTime(LocalTime.MAX)
+                                : null;
 
                 List<UUID> clientIds = null;
                 boolean clientFilterApplied = false;
@@ -71,39 +84,25 @@ public class AnalyticsService {
                         allAppointments = Collections.emptyList();
                 } else if (clientIds != null) {
                         allTransactions = transactionRepository.findForAnalyticsWithClients(
-                                brokerId,
-                                startDateTime,
-                                endDateTime,
-                                filters.getTransactionType(),
-                                clientIds);
-
+                                        brokerId, startDateTime, endDateTime, filters.getTransactionType(), clientIds);
                         allAppointments = appointmentRepository.findForAnalyticsWithClients(
-                                brokerId,
-                                startDateTime,
-                                endDateTime,
-                                clientIds);
+                                        brokerId, startDateTime, endDateTime, clientIds);
                 } else {
                         allTransactions = transactionRepository.findForAnalytics(
-                                brokerId,
-                                startDateTime,
-                                endDateTime,
-                                filters.getTransactionType());
-
+                                        brokerId, startDateTime, endDateTime, filters.getTransactionType());
                         allAppointments = appointmentRepository.findForAnalytics(
-                                brokerId,
-                                startDateTime,
-                                endDateTime);
+                                        brokerId, startDateTime, endDateTime);
                 }
 
-                // Fix for mixed metrics: If transaction type is selected, filter appointments to match those transactions
-                if (filters.getTransactionType() != null) {
-                        Set<UUID> transactionIds = allTransactions.stream()
+                Set<UUID> transactionIds = allTransactions.stream()
                                 .map(Transaction::getTransactionId)
                                 .collect(Collectors.toSet());
-                        
+
+                if (filters.getTransactionType() != null) {
                         allAppointments = allAppointments.stream()
-                                .filter(a -> a.getTransactionId() != null && transactionIds.contains(a.getTransactionId()))
-                                .collect(Collectors.toList());
+                                        .filter(a -> a.getTransactionId() != null
+                                                        && transactionIds.contains(a.getTransactionId()))
+                                        .collect(Collectors.toList());
                 }
 
                 int total = allTransactions.size();
@@ -123,8 +122,7 @@ public class AnalyticsService {
                                 sell++;
                 }
 
-                double successRate = (closed + terminated) > 0
-                                ? round((double) closed / (closed + terminated) * 100)
+                double successRate = (closed + terminated) > 0 ? round((double) closed / (closed + terminated) * 100)
                                 : 0.0;
 
                 List<Long> durations = allTransactions.stream()
@@ -168,7 +166,6 @@ public class AnalyticsService {
                 // --- House Visits (Buy-Side) ---
                 List<Transaction> buyTransactions = allTransactions.stream()
                                 .filter(t -> t.getSide() == TransactionSide.BUY_SIDE).toList();
-
                 Map<UUID, Integer> hvCountsByTxId = new HashMap<>();
                 if (!buyTransactions.isEmpty()) {
                         List<UUID> buyTxIds = buyTransactions.stream().map(Transaction::getTransactionId).toList();
@@ -176,9 +173,7 @@ public class AnalyticsService {
                                 hvCountsByTxId.put((UUID) row[0], ((Number) row[1]).intValue());
                         }
                 }
-
                 int totalHouseVisits = hvCountsByTxId.values().stream().mapToInt(Integer::intValue).sum();
-
                 List<Transaction> closedBuyTransactions = buyTransactions.stream()
                                 .filter(t -> t.getStatus() == TransactionStatus.CLOSED_SUCCESSFULLY).toList();
                 double avgHouseVisits = 0.0;
@@ -190,13 +185,12 @@ public class AnalyticsService {
                 }
 
                 // --- Sell-Side Showings ---
-                List<Transaction> sellTransactionsForShowings = allTransactions.stream()
+                List<Transaction> sellTransactions = allTransactions.stream()
                                 .filter(t -> t.getSide() == TransactionSide.SELL_SIDE).toList();
-
                 Map<UUID, Integer> showingsCountsByTxId = new HashMap<>();
                 Map<UUID, Integer> visitorsCountsByTxId = new HashMap<>();
-                if (!sellTransactionsForShowings.isEmpty()) {
-                        List<UUID> sellTxIds = sellTransactionsForShowings.stream().map(Transaction::getTransactionId).toList();
+                if (!sellTransactions.isEmpty()) {
+                        List<UUID> sellTxIds = sellTransactions.stream().map(Transaction::getTransactionId).toList();
                         for (Object[] row : appointmentRepository.countConfirmedShowingsByTransactionIds(sellTxIds)) {
                                 showingsCountsByTxId.put((UUID) row[0], ((Number) row[1]).intValue());
                         }
@@ -204,11 +198,9 @@ public class AnalyticsService {
                                 visitorsCountsByTxId.put((UUID) row[0], ((Number) row[1]).intValue());
                         }
                 }
-
                 int totalSellShowings = showingsCountsByTxId.values().stream().mapToInt(Integer::intValue).sum();
                 int totalSellVisitors = visitorsCountsByTxId.values().stream().mapToInt(Integer::intValue).sum();
-
-                List<Transaction> closedSellTransactions = sellTransactionsForShowings.stream()
+                List<Transaction> closedSellTransactions = sellTransactions.stream()
                                 .filter(t -> t.getStatus() == TransactionStatus.CLOSED_SUCCESSFULLY).toList();
                 double avgSellShowings = 0.0;
                 if (!closedSellTransactions.isEmpty()) {
@@ -220,14 +212,12 @@ public class AnalyticsService {
 
                 // --- Properties (Buy-Side) ---
                 List<Property> allProperties = new ArrayList<>();
-                // Optimization: Could batch fetch properties
                 for (Transaction t : buyTransactions) {
                         allProperties.addAll(propertyRepository
                                         .findByTransactionIdOrderByCreatedAtDesc(t.getTransactionId()));
                 }
                 int totalProperties = allProperties.size();
-                double avgPropertiesPerBuy = buy > 0 ? round((double) totalProperties / buy) : 0;
-
+                double avgPropertiesPerBuyTransaction = buy > 0 ? round((double) totalProperties / buy) : 0;
                 long interestedCount = allProperties.stream().filter(p -> p.getStatus() == PropertyStatus.INTERESTED)
                                 .count();
                 long notInterestedCount = allProperties.stream()
@@ -237,9 +227,7 @@ public class AnalyticsService {
                                 : 0;
                 int propertiesNeedingInfo = (int) allProperties.stream()
                                 .filter(p -> p.getStatus() == PropertyStatus.NEEDS_INFO).count();
-
-                int propertiesWithOffers = 0;
-                int propertiesWithoutOffers = 0;
+                int propertiesWithOffers = 0, propertiesWithoutOffers = 0;
                 List<PropertyOffer> allBuyerOffers = new ArrayList<>();
                 for (Property p : allProperties) {
                         List<PropertyOffer> offers = propertyOfferRepository
@@ -258,30 +246,21 @@ public class AnalyticsService {
                 double buyerOfferAcceptanceRate = totalBuyerOffers > 0
                                 ? round((double) acceptedBuyerOffers / totalBuyerOffers * 100)
                                 : 0;
-
                 double avgOfferRounds = 0;
                 if (!allProperties.isEmpty()) {
-                        Map<UUID, Long> roundsByProperty = allBuyerOffers.stream()
-                                        .collect(Collectors.groupingBy(PropertyOffer::getPropertyId,
-                                                        Collectors.counting()));
+                        Map<UUID, Long> roundsByProperty = allBuyerOffers.stream().collect(
+                                        Collectors.groupingBy(PropertyOffer::getPropertyId, Collectors.counting()));
                         if (!roundsByProperty.isEmpty()) {
                                 avgOfferRounds = round(roundsByProperty.values().stream().mapToLong(Long::longValue)
                                                 .average().orElse(0));
                         }
                 }
-
-                double avgBuyerOfferAmount = allBuyerOffers.stream()
-                                .map(PropertyOffer::getOfferAmount)
-                                .filter(Objects::nonNull)
-                                .mapToDouble(BigDecimal::doubleValue)
-                                .average().orElse(0);
-                avgBuyerOfferAmount = round(avgBuyerOfferAmount);
-
-                int expiredOrWithdrawn = (int) allBuyerOffers.stream()
+                double avgBuyerOfferAmount = round(allBuyerOffers.stream().map(PropertyOffer::getOfferAmount)
+                                .filter(Objects::nonNull).mapToDouble(BigDecimal::doubleValue).average().orElse(0));
+                int expiredOrWithdrawnOffers = (int) allBuyerOffers.stream()
                                 .filter(o -> o.getStatus() == BuyerOfferStatus.EXPIRED
                                                 || o.getStatus() == BuyerOfferStatus.WITHDRAWN)
                                 .count();
-
                 long counteredBuyerOffers = allBuyerOffers.stream()
                                 .filter(o -> o.getCounterpartyResponse() == CounterpartyResponse.COUNTERED).count();
                 double buyerCounterOfferRate = totalBuyerOffers > 0
@@ -289,8 +268,6 @@ public class AnalyticsService {
                                 : 0;
 
                 // --- Received Offers (Sell-Side) ---
-                List<Transaction> sellTransactions = allTransactions.stream()
-                                .filter(t -> t.getSide() == TransactionSide.SELL_SIDE).toList();
                 List<Offer> allReceivedOffers = new ArrayList<>();
                 for (Transaction t : sellTransactions) {
                         allReceivedOffers.addAll(
@@ -302,28 +279,17 @@ public class AnalyticsService {
                 double receivedOfferAcceptanceRate = totalOffers > 0
                                 ? round((double) acceptedReceived / totalOffers * 100)
                                 : 0;
-
-                double avgReceivedOfferAmount = allReceivedOffers.stream()
-                                .map(Offer::getOfferAmount)
-                                .filter(Objects::nonNull)
-                                .mapToDouble(BigDecimal::doubleValue)
-                                .average().orElse(0);
-                avgReceivedOfferAmount = round(avgReceivedOfferAmount);
-
-                double highestOffer = allReceivedOffers.stream()
-                                .map(Offer::getOfferAmount).filter(Objects::nonNull)
-                                .mapToDouble(BigDecimal::doubleValue).max().orElse(0);
-                double lowestOffer = allReceivedOffers.stream()
-                                .map(Offer::getOfferAmount).filter(Objects::nonNull)
-                                .mapToDouble(BigDecimal::doubleValue).min().orElse(0);
-
-                double avgOffersPerSell = sell > 0 ? round((double) totalOffers / sell) : 0;
-
-                int pendingOrReview = (int) allReceivedOffers.stream()
+                double avgReceivedOfferAmount = round(allReceivedOffers.stream().map(Offer::getOfferAmount)
+                                .filter(Objects::nonNull).mapToDouble(BigDecimal::doubleValue).average().orElse(0));
+                double highestOfferAmount = allReceivedOffers.stream().map(Offer::getOfferAmount)
+                                .filter(Objects::nonNull).mapToDouble(BigDecimal::doubleValue).max().orElse(0);
+                double lowestOfferAmount = allReceivedOffers.stream().map(Offer::getOfferAmount)
+                                .filter(Objects::nonNull).mapToDouble(BigDecimal::doubleValue).min().orElse(0);
+                double avgOffersPerSellTransaction = sell > 0 ? round((double) totalOffers / sell) : 0;
+                int pendingOrReviewOffers = (int) allReceivedOffers.stream()
                                 .filter(o -> o.getStatus() == ReceivedOfferStatus.PENDING
                                                 || o.getStatus() == ReceivedOfferStatus.UNDER_REVIEW)
                                 .count();
-
                 long counteredReceived = allReceivedOffers.stream()
                                 .filter(o -> o.getStatus() == ReceivedOfferStatus.COUNTERED).count();
                 double receivedCounterOfferRate = totalOffers > 0
@@ -331,16 +297,10 @@ public class AnalyticsService {
                                 : 0;
 
                 // --- Documents ---
-                List<UUID> transactionIds = allTransactions.stream()
-                                .map(Transaction::getTransactionId).toList();
-                int totalDocuments = 0;
-                int pendingDocuments = 0;
-                int documentsNeedingRevision = 0;
-                int completedDocuments = 0;
+                int totalDocuments = 0, pendingDocuments = 0, documentsNeedingRevision = 0, completedDocuments = 0;
                 for (UUID txnId : transactionIds) {
                         List<Document> docs = documentRepository.findByTransactionRef_TransactionId(txnId).stream()
-                                        .filter(d -> d.getStatus() != DocumentStatusEnum.DRAFT)
-                                        .toList();
+                                        .filter(d -> d.getStatus() != DocumentStatusEnum.DRAFT).toList();
                         totalDocuments += docs.size();
                         for (Document d : docs) {
                                 if (d.getStatus() == DocumentStatusEnum.REQUESTED
@@ -356,30 +316,30 @@ public class AnalyticsService {
                 double documentCompletionRate = totalDocuments > 0
                                 ? round((double) completedDocuments / totalDocuments * 100)
                                 : 0;
-                double avgDocsPerTx = total > 0 ? round((double) totalDocuments / total) : 0;
+                double avgDocumentsPerTransaction = total > 0 ? round((double) totalDocuments / total) : 0;
 
                 // --- Appointments ---
                 int totalAppointments = allAppointments.size();
-
                 long confirmed = allAppointments.stream().filter(a -> a.getStatus() == AppointmentStatus.CONFIRMED)
                                 .count();
                 long declined = allAppointments.stream().filter(a -> a.getStatus() == AppointmentStatus.DECLINED)
                                 .count();
                 long cancelled = allAppointments.stream().filter(a -> a.getStatus() == AppointmentStatus.CANCELLED)
                                 .count();
-
-                double confirmationRate = totalAppointments > 0 ? round((double) confirmed / totalAppointments * 100)
+                double appointmentConfirmationRate = totalAppointments > 0
+                                ? round((double) confirmed / totalAppointments * 100)
                                 : 0;
-                double declinedRate = totalAppointments > 0 ? round((double) declined / totalAppointments * 100) : 0;
-                double cancelledRate = totalAppointments > 0 ? round((double) cancelled / totalAppointments * 100) : 0;
-
+                double declinedAppointmentRate = totalAppointments > 0
+                                ? round((double) declined / totalAppointments * 100)
+                                : 0;
+                double cancelledAppointmentRate = totalAppointments > 0
+                                ? round((double) cancelled / totalAppointments * 100)
+                                : 0;
                 LocalDateTime now = LocalDateTime.now();
-                int upcoming = (int) allAppointments.stream()
-                                .filter(a -> a.getStatus() == AppointmentStatus.CONFIRMED
-                                                && a.getFromDateTime().isAfter(now))
+                int upcomingAppointments = (int) allAppointments.stream().filter(
+                                a -> a.getStatus() == AppointmentStatus.CONFIRMED && a.getFromDateTime().isAfter(now))
                                 .count();
-
-                double avgApptPerTx = total > 0 ? round((double) totalAppointments / total) : 0;
+                double avgAppointmentsPerTransaction = total > 0 ? round((double) totalAppointments / total) : 0;
 
                 // --- Conditions ---
                 List<Condition> allConditions = new ArrayList<>();
@@ -388,109 +348,196 @@ public class AnalyticsService {
                 }
                 int totalConditions = allConditions.size();
                 long satisfied = allConditions.stream().filter(c -> c.getStatus() == ConditionStatus.SATISFIED).count();
-                double conditionSatisfiedRate = totalConditions > 0
-                                ? round((double) satisfied / totalConditions * 100)
+                double conditionSatisfiedRate = totalConditions > 0 ? round((double) satisfied / totalConditions * 100)
                                 : 0;
-
                 LocalDate today = LocalDate.now();
                 LocalDate sevenDaysOut = today.plusDays(7);
-                int approaching = (int) allConditions.stream()
+                int conditionsApproachingDeadline = (int) allConditions.stream()
                                 .filter(c -> c.getStatus() == ConditionStatus.PENDING
                                                 && !c.getDeadlineDate().isBefore(today)
                                                 && !c.getDeadlineDate().isAfter(sevenDaysOut))
                                 .count();
-                int overdue = (int) allConditions.stream()
-                                .filter(c -> c.getStatus() == ConditionStatus.PENDING
-                                                && c.getDeadlineDate().isBefore(today))
+                int overdueConditions = (int) allConditions.stream().filter(
+                                c -> c.getStatus() == ConditionStatus.PENDING && c.getDeadlineDate().isBefore(today))
                                 .count();
-                double avgCondPerTx = total > 0 ? round((double) totalConditions / total) : 0;
+                double avgConditionsPerTransaction = total > 0 ? round((double) totalConditions / total) : 0;
 
                 // --- Client Engagement ---
                 Map<UUID, Long> clientTxCounts = allTransactions.stream()
                                 .filter(t -> t.getClientId() != null && t.getStatus() == TransactionStatus.ACTIVE)
                                 .collect(Collectors.groupingBy(Transaction::getClientId, Collectors.counting()));
                 int totalActiveClients = clientTxCounts.size();
-                int multiTxClients = (int) clientTxCounts.values().stream().filter(c -> c > 1).count();
-
-                long byBroker = allAppointments.stream()
+                int clientsWithMultipleTransactions = (int) clientTxCounts.values().stream().filter(c -> c > 1).count();
+                int appointmentsByBroker = (int) allAppointments.stream()
                                 .filter(a -> a.getInitiatedBy() == InitiatorType.BROKER).count();
-                long byClient = allAppointments.stream()
+                int appointmentsByClient = (int) allAppointments.stream()
                                 .filter(a -> a.getInitiatedBy() == InitiatorType.CLIENT).count();
 
                 // --- Trends ---
-                Map<String, Long> monthCounts = allTransactions.stream()
-                                .filter(t -> t.getOpenedAt() != null)
-                                .collect(Collectors.groupingBy(
-                                                t -> YearMonth.from(t.getOpenedAt()).toString(),
+                Map<String, Long> monthCounts = allTransactions.stream().filter(t -> t.getOpenedAt() != null)
+                                .collect(Collectors.groupingBy(t -> YearMonth.from(t.getOpenedAt()).toString(),
                                                 Collectors.counting()));
-                String busiestMonth = monthCounts.entrySet().stream()
-                                .max(Map.Entry.comparingByValue())
+                String busiestMonth = monthCounts.entrySet().stream().max(Map.Entry.comparingByValue())
                                 .map(Map.Entry::getKey).orElse("—");
-
                 int idleTransactions = (int) allTransactions.stream()
-                                .filter(t -> t.getStatus() == TransactionStatus.ACTIVE
-                                                && t.getLastUpdated() != null
+                                .filter(t -> t.getStatus() == TransactionStatus.ACTIVE && t.getLastUpdated() != null
                                                 && t.getLastUpdated().isBefore(now.minusDays(30)))
                                 .count();
 
+                // --- Client Names for Pipeline ---
+                Set<UUID> allClientIds = allTransactions.stream()
+                                .map(Transaction::getClientId)
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toSet());
+                Map<UUID, String> clientNameMap = new HashMap<>();
+                if (!allClientIds.isEmpty()) {
+                        userAccountRepository.findAllById(allClientIds).forEach(
+                                        u -> clientNameMap.put(u.getId(), u.getFirstName() + " " + u.getLastName()));
+                }
+
+                // --- Pipeline Visualization (CP-31) ---
+                List<AnalyticsDTO.PipelineStageDTO> buyerPipeline = calculatePipeline(
+                                allTransactions.stream().filter(t -> t.getSide() == TransactionSide.BUY_SIDE).toList(),
+                                BuyerStage.values(), clientNameMap);
+                List<AnalyticsDTO.PipelineStageDTO> sellerPipeline = calculatePipeline(
+                                allTransactions.stream().filter(t -> t.getSide() == TransactionSide.SELL_SIDE).toList(),
+                                SellerStage.values(), clientNameMap);
+
                 return new AnalyticsDTO(
-                                total, active, closed, terminated, buy, sell,
-                                successRate, avgDuration, longestDuration, shortestDuration,
-                                openedPerMonth, closedPerMonth,
-                                buyerStageDistribution, sellerStageDistribution,
-                                totalHouseVisits, avgHouseVisits,
-                                totalSellShowings, avgSellShowings, totalSellVisitors,
-                                totalProperties, avgPropertiesPerBuy, propertyInterestRate,
+                                total, active, closed, terminated, buy, sell, successRate, avgDuration, longestDuration,
+                                shortestDuration,
+                                openedPerMonth, closedPerMonth, buyerStageDistribution, sellerStageDistribution,
+                                totalHouseVisits, avgHouseVisits, totalSellShowings, avgSellShowings, totalSellVisitors,
+                                totalProperties, avgPropertiesPerBuyTransaction, propertyInterestRate,
                                 propertiesNeedingInfo, propertiesWithOffers, propertiesWithoutOffers,
-                                totalBuyerOffers, buyerOfferAcceptanceRate, avgOfferRounds,
-                                avgBuyerOfferAmount, expiredOrWithdrawn, buyerCounterOfferRate,
-                                totalOffers, receivedOfferAcceptanceRate, avgReceivedOfferAmount,
-                                highestOffer, lowestOffer, avgOffersPerSell,
-                                pendingOrReview, receivedCounterOfferRate,
-                                totalDocuments, pendingDocuments, documentCompletionRate,
-                                documentsNeedingRevision, avgDocsPerTx,
-                                totalAppointments, confirmationRate, declinedRate, cancelledRate,
-                                upcoming, avgApptPerTx,
-                                totalConditions, conditionSatisfiedRate, approaching, overdue, avgCondPerTx,
-                                totalActiveClients, multiTxClients,
-                                (int) byBroker, (int) byClient,
-                                busiestMonth, idleTransactions);
+                                totalBuyerOffers, buyerOfferAcceptanceRate, avgOfferRounds, avgBuyerOfferAmount,
+                                expiredOrWithdrawnOffers, buyerCounterOfferRate,
+                                totalOffers, receivedOfferAcceptanceRate, avgReceivedOfferAmount, highestOfferAmount,
+                                lowestOfferAmount, avgOffersPerSellTransaction,
+                                pendingOrReviewOffers, receivedCounterOfferRate, totalDocuments, pendingDocuments,
+                                documentCompletionRate,
+                                documentsNeedingRevision, avgDocumentsPerTransaction, totalAppointments,
+                                appointmentConfirmationRate, declinedAppointmentRate, cancelledAppointmentRate,
+                                upcomingAppointments, avgAppointmentsPerTransaction, totalConditions,
+                                conditionSatisfiedRate, conditionsApproachingDeadline, overdueConditions,
+                                avgConditionsPerTransaction,
+                                totalActiveClients, clientsWithMultipleTransactions, appointmentsByBroker,
+                                appointmentsByClient, busiestMonth, idleTransactions,
+                                buyerPipeline, sellerPipeline);
+        }
+
+        private List<AnalyticsDTO.PipelineStageDTO> calculatePipeline(
+                        List<Transaction> transactions,
+                        Enum<?>[] stages,
+                        Map<UUID, String> clientNames) {
+                if (transactions.isEmpty()) {
+                        return Arrays.stream(stages)
+                                        .map(s -> new AnalyticsDTO.PipelineStageDTO(s.name(), 0, 0.0,
+                                                        Collections.emptyList()))
+                                        .toList();
+                }
+                Set<UUID> transactionIds = transactions.stream().map(Transaction::getTransactionId)
+                                .collect(Collectors.toSet());
+                List<TimelineEntry> history = timelineEntryRepository.findByTransactionIdInAndTypeInOrderByTimestampAsc(
+                                transactionIds,
+                                List.of(TimelineEntryType.STAGE_CHANGE, TimelineEntryType.STAGE_ROLLBACK));
+                Map<UUID, List<TimelineEntry>> historyByTx = history.stream()
+                                .collect(Collectors.groupingBy(TimelineEntry::getTransactionId));
+                Map<String, List<Double>> durationMap = new HashMap<>();
+
+                // Track current days in stage for the current active clients
+                Map<String, List<AnalyticsDTO.ClientStageInfoDTO>> clientsPerStage = new HashMap<>();
+
+                for (Transaction tx : transactions) {
+                        List<TimelineEntry> entries = historyByTx.getOrDefault(tx.getTransactionId(),
+                                        new ArrayList<>());
+                        String currentStage = null;
+                        LocalDateTime currentStageStart = tx.getOpenedAt();
+
+                        if (!entries.isEmpty()) {
+                                if (entries.get(0).getTransactionInfo() != null) {
+                                        currentStage = entries.get(0).getTransactionInfo().getPreviousStage();
+                                }
+                        } else {
+                                if (tx.getSide() == TransactionSide.BUY_SIDE && tx.getBuyerStage() != null)
+                                        currentStage = tx.getBuyerStage().name();
+                                else if (tx.getSide() == TransactionSide.SELL_SIDE && tx.getSellerStage() != null)
+                                        currentStage = tx.getSellerStage().name();
+                        }
+
+                        if (currentStage == null && tx.getSide() == TransactionSide.BUY_SIDE)
+                                currentStage = BuyerStage.BUYER_FINANCIAL_PREPARATION.name();
+                        if (currentStage == null && tx.getSide() == TransactionSide.SELL_SIDE)
+                                currentStage = SellerStage.SELLER_INITIAL_CONSULTATION.name();
+
+                        for (TimelineEntry entry : entries) {
+
+                                LocalDateTime entryTime = LocalDateTime.ofInstant(entry.getTimestamp(),
+                                                java.time.ZoneId.of("America/Montreal"));
+                                if (currentStage != null && currentStageStart != null) {
+                                        double days = (double) ChronoUnit.MINUTES.between(currentStageStart, entryTime)
+                                                        / (60.0 * 24.0);
+                                        durationMap.computeIfAbsent(currentStage, k -> new ArrayList<>()).add(days);
+                                }
+                                if (entry.getTransactionInfo() != null)
+                                        currentStage = entry.getTransactionInfo().getNewStage();
+                                currentStageStart = entryTime;
+                        }
+
+                        if (tx.getStatus() == TransactionStatus.ACTIVE && currentStage != null
+                                        && currentStageStart != null) {
+                                double days = (double) ChronoUnit.MINUTES.between(currentStageStart,
+                                                LocalDateTime.now(java.time.ZoneId.of("America/Montreal")))
+                                                / (60.0 * 24.0);
+                                durationMap.computeIfAbsent(currentStage, k -> new ArrayList<>()).add(days);
+
+                                // Collect current clients for active stages
+                                String name = clientNames.getOrDefault(tx.getClientId(), "Unknown Client");
+                                clientsPerStage.computeIfAbsent(currentStage, k -> new ArrayList<>())
+                                                .add(new AnalyticsDTO.ClientStageInfoDTO(name, round(days)));
+                        }
+                }
+
+                return Arrays.stream(stages).map(stage -> {
+                        String stageName = stage.name();
+                        List<AnalyticsDTO.ClientStageInfoDTO> stageClients = clientsPerStage.getOrDefault(stageName,
+                                        Collections.emptyList());
+                        int count = stageClients.size();
+
+                        List<Double> durations = durationMap.getOrDefault(stageName,
+                                        Collections.emptyList());
+                        double avg = durations.isEmpty() ? 0.0
+                                        : round(durations.stream().mapToDouble(d -> d).average().orElse(0.0));
+                        return new AnalyticsDTO.PipelineStageDTO(stageName, count, avg, stageClients);
+                }).toList();
         }
 
         public byte[] exportAnalyticsCsv(UUID brokerId, AnalyticsFilterRequest filters) {
                 AnalyticsDTO data = getAnalytics(brokerId, filters);
                 String brokerName = userAccountRepository.findById(brokerId)
-                        .map(u -> u.getFirstName() + " " + u.getLastName())
-                        .orElse("Unknown Broker");
-
-                try (ByteArrayOutputStream out = new ByteArrayOutputStream();
-                     CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(out, StandardCharsets.UTF_8),
-                             CSVFormat.DEFAULT.withHeader("Category", "Metric", "Value"))) {
-
+                                .map(u -> u.getFirstName() + " " + u.getLastName()).orElse("Unknown Broker");
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                try (CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(out, StandardCharsets.UTF_8),
+                                CSVFormat.DEFAULT.withHeader("Category", "Metric", "Value"))) {
                         printer.printRecord("Meta", "Broker", brokerName);
-                        printer.printRecord("Meta", "Generated Date", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-
-                        // Transaction Overview
+                        printer.printRecord("Meta", "Generated Date",
+                                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
                         printer.printRecord("Transaction Overview", "Total Transactions", data.totalTransactions());
                         printer.printRecord("Transaction Overview", "Active Transactions", data.activeTransactions());
                         printer.printRecord("Transaction Overview", "Closed Transactions", data.closedTransactions());
                         printer.printRecord("Transaction Overview", "Success Rate (%)", data.successRate());
-                        printer.printRecord("Transaction Overview", "Avg Duration (Days)", data.avgTransactionDurationDays());
-
-                        // Buy Side
+                        printer.printRecord("Transaction Overview", "Avg Duration (Days)",
+                                        data.avgTransactionDurationDays());
                         printer.printRecord("Buy Side", "Total Buy Transactions", data.buyTransactions());
                         printer.printRecord("Buy Side", "Total House Visits", data.totalHouseVisits());
-                        printer.printRecord("Buy Side", "Avg Visits/Closed Tx", data.avgHouseVisitsPerClosedTransaction());
-
-                        // Sell Side
+                        printer.printRecord("Buy Side", "Avg Visits/Closed Tx",
+                                        data.avgHouseVisitsPerClosedTransaction());
                         printer.printRecord("Sell Side", "Total Sell Transactions", data.sellTransactions());
                         printer.printRecord("Sell Side", "Total Showings", data.totalSellShowings());
-                        printer.printRecord("Sell Side", "Avg Showings/Closed Tx", data.avgSellShowingsPerClosedTransaction());
-
+                        printer.printRecord("Sell Side", "Avg Showings/Closed Tx",
+                                        data.avgSellShowingsPerClosedTransaction());
                         printer.flush();
-
                         logExportAudit(brokerId, "CSV", filters);
-
                         return out.toByteArray();
                 } catch (IOException e) {
                         log.error("Error generating CSV export", e);
@@ -499,33 +546,31 @@ public class AnalyticsService {
         }
 
         // ── PDF Color Palette ──────────────────────────────────────────
-        private static final java.awt.Color NAVY       = new java.awt.Color(27, 42, 74);   // #1B2A4A
-        private static final java.awt.Color ACCENT     = new java.awt.Color(59, 130, 246); // #3B82F6
-        private static final java.awt.Color WHITE      = java.awt.Color.WHITE;
-        private static final java.awt.Color ROW_ALT    = new java.awt.Color(248, 249, 250); // #F8F9FA
+        private static final java.awt.Color NAVY = new java.awt.Color(27, 42, 74); // #1B2A4A
+        private static final java.awt.Color ACCENT = new java.awt.Color(59, 130, 246); // #3B82F6
+        private static final java.awt.Color WHITE = java.awt.Color.WHITE;
+        private static final java.awt.Color ROW_ALT = new java.awt.Color(248, 249, 250); // #F8F9FA
         private static final java.awt.Color BORDER_CLR = new java.awt.Color(222, 226, 230); // #DEE2E6
-        private static final java.awt.Color TEXT_DARK  = new java.awt.Color(33, 37, 41);    // #212529
+        private static final java.awt.Color TEXT_DARK = new java.awt.Color(33, 37, 41); // #212529
         private static final java.awt.Color TEXT_MUTED = new java.awt.Color(108, 117, 125); // #6C757D
 
         // Section accent colors
-        private static final java.awt.Color SEC_TRANSACTIONS  = new java.awt.Color(59, 130, 246);  // Blue
-        private static final java.awt.Color SEC_BUY_SIDE      = new java.awt.Color(16, 185, 129);  // Green
-        private static final java.awt.Color SEC_SELL_SIDE      = new java.awt.Color(139, 92, 246);  // Purple
-        private static final java.awt.Color SEC_DOCUMENTS     = new java.awt.Color(245, 158, 11);  // Amber
-        private static final java.awt.Color SEC_APPOINTMENTS  = new java.awt.Color(236, 72, 153);  // Pink
-        private static final java.awt.Color SEC_CONDITIONS    = new java.awt.Color(20, 184, 166);  // Teal
-        private static final java.awt.Color SEC_CLIENTS       = new java.awt.Color(249, 115, 22);  // Orange
-        private static final java.awt.Color SEC_TRENDS        = new java.awt.Color(99, 102, 241);  // Indigo
+        private static final java.awt.Color SEC_TRANSACTIONS = new java.awt.Color(59, 130, 246); // Blue
+        private static final java.awt.Color SEC_BUY_SIDE = new java.awt.Color(16, 185, 129); // Green
+        private static final java.awt.Color SEC_SELL_SIDE = new java.awt.Color(139, 92, 246); // Purple
+        private static final java.awt.Color SEC_DOCUMENTS = new java.awt.Color(245, 158, 11); // Amber
+        private static final java.awt.Color SEC_APPOINTMENTS = new java.awt.Color(236, 72, 153); // Pink
+        private static final java.awt.Color SEC_CONDITIONS = new java.awt.Color(20, 184, 166); // Teal
+        private static final java.awt.Color SEC_CLIENTS = new java.awt.Color(249, 115, 22); // Orange
+        private static final java.awt.Color SEC_TRENDS = new java.awt.Color(99, 102, 241); // Indigo
 
         public byte[] exportAnalyticsPdf(UUID brokerId, AnalyticsFilterRequest filters) {
                 AnalyticsDTO data = getAnalytics(brokerId, filters);
                 String brokerName = userAccountRepository.findById(brokerId)
-                        .map(u -> u.getFirstName() + " " + u.getLastName())
-                        .orElse("Unknown Broker");
-
+                                .map(u -> u.getFirstName() + " " + u.getLastName()).orElse("Unknown Broker");
                 try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                         com.lowagie.text.Document document = new com.lowagie.text.Document(
-                                PageSize.A4, 40, 40, 40, 60);
+                                        PageSize.A4, 40, 40, 40, 60);
                         PdfWriter writer = PdfWriter.getInstance(document, out);
                         writer.setPageEvent(new PdfFooterEvent());
 
@@ -539,16 +584,24 @@ public class AnalyticsService {
                         PdfPTable txTable = createStyledTable();
                         addStyledHeader(txTable, "Metric", "Value", SEC_TRANSACTIONS);
                         int row = 0;
-                        addStyledRow(txTable, "Total Transactions",    String.valueOf(data.totalTransactions()),     row++ % 2 == 1);
-                        addStyledRow(txTable, "Active Transactions",   String.valueOf(data.activeTransactions()),    row++ % 2 == 1);
-                        addStyledRow(txTable, "Closed Transactions",   String.valueOf(data.closedTransactions()),    row++ % 2 == 1);
-                        addStyledRow(txTable, "Terminated Transactions", String.valueOf(data.terminatedTransactions()), row++ % 2 == 1);
-                        addStyledRow(txTable, "Buy-Side Transactions", String.valueOf(data.buyTransactions()),       row++ % 2 == 1);
-                        addStyledRow(txTable, "Sell-Side Transactions", String.valueOf(data.sellTransactions()),     row++ % 2 == 1);
-                        addStyledRow(txTable, "Success Rate",          data.successRate() + "%",                     row++ % 2 == 1);
-                        addStyledRow(txTable, "Avg Duration",          data.avgTransactionDurationDays() + " days",  row++ % 2 == 1);
-                        addStyledRow(txTable, "Longest Duration",      data.longestDurationDays() + " days",         row++ % 2 == 1);
-                        addStyledRow(txTable, "Shortest Duration",     data.shortestDurationDays() + " days",        row++ % 2 == 1);
+                        addStyledRow(txTable, "Total Transactions", String.valueOf(data.totalTransactions()),
+                                        row++ % 2 == 1);
+                        addStyledRow(txTable, "Active Transactions", String.valueOf(data.activeTransactions()),
+                                        row++ % 2 == 1);
+                        addStyledRow(txTable, "Closed Transactions", String.valueOf(data.closedTransactions()),
+                                        row++ % 2 == 1);
+                        addStyledRow(txTable, "Terminated Transactions", String.valueOf(data.terminatedTransactions()),
+                                        row++ % 2 == 1);
+                        addStyledRow(txTable, "Buy-Side Transactions", String.valueOf(data.buyTransactions()),
+                                        row++ % 2 == 1);
+                        addStyledRow(txTable, "Sell-Side Transactions", String.valueOf(data.sellTransactions()),
+                                        row++ % 2 == 1);
+                        addStyledRow(txTable, "Success Rate", data.successRate() + "%", row++ % 2 == 1);
+                        addStyledRow(txTable, "Avg Duration", data.avgTransactionDurationDays() + " days",
+                                        row++ % 2 == 1);
+                        addStyledRow(txTable, "Longest Duration", data.longestDurationDays() + " days", row++ % 2 == 1);
+                        addStyledRow(txTable, "Shortest Duration", data.shortestDurationDays() + " days",
+                                        row++ % 2 == 1);
                         document.add(txTable);
 
                         // ── Section 2: Buy-Side Metrics ──
@@ -556,20 +609,34 @@ public class AnalyticsService {
                         PdfPTable buyTable = createStyledTable();
                         addStyledHeader(buyTable, "Metric", "Value", SEC_BUY_SIDE);
                         row = 0;
-                        addStyledRow(buyTable, "Total House Visits",       String.valueOf(data.totalHouseVisits()),                row++ % 2 == 1);
-                        addStyledRow(buyTable, "Avg Visits / Closed Tx",   String.valueOf(data.avgHouseVisitsPerClosedTransaction()), row++ % 2 == 1);
-                        addStyledRow(buyTable, "Total Properties",         String.valueOf(data.totalProperties()),                 row++ % 2 == 1);
-                        addStyledRow(buyTable, "Avg Properties / Buy Tx",  String.valueOf(data.avgPropertiesPerBuyTransaction()),  row++ % 2 == 1);
-                        addStyledRow(buyTable, "Property Interest Rate",   data.propertyInterestRate() + "%",                     row++ % 2 == 1);
-                        addStyledRow(buyTable, "Properties Needing Info",  String.valueOf(data.propertiesNeedingInfo()),           row++ % 2 == 1);
-                        addStyledRow(buyTable, "Properties With Offers",   String.valueOf(data.propertiesWithOffers()),            row++ % 2 == 1);
-                        addStyledRow(buyTable, "Properties Without Offers", String.valueOf(data.propertiesWithoutOffers()),        row++ % 2 == 1);
-                        addStyledRow(buyTable, "Total Buyer Offers",       String.valueOf(data.totalBuyerOffers()),                row++ % 2 == 1);
-                        addStyledRow(buyTable, "Buyer Offer Acceptance",   data.buyerOfferAcceptanceRate() + "%",                  row++ % 2 == 1);
-                        addStyledRow(buyTable, "Avg Offer Rounds",         String.valueOf(data.avgOfferRounds()),                  row++ % 2 == 1);
-                        addStyledRow(buyTable, "Avg Buyer Offer Amount",   "$" + String.format("%,.2f", data.avgBuyerOfferAmount()), row++ % 2 == 1);
-                        addStyledRow(buyTable, "Expired / Withdrawn",      String.valueOf(data.expiredOrWithdrawnOffers()),        row++ % 2 == 1);
-                        addStyledRow(buyTable, "Counter-Offer Rate",       data.buyerCounterOfferRate() + "%",                    row++ % 2 == 1);
+                        addStyledRow(buyTable, "Total House Visits", String.valueOf(data.totalHouseVisits()),
+                                        row++ % 2 == 1);
+                        addStyledRow(buyTable, "Avg Visits / Closed Tx",
+                                        String.valueOf(data.avgHouseVisitsPerClosedTransaction()), row++ % 2 == 1);
+                        addStyledRow(buyTable, "Total Properties", String.valueOf(data.totalProperties()),
+                                        row++ % 2 == 1);
+                        addStyledRow(buyTable, "Avg Properties / Buy Tx",
+                                        String.valueOf(data.avgPropertiesPerBuyTransaction()), row++ % 2 == 1);
+                        addStyledRow(buyTable, "Property Interest Rate", data.propertyInterestRate() + "%",
+                                        row++ % 2 == 1);
+                        addStyledRow(buyTable, "Properties Needing Info", String.valueOf(data.propertiesNeedingInfo()),
+                                        row++ % 2 == 1);
+                        addStyledRow(buyTable, "Properties With Offers", String.valueOf(data.propertiesWithOffers()),
+                                        row++ % 2 == 1);
+                        addStyledRow(buyTable, "Properties Without Offers",
+                                        String.valueOf(data.propertiesWithoutOffers()), row++ % 2 == 1);
+                        addStyledRow(buyTable, "Total Buyer Offers", String.valueOf(data.totalBuyerOffers()),
+                                        row++ % 2 == 1);
+                        addStyledRow(buyTable, "Buyer Offer Acceptance", data.buyerOfferAcceptanceRate() + "%",
+                                        row++ % 2 == 1);
+                        addStyledRow(buyTable, "Avg Offer Rounds", String.valueOf(data.avgOfferRounds()),
+                                        row++ % 2 == 1);
+                        addStyledRow(buyTable, "Avg Buyer Offer Amount",
+                                        "$" + String.format("%,.2f", data.avgBuyerOfferAmount()), row++ % 2 == 1);
+                        addStyledRow(buyTable, "Expired / Withdrawn", String.valueOf(data.expiredOrWithdrawnOffers()),
+                                        row++ % 2 == 1);
+                        addStyledRow(buyTable, "Counter-Offer Rate", data.buyerCounterOfferRate() + "%",
+                                        row++ % 2 == 1);
                         document.add(buyTable);
 
                         // ── Section 3: Sell-Side Metrics ──
@@ -577,17 +644,28 @@ public class AnalyticsService {
                         PdfPTable sellTable = createStyledTable();
                         addStyledHeader(sellTable, "Metric", "Value", SEC_SELL_SIDE);
                         row = 0;
-                        addStyledRow(sellTable, "Total Showings",            String.valueOf(data.totalSellShowings()),                    row++ % 2 == 1);
-                        addStyledRow(sellTable, "Avg Showings / Closed Tx",  String.valueOf(data.avgSellShowingsPerClosedTransaction()),  row++ % 2 == 1);
-                        addStyledRow(sellTable, "Total Visitors",            String.valueOf(data.totalSellVisitors()),                    row++ % 2 == 1);
-                        addStyledRow(sellTable, "Total Received Offers",     String.valueOf(data.totalOffers()),                          row++ % 2 == 1);
-                        addStyledRow(sellTable, "Offer Acceptance Rate",     data.receivedOfferAcceptanceRate() + "%",                    row++ % 2 == 1);
-                        addStyledRow(sellTable, "Avg Received Offer",        "$" + String.format("%,.2f", data.avgReceivedOfferAmount()), row++ % 2 == 1);
-                        addStyledRow(sellTable, "Highest Offer",             "$" + String.format("%,.2f", data.highestOfferAmount()),     row++ % 2 == 1);
-                        addStyledRow(sellTable, "Lowest Offer",              "$" + String.format("%,.2f", data.lowestOfferAmount()),      row++ % 2 == 1);
-                        addStyledRow(sellTable, "Avg Offers / Sell Tx",      String.valueOf(data.avgOffersPerSellTransaction()),          row++ % 2 == 1);
-                        addStyledRow(sellTable, "Pending / Under Review",    String.valueOf(data.pendingOrReviewOffers()),                row++ % 2 == 1);
-                        addStyledRow(sellTable, "Counter-Offer Rate",        data.receivedCounterOfferRate() + "%",                       row++ % 2 == 1);
+                        addStyledRow(sellTable, "Total Showings", String.valueOf(data.totalSellShowings()),
+                                        row++ % 2 == 1);
+                        addStyledRow(sellTable, "Avg Showings / Closed Tx",
+                                        String.valueOf(data.avgSellShowingsPerClosedTransaction()), row++ % 2 == 1);
+                        addStyledRow(sellTable, "Total Visitors", String.valueOf(data.totalSellVisitors()),
+                                        row++ % 2 == 1);
+                        addStyledRow(sellTable, "Total Received Offers", String.valueOf(data.totalOffers()),
+                                        row++ % 2 == 1);
+                        addStyledRow(sellTable, "Offer Acceptance Rate", data.receivedOfferAcceptanceRate() + "%",
+                                        row++ % 2 == 1);
+                        addStyledRow(sellTable, "Avg Received Offer",
+                                        "$" + String.format("%,.2f", data.avgReceivedOfferAmount()), row++ % 2 == 1);
+                        addStyledRow(sellTable, "Highest Offer",
+                                        "$" + String.format("%,.2f", data.highestOfferAmount()), row++ % 2 == 1);
+                        addStyledRow(sellTable, "Lowest Offer", "$" + String.format("%,.2f", data.lowestOfferAmount()),
+                                        row++ % 2 == 1);
+                        addStyledRow(sellTable, "Avg Offers / Sell Tx",
+                                        String.valueOf(data.avgOffersPerSellTransaction()), row++ % 2 == 1);
+                        addStyledRow(sellTable, "Pending / Under Review", String.valueOf(data.pendingOrReviewOffers()),
+                                        row++ % 2 == 1);
+                        addStyledRow(sellTable, "Counter-Offer Rate", data.receivedCounterOfferRate() + "%",
+                                        row++ % 2 == 1);
                         document.add(sellTable);
 
                         // ── Section 4: Documents ──
@@ -595,11 +673,15 @@ public class AnalyticsService {
                         PdfPTable docTable = createStyledTable();
                         addStyledHeader(docTable, "Metric", "Value", SEC_DOCUMENTS);
                         row = 0;
-                        addStyledRow(docTable, "Total Documents",        String.valueOf(data.totalDocuments()),           row++ % 2 == 1);
-                        addStyledRow(docTable, "Pending Documents",      String.valueOf(data.pendingDocuments()),         row++ % 2 == 1);
-                        addStyledRow(docTable, "Completion Rate",        data.documentCompletionRate() + "%",             row++ % 2 == 1);
-                        addStyledRow(docTable, "Needing Revision",       String.valueOf(data.documentsNeedingRevision()), row++ % 2 == 1);
-                        addStyledRow(docTable, "Avg Documents / Tx",     String.valueOf(data.avgDocumentsPerTransaction()), row++ % 2 == 1);
+                        addStyledRow(docTable, "Total Documents", String.valueOf(data.totalDocuments()),
+                                        row++ % 2 == 1);
+                        addStyledRow(docTable, "Pending Documents", String.valueOf(data.pendingDocuments()),
+                                        row++ % 2 == 1);
+                        addStyledRow(docTable, "Completion Rate", data.documentCompletionRate() + "%", row++ % 2 == 1);
+                        addStyledRow(docTable, "Needing Revision", String.valueOf(data.documentsNeedingRevision()),
+                                        row++ % 2 == 1);
+                        addStyledRow(docTable, "Avg Documents / Tx", String.valueOf(data.avgDocumentsPerTransaction()),
+                                        row++ % 2 == 1);
                         document.add(docTable);
 
                         // ── Section 5: Appointments ──
@@ -607,12 +689,17 @@ public class AnalyticsService {
                         PdfPTable apptTable = createStyledTable();
                         addStyledHeader(apptTable, "Metric", "Value", SEC_APPOINTMENTS);
                         row = 0;
-                        addStyledRow(apptTable, "Total Appointments",    String.valueOf(data.totalAppointments()),             row++ % 2 == 1);
-                        addStyledRow(apptTable, "Confirmation Rate",     data.appointmentConfirmationRate() + "%",             row++ % 2 == 1);
-                        addStyledRow(apptTable, "Declined Rate",         data.declinedAppointmentRate() + "%",                 row++ % 2 == 1);
-                        addStyledRow(apptTable, "Cancelled Rate",        data.cancelledAppointmentRate() + "%",                row++ % 2 == 1);
-                        addStyledRow(apptTable, "Upcoming Appointments", String.valueOf(data.upcomingAppointments()),          row++ % 2 == 1);
-                        addStyledRow(apptTable, "Avg Appointments / Tx", String.valueOf(data.avgAppointmentsPerTransaction()), row++ % 2 == 1);
+                        addStyledRow(apptTable, "Total Appointments", String.valueOf(data.totalAppointments()),
+                                        row++ % 2 == 1);
+                        addStyledRow(apptTable, "Confirmation Rate", data.appointmentConfirmationRate() + "%",
+                                        row++ % 2 == 1);
+                        addStyledRow(apptTable, "Declined Rate", data.declinedAppointmentRate() + "%", row++ % 2 == 1);
+                        addStyledRow(apptTable, "Cancelled Rate", data.cancelledAppointmentRate() + "%",
+                                        row++ % 2 == 1);
+                        addStyledRow(apptTable, "Upcoming Appointments", String.valueOf(data.upcomingAppointments()),
+                                        row++ % 2 == 1);
+                        addStyledRow(apptTable, "Avg Appointments / Tx",
+                                        String.valueOf(data.avgAppointmentsPerTransaction()), row++ % 2 == 1);
                         document.add(apptTable);
 
                         // ── Section 6: Conditions ──
@@ -620,11 +707,14 @@ public class AnalyticsService {
                         PdfPTable condTable = createStyledTable();
                         addStyledHeader(condTable, "Metric", "Value", SEC_CONDITIONS);
                         row = 0;
-                        addStyledRow(condTable, "Total Conditions",       String.valueOf(data.totalConditions()),              row++ % 2 == 1);
-                        addStyledRow(condTable, "Satisfied Rate",         data.conditionSatisfiedRate() + "%",                 row++ % 2 == 1);
-                        addStyledRow(condTable, "Approaching Deadline",   String.valueOf(data.conditionsApproachingDeadline()), row++ % 2 == 1);
-                        addStyledRow(condTable, "Overdue",                String.valueOf(data.overdueConditions()),             row++ % 2 == 1);
-                        addStyledRow(condTable, "Avg Conditions / Tx",    String.valueOf(data.avgConditionsPerTransaction()),  row++ % 2 == 1);
+                        addStyledRow(condTable, "Total Conditions", String.valueOf(data.totalConditions()),
+                                        row++ % 2 == 1);
+                        addStyledRow(condTable, "Satisfied Rate", data.conditionSatisfiedRate() + "%", row++ % 2 == 1);
+                        addStyledRow(condTable, "Approaching Deadline",
+                                        String.valueOf(data.conditionsApproachingDeadline()), row++ % 2 == 1);
+                        addStyledRow(condTable, "Overdue", String.valueOf(data.overdueConditions()), row++ % 2 == 1);
+                        addStyledRow(condTable, "Avg Conditions / Tx",
+                                        String.valueOf(data.avgConditionsPerTransaction()), row++ % 2 == 1);
                         document.add(condTable);
 
                         // ── Section 7: Client Engagement ──
@@ -632,10 +722,14 @@ public class AnalyticsService {
                         PdfPTable clientTable = createStyledTable();
                         addStyledHeader(clientTable, "Metric", "Value", SEC_CLIENTS);
                         row = 0;
-                        addStyledRow(clientTable, "Total Active Clients",       String.valueOf(data.totalActiveClients()),                row++ % 2 == 1);
-                        addStyledRow(clientTable, "Clients w/ Multiple Tx",     String.valueOf(data.clientsWithMultipleTransactions()),   row++ % 2 == 1);
-                        addStyledRow(clientTable, "Appointments by Broker",     String.valueOf(data.appointmentsByBroker()),              row++ % 2 == 1);
-                        addStyledRow(clientTable, "Appointments by Client",     String.valueOf(data.appointmentsByClient()),              row++ % 2 == 1);
+                        addStyledRow(clientTable, "Total Active Clients", String.valueOf(data.totalActiveClients()),
+                                        row++ % 2 == 1);
+                        addStyledRow(clientTable, "Clients w/ Multiple Tx",
+                                        String.valueOf(data.clientsWithMultipleTransactions()), row++ % 2 == 1);
+                        addStyledRow(clientTable, "Appointments by Broker", String.valueOf(data.appointmentsByBroker()),
+                                        row++ % 2 == 1);
+                        addStyledRow(clientTable, "Appointments by Client", String.valueOf(data.appointmentsByClient()),
+                                        row++ % 2 == 1);
                         document.add(clientTable);
 
                         // ── Section 8: Trends ──
@@ -643,14 +737,12 @@ public class AnalyticsService {
                         PdfPTable trendTable = createStyledTable();
                         addStyledHeader(trendTable, "Metric", "Value", SEC_TRENDS);
                         row = 0;
-                        addStyledRow(trendTable, "Busiest Month",        data.busiestMonth(),                           row++ % 2 == 1);
-                        addStyledRow(trendTable, "Idle Transactions",    String.valueOf(data.idleTransactions()),       row++ % 2 == 1);
+                        addStyledRow(trendTable, "Busiest Month", data.busiestMonth(), row++ % 2 == 1);
+                        addStyledRow(trendTable, "Idle Transactions", String.valueOf(data.idleTransactions()),
+                                        row++ % 2 == 1);
                         document.add(trendTable);
-
                         document.close();
-
                         logExportAudit(brokerId, "PDF", filters);
-
                         return out.toByteArray();
                 } catch (Exception e) {
                         log.error("Error generating PDF export", e);
@@ -661,7 +753,7 @@ public class AnalyticsService {
         // ── PDF Helper Methods ───────────────────────────────────────────
 
         private void addReportHeader(com.lowagie.text.Document document, String brokerName,
-                                     AnalyticsFilterRequest filters) throws DocumentException {
+                        AnalyticsFilterRequest filters) throws DocumentException {
                 // Navy banner
                 PdfPTable banner = new PdfPTable(1);
                 banner.setWidthPercentage(100);
@@ -699,24 +791,25 @@ public class AnalyticsService {
                 Font metaLabelFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, TEXT_MUTED);
                 Font metaValueFont = FontFactory.getFont(FontFactory.HELVETICA, 10, TEXT_DARK);
 
-                PdfPTable metaTable = new PdfPTable(filters.getStartDate() != null && filters.getEndDate() != null ? 3 : 2);
+                PdfPTable metaTable = new PdfPTable(
+                                filters.getStartDate() != null && filters.getEndDate() != null ? 3 : 2);
                 metaTable.setWidthPercentage(100);
                 metaTable.setSpacingAfter(20);
 
                 addMetaCell(metaTable, "BROKER", brokerName, metaLabelFont, metaValueFont);
                 addMetaCell(metaTable, "GENERATED",
-                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' HH:mm")),
-                        metaLabelFont, metaValueFont);
+                                LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' HH:mm")),
+                                metaLabelFont, metaValueFont);
                 if (filters.getStartDate() != null && filters.getEndDate() != null) {
                         addMetaCell(metaTable, "PERIOD",
-                                filters.getStartDate() + "  to  " + filters.getEndDate(),
-                                metaLabelFont, metaValueFont);
+                                        filters.getStartDate() + "  to  " + filters.getEndDate(),
+                                        metaLabelFont, metaValueFont);
                 }
                 document.add(metaTable);
         }
 
         private void addMetaCell(PdfPTable table, String label, String value,
-                                 Font labelFont, Font valueFont) {
+                        Font labelFont, Font valueFont) {
                 Paragraph p = new Paragraph();
                 p.add(new Chunk(label, labelFont));
                 p.add(Chunk.NEWLINE);
@@ -728,12 +821,12 @@ public class AnalyticsService {
         }
 
         private void addSectionTitle(com.lowagie.text.Document document, String title,
-                                     java.awt.Color accentColor) throws DocumentException {
+                        java.awt.Color accentColor) throws DocumentException {
                 // Spacer
                 document.add(new Paragraph(" "));
 
                 // Colored left-bar + title
-                PdfPTable header = new PdfPTable(new float[]{4f, 96f});
+                PdfPTable header = new PdfPTable(new float[] { 4f, 96f });
                 header.setWidthPercentage(100);
                 header.setSpacingAfter(6);
 
@@ -754,14 +847,14 @@ public class AnalyticsService {
         }
 
         private PdfPTable createStyledTable() throws DocumentException {
-                PdfPTable table = new PdfPTable(new float[]{55f, 45f});
+                PdfPTable table = new PdfPTable(new float[] { 55f, 45f });
                 table.setWidthPercentage(100);
                 table.setSpacingAfter(5);
                 return table;
         }
 
         private void addStyledHeader(PdfPTable table, String col1, String col2,
-                                     java.awt.Color bgColor) {
+                        java.awt.Color bgColor) {
                 Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, WHITE);
 
                 PdfPCell c1 = new PdfPCell(new Phrase(col1, headerFont));
@@ -818,25 +911,24 @@ public class AnalyticsService {
                         float y = document.bottom() - 20;
 
                         com.lowagie.text.pdf.ColumnText.showTextAligned(
-                                writer.getDirectContent(),
-                                Element.ALIGN_LEFT, left, x, y, 0);
+                                        writer.getDirectContent(),
+                                        Element.ALIGN_LEFT, left, x, y, 0);
                         com.lowagie.text.pdf.ColumnText.showTextAligned(
-                                writer.getDirectContent(),
-                                Element.ALIGN_RIGHT, right, xEnd, y, 0);
+                                        writer.getDirectContent(),
+                                        Element.ALIGN_RIGHT, right, xEnd, y, 0);
                 }
         }
 
         private void logExportAudit(UUID brokerId, String type, AnalyticsFilterRequest filters) {
                 String filterString = String.format("Start:%s, End:%s, Type:%s, Client:%s",
-                        filters.getStartDate(), filters.getEndDate(), filters.getTransactionType(), filters.getClientName());
-
+                                filters.getStartDate(), filters.getEndDate(), filters.getTransactionType(),
+                                filters.getClientName());
                 AnalyticsExportAuditEvent event = AnalyticsExportAuditEvent.builder()
-                        .brokerId(brokerId)
-                        .timestamp(LocalDateTime.now())
-                        .exportType(type)
-                        .filtersApplied(filterString)
-                        .build();
-                
+                                .brokerId(brokerId)
+                                .timestamp(LocalDateTime.now())
+                                .exportType(type)
+                                .filtersApplied(filterString)
+                                .build();
                 analyticsExportAuditRepository.save(event);
         }
 
