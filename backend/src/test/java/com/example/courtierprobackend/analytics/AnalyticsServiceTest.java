@@ -2,6 +2,8 @@ package com.example.courtierprobackend.analytics;
 
 import com.example.courtierprobackend.audit.analytics_export_audit.datalayer.AnalyticsExportAuditEvent;
 import com.example.courtierprobackend.audit.analytics_export_audit.datalayer.AnalyticsExportAuditRepository;
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntry;
+import com.example.courtierprobackend.audit.timeline_audit.dataaccesslayer.TimelineEntryRepository;
 import com.example.courtierprobackend.appointments.datalayer.Appointment;
 import com.example.courtierprobackend.appointments.datalayer.AppointmentRepository;
 import com.example.courtierprobackend.appointments.datalayer.enums.AppointmentStatus;
@@ -61,6 +63,8 @@ class AnalyticsServiceTest {
     private AnalyticsExportAuditRepository analyticsExportAuditRepository;
     @Mock
     private UserAccountRepository userAccountRepository;
+    @Mock
+    private TimelineEntryRepository timelineEntryRepository;
 
     @InjectMocks
     private AnalyticsService analyticsService;
@@ -78,7 +82,7 @@ class AnalyticsServiceTest {
     }
 
     private Transaction buildTransaction(TransactionStatus status, TransactionSide side,
-                                         LocalDateTime openedAt, LocalDateTime closedAt) {
+            LocalDateTime openedAt, LocalDateTime closedAt) {
         return Transaction.builder()
                 .transactionId(UUID.randomUUID())
                 .brokerId(brokerId)
@@ -108,7 +112,7 @@ class AnalyticsServiceTest {
     }
 
     private Appointment buildAppointment(AppointmentStatus status, InitiatorType initiator,
-                                         LocalDateTime fromDateTime) {
+            LocalDateTime fromDateTime) {
         Appointment apt = new Appointment();
         apt.setAppointmentId(UUID.randomUUID());
         apt.setBrokerId(brokerId);
@@ -136,7 +140,7 @@ class AnalyticsServiceTest {
     }
 
     private PropertyOffer buildPropertyOffer(UUID propertyId, BuyerOfferStatus status,
-                                              BigDecimal amount, CounterpartyResponse counterparty) {
+            BigDecimal amount, CounterpartyResponse counterparty) {
         return PropertyOffer.builder()
                 .propertyOfferId(UUID.randomUUID())
                 .propertyId(propertyId)
@@ -173,8 +177,10 @@ class AnalyticsServiceTest {
     class EmptyState {
         @Test
         void getAnalytics_noTransactions_returnsAllZeros() {
-            when(transactionRepository.findForAnalytics(eq(brokerId), any(), any(), any())).thenReturn(Collections.emptyList());
-            when(appointmentRepository.findForAnalytics(eq(brokerId), any(), any())).thenReturn(Collections.emptyList());
+            when(transactionRepository.findForAnalytics(eq(brokerId), any(), any(), any()))
+                    .thenReturn(Collections.emptyList());
+            when(appointmentRepository.findForAnalytics(eq(brokerId), any(), any()))
+                    .thenReturn(Collections.emptyList());
 
             AnalyticsDTO result = analyticsService.getAnalytics(brokerId, emptyFilters());
 
@@ -190,8 +196,10 @@ class AnalyticsServiceTest {
         void countsStatusesAndSidesCorrectly() {
             Transaction active1 = buildBuyTransaction(TransactionStatus.ACTIVE, BuyerStage.BUYER_PROPERTY_SEARCH);
             Transaction active2 = buildSellTransaction(TransactionStatus.ACTIVE, SellerStage.SELLER_PUBLISH_LISTING);
-            Transaction closed = buildBuyTransaction(TransactionStatus.CLOSED_SUCCESSFULLY, BuyerStage.BUYER_POSSESSION);
-            Transaction terminated = buildSellTransaction(TransactionStatus.TERMINATED_EARLY, SellerStage.SELLER_INITIAL_CONSULTATION);
+            Transaction closed = buildBuyTransaction(TransactionStatus.CLOSED_SUCCESSFULLY,
+                    BuyerStage.BUYER_POSSESSION);
+            Transaction terminated = buildSellTransaction(TransactionStatus.TERMINATED_EARLY,
+                    SellerStage.SELLER_INITIAL_CONSULTATION);
 
             setupDefaultMocks(List.of(active1, active2, closed, terminated));
 
@@ -207,15 +215,18 @@ class AnalyticsServiceTest {
 
         @Test
         void successRate_calculatedFromClosedAndTerminated() {
-             Transaction closed1 = buildBuyTransaction(TransactionStatus.CLOSED_SUCCESSFULLY, BuyerStage.BUYER_POSSESSION);
-             Transaction closed2 = buildBuyTransaction(TransactionStatus.CLOSED_SUCCESSFULLY, BuyerStage.BUYER_POSSESSION);
-             Transaction terminated = buildSellTransaction(TransactionStatus.TERMINATED_EARLY, SellerStage.SELLER_INITIAL_CONSULTATION);
+            Transaction closed1 = buildBuyTransaction(TransactionStatus.CLOSED_SUCCESSFULLY,
+                    BuyerStage.BUYER_POSSESSION);
+            Transaction closed2 = buildBuyTransaction(TransactionStatus.CLOSED_SUCCESSFULLY,
+                    BuyerStage.BUYER_POSSESSION);
+            Transaction terminated = buildSellTransaction(TransactionStatus.TERMINATED_EARLY,
+                    SellerStage.SELLER_INITIAL_CONSULTATION);
 
-             setupDefaultMocks(List.of(closed1, closed2, terminated));
+            setupDefaultMocks(List.of(closed1, closed2, terminated));
 
-             AnalyticsDTO result = analyticsService.getAnalytics(brokerId, emptyFilters());
+            AnalyticsDTO result = analyticsService.getAnalytics(brokerId, emptyFilters());
 
-             assertThat(result.successRate()).isCloseTo(66.7, within(0.1));
+            assertThat(result.successRate()).isCloseTo(66.7, within(0.1));
         }
 
         @Test
@@ -252,8 +263,8 @@ class AnalyticsServiceTest {
             when(propertyRepository.findByTransactionIdOrderByCreatedAtDesc(t1.getTransactionId()))
                     .thenReturn(List.of(p1, p2));
             when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(anyList()))
-                    .thenReturn(Collections.singletonList(new Object[]{t1.getTransactionId(), 5}));
-            
+                    .thenReturn(Collections.singletonList(new Object[] { t1.getTransactionId(), 5 }));
+
             // Mock other dependencies to avoid NPEs
             setupDocumentMocks(List.of(t1));
             setupConditionMocks(List.of(t1));
@@ -274,8 +285,10 @@ class AnalyticsServiceTest {
         void calculatesBuyerOffersCorrectly() {
             Transaction t1 = buildBuyTransaction(TransactionStatus.ACTIVE, BuyerStage.BUYER_OFFER_AND_NEGOTIATION);
             Property p1 = buildProperty(PropertyStatus.INTERESTED);
-            PropertyOffer o1 = buildPropertyOffer(p1.getPropertyId(), BuyerOfferStatus.ACCEPTED, new BigDecimal("500000"), CounterpartyResponse.ACCEPTED);
-            PropertyOffer o2 = buildPropertyOffer(p1.getPropertyId(), BuyerOfferStatus.DECLINED, new BigDecimal("450000"), CounterpartyResponse.DECLINED);
+            PropertyOffer o1 = buildPropertyOffer(p1.getPropertyId(), BuyerOfferStatus.ACCEPTED,
+                    new BigDecimal("500000"), CounterpartyResponse.ACCEPTED);
+            PropertyOffer o2 = buildPropertyOffer(p1.getPropertyId(), BuyerOfferStatus.DECLINED,
+                    new BigDecimal("450000"), CounterpartyResponse.DECLINED);
 
             when(transactionRepository.findForAnalytics(eq(brokerId), any(), any(), any()))
                     .thenReturn(List.of(t1));
@@ -289,8 +302,8 @@ class AnalyticsServiceTest {
             setupConditionMocks(List.of(t1));
             setupOfferMocks(List.of(t1));
             when(appointmentRepository.findForAnalytics(any(), any(), any())).thenReturn(Collections.emptyList());
-            when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(any())).thenReturn(Collections.emptyList());
-
+            when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(any()))
+                    .thenReturn(Collections.emptyList());
 
             AnalyticsDTO result = analyticsService.getAnalytics(brokerId, emptyFilters());
 
@@ -312,9 +325,9 @@ class AnalyticsServiceTest {
             when(offerRepository.findByTransactionIdOrderByCreatedAtDesc(t1.getTransactionId()))
                     .thenReturn(List.of(o1));
             when(appointmentRepository.countConfirmedShowingsByTransactionIds(anyList()))
-                    .thenReturn(Collections.singletonList(new Object[]{t1.getTransactionId(), 3}));
+                    .thenReturn(Collections.singletonList(new Object[] { t1.getTransactionId(), 3 }));
             when(appointmentRepository.sumVisitorsByTransactionIds(anyList()))
-                    .thenReturn(Collections.singletonList(new Object[]{t1.getTransactionId(), 10}));
+                    .thenReturn(Collections.singletonList(new Object[] { t1.getTransactionId(), 10 }));
 
             // Mock other dependencies
             setupDocumentMocks(List.of(t1));
@@ -353,7 +366,8 @@ class AnalyticsServiceTest {
             setupConditionMocks(List.of(t1));
             setupOfferMocks(List.of(t1));
             when(appointmentRepository.findForAnalytics(any(), any(), any())).thenReturn(Collections.emptyList());
-            when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(any())).thenReturn(Collections.emptyList());
+            when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(any()))
+                    .thenReturn(Collections.emptyList());
 
             AnalyticsDTO result = analyticsService.getAnalytics(brokerId, emptyFilters());
 
@@ -398,7 +412,7 @@ class AnalyticsServiceTest {
             Transaction t1 = buildBuyTransaction(TransactionStatus.ACTIVE, BuyerStage.BUYER_FINANCING_AND_CONDITIONS);
             Condition c1 = buildCondition(t1.getTransactionId(), ConditionStatus.SATISFIED, LocalDate.now());
             Condition c2 = buildCondition(t1.getTransactionId(), ConditionStatus.PENDING, LocalDate.now().minusDays(1)); // Overdue
-            Condition c3 = buildCondition(t1.getTransactionId(), ConditionStatus.PENDING, LocalDate.now().plusDays(5));  // Approaching
+            Condition c3 = buildCondition(t1.getTransactionId(), ConditionStatus.PENDING, LocalDate.now().plusDays(5)); // Approaching
 
             when(transactionRepository.findForAnalytics(eq(brokerId), any(), any(), any()))
                     .thenReturn(List.of(t1));
@@ -410,7 +424,8 @@ class AnalyticsServiceTest {
             setupDocumentMocks(List.of(t1));
             setupOfferMocks(List.of(t1));
             when(appointmentRepository.findForAnalytics(any(), any(), any())).thenReturn(Collections.emptyList());
-            when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(any())).thenReturn(Collections.emptyList());
+            when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(any()))
+                    .thenReturn(Collections.emptyList());
 
             AnalyticsDTO result = analyticsService.getAnalytics(brokerId, emptyFilters());
 
@@ -444,13 +459,11 @@ class AnalyticsServiceTest {
                     eq(brokerId),
                     eq(startDate.atStartOfDay()),
                     eq(endDate.atTime(LocalTime.MAX)),
-                    eq(null)
-            );
+                    eq(null));
             verify(appointmentRepository).findForAnalytics(
                     eq(brokerId),
                     eq(startDate.atStartOfDay()),
-                    eq(endDate.atTime(LocalTime.MAX))
-            );
+                    eq(endDate.atTime(LocalTime.MAX)));
         }
 
         @Test
@@ -475,14 +488,12 @@ class AnalyticsServiceTest {
                     any(),
                     any(),
                     any(),
-                    eq(mockClientIds)
-            );
+                    eq(mockClientIds));
             verify(appointmentRepository).findForAnalyticsWithClients(
                     eq(brokerId),
                     any(),
                     any(),
-                    eq(mockClientIds)
-            );
+                    eq(mockClientIds));
         }
 
         @Test
@@ -497,14 +508,14 @@ class AnalyticsServiceTest {
             AnalyticsDTO result = analyticsService.getAnalytics(brokerId, filters);
 
             assertThat(result.totalTransactions()).isZero();
-            
+
             verify(userAccountRepository).findIdsBySearchQuery(brokerId, clientName);
             verify(transactionRepository, never()).findForAnalytics(any(), any(), any(), any());
             verify(transactionRepository, never()).findForAnalyticsWithClients(any(), any(), any(), any(), any());
             verify(appointmentRepository, never()).findForAnalytics(any(), any(), any());
             verify(appointmentRepository, never()).findForAnalyticsWithClients(any(), any(), any(), any());
         }
-        
+
         @Test
         void getAnalytics_withTransactionTypeFilter_callsRepositoryWithCorrectType() {
             TransactionSide type = TransactionSide.BUY_SIDE;
@@ -523,12 +534,14 @@ class AnalyticsServiceTest {
                     eq(brokerId),
                     any(),
                     any(),
-                    eq(type)
-            );
+                    eq(type));
 
-            // New: Verify appointments are filtered in memory. If total appointments returned is X,
-            // and we filter to only those in the transaction set, the result should reflect that.
-            // Since we mocked findForAnalytics to return empty, the filter effect is trivial (empty list).
+            // New: Verify appointments are filtered in memory. If total appointments
+            // returned is X,
+            // and we filter to only those in the transaction set, the result should reflect
+            // that.
+            // Since we mocked findForAnalytics to return empty, the filter effect is
+            // trivial (empty list).
             // A dedicated test case for the filtering logic would be better.
         }
 
@@ -539,9 +552,10 @@ class AnalyticsServiceTest {
                     .transactionType(type)
                     .build();
 
-            Transaction t1 = buildBuyTransaction(TransactionStatus.ACTIVE, BuyerStage.BUYER_PROPERTY_SEARCH); // Buy side
+            Transaction t1 = buildBuyTransaction(TransactionStatus.ACTIVE, BuyerStage.BUYER_PROPERTY_SEARCH); // Buy
+                                                                                                              // side
             t1.setTransactionId(UUID.randomUUID());
-            
+
             Appointment a1 = buildAppointment(AppointmentStatus.CONFIRMED, InitiatorType.BROKER, LocalDateTime.now());
             a1.setTransactionId(t1.getTransactionId()); // Matches t1
 
@@ -609,12 +623,22 @@ class AnalyticsServiceTest {
     private void setupDefaultMocks(List<Transaction> transactions) {
         // Updated to use findForAnalytics (no clients)
         when(transactionRepository.findForAnalytics(eq(brokerId), any(), any(), any())).thenReturn(transactions);
-        
+
+        // Mock userAccountRepository to return empty by default for any set of client
+        // IDs
+        when(userAccountRepository.findAllById(any())).thenReturn(Collections.emptyList());
+        for (Transaction tx : transactions) {
+            if (tx.getClientId() != null) {
+                when(userAccountRepository.findById(tx.getClientId())).thenReturn(Optional.empty());
+            }
+        }
+
         // Similarly for appointments
         when(appointmentRepository.findForAnalytics(eq(brokerId), any(), any()))
                 .thenReturn(Collections.emptyList());
-                
-        when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(any())).thenReturn(Collections.emptyList());
+
+        when(appointmentRepository.countConfirmedHouseVisitsByTransactionIds(any()))
+                .thenReturn(Collections.emptyList());
         setupPropertyMocks(transactions);
         setupDocumentMocks(transactions);
         setupConditionMocks(transactions);
