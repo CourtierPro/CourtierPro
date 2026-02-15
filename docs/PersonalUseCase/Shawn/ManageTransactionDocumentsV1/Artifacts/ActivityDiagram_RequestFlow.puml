@@ -25,20 +25,8 @@ start
 notes, dueDate, requiresSignature;
 
 |#FFF3E0| System |
-:Create Document (status = DRAFT, flow = REQUEST);
-
-|#E3F2FD| Broker |
-if (Requires signature?) then (yes)
-  :Upload source document for client to sign;
-else (no)
-  :(Optional) Attach reference file;
-endif
-
-:Click "Send Request";
-
-|#FFF3E0| System |
-:Validate request (signature source exists if required);
-:Transition status DRAFT -> REQUESTED;
+:Validate request;
+:Create Document (status = REQUESTED, flow = REQUEST);
 :Notify Client (email + in-app);
 
 |#E8F5E9| Client |
@@ -110,7 +98,7 @@ legend right
   | <#FFF3E0> | System |
   ----
   **Status lifecycle:**
-  DRAFT -> REQUESTED -> SUBMITTED
+  REQUESTED -> SUBMITTED
   -> APPROVED / NEEDS_REVISION / REJECTED
 endlegend
 

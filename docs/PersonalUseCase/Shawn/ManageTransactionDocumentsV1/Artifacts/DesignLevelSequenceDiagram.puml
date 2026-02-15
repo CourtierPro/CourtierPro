@@ -34,9 +34,9 @@ box "Data / Infrastructure" #F3E5F5
   participant "ObjectStorageService" as Storage
 end box
 
-== Flow 1: Broker Creates Document Request (DRAFT -> Send) ==
+== Flow 1: Broker Requests Document from Client ==
 
-BrokerActor -> FE: Opens RequestDocumentModal
+BrokerActor -> FE: Opens RequestDocumentModal, fills form
 FE -> Axios: POST /transactions/{txId}/documents
 Axios -> DocCtrl: createDocument(txId, dto, userId)
 activate DocCtrl
@@ -47,37 +47,14 @@ activate DocSvc
 DocSvc -> TxRepo: findByTransactionId(txId)
 TxRepo --> DocSvc: Transaction
 
-note right of DocSvc: Validate broker has EDIT_DOCUMENTS permission
-
-DocSvc -> DocRepo: save(Document{status=DRAFT, flow=REQUEST})
-DocRepo --> DocSvc: Document
-
-DocSvc --> DocCtrl: DocumentResponseDTO
-deactivate DocSvc
-DocCtrl --> Axios: HTTP 201
-deactivate DocCtrl
-Axios --> FE: Document (DRAFT)
-FE --> BrokerActor: Show created document
-
-...Broker optionally attaches file via uploadFileToDocument...
-
-BrokerActor -> FE: Clicks "Send Request"
-FE -> Axios: POST /transactions/{txId}/documents/{docId}/send
-Axios -> DocCtrl: sendDocumentRequest(txId, docId, brokerId)
-activate DocCtrl
-
-DocCtrl -> DocSvc: sendDocumentRequest(docId, brokerId)
-activate DocSvc
-
-DocSvc -> DocRepo: findByDocumentId(docId)
-DocRepo --> DocSvc: Document
-
 note right of DocSvc
-  Validate: status == DRAFT
-  If requiresSignature, versions must exist
+  Validate broker has EDIT_DOCUMENTS permission
+  Create Document with status=REQUESTED, flow=REQUEST
+  If requiresSignature, validate source file attached
 end note
 
-DocSvc -> DocRepo: save(document{status=REQUESTED})
+DocSvc -> DocRepo: save(Document{status=REQUESTED, flow=REQUEST})
+DocRepo --> DocSvc: Document
 
 DocSvc -> UserRepo: findById(clientId)
 UserRepo --> DocSvc: UserAccount (client)
@@ -87,10 +64,10 @@ DocSvc -> NotifSvc: createDocumentNotification(category=DOCUMENT)
 
 DocSvc --> DocCtrl: DocumentResponseDTO
 deactivate DocSvc
-DocCtrl --> Axios: HTTP 200
+DocCtrl --> Axios: HTTP 201
 deactivate DocCtrl
 Axios --> FE: Document (REQUESTED)
-FE --> BrokerActor: Show updated status
+FE --> BrokerActor: Show document with REQUESTED status
 
 == Flow 2: Client Submits Document ==
 

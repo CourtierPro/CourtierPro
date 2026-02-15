@@ -1,0 +1,84 @@
+@startuml ActivityDiagram_RequestFlow
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E8F4FD
+skinparam ActivityBorderColor #1976D2
+skinparam ActivityFontSize 12
+skinparam ArrowColor #424242
+skinparam PartitionBackgroundColor #F5F5F5
+skinparam PartitionBorderColor #BDBDBD
+skinparam DiamondBackgroundColor #FFF9C4
+skinparam DiamondBorderColor #F9A825
+
+title Manage Transaction Documents - REQUEST Flow\n(Broker requests, client submits, broker reviews)
+
+|#E3F2FD| Broker |
+|#E8F5E9| Client |
+|#FFF3E0| System |
+
+start
+
+|#E3F2FD| Broker |
+:Open transaction documents;
+:Click "Request Document";
+:Fill request form and send;
+
+|#FFF3E0| System |
+:Validate access and payload;
+:Create Document (flow=REQUEST, status=REQUESTED);
+:Notify Client;
+
+|#E8F5E9| Client |
+:Open transaction documents;
+:Upload requested file;
+
+|#FFF3E0| System |
+if (Is file valid?) then (yes)
+  :Store file in Cloudflare R2;
+  :Create DocumentVersion;
+  :Transition REQUESTED -> SUBMITTED;
+  :Notify Broker;
+else (no)
+  :Return validation error;
+  stop
+endif
+
+|#E3F2FD| Broker |
+:Download submitted version;
+:Submit review decision;
+
+|#FFF3E0| System |
+switch (Decision)
+case (APPROVED)
+  :Status -> APPROVED;
+case (NEEDS_REVISION)
+  :Status -> NEEDS_REVISION;
+case (REJECTED)
+  :Status -> REJECTED;
+endswitch
+:Notify Client;
+
+if (Decision is NEEDS_REVISION?) then (yes)
+  |#E8F5E9| Client |
+  :Upload corrected file;
+
+  |#FFF3E0| System |
+  :Create new DocumentVersion;
+  :Transition NEEDS_REVISION -> SUBMITTED;
+  :Notify Broker;
+endif
+
+stop
+
+legend right
+  |= Color |= Actor |
+  | <#E3F2FD> | Broker |
+  | <#E8F5E9> | Client |
+  | <#FFF3E0> | System |
+  ----
+  Document status path:
+  REQUESTED -> SUBMITTED
+  -> APPROVED / NEEDS_REVISION / REJECTED
+endlegend
+
+@enduml

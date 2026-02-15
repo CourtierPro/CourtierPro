@@ -1,0 +1,206 @@
+@startuml DesignLevelClassDiagram
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+title Design-Level Class Diagram: Document Management (Core)
+
+package "Presentation Layer" #LightBlue {
+  class DocumentController <<DLCD-C1>> {
+    - service: DocumentService
+    --
+    + [M1] getDocuments(transactionId, userId): List<DocumentResponseDTO>
+    + [M2] createDocument(transactionId, dto, userId): DocumentResponseDTO
+    + [M3] submitDocument(transactionId, documentId, file, userId, type): DocumentResponseDTO
+    + [M4] reviewDocument(transactionId, documentId, reviewDto, brokerId): DocumentResponseDTO
+    + [M5] getDocumentDownloadUrl(transactionId, documentId, versionId): Map
+    + [M6] uploadFileToDocument(transactionId, documentId, file, userId): DocumentResponseDTO
+    + [M7] shareDocumentWithClient(transactionId, documentId, brokerId): DocumentResponseDTO
+  }
+
+  class DocumentRequestDTO {
+    + docType: DocumentTypeEnum
+    + customTitle: String
+    + expectedFrom: DocumentPartyEnum
+    + stage: StageEnum
+    + brokerNotes: String
+    + dueDate: LocalDateTime
+    + status: DocumentStatusEnum
+    + flow: DocumentFlowEnum
+    + requiresSignature: Boolean
+  }
+
+  class DocumentReviewRequestDTO {
+    + decision: DocumentStatusEnum
+    + comments: String
+  }
+
+  class DocumentResponseDTO {
+    + documentId: UUID
+    + transactionRef: TransactionRef
+    + docType: DocumentTypeEnum
+    + customTitle: String
+    + status: DocumentStatusEnum
+    + expectedFrom: DocumentPartyEnum
+    + stage: StageEnum
+    + flow: DocumentFlowEnum
+    + requiresSignature: Boolean
+    + brokerNotes: String
+    + visibleToClient: Boolean
+    + versions: List<DocumentVersionResponseDTO>
+    + dueDate: LocalDateTime
+  }
+
+  class DocumentVersionResponseDTO {
+    + versionId: UUID
+    + uploadedAt: LocalDateTime
+    + uploadedBy: UploadedBy
+    + storageObject: StorageObject
+  }
+}
+
+package "Business Layer" #LightGreen {
+  interface DocumentService <<DLCD-S1>> {
+    + [M1] getDocumentsForTransaction(txId, userId): List<DocumentResponseDTO>
+    + [M2] createDocument(txId, dto, userId): DocumentResponseDTO
+    + [M3] submitDocument(txId, docId, file, userId, type): DocumentResponseDTO
+    + [M4] reviewDocument(txId, docId, dto, brokerId): DocumentResponseDTO
+    + [M5] getDocumentDownloadUrl(docId, verId, userId): String
+    + [M6] uploadFileToDocument(txId, docId, file, userId, type): DocumentResponseDTO
+    + [M7] shareDocumentWithClient(docId, brokerId): DocumentResponseDTO
+  }
+
+  class DocumentServiceImpl <<DLCD-S2>> {
+    - documentRepository: DocumentRepository
+    - transactionRepository: TransactionRepository
+    - objectStorageService: ObjectStorageService
+    - notificationService: NotificationService
+    --
+    + [M1] getDocumentsForTransaction(txId, userId): List<DocumentResponseDTO>
+    + [M2] createDocument(txId, dto, userId): DocumentResponseDTO
+    + [M3] submitDocument(txId, docId, file, userId, type): DocumentResponseDTO
+    + [M4] reviewDocument(txId, docId, dto, brokerId): DocumentResponseDTO
+    + [M5] getDocumentDownloadUrl(docId, verId, userId): String
+    + [M6] uploadFileToDocument(txId, docId, file, userId, type): DocumentResponseDTO
+    + [M7] shareDocumentWithClient(docId, brokerId): DocumentResponseDTO
+    - [V1] verifyViewAccess(tx, userId): void
+    - [V2] verifyEditAccess(tx, userId): void
+    - [V3] verifyBrokerOrCoManager(tx, userId, permission): void
+  }
+
+  interface NotificationService {
+    + createDocumentNotification(document, recipientId, category): void
+  }
+}
+
+package "Data Layer" #LightYellow {
+  interface DocumentRepository <<DLCD-D1>> {
+    + findByDocumentId(docId): Optional<Document>
+    + findByTransactionRef_TransactionId(txId): List<Document>
+    + save(document): Document
+  }
+
+  interface TransactionRepository <<DLCD-D2>> {
+    + findByTransactionId(txId): Optional<Transaction>
+  }
+
+  class Document <<DLCD-E1 Entity>> {
+    - documentId: UUID
+    - transactionRef: TransactionRef
+    - docType: DocumentTypeEnum
+    - customTitle: String
+    - status: DocumentStatusEnum
+    - expectedFrom: DocumentPartyEnum
+    - flow: DocumentFlowEnum
+    - requiresSignature: boolean
+    - stage: StageEnum
+    - versions: List<DocumentVersion>
+    - brokerNotes: String
+    - visibleToClient: boolean
+    - dueDate: LocalDateTime
+  }
+
+  class DocumentVersion <<DLCD-E2 Entity>> {
+    - versionId: UUID
+    - uploadedAt: LocalDateTime
+    - uploadedBy: UploadedBy
+    - storageObject: StorageObject
+  }
+
+  class TransactionRef <<Value Object>> {
+    - transactionId: UUID
+    - clientId: UUID
+    - side: TransactionSide
+  }
+
+  class StorageObject <<Value Object>> {
+    - s3Key: String
+    - fileName: String
+    - mimeType: String
+    - sizeBytes: Long
+  }
+
+  class UploadedBy <<Value Object>> {
+    - uploaderType: UploadedByRefEnum
+    - party: DocumentPartyEnum
+    - uploaderId: UUID
+  }
+}
+
+package "Infrastructure Layer" #LightCoral {
+  interface ObjectStorageService <<DLCD-I1>> {
+    + uploadFile(txId, docId, file): StorageObject
+    + generatePresignedUrl(s3Key, downloadFileName): String
+  }
+}
+
+package "Enums" #LightGray {
+  enum DocumentStatusEnum {
+    DRAFT
+    REQUESTED
+    SUBMITTED
+    APPROVED
+    NEEDS_REVISION
+    REJECTED
+  }
+
+  enum DocumentFlowEnum {
+    REQUEST
+    UPLOAD
+  }
+
+  enum DocumentPartyEnum {
+    BUYER
+    SELLER
+    BROKER
+    LENDER
+    NOTARY
+    INSPECTOR
+    CLIENT
+    OTHER
+  }
+}
+
+DocumentController --> DocumentService : uses
+DocumentController ..> DocumentRequestDTO : receives
+DocumentController ..> DocumentReviewRequestDTO : receives
+DocumentController ..> DocumentResponseDTO : returns
+
+DocumentServiceImpl ..|> DocumentService : implements
+DocumentServiceImpl --> DocumentRepository : uses
+DocumentServiceImpl --> TransactionRepository : uses
+DocumentServiceImpl --> ObjectStorageService : uses
+DocumentServiceImpl --> NotificationService : uses
+
+DocumentRepository ..> Document : persists
+Document "1" *-- "1" TransactionRef : contains
+Document "1" *-- "0..*" DocumentVersion : contains
+DocumentVersion "1" *-- "1" StorageObject : contains
+DocumentVersion "1" *-- "1" UploadedBy : contains
+
+Document --> DocumentStatusEnum
+Document --> DocumentFlowEnum
+Document --> DocumentPartyEnum
+
+DocumentResponseDTO ..> DocumentVersionResponseDTO : contains
+
+@enduml

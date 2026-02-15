@@ -1,5 +1,13 @@
 # Manage Transaction Documents - Owned Use Case
 
+## Introduction
+
+The **Manage Transaction Documents** use case is arguably the most critical workflow in the CourtierPro system. Real estate transactions in Quebec are inherently document-intensive — from mortgage pre-approvals and government IDs during financial preparation, to promises to purchase and inspection reports during offer negotiation, to notary documents at closing. Without a structured, trackable document management system, brokers resort to scattered email threads, shared folders, and manual checklists that are error-prone and difficult to audit. This use case directly addresses that pain point by providing a centralized, stage-aware, and fully auditable document lifecycle. It bridges the two primary actors — Broker and Client — through a notification-driven workflow that ensures no document falls through the cracks. Because every other transaction workflow (appointments, conditions, offers) ultimately depends on having the right documents in the right state at the right time, this use case acts as the connective tissue that holds the broader transaction management process together.
+
+> **Note on simplification:** The diagrams in this document focus on the core document flows — requesting, submitting, and reviewing documents — to keep them digestible. Supporting features like reminders, soft-delete, and stage checklist management exist in the implementation but are described in text rather than diagrammed, to avoid overwhelming the reader. Additionally, the system supports an optional DRAFT stage before sending a request to the client, but the diagrams show the streamlined path where the broker sends the request directly. The DRAFT step is available in the implementation for brokers who prefer to prepare requests before sending them.
+
+---
+
 ## System-Wide Artifacts
 
 ### Use Case Diagram
@@ -60,7 +68,7 @@
 | | 2. An active transaction exists (status = ACTIVE) with a linked client. |
 | | 3. The broker has EDIT_DOCUMENTS permission for the transaction. |
 | | 4. The client is authenticated (for client-side actions) with CLIENT role. |
-| **Postconditions** | 1. Documents are created and tracked with proper status lifecycle (DRAFT -> REQUESTED -> SUBMITTED -> APPROVED/NEEDS_REVISION/REJECTED). |
+| **Postconditions** | 1. Documents are created and tracked with proper status lifecycle (REQUESTED -> SUBMITTED -> APPROVED/NEEDS_REVISION/REJECTED). |
 | | 2. Files are securely stored in Cloudflare R2 with version history preserved. |
 | | 3. All parties are notified via bilingual email and in-app notifications. |
 | | 4. Stage checklist reflects document completion status (auto-checked or manually overridden). |
@@ -73,13 +81,11 @@
 |---|---|---|
 | **Main Flow: REQUEST (Broker requests, Client uploads)** | | |
 | 1. | Broker navigates to transaction documents page. | 1.1. System verifies broker authentication and EDIT_DOCUMENTS permission via TransactionAccessUtils. Returns list of documents for the transaction, filtering out soft-deleted records. |
-| 2. | Broker clicks "Request Document" and fills form: document type (DocumentTypeEnum), expected from party (DocumentPartyEnum), transaction stage (StageEnum), broker notes, due date, and optionally sets requiresSignature=true. | 2.1. System validates the form inputs. Creates a Document entity with status=DRAFT (or REQUESTED if broker selects immediate send), flow=REQUEST. Stores in PostgreSQL via DocumentRepository. Records timeline entry. Returns DocumentResponseDTO. |
-| 3. | (Optional) Broker uploads a reference file to the DRAFT document (e.g., a template for the client to fill). | 3.1. System validates file (type, size). Uploads to Cloudflare R2 via ObjectStorageService. Creates DocumentVersion with uploaderType=BROKER. Status remains DRAFT. |
-| 4. | Broker clicks "Send Request" to transition from DRAFT to REQUESTED. | 4.1. System validates: if requiresSignature=true, at least one version (source document) must exist. Updates status to REQUESTED. Sends bilingual email to client via EmailService.sendDocumentRequestedNotification (respects client's preferredLanguage and emailNotificationsEnabled). Creates in-app Notification (category=DOCUMENT). Records timeline entry. |
-| 5. | Client receives email and/or in-app notification, navigates to transaction documents. | 5.1. System authenticates client, verifies transaction participation. Returns document list filtered for client visibility (DRAFT documents hidden, only visibleToClient=true shown). |
-| 6. | Client selects the requested document and uploads a file. If requiresSignature=true, client first downloads the source document, signs it externally, then uploads the signed version. | 6.1. System validates file constraints (type, size). Uploads file to Cloudflare R2 via ObjectStorageService. Creates DocumentVersion with uploaderType=CLIENT. Updates document status from REQUESTED to SUBMITTED. Sends email to broker via EmailService.sendDocumentSubmittedNotification. Creates in-app notification for broker. Records timeline entry. |
-| 7. | Broker receives notification, navigates to the submitted document, and downloads the file for review via pre-signed URL. | 7.1. System generates a time-limited pre-signed URL from Cloudflare R2 via ObjectStorageService.getPreSignedUrl. Returns URL to frontend. |
-| 8. | Broker reviews the document and selects a decision: APPROVED, NEEDS_REVISION, or REJECTED, with optional comments. | 8.1. System validates document is in SUBMITTED status. Updates status to the selected decision. Stores broker comments in brokerNotes. If APPROVED: auto-checks the corresponding stage checklist item via ChecklistStateRepository. Sends bilingual status update email to client via EmailService.sendDocumentStatusUpdatedNotification. Creates in-app notification. Records timeline entry. |
+| 2. | Broker clicks "Request Document" and fills form: document type (DocumentTypeEnum), expected from party (DocumentPartyEnum), transaction stage (StageEnum), broker notes, due date, and optionally sets requiresSignature=true. If requiresSignature, broker also attaches the source document for the client to sign. | 2.1. System validates the form inputs. Creates a Document entity with status=REQUESTED, flow=REQUEST. If requiresSignature, validates source document is attached. Sends bilingual email to client via EmailService.sendDocumentRequestedNotification (respects client's preferredLanguage and emailNotificationsEnabled). Creates in-app Notification (category=DOCUMENT). Stores in PostgreSQL via DocumentRepository. Records timeline entry. Returns DocumentResponseDTO. |
+| 3. | Client receives email and/or in-app notification, navigates to transaction documents. | 3.1. System authenticates client, verifies transaction participation. Returns document list filtered for client visibility (only visibleToClient=true shown). |
+| 4. | Client selects the requested document and uploads a file. If requiresSignature=true, client first downloads the source document, signs it externally, then uploads the signed version. | 4.1. System validates file constraints (type, size). Uploads file to Cloudflare R2 via ObjectStorageService. Creates DocumentVersion with uploaderType=CLIENT. Updates document status from REQUESTED to SUBMITTED. Sends email to broker via EmailService.sendDocumentSubmittedNotification. Creates in-app notification for broker. Records timeline entry. |
+| 5. | Broker receives notification, navigates to the submitted document, and downloads the file for review via pre-signed URL. | 5.1. System generates a time-limited pre-signed URL from Cloudflare R2 via ObjectStorageService.getPreSignedUrl. Returns URL to frontend. |
+| 6. | Broker reviews the document and selects a decision: APPROVED, NEEDS_REVISION, or REJECTED, with optional comments. | 6.1. System validates document is in SUBMITTED status. Updates status to the selected decision. Stores broker comments in brokerNotes. If APPROVED: auto-checks the corresponding stage checklist item via ChecklistStateRepository. Sends bilingual status update email to client via EmailService.sendDocumentStatusUpdatedNotification. Creates in-app notification. Records timeline entry. |
 | **Alternate Flow: UPLOAD (Broker uploads, Client downloads)** | | |
 | A1. | Broker clicks "Upload for Client" and fills form: document type, stage, notes. Uploads the document file. | A1.1. System creates Document with flow=UPLOAD, status=DRAFT. Validates and uploads file to R2. Creates DocumentVersion with uploaderType=BROKER. |
 | A2. | Broker clicks "Share with Client." | A2.1. System updates status from DRAFT to SUBMITTED. Sets visibleToClient=true. Sends email notification to client. Creates in-app notification. Auto-checks stage checklist item. |
@@ -90,9 +96,8 @@
 | **Alternate Flow: Stage Checklist Management** | | |
 | C1. | Broker navigates to the stage checklist for a given transaction stage. | C1.1. System builds checklist from StageDocumentTemplateRegistry templates for the specified stage. For each template item, finds matching documents by templateKey. Auto-checks items where matching document is APPROVED (REQUEST flow) or SUBMITTED (UPLOAD flow). Overlays manual override states from ChecklistStateRepository. Returns StageChecklistResponseDTO. |
 | C2. | Broker manually toggles a checklist item (override). | C2.1. System creates or updates TransactionStageChecklistState with manualChecked value and manualCheckedBy userId. Returns updated checklist. |
-| **Alternate Flow: Outstanding Documents & Reminders** | | |
-| O1. | Broker views outstanding documents dashboard. | O1.1. System queries documents with status REQUESTED or NEEDS_REVISION where dueDate has passed. Computes daysOutstanding. Returns List<OutstandingDocumentDTO> with client name, email, transaction address. |
-| O2. | Broker sends a reminder for an overdue document. | O2.1. System re-sends document request email to client using EmailService.sendDocumentRequestedNotification with same parameters. |
+
+> **Additional supporting features (not diagrammed):** The system also supports outstanding document reminders (broker can resend request emails for overdue documents) and soft-delete of documents (sets deletedAt timestamp for audit trail). These features are implemented but omitted from the diagrams for clarity.
 
 #### Inclusions
 
@@ -105,15 +110,15 @@
 
 - **Signature Request Flow**: When requiresSignature=true on a REQUEST-flow document, the broker must attach a source document before sending the request. The client downloads, signs externally, and uploads the signed copy. The email template differentiates signature requests from standard document requests.
 - **Stage Checklist Auto-Check**: When a document reaches APPROVED (REQUEST flow) or SUBMITTED (UPLOAD flow), the system automatically checks the corresponding checklist item via the StageDocumentTemplateRegistry mapping. Brokers can also manually override checklist items.
-- **Outstanding Documents Dashboard**: Broker can view all overdue documents across all transactions, filtered by REQUESTED/NEEDS_REVISION status with past due dates.
+- **Outstanding Documents & Reminders**: Broker can view overdue documents and resend request emails. This is a supporting feature described in text above.
 
 #### Exceptions
 
 - **E1: File validation fails** - File exceeds size limit or has invalid MIME type. System returns 400 error with validation message. Document status unchanged.
 - **E2: Transaction not found or inactive** - System returns 404 error. No document created.
 - **E3: Permission denied** - User lacks EDIT_DOCUMENTS permission. System returns 403 Forbidden.
-- **E4: Invalid status transition** - e.g., reviewing a document not in SUBMITTED status, or sending a request for a non-DRAFT document. System returns 400 with descriptive error.
-- **E5: Missing source document for signature** - Broker tries to send a requiresSignature=true document request without first uploading a source document. System returns 400 error.
+- **E4: Invalid status transition** - e.g., reviewing a document not in SUBMITTED status, or submitting a document not in REQUESTED/NEEDS_REVISION status. System returns 400 with descriptive error.
+- **E5: Missing source document for signature** - Broker tries to create a requiresSignature=true document request without attaching a source document. System returns 400 error.
 - **E6: Document not found** - documentId does not exist or is soft-deleted. System returns 404.
 
 ### 1.3 Alignment Explanation
@@ -125,26 +130,24 @@ The "Manage Transaction Documents" use case is a central sub-workflow of the bro
 #### How the Use Case Diagram and Domain Model map to the FDUC
 
 - **Use Case Diagram actors** map directly to FDUC actors: Broker (primary), Client (secondary), and external systems (Auth0, R2, SES) as supporting actors.
-- **Use Case sub-cases** (Request Document, Upload for Client, Submit Document, Review Document, Download Document, Request Signature, Send Reminder, Manage Stage Checklist) map one-to-one to the FDUC flow of activities and alternate flows.
+- **Use Case sub-cases** (Request Document, Upload for Client, Submit Document, Review Document, Download Document, Request Signature, Manage Stage Checklist) map one-to-one to the FDUC flow of activities and alternate flows.
 - **DDD Domain Model** entities drive the FDUC's data needs:
-  - `Document` aggregate root with `status`, `flow`, `requiresSignature`, `stage`, `templateKey` fields directly appear in FDUC steps (e.g., step 2 creates Document with these fields).
-  - `DocumentVersion` entity with `UploadedBy` value object maps to FDUC steps 3, 6, A1 where files are uploaded and version history tracked.
+  - `Document` aggregate root with `status`, `flow`, `requiresSignature`, `stage`, `templateKey` fields directly appear in FDUC steps (e.g., step 2 creates and sends Document with these fields).
+  - `DocumentVersion` entity with `UploadedBy` value object maps to FDUC steps 4, A1, R2 where files are uploaded and version history tracked.
   - `TransactionStageChecklistState` entity maps to alternate flow C1-C2 (checklist management).
   - `DocumentStatusEnum` (DRAFT, REQUESTED, SUBMITTED, APPROVED, NEEDS_REVISION, REJECTED) defines the valid transitions expressed in the FDUC.
   - `DocumentFlowEnum` (REQUEST, UPLOAD) determines which FDUC flow path is taken.
 
 #### How each FDUC step predicts future design artifacts
 
-- **Steps 1, 5** (navigate to documents) predict **SSD Scenarios 1, 3** (getDocumentsForTransaction) and **DLSD Flow 1** (DocumentController -> DocumentServiceImpl -> DocumentRepository).
-- **Step 2** (create document) predicts **SSD Scenario 1** (createDocument) and **DLSD Flow 1** showing the full object interaction chain from React component through axiosInstance, DocumentController, DocumentServiceImpl, to DocumentRepository.
-- **Steps 3-4** (upload file + send request) predict **SSD Scenario 1** (uploadFileToDocument, sendDocumentRequest) and **DLSD Flow 1** showing the two-phase DRAFT -> REQUESTED transition with EmailService and NotificationService involvement.
-- **Step 6** (client submits) predicts **SSD Scenario 3** and **DLSD Flow 2**, showing ObjectStorageService.uploadFile, DocumentVersion creation, and status update to SUBMITTED.
-- **Step 7** (download for review) predicts **SSD Scenario 4** and **DLSD Flow 3** (getDocumentDownloadUrl -> ObjectStorageService.getPreSignedUrl).
-- **Step 8** (review decision) predicts **SSD Scenario 4** and **DLSD Flow 3**, showing reviewDocument with branching for APPROVED/NEEDS_REVISION/REJECTED and the auto-check side effect on ChecklistStateRepository.
+- **Steps 1, 3** (navigate to documents) predict **SSD Scenarios 1, 3** (getDocumentsForTransaction) and **DLSD Flow 1** (DocumentController -> DocumentServiceImpl -> DocumentRepository).
+- **Step 2** (broker requests document) predicts **SSD Scenario 1** (requestDocument) and **DLSD Flow 1** showing the full object interaction chain from React component through axiosInstance, DocumentController, DocumentServiceImpl, to DocumentRepository, EmailService, and NotificationService.
+- **Step 4** (client submits) predicts **SSD Scenario 3** and **DLSD Flow 2**, showing ObjectStorageService.uploadFile, DocumentVersion creation, and status update to SUBMITTED.
+- **Step 5** (download for review) predicts **SSD Scenario 4** and **DLSD Flow 3** (getDocumentDownloadUrl -> ObjectStorageService.getPreSignedUrl).
+- **Step 6** (review decision) predicts **SSD Scenario 4** and **DLSD Flow 3**, showing reviewDocument with branching for APPROVED/NEEDS_REVISION/REJECTED and the auto-check side effect on ChecklistStateRepository.
 - **Alternate flows A1-A3** (UPLOAD flow) predict **SSD Scenario 2** (createDocument, uploadFileToDocument, shareDocumentWithClient).
-- **Alternate flows C1-C2** (checklist) predict **SSD Scenario 8** (getStageChecklist, setChecklistManualState).
-- **Alternate flows O1-O2** (outstanding + reminder) predict **SSD Scenario 6** (getOutstandingDocuments, sendDocumentReminder).
-- **State transitions** in the FDUC (DRAFT->REQUESTED->SUBMITTED->APPROVED/NEEDS_REVISION/REJECTED) are formalized in the **State Transition Diagram**.
+- **Alternate flows C1-C2** (checklist) are supported in the implementation and reflected in the DLCD (StageDocumentTemplateRegistry, ChecklistStateRepository).
+- **State transitions** in the FDUC (REQUESTED->SUBMITTED->APPROVED/NEEDS_REVISION/REJECTED) are formalized in the **State Transition Diagram**.
 - **DLCD** classes directly realize the FDUC actors and data: DocumentController handles all broker/client HTTP interactions, DocumentServiceImpl implements all business logic described in system responses, DocumentRepository/ObjectStorageService handle persistence and file storage.
 
 ---
@@ -159,21 +162,21 @@ The **DDD Domain Model** defines the Document Management bounded context with en
 
 | DDD Domain Object | Use Case Information Need |
 |---|---|
-| **Document** (Aggregate Root) | Central entity for every FDUC step. Fields `documentId`, `docType`, `customTitle`, `status`, `flow`, `requiresSignature`, `stage`, `templateKey`, `brokerNotes`, `visibleToClient`, `dueDate` store all data captured in FDUC steps 2, A1 and used in steps 4-8, O1. |
-| **DocumentVersion** (Entity) | Supports version history for FDUC steps 3, 6, A1, R2. Each file upload creates a new version, preserving the audit trail. The `uploadedBy: UploadedBy` value object distinguishes broker vs. client uploads. |
-| **UploadedBy** (Value Object) | Embedded in DocumentVersion, tracks `uploaderType` (CLIENT/BROKER/SYSTEM/EXTERNAL), `uploaderId`, and `party`. Directly supports FDUC's distinction between broker-uploaded reference files (step 3) and client-submitted documents (step 6). |
-| **StorageObject** (Value Object) | Holds `s3Key`, `fileName`, `mimeType`, `sizeBytes` for Cloudflare R2 integration. Supports FDUC steps involving file upload/download (3, 6, 7, A1, A3). |
+| **Document** (Aggregate Root) | Central entity for every FDUC step. Fields `documentId`, `docType`, `customTitle`, `status`, `flow`, `requiresSignature`, `stage`, `templateKey`, `brokerNotes`, `visibleToClient`, `dueDate` store all data captured in FDUC steps 2, A1 and used in steps 4-6. |
+| **DocumentVersion** (Entity) | Supports version history for FDUC steps 4, A1, R2. Each file upload creates a new version, preserving the audit trail. The `uploadedBy: UploadedBy` value object distinguishes broker vs. client uploads. |
+| **UploadedBy** (Value Object) | Embedded in DocumentVersion, tracks `uploaderType` (CLIENT/BROKER/SYSTEM/EXTERNAL), `uploaderId`, and `party`. Directly supports FDUC's distinction between broker-uploaded reference files and client-submitted documents (step 4). |
+| **StorageObject** (Value Object) | Holds `s3Key`, `fileName`, `mimeType`, `sizeBytes` for Cloudflare R2 integration. Supports FDUC steps involving file upload/download (4, 5, A1, A3). |
 | **TransactionRef** (Value Object) | Embedded in Document, holds `transactionId`, `clientId`, `side`. Links every document to its parent transaction, supporting FDUC precondition #2 and enabling per-transaction document queries. |
 | **TransactionStageChecklistState** (Entity) | Tracks `manualChecked`, `autoChecked`, `itemKey`, `stage` per transaction. Directly supports FDUC alternate flow C1-C2 (checklist management). |
-| **DocumentStatusEnum** | DRAFT, REQUESTED, SUBMITTED, APPROVED, NEEDS_REVISION, REJECTED - defines valid states referenced throughout the FDUC and formalized in the STD. |
+| **DocumentStatusEnum** | REQUESTED, SUBMITTED, APPROVED, NEEDS_REVISION, REJECTED (plus DRAFT for UPLOAD flow) - defines valid states referenced throughout the FDUC and formalized in the STD. |
 | **DocumentFlowEnum** | REQUEST vs. UPLOAD - determines which FDUC main flow vs. alternate flow A is executed. |
 | **StageEnum** | Maps buyer/seller transaction stages to document requirements, supporting stage-based filtering and checklist templates. |
 | **DocumentPartyEnum** | BUYER, SELLER, BROKER, LENDER, NOTARY, INSPECTOR, CLIENT, OTHER - categorizes the expected document source in FDUC step 2. |
 
 Cross-context relationships in the DDD model:
 - **Document -> Transaction**: Via TransactionRef, establishing the parent relationship (FDUC precondition: active transaction must exist).
-- **Document -> UserAccount**: Broker and client references resolve through TransactionRef.clientId and the transaction's brokerRef, supporting notification routing in FDUC steps 4, 6.1, 8.1.
-- **Notification -> Document**: Notifications reference documents for in-app display (FDUC steps 4.1, 6.1, 8.1).
+- **Document -> UserAccount**: Broker and client references resolve through TransactionRef.clientId and the transaction's brokerRef, supporting notification routing in FDUC steps 2, 4.1, 6.1.
+- **Notification -> Document**: Notifications reference documents for in-app display (FDUC steps 2.1, 4.1, 6.1).
 
 #### How C4 L3 models correspond to the DDD model, SSD, and UI/UX
 
@@ -207,8 +210,7 @@ Cross-context relationships in the DDD model:
 | RequestDocumentModal | Form for creating REQUEST-flow documents - SSD Scenario 1 |
 | UploadForClientModal | Form for creating UPLOAD-flow documents - SSD Scenario 2 |
 | DocumentReviewModal | Broker review decision interface - SSD Scenario 4 |
-| StageChecklistPanel | Stage-based checklist display and toggle - SSD Scenario 8 |
-| OutstandingDocumentsDashboard | Overdue document listing - SSD Scenario 6 |
+| StageChecklistPanel | Stage-based checklist display and toggle - supports alternate flow C1-C2 |
 | StatusFilterBar | Filters documents by status - supports all list-view scenarios |
 
 **Consistency across domain entities -> persistent storage -> components/services:**
@@ -272,15 +274,13 @@ The following Figma designs are needed to cover the full "Manage Transaction Doc
 
 The UI navigation flow mirrors the FDUC activity flow:
 
-1. **Broker Dashboard** -> "Pending Document Reviews" or "Outstanding Documents" widget (FDUC steps O1) -> navigates to documents
+1. **Broker Dashboard** -> "Pending Document Reviews" widget -> navigates to documents
 2. **Transaction Details Page** -> **Documents Tab** (FDUC step 1) -> shows document list
-3. **"Request Document" button** -> opens **Request Document Modal** (FDUC step 2)
-4. **Document Card "Send Request"** -> triggers DRAFT->REQUESTED transition (FDUC step 4)
-5. **Client's Transaction Page** -> **Documents section** shows pending requests (FDUC step 5)
-6. **"Upload" button on document card** -> file upload (FDUC step 6)
-7. **Broker's Document Card "Review"** -> opens **Document Review Modal** (FDUC steps 7-8)
-8. **"Stage Checklist" sidebar** -> shows checklist panel (FDUC flow C1-C2)
-9. **Outstanding Documents page** -> shows overdue list with reminder buttons (FDUC flow O1-O2)
+3. **"Request Document" button** -> opens **Request Document Modal** -> sends request directly (FDUC step 2)
+4. **Client's Transaction Page** -> **Documents section** shows pending requests (FDUC step 3)
+5. **"Upload" button on document card** -> file upload (FDUC step 4)
+6. **Broker's Document Card "Review"** -> opens **Document Review Modal** (FDUC steps 5-6)
+7. **"Stage Checklist" sidebar** -> shows checklist panel (FDUC flow C1-C2)
 
 #### How data captured in Figma matches the C4 L3 data tier model
 
@@ -313,7 +313,7 @@ The UI navigation flow mirrors the FDUC activity flow:
 
 [Paste Design Level Sequence Diagram]
 
-**Flow 1 - Broker Creates Document Request (DRAFT -> Send):**
+**Flow 1 - Broker Requests Document from Client:**
 
 [Paste Design Level Sequence Diagram - Create Request]
 
@@ -365,29 +365,21 @@ The UI navigation flow mirrors the FDUC activity flow:
 
 | SSD Scenario | SSD Messages | FDUC Mapping |
 |---|---|---|
-| **Scenario 1: Broker Creates Document Request** | `getDocumentsForTransaction`, `createDocument`, `uploadFileToDocument` (opt), `sendDocumentRequest` | Main flow steps 1-4. Includes: Authenticate User, Validate Transaction Access. Extension: Signature Request (opt upload before send). |
+| **Scenario 1: Broker Requests Document** | `getDocumentsForTransaction`, `requestDocument` | Main flow steps 1-2. Includes: Authenticate User, Validate Transaction Access. Extension: Signature Request (source file attached with request). |
 | **Scenario 2: Broker Uploads for Client** | `createDocument`, `uploadFileToDocument`, `shareDocumentWithClient` | Alternate flow A1-A2. Includes: Authenticate User, Validate Transaction Access. Extension: Stage Checklist Auto-Check. |
-| **Scenario 3: Client Submits Document** | `getDocumentsForTransaction`, `submitDocument` | Main flow steps 5-6. Includes: Authenticate User (client), Upload File to R2. Exception E1: file validation fails. |
-| **Scenario 4: Broker Reviews Document** | `getDocumentsForTransaction`, `getDocumentDownloadUrl`, `reviewDocument` | Main flow steps 7-8. Includes: Validate Transaction Access. Exception E4: invalid status transition (document not SUBMITTED). |
-| **Scenario 5: Client Downloads Document** | `getDocumentDownloadUrl` | Main flow step 7 (client variant) and alternate flow A3. Exception E3: permission denied (not authorized). |
-| **Scenario 6: Broker Sends Reminder** | `getOutstandingDocuments`, `sendDocumentReminder` | Alternate flow O1-O2 (Outstanding Documents & Reminders). |
-| **Scenario 7: Broker Deletes Document** | `deleteDocument` | Implicit exception/cleanup flow. Exception E6: document not found. |
-| **Scenario 8: Stage Checklist** | `getStageChecklist`, `setChecklistManualState` (opt) | Alternate flow C1-C2. Extension: Stage Checklist Auto-Check (reflected in auto-checked items). |
+| **Scenario 3: Client Submits Document** | `getDocumentsForTransaction`, `submitDocument` | Main flow steps 3-4. Includes: Authenticate User (client), Upload File to R2. Exception E1: file validation fails. |
+| **Scenario 4: Broker Reviews Document** | `getDocumentsForTransaction`, `getDocumentDownloadUrl`, `reviewDocument` | Main flow steps 5-6. Includes: Validate Transaction Access. Exception E4: invalid status transition (document not SUBMITTED). |
+| **Scenario 5: Client Downloads Document** | `getDocumentDownloadUrl` | Main flow step 5 (client variant) and alternate flow A3. Exception E3: permission denied (not authorized). |
 
 #### How the DLSD realizes SSD messages with actual object interactions across all three tiers
 
 The DLSD expands each SSD system-level message into concrete object interactions spanning Frontend, Presentation, Business, and Data/Infrastructure layers:
 
-**SSD `createDocument` -> DLSD Flow 1:**
+**SSD `requestDocument` -> DLSD Flow 1:**
 - **Frontend tier**: `DocumentsCenter` (React) -> `axiosInstance` (Axios wrapper) -> POST /transactions/{txId}/documents
 - **Presentation tier**: `DocumentController.createDocument(txId, dto, userId)`
-- **Business tier**: `DocumentServiceImpl.createDocument()` -> validates broker permission via `TransactionAccessUtils`, calls `TransactionRepository.findByTransactionId()`, saves via `DocumentRepository.save()`
-- **Data tier**: `DocumentRepository` -> PostgreSQL INSERT
-
-**SSD `sendDocumentRequest` -> DLSD Flow 1 (continued):**
-- **Presentation tier**: `DocumentController.sendDocumentRequest(txId, docId, brokerId)`
-- **Business tier**: `DocumentServiceImpl.sendDocumentRequest()` -> loads Document, validates DRAFT status, validates signature source doc if needed, updates to REQUESTED, calls `UserAccountRepository.findById(clientId)` to resolve client email/language, calls `EmailService.sendDocumentRequestedNotification()`, calls `NotificationService.createDocumentNotification()`
-- **Data tier**: `DocumentRepository.save()` -> PostgreSQL UPDATE; `NotificationRepository` -> PostgreSQL INSERT
+- **Business tier**: `DocumentServiceImpl.createDocument()` -> validates broker permission via `TransactionAccessUtils`, calls `TransactionRepository.findByTransactionId()`, creates Document with status=REQUESTED, if requiresSignature validates source file, saves via `DocumentRepository.save()`, calls `UserAccountRepository.findById(clientId)` to resolve client email/language, calls `EmailService.sendDocumentRequestedNotification()`, calls `NotificationService.createDocumentNotification()`
+- **Data tier**: `DocumentRepository` -> PostgreSQL INSERT; `NotificationRepository` -> PostgreSQL INSERT
 
 **SSD `submitDocument` -> DLSD Flow 2:**
 - **Frontend tier**: `DocumentsCenter` -> `axiosInstance` -> POST multipart/form-data
@@ -437,19 +429,19 @@ Every participant and method call in the DLSD appears as a class with correspond
 | `Storage -> R2: PutObject` | `ObjectStorageServiceImpl` (implements `ObjectStorageService`) uses S3Client to connect to Cloudflare R2 |
 
 Additional DLCD elements not shown in DLSD but implied:
-- **StageDocumentTemplateRegistry**: Used by DocumentServiceImpl for checklist building (SSD Scenario 8)
+- **StageDocumentTemplateRegistry**: Used by DocumentServiceImpl for checklist building (alternate flow C1-C2)
 - **TransactionStageChecklistState**: Entity persisted by ChecklistStateRepository for manual overrides
 - **Validation methods**: `validateFile()`, `validateCanSubmit()`, `validateCanReview()` are private methods in DocumentServiceImpl called within DLSD flows
-- **filterForClientVisibility()**: Private method in DocumentServiceImpl that ensures clients don't see DRAFT documents
+- **filterForClientVisibility()**: Private method in DocumentServiceImpl that ensures clients only see visible documents
 
 #### How class responsibilities and method signatures support domain invariants from the DDD model
 
 | DDD Invariant | DLCD Class Responsibility |
 |---|---|
-| Document status transitions follow a strict lifecycle (DRAFT->REQUESTED->SUBMITTED->APPROVED/NEEDS_REVISION/REJECTED) | `DocumentServiceImpl.validateCanSubmit()` ensures document is REQUESTED or NEEDS_REVISION before submission. `validateCanReview()` ensures document is SUBMITTED before review. `sendDocumentRequest()` validates status is DRAFT. |
+| Document status transitions follow a strict lifecycle (REQUESTED->SUBMITTED->APPROVED/NEEDS_REVISION/REJECTED) | `DocumentServiceImpl.validateCanSubmit()` ensures document is REQUESTED or NEEDS_REVISION before submission. `validateCanReview()` ensures document is SUBMITTED before review. REQUEST-flow documents are created directly as REQUESTED. |
 | Each Document belongs to exactly one Transaction | `Document.transactionRef: TransactionRef` is a required embedded value object. `DocumentServiceImpl.createDocument()` validates transaction exists via `TransactionRepository.findByTransactionId()`. |
 | Signature requests require a source document | `DocumentServiceImpl.sendDocumentRequest()` validates `versions.size() > 0` when `requiresSignature=true`. |
-| Only visible documents shown to Client | `DocumentServiceImpl.filterForClientVisibility()` removes DRAFT documents and documents with `visibleToClient=false` for client queries. |
+| Only visible documents shown to Client | `DocumentServiceImpl.filterForClientVisibility()` removes documents with `visibleToClient=false` for client queries. |
 | Files must be valid (type, size) | `DocumentServiceImpl.validateFile()` enforces MIME type whitelist and size limits before ObjectStorageService upload. |
 | Soft delete preserves audit trail | `Document.deletedAt/deletedBy` and `DocumentVersion.deletedAt/deletedBy` fields. `DocumentServiceImpl.deleteDocument()` sets these instead of physical deletion. |
 | Stage checklist auto-completion | `DocumentServiceImpl` auto-checks checklist items when document reaches APPROVED (REQUEST) or SUBMITTED (UPLOAD) via `ChecklistStateRepository`. |
@@ -460,9 +452,8 @@ The **State Transition Diagram** defines 6 states and their valid transitions. T
 
 | State Constraint (STD) | DLSD / Code Impact |
 |---|---|
-| **DRAFT -> REQUESTED**: Only via `sendDocumentRequest` | DLSD Flow 1: `DocumentServiceImpl.sendDocumentRequest()` checks `document.status == DRAFT` before updating. If not DRAFT, throws exception (FDUC E4). |
+| **Document created as REQUESTED**: Via `requestDocument` (REQUEST flow) | DLSD Flow 1: `DocumentServiceImpl.createDocument()` creates document directly with status=REQUESTED. If requiresSignature, validates source file is attached. Sends notification to client. |
 | **DRAFT -> SUBMITTED**: Only via `shareDocumentWithClient` (UPLOAD flow) | DLSD (implicit): `shareDocumentWithClient()` checks `flow == UPLOAD && status == DRAFT`. Sets `visibleToClient=true` on transition. |
-| **DRAFT -> DRAFT**: `uploadFileToDocument` (self-loop) | DLSD Flow 1 (opt block): Broker uploads reference file, status stays DRAFT. New DocumentVersion created without status change. |
 | **REQUESTED -> SUBMITTED**: Only via `submitDocument` with valid file | DLSD Flow 2: `validateCanSubmit()` checks status in [REQUESTED, NEEDS_REVISION]. `validateFile()` checks file constraints. Both must pass before transition. |
 | **SUBMITTED -> APPROVED/NEEDS_REVISION/REJECTED**: Only via `reviewDocument` | DLSD Flow 3: `validateCanReview()` checks `status == SUBMITTED`. Decision must be one of the three valid values. APPROVED triggers auto-check side effect. |
 | **NEEDS_REVISION -> SUBMITTED**: Client resubmit cycle | DLSD Flow 2 reuse: Same submitDocument flow applies. `validateCanSubmit()` accepts NEEDS_REVISION status. Creates new DocumentVersion. |
@@ -880,9 +871,9 @@ Each DLSD message maps to actual code:
 
 | DDD Invariant / Use Case Rule | Code Implementation |
 |---|---|
-| Status transitions DRAFT->REQUESTED->SUBMITTED->APPROVED | `DocumentServiceImpl` methods enforce: `sendDocumentRequest` checks DRAFT, `submitDocument` checks [REQUESTED, NEEDS_REVISION], `reviewDocument` checks SUBMITTED |
+| Status transitions REQUESTED->SUBMITTED->APPROVED | `DocumentServiceImpl` methods enforce: `createDocument` sets status=REQUESTED for REQUEST flow, `submitDocument` checks [REQUESTED, NEEDS_REVISION], `reviewDocument` checks SUBMITTED |
 | Signature requires source document | `sendDocumentRequest()`: `if (doc.isRequiresSignature() && doc.getVersions().isEmpty())` throws exception |
-| Client visibility filtering | `filterForClientVisibility()` removes DRAFT docs and `visibleToClient=false` docs |
+| Client visibility filtering | `filterForClientVisibility()` removes `visibleToClient=false` docs from client queries |
 | File validation | `validateFile()` checks MIME type whitelist and max file size |
 | Soft delete | `deleteDocument()` sets `deletedAt = LocalDateTime.now()`, `deletedBy = userId` instead of physical deletion. `@SQLRestriction("deleted_at IS NULL")` filters deleted records from queries. |
 | Stage checklist auto-check | After APPROVED (REQUEST) or SUBMITTED (UPLOAD), `DocumentServiceImpl` upserts `TransactionStageChecklistState.autoChecked = true` |

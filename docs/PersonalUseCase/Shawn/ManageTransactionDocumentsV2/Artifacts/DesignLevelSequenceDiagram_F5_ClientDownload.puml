@@ -1,0 +1,34 @@
+@startuml DesignLevelSequenceDiagram_F5_ClientDownload
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam ParticipantBackgroundColor #E3F2FD
+skinparam ParticipantBorderColor #1976D2
+skinparam SequenceLifeLineBorderColor #757575
+skinparam ArrowColor #424242
+
+title DLSD Flow 5: Client Downloads Shared Document (SSD-S5)
+
+actor "Client" as ClientActor
+
+box "Frontend" #E0F7FA
+  participant "DocumentsCenter" as FE
+  participant "axiosInstance" as Axios
+end box
+
+box "Backend" #E8F5E9
+  participant "DocumentController" as DocCtrl
+  participant "DocumentServiceImpl" as DocSvc
+  participant "ObjectStorageService" as Storage
+end box
+
+ClientActor -> FE: DLSD-F5-M1 Click Download
+FE -> Axios: DLSD-F5-M2 GET /transactions/{txId}/documents/{docId}/versions/{verId}/download
+Axios -> DocCtrl: DLSD-F5-M3 getDocumentDownloadUrl(txId, docId, verId)
+DocCtrl -> DocSvc: DLSD-F5-M4 getDocumentDownloadUrl(docId, verId, userId)
+DocSvc -> Storage: DLSD-F5-M5 generatePresignedUrl(s3Key, ttl)
+Storage --> DocSvc: DLSD-F5-M6 url
+DocSvc --> DocCtrl: DLSD-F5-M7 url
+DocCtrl --> Axios: DLSD-F5-M8 HTTP 200
+Axios --> FE: DLSD-F5-M9 presignedUrl
+
+@enduml

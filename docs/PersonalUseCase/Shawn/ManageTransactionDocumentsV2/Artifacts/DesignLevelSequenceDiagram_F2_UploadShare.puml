@@ -1,0 +1,50 @@
+@startuml DesignLevelSequenceDiagram_F2_UploadShare
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam ParticipantBackgroundColor #E3F2FD
+skinparam ParticipantBorderColor #1976D2
+skinparam SequenceLifeLineBorderColor #757575
+skinparam ArrowColor #424242
+
+title DLSD Flow 2: Broker Uploads and Shares (SSD-S2)
+
+actor "Broker" as BrokerActor
+
+box "Frontend" #E0F7FA
+  participant "DocumentsCenter" as FE
+  participant "axiosInstance" as Axios
+end box
+
+box "Backend" #E8F5E9
+  participant "DocumentController" as DocCtrl
+  participant "DocumentServiceImpl" as DocSvc
+  participant "DocumentRepository" as DocRepo
+  participant "ObjectStorageService" as Storage
+end box
+
+BrokerActor -> FE: DLSD-F2-M1 Create upload document draft
+FE -> Axios: DLSD-F2-M2 POST /transactions/{txId}/documents
+Axios -> DocCtrl: DLSD-F2-M3 createDocument(... flow=UPLOAD,status=DRAFT)
+DocCtrl -> DocSvc: DLSD-F2-M4 createDocument(...)
+DocSvc -> DocRepo: DLSD-F2-M5 save(Document{flow=UPLOAD,status=DRAFT})
+DocRepo --> DocSvc: DLSD-F2-M6 Document
+
+BrokerActor -> FE: DLSD-F2-M7 Upload file to draft
+FE -> Axios: DLSD-F2-M8 POST /transactions/{txId}/documents/{docId}/upload
+Axios -> DocCtrl: DLSD-F2-M9 uploadFileToDocument(txId, docId, file, userId)
+DocCtrl -> DocSvc: DLSD-F2-M10 uploadFileToDocument(...)
+DocSvc -> Storage: DLSD-F2-M11 uploadFile(txId, docId, file)
+Storage --> DocSvc: DLSD-F2-M12 StorageObject
+DocSvc -> DocRepo: DLSD-F2-M13 save(documentWithVersion)
+
+BrokerActor -> FE: DLSD-F2-M14 Share draft with client
+FE -> Axios: DLSD-F2-M15 POST /transactions/{txId}/documents/{docId}/share
+Axios -> DocCtrl: DLSD-F2-M16 shareDocumentWithClient(txId, docId, brokerId)
+DocCtrl -> DocSvc: DLSD-F2-M17 shareDocumentWithClient(docId, brokerId)
+DocSvc -> DocRepo: DLSD-F2-M18 save(Document{status=SUBMITTED,visibleToClient=true})
+DocRepo --> DocSvc: DLSD-F2-M19 Document
+DocSvc --> DocCtrl: DLSD-F2-M20 DocumentResponseDTO
+DocCtrl --> Axios: DLSD-F2-M21 HTTP 200
+Axios --> FE: DLSD-F2-M22 sharedDocument
+
+@enduml

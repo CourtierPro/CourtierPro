@@ -1,0 +1,62 @@
+@startuml SystemSequenceDiagram
+!pragma teoz true
+
+title System Sequence Diagram: Manage Transaction Documents
+
+actor "Broker" as Broker
+actor "Client" as Client
+participant "CourtierPro\nSystem" as System
+
+== S1: Broker Requests Document (REQUEST Flow) ==
+
+Broker -> System: SSD-S1-M1 getDocumentsForTransaction(txId, userId)
+System --> Broker: SSD-S1-M2 documentsList
+
+Broker -> System: SSD-S1-M3 requestDocument(txId, {docType, expectedFrom, stage, notes, dueDate, requiresSignature})
+System --> Broker: SSD-S1-M4 createdDocument(status=REQUESTED)
+
+== S2: Broker Uploads and Shares (UPLOAD Flow) ==
+
+Broker -> System: SSD-S2-M1 createDocument(txId, {docType, stage, notes, flow=UPLOAD, status=DRAFT})
+System --> Broker: SSD-S2-M2 createdDocument(status=DRAFT)
+
+Broker -> System: SSD-S2-M3 uploadFileToDocument(txId, documentId, file)
+System --> Broker: SSD-S2-M4 updatedDocument(versionAdded)
+
+Broker -> System: SSD-S2-M5 shareDocumentWithClient(txId, documentId)
+System --> Broker: SSD-S2-M6 updatedDocument(status=SUBMITTED, visibleToClient=true)
+
+== S3: Client Submits Requested Document (REQUEST Flow) ==
+
+Client -> System: SSD-S3-M1 getDocumentsForTransaction(txId, userId)
+System --> Client: SSD-S3-M2 clientVisibleDocuments
+
+Client -> System: SSD-S3-M3 submitDocument(txId, documentId, file)
+alt file is valid
+  System --> Client: SSD-S3-M4 updatedDocument(status=SUBMITTED)
+else file is invalid
+  System --> Client: SSD-S3-M3E1 400 ValidationError
+end
+
+== S4: Broker Reviews Submitted Document (Review Flow) ==
+
+Broker -> System: SSD-S4-M1 getDocumentDownloadUrl(txId, documentId, versionId)
+System --> Broker: SSD-S4-M2 presignedUrl
+
+Broker -> System: SSD-S4-M3 reviewDocument(txId, documentId, {decision, comments})
+alt status is SUBMITTED
+  System --> Broker: SSD-S4-M4 updatedDocument(status=APPROVED|NEEDS_REVISION|REJECTED)
+else status is not SUBMITTED
+  System --> Broker: SSD-S4-M3E4 400 InvalidStateTransition
+end
+
+== S5: Client Downloads Shared Document (Download Flow) ==
+
+Client -> System: SSD-S5-M1 getDocumentDownloadUrl(txId, documentId, versionId)
+alt caller is authorized
+  System --> Client: SSD-S5-M2 presignedUrl
+else caller is not authorized
+  System --> Client: SSD-S5-M2E3 403 Forbidden
+end
+
+@enduml

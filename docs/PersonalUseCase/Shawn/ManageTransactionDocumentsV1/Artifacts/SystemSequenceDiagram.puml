@@ -7,33 +7,19 @@ actor "Broker" as Broker
 actor "Client" as Client
 participant "CourtierPro\nSystem" as System
 
-== Scenario 1: Broker Creates Document Request (REQUEST Flow) ==
+== Scenario 1: Broker Requests Document from Client (REQUEST Flow) ==
 
 Broker -> System: getDocumentsForTransaction(transactionId, userId)
 System --> Broker: documentsList (with statuses and versions)
 
-Broker -> System: createDocument(transactionId, {docType, expectedFrom,\nstage, notes, dueDate, status=DRAFT, flow=REQUEST})
-System --> Broker: createdDocument (status=DRAFT)
+Broker -> System: requestDocument(transactionId, {docType, expectedFrom,\nstage, notes, dueDate, flow=REQUEST, requiresSignature})
+System --> Broker: createdDocument (status=REQUESTED)
 
 note right of System
   System internally:
   - Validates transaction exists and broker has EDIT_DOCUMENTS permission
-  - Creates Document entity with status=DRAFT, flow=REQUEST
-  - Records timeline entry
-end note
-
-opt Broker attaches reference file to DRAFT
-  Broker -> System: uploadFileToDocument(transactionId, documentId, file)
-  System --> Broker: updatedDocument (new version added, status stays DRAFT)
-end
-
-Broker -> System: sendDocumentRequest(transactionId, documentId)
-System --> Broker: updatedDocument (status=REQUESTED)
-
-note right of System
-  System internally:
-  - If requiresSignature=true, validates source document exists
-  - Updates status DRAFT -> REQUESTED
+  - Creates Document entity with status=REQUESTED, flow=REQUEST
+  - If requiresSignature, broker attaches source file before sending
   - Sends bilingual email to Client (via EmailService)
   - Creates in-app Notification (category=DOCUMENT)
   - Records timeline entry
@@ -107,46 +93,6 @@ alt Authorized (participant in transaction)
   System --> Client: preSignedUrl
 else Not Authorized
   System --> Client: 403 Forbidden
-end
-
-== Scenario 6: Broker Sends Document Reminder ==
-
-Broker -> System: getOutstandingDocuments()
-System --> Broker: outstandingDocumentsList (REQUESTED/NEEDS_REVISION, past due)
-
-Broker -> System: sendDocumentReminder(documentId)
-System --> Broker: success
-
-note right of System
-  Re-sends document request email to Client
-  using same template as original request.
-end note
-
-== Scenario 7: Broker Deletes Document ==
-
-Broker -> System: deleteDocument(transactionId, documentId)
-System --> Broker: success
-
-note right of System
-  Soft-delete: sets deletedAt timestamp
-  and deletedBy userId.
-  Document no longer appears in active lists.
-end note
-
-== Scenario 8: Stage Checklist Management ==
-
-Broker -> System: getStageChecklist(transactionId, stage)
-System --> Broker: checklistItems (auto + manual states)
-
-note right of System
-  System builds checklist from StageDocumentTemplateRegistry.
-  Each item auto-checked when matching document is
-  APPROVED (REQUEST) or SUBMITTED (UPLOAD).
-end note
-
-opt Broker manually overrides checklist item
-  Broker -> System: setChecklistManualState(transactionId, stage, itemKey, checked)
-  System --> Broker: updatedChecklist
 end
 
 @enduml

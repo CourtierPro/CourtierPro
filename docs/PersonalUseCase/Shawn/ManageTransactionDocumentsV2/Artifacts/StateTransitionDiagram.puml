@@ -1,0 +1,35 @@
+@startuml StateTransitionDiagram
+skinparam state {
+  BackgroundColor White
+  BorderColor Black
+  ArrowColor Black
+}
+
+title State Transition Diagram: Document Lifecycle
+
+state DRAFT #LightGray
+state REQUESTED #LightYellow
+state SUBMITTED #LightBlue
+state APPROVED #LightGreen
+state NEEDS_REVISION #Orange
+state REJECTED #LightCoral
+
+[*] --> DRAFT : STD-T1 create draft [flow=UPLOAD]
+DRAFT --> REQUESTED : STD-T2 send request [flow=REQUEST]
+DRAFT --> SUBMITTED : STD-T3 share with client [flow=UPLOAD]
+REQUESTED --> SUBMITTED : STD-T4 submit file [fileValid]
+SUBMITTED --> APPROVED : STD-T5 review [decision=APPROVED]
+SUBMITTED --> NEEDS_REVISION : STD-T6 review [decision=NEEDS_REVISION]
+SUBMITTED --> REJECTED : STD-T7 review [decision=REJECTED]
+NEEDS_REVISION --> SUBMITTED : STD-T8 resubmit [fileValid]
+[*] --> REQUESTED : STD-T9 create directly as REQUESTED [flow=REQUEST]
+
+APPROVED --> [*]
+REJECTED --> [*]
+
+note right of DRAFT
+  Optional draft-first request path exists.
+  A broker can also create a request directly as REQUESTED.
+end note
+
+@enduml

@@ -1,0 +1,80 @@
+@startuml UseCaseDiagram_MidLevel
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam shadowing false
+
+skinparam usecase {
+  BorderColor Black
+  ArrowColor Black
+}
+
+skinparam rectangle {
+  BackgroundColor #F9F6EE
+  BorderColor Black
+}
+
+title CourtierPro - Mid-Level Use Case Diagram
+
+actor "Admin" as Admin
+actor "Broker" as Broker
+actor "Client" as Client
+
+rectangle "CourtierPro System" as CPS {
+
+  ' Core use cases
+  usecase "Register User [Olivier]" as UC_Register #DCEBFF
+  usecase "Manage Transaction Lifecycle [Amir]" as UC_Lifecycle #DCEBFF
+  usecase "Manage Transaction Documents [Shawn]" as UC_Docs #DCEBFF
+  usecase "Manage Appointments [Isaac]" as UC_Appt #DCEBFF
+
+  ' Supporting use cases
+  usecase "Authenticate User" as UC_Auth #D4F2C8
+  usecase "Monitor Business Performance" as UC_Analytics #D4F2C8
+
+  usecase "Advance Transaction Stage" as UC_Stage #D4F2C8
+  usecase "Manage Offers & Conditions" as UC_Offers #D4F2C8
+
+  usecase "Request Document" as UC_RequestDoc #D4F2C8
+  usecase "Review/Submit Document" as UC_ReviewSubmit #D4F2C8
+  usecase "Request Signature" as UC_RequestSignature #D4F2C8
+
+  usecase "Request Appointment" as UC_RequestAppt #D4F2C8
+  usecase "Manage Calendar" as UC_ManageCalendar #D4F2C8
+
+  ' Actor associations
+  Admin --> UC_Register
+  Admin --> UC_Auth
+
+  Broker --> UC_Register
+  Client --> UC_Register
+
+  Broker --> UC_Auth
+  Broker --> UC_Lifecycle
+  Broker --> UC_Docs
+  Broker --> UC_Appt
+  Broker --> UC_Analytics
+
+  Client --> UC_Auth
+  Client --> UC_Docs
+  Client --> UC_Appt
+
+  ' Essential includes
+  UC_Lifecycle ..> UC_Stage : <<include>>
+  UC_Lifecycle ..> UC_Offers : <<include>>
+
+  UC_Docs ..> UC_RequestDoc : <<include>>
+  UC_Docs ..> UC_ReviewSubmit : <<include>>
+
+  UC_Appt ..> UC_RequestAppt : <<include>>
+  UC_Appt ..> UC_ManageCalendar : <<include>>
+
+  ' Cross-domain dependencies
+  UC_Docs ..> UC_Lifecycle : <<include>>
+  UC_Appt ..> UC_Lifecycle : <<include>>
+
+  ' Essential extension
+  UC_RequestSignature ..> UC_RequestDoc : <<extend>>
+}
+
+@enduml

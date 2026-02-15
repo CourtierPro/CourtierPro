@@ -1,0 +1,53 @@
+@startuml DesignLevelSequenceDiagram_F4_BrokerReview
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam ParticipantBackgroundColor #E3F2FD
+skinparam ParticipantBorderColor #1976D2
+skinparam SequenceLifeLineBorderColor #757575
+skinparam ArrowColor #424242
+
+title DLSD Flow 4: Broker Reviews Document (SSD-S4)
+
+actor "Broker" as BrokerActor
+
+box "Frontend" #E0F7FA
+  participant "DocumentsCenter" as FE
+  participant "axiosInstance" as Axios
+end box
+
+box "Backend" #E8F5E9
+  participant "DocumentController" as DocCtrl
+  participant "DocumentServiceImpl" as DocSvc
+  participant "DocumentRepository" as DocRepo
+  participant "ObjectStorageService" as Storage
+end box
+
+BrokerActor -> FE: DLSD-F4-M1 Open document for review
+FE -> Axios: DLSD-F4-M2 GET /transactions/{txId}/documents/{docId}/versions/{verId}/download
+Axios -> DocCtrl: DLSD-F4-M3 getDocumentDownloadUrl(txId, docId, verId)
+DocCtrl -> DocSvc: DLSD-F4-M4 getDocumentDownloadUrl(docId, verId, userId)
+DocSvc -> Storage: DLSD-F4-M5 generatePresignedUrl(s3Key, ttl)
+Storage --> DocSvc: DLSD-F4-M6 url
+DocSvc --> DocCtrl: DLSD-F4-M7 url
+DocCtrl --> Axios: DLSD-F4-M8 HTTP 200
+Axios --> FE: DLSD-F4-M9 presignedUrl
+
+BrokerActor -> FE: DLSD-F4-M10 Submit review decision
+FE -> Axios: DLSD-F4-M11 PATCH /transactions/{txId}/documents/{docId}/review
+Axios -> DocCtrl: DLSD-F4-M12 reviewDocument(txId, docId, dto, brokerId)
+DocCtrl -> DocSvc: DLSD-F4-M13 reviewDocument(...)
+DocSvc -> DocRepo: DLSD-F4-M14 findByDocumentId(docId)
+DocRepo --> DocSvc: DLSD-F4-M15 Document
+
+alt [DLSD-F4-M12E4 status is not SUBMITTED]
+  DocSvc --> DocCtrl: DLSD-F4-M12E4 InvalidStateTransition
+  DocCtrl --> Axios: DLSD-F4-M12E4 HTTP 400
+else [status is SUBMITTED]
+  DocSvc -> DocRepo: DLSD-F4-M16 save(Document{status=decision,comments})
+  DocRepo --> DocSvc: DLSD-F4-M17 Document
+  DocSvc --> DocCtrl: DLSD-F4-M18 DocumentResponseDTO
+  DocCtrl --> Axios: DLSD-F4-M19 HTTP 200
+  Axios --> FE: DLSD-F4-M20 reviewedDocument
+end
+
+@enduml

@@ -1,0 +1,45 @@
+@startuml DesignLevelSequenceDiagram_F3_ClientSubmit
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam ParticipantBackgroundColor #E3F2FD
+skinparam ParticipantBorderColor #1976D2
+skinparam SequenceLifeLineBorderColor #757575
+skinparam ArrowColor #424242
+
+title DLSD Flow 3: Client Submits Requested Document (SSD-S3)
+
+actor "Client" as ClientActor
+
+box "Frontend" #E0F7FA
+  participant "DocumentsCenter" as FE
+  participant "axiosInstance" as Axios
+end box
+
+box "Backend" #E8F5E9
+  participant "DocumentController" as DocCtrl
+  participant "DocumentServiceImpl" as DocSvc
+  participant "DocumentRepository" as DocRepo
+  participant "ObjectStorageService" as Storage
+end box
+
+ClientActor -> FE: DLSD-F3-M1 Upload requested file
+FE -> Axios: DLSD-F3-M2 POST /transactions/{txId}/documents/{docId}/submit
+Axios -> DocCtrl: DLSD-F3-M3 submitDocument(txId, docId, file, userId, CLIENT)
+DocCtrl -> DocSvc: DLSD-F3-M4 submitDocument(...)
+DocSvc -> DocRepo: DLSD-F3-M5 findByDocumentId(docId)
+DocRepo --> DocSvc: DLSD-F3-M6 Document
+
+alt [DLSD-F3-M3E1 file is invalid]
+  DocSvc --> DocCtrl: DLSD-F3-M3E1 ValidationError
+  DocCtrl --> Axios: DLSD-F3-M3E1 HTTP 400
+else [file is valid]
+  DocSvc -> Storage: DLSD-F3-M7 uploadFile(txId, docId, file)
+  Storage --> DocSvc: DLSD-F3-M8 StorageObject
+  DocSvc -> DocRepo: DLSD-F3-M9 save(Document{status=SUBMITTED,newVersion})
+  DocRepo --> DocSvc: DLSD-F3-M10 Document
+  DocSvc --> DocCtrl: DLSD-F3-M11 DocumentResponseDTO
+  DocCtrl --> Axios: DLSD-F3-M12 HTTP 200
+  Axios --> FE: DLSD-F3-M13 submittedDocument
+end
+
+@enduml

@@ -1,0 +1,63 @@
+@startuml ActivityDiagram_UploadFlow
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E8F4FD
+skinparam ActivityBorderColor #1976D2
+skinparam ActivityFontSize 12
+skinparam ArrowColor #424242
+skinparam PartitionBackgroundColor #F5F5F5
+skinparam PartitionBorderColor #BDBDBD
+skinparam DiamondBackgroundColor #FFF9C4
+skinparam DiamondBorderColor #F9A825
+
+title Manage Transaction Documents - UPLOAD Flow\n(Broker uploads and shares, client downloads)
+
+|#E3F2FD| Broker |
+|#E8F5E9| Client |
+|#FFF3E0| System |
+
+start
+
+|#E3F2FD| Broker |
+:Open transaction documents;
+:Click "Upload for Client";
+:Fill form and select file;
+
+|#FFF3E0| System |
+if (Is file valid?) then (yes)
+  :Create Document (flow=UPLOAD, status=DRAFT);
+  :Store file in Cloudflare R2;
+  :Create DocumentVersion;
+else (no)
+  :Return validation error;
+  stop
+endif
+
+|#E3F2FD| Broker |
+:Click "Share with Client";
+
+|#FFF3E0| System |
+:Transition DRAFT -> SUBMITTED;
+:Set visibleToClient=true;
+:Notify Client;
+
+|#E8F5E9| Client |
+:Open transaction documents;
+:Download shared file;
+
+|#FFF3E0| System |
+:Return presigned download URL;
+
+stop
+
+legend right
+  |= Color |= Actor |
+  | <#E3F2FD> | Broker |
+  | <#E8F5E9> | Client |
+  | <#FFF3E0> | System |
+  ----
+  Document status path:
+  DRAFT -> SUBMITTED
+endlegend
+
+@enduml

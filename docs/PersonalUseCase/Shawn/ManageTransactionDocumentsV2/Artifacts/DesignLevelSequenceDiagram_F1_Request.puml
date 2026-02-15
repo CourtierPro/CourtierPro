@@ -1,0 +1,40 @@
+@startuml DesignLevelSequenceDiagram_F1_Request
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam ParticipantBackgroundColor #E3F2FD
+skinparam ParticipantBorderColor #1976D2
+skinparam SequenceLifeLineBorderColor #757575
+skinparam ArrowColor #424242
+
+title DLSD Flow 1: Broker Requests Document (SSD-S1)
+
+actor "Broker" as BrokerActor
+
+box "Frontend" #E0F7FA
+  participant "DocumentsCenter" as FE
+  participant "axiosInstance" as Axios
+end box
+
+box "Backend" #E8F5E9
+  participant "DocumentController" as DocCtrl
+  participant "DocumentServiceImpl" as DocSvc
+  participant "DocumentRepository" as DocRepo
+end box
+
+BrokerActor -> FE: DLSD-F1-M1 Open request modal and submit
+FE -> Axios: DLSD-F1-M2 POST /transactions/{txId}/documents
+Axios -> DocCtrl: DLSD-F1-M3 createDocument(txId, dto, userId)
+DocCtrl -> DocSvc: DLSD-F1-M4 createDocument(txId, dto, userId)
+DocSvc -> DocRepo: DLSD-F1-M5 save(Document{flow=REQUEST,status=REQUESTED})
+DocRepo --> DocSvc: DLSD-F1-M6 Document
+DocSvc --> DocCtrl: DLSD-F1-M7 DocumentResponseDTO
+DocCtrl --> Axios: DLSD-F1-M8 HTTP 201
+Axios --> FE: DLSD-F1-M9 createdDocument
+
+opt DLSD-F1-M10 notify client
+  note right of DocSvc
+    Send notification to client after request creation.
+  end note
+end
+
+@enduml

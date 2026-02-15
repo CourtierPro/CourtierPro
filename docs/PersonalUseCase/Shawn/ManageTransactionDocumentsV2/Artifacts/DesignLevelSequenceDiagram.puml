@@ -1,0 +1,135 @@
+@startuml DesignLevelSequenceDiagram
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam ParticipantBackgroundColor #E3F2FD
+skinparam ParticipantBorderColor #1976D2
+skinparam SequenceLifeLineBorderColor #757575
+skinparam ArrowColor #424242
+
+title Design-Level Sequence Diagram: Manage Transaction Documents
+
+actor "Broker" as BrokerActor
+actor "Client" as ClientActor
+
+box "Frontend" #E0F7FA
+  participant "DocumentsCenter" as FE
+  participant "axiosInstance" as Axios
+end box
+
+box "Backend" #E8F5E9
+  participant "DocumentController" as DocCtrl
+  participant "DocumentServiceImpl" as DocSvc
+  participant "DocumentRepository" as DocRepo
+  participant "ObjectStorageService" as Storage
+end box
+
+== F1: Broker Requests Document (SSD-S1) ==
+
+BrokerActor -> FE: DLSD-F1-M1 Open request modal and submit
+FE -> Axios: DLSD-F1-M2 POST /transactions/{txId}/documents
+Axios -> DocCtrl: DLSD-F1-M3 createDocument(txId, dto, userId)
+DocCtrl -> DocSvc: DLSD-F1-M4 createDocument(txId, dto, userId)
+DocSvc -> DocRepo: DLSD-F1-M5 save(Document{flow=REQUEST,status=REQUESTED})
+DocRepo --> DocSvc: DLSD-F1-M6 Document
+DocSvc --> DocCtrl: DLSD-F1-M7 DocumentResponseDTO
+DocCtrl --> Axios: DLSD-F1-M8 HTTP 201
+Axios --> FE: DLSD-F1-M9 createdDocument
+
+opt DLSD-F1-M10 notify client
+  note right of DocSvc
+    Send notification to client after request creation.
+  end note
+end
+
+== F2: Broker Uploads and Shares (SSD-S2) ==
+
+BrokerActor -> FE: DLSD-F2-M1 Create upload document draft
+FE -> Axios: DLSD-F2-M2 POST /transactions/{txId}/documents
+Axios -> DocCtrl: DLSD-F2-M3 createDocument(... flow=UPLOAD,status=DRAFT)
+DocCtrl -> DocSvc: DLSD-F2-M4 createDocument(...)
+DocSvc -> DocRepo: DLSD-F2-M5 save(Document{flow=UPLOAD,status=DRAFT})
+DocRepo --> DocSvc: DLSD-F2-M6 Document
+
+BrokerActor -> FE: DLSD-F2-M7 Upload file to draft
+FE -> Axios: DLSD-F2-M8 POST /transactions/{txId}/documents/{docId}/upload
+Axios -> DocCtrl: DLSD-F2-M9 uploadFileToDocument(txId, docId, file, userId)
+DocCtrl -> DocSvc: DLSD-F2-M10 uploadFileToDocument(...)
+DocSvc -> Storage: DLSD-F2-M11 uploadFile(txId, docId, file)
+Storage --> DocSvc: DLSD-F2-M12 StorageObject
+DocSvc -> DocRepo: DLSD-F2-M13 save(documentWithVersion)
+
+BrokerActor -> FE: DLSD-F2-M14 Share draft with client
+FE -> Axios: DLSD-F2-M15 POST /transactions/{txId}/documents/{docId}/share
+Axios -> DocCtrl: DLSD-F2-M16 shareDocumentWithClient(txId, docId, brokerId)
+DocCtrl -> DocSvc: DLSD-F2-M17 shareDocumentWithClient(docId, brokerId)
+DocSvc -> DocRepo: DLSD-F2-M18 save(Document{status=SUBMITTED,visibleToClient=true})
+DocRepo --> DocSvc: DLSD-F2-M19 Document
+DocSvc --> DocCtrl: DLSD-F2-M20 DocumentResponseDTO
+DocCtrl --> Axios: DLSD-F2-M21 HTTP 200
+Axios --> FE: DLSD-F2-M22 sharedDocument
+
+== F3: Client Submits Requested Document (SSD-S3) ==
+
+ClientActor -> FE: DLSD-F3-M1 Upload requested file
+FE -> Axios: DLSD-F3-M2 POST /transactions/{txId}/documents/{docId}/submit
+Axios -> DocCtrl: DLSD-F3-M3 submitDocument(txId, docId, file, userId, CLIENT)
+DocCtrl -> DocSvc: DLSD-F3-M4 submitDocument(...)
+DocSvc -> DocRepo: DLSD-F3-M5 findByDocumentId(docId)
+DocRepo --> DocSvc: DLSD-F3-M6 Document
+
+alt [DLSD-F3-M3E1 file is invalid]
+  DocSvc --> DocCtrl: DLSD-F3-M3E1 ValidationError
+  DocCtrl --> Axios: DLSD-F3-M3E1 HTTP 400
+else [file is valid]
+  DocSvc -> Storage: DLSD-F3-M7 uploadFile(txId, docId, file)
+  Storage --> DocSvc: DLSD-F3-M8 StorageObject
+  DocSvc -> DocRepo: DLSD-F3-M9 save(Document{status=SUBMITTED,newVersion})
+  DocRepo --> DocSvc: DLSD-F3-M10 Document
+  DocSvc --> DocCtrl: DLSD-F3-M11 DocumentResponseDTO
+  DocCtrl --> Axios: DLSD-F3-M12 HTTP 200
+  Axios --> FE: DLSD-F3-M13 submittedDocument
+end
+
+== F4: Broker Reviews Document (SSD-S4) ==
+
+BrokerActor -> FE: DLSD-F4-M1 Open document for review
+FE -> Axios: DLSD-F4-M2 GET /transactions/{txId}/documents/{docId}/versions/{verId}/download
+Axios -> DocCtrl: DLSD-F4-M3 getDocumentDownloadUrl(txId, docId, verId)
+DocCtrl -> DocSvc: DLSD-F4-M4 getDocumentDownloadUrl(docId, verId, userId)
+DocSvc -> Storage: DLSD-F4-M5 generatePresignedUrl(s3Key, ttl)
+Storage --> DocSvc: DLSD-F4-M6 url
+DocSvc --> DocCtrl: DLSD-F4-M7 url
+DocCtrl --> Axios: DLSD-F4-M8 HTTP 200
+Axios --> FE: DLSD-F4-M9 presignedUrl
+
+BrokerActor -> FE: DLSD-F4-M10 Submit review decision
+FE -> Axios: DLSD-F4-M11 PATCH /transactions/{txId}/documents/{docId}/review
+Axios -> DocCtrl: DLSD-F4-M12 reviewDocument(txId, docId, dto, brokerId)
+DocCtrl -> DocSvc: DLSD-F4-M13 reviewDocument(...)
+DocSvc -> DocRepo: DLSD-F4-M14 findByDocumentId(docId)
+DocRepo --> DocSvc: DLSD-F4-M15 Document
+
+alt [DLSD-F4-M12E4 status is not SUBMITTED]
+  DocSvc --> DocCtrl: DLSD-F4-M12E4 InvalidStateTransition
+  DocCtrl --> Axios: DLSD-F4-M12E4 HTTP 400
+else [status is SUBMITTED]
+  DocSvc -> DocRepo: DLSD-F4-M16 save(Document{status=decision,comments})
+  DocRepo --> DocSvc: DLSD-F4-M17 Document
+  DocSvc --> DocCtrl: DLSD-F4-M18 DocumentResponseDTO
+  DocCtrl --> Axios: DLSD-F4-M19 HTTP 200
+  Axios --> FE: DLSD-F4-M20 reviewedDocument
+end
+
+== F5: Client Downloads Shared Document (SSD-S5) ==
+
+ClientActor -> FE: DLSD-F5-M1 Click Download
+FE -> Axios: DLSD-F5-M2 GET /transactions/{txId}/documents/{docId}/versions/{verId}/download
+Axios -> DocCtrl: DLSD-F5-M3 getDocumentDownloadUrl(txId, docId, verId)
+DocCtrl -> DocSvc: DLSD-F5-M4 getDocumentDownloadUrl(docId, verId, userId)
+DocSvc -> Storage: DLSD-F5-M5 generatePresignedUrl(s3Key, ttl)
+Storage --> DocSvc: DLSD-F5-M6 url
+DocSvc --> DocCtrl: DLSD-F5-M7 url
+DocCtrl --> Axios: DLSD-F5-M8 HTTP 200
+Axios --> FE: DLSD-F5-M9 presignedUrl
+
+@enduml
