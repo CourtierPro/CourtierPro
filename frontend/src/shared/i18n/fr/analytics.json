@@ -3,6 +3,8 @@
     "subtitle": "Aperçu de votre activité de courtage et indicateurs clés de performance.",
     "loading": "Chargement des analyses...",
     "empty": "Aucune donnée pour le moment. Les analyses apparaîtront une fois vos transactions créées.",
+    "emptyBuyerPipeline": "Aucun acheteur actif dans le pipeline. Trouvons de nouvelles opportunités !",
+    "emptySellerPipeline": "Aucune propriété en vente pour le moment. C'est le temps de prospecter !",
     "error": "Impossible de charger les analyses. Veuillez réessayer.",
     "sections": {
         "overview": "Aperçu des transactions",
@@ -18,7 +20,8 @@
         "trends": "Tendances",
         "activity": "Résumé d'activité",
         "monthlyActivity": "Activité mensuelle",
-        "sellShowings": "Visites de vente"
+        "sellShowings": "Visites de vente",
+        "transactionPipeline": "Pipeline des transactions"
     },
     "stats": {
         "totalTransactions": "Total des transactions",
@@ -40,13 +43,13 @@
         "propertiesWithOffers": "Avec offres",
         "propertiesWithoutOffers": "Sans offres",
         "totalBuyerOffers": "Offres faites",
-        "buyerOfferAcceptanceRate": "Taux d'acceptation",
+        "receivedOfferAcceptanceRate": "Taux d'acceptation",
         "avgOfferRounds": "Moy. de tours de négociation",
         "avgBuyerOfferAmount": "Montant moy. de l'offre",
         "expiredOrWithdrawnOffers": "Expirées / Retirées",
         "buyerCounterOfferRate": "Taux de contre-offre",
         "totalOffers": "Offres reçues",
-        "receivedOfferAcceptanceRate": "Taux d'acceptation",
+        "buyerOfferAcceptanceRate": "Taux d'acceptation",
         "avgReceivedOfferAmount": "Montant moyen",
         "highestOfferAmount": "Offre la plus élevée",
         "lowestOfferAmount": "Offre la plus basse",
@@ -103,5 +106,8 @@
         "percent": "{{value}} %",
         "currency": "{{value}} $",
         "days": "{{value}} jours"
+    },
+    "units": {
+        "days": "jours"
     }
 }

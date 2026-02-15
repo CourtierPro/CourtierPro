@@ -12,6 +12,8 @@ import { LoadingState } from "@/shared/components/branded/LoadingState";
 import { ErrorState } from "@/shared/components/branded/ErrorState";
 import { EmptyState } from "@/shared/components/branded/EmptyState";
 import { useAnalytics, exportAnalyticsCsv, exportAnalyticsPdf } from "@/features/analytics/api/queries";
+import { PipelineFunnelChart } from "@/features/analytics/components/PipelineFunnelChart";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/components/ui/tabs";
 import type { AnalyticsFilter } from "@/features/analytics/types";
 import {
   BarChart3,
@@ -399,6 +401,41 @@ export function AnalyticsPage() {
               </Section>
             )}
           </div>
+
+          {/* ─── TRANSACTION PIPELINE FUNNEL ─── */}
+          {(data.buyerPipeline.length > 0 || data.sellerPipeline.length > 0) && (
+            <Section title={t("sections.transactionPipeline")}>
+              <Tabs defaultValue="buyer" className="w-full">
+                <div className="flex justify-center mb-8">
+                  <TabsList className="grid w-[400px] grid-cols-2">
+                    <TabsTrigger value="buyer" className="flex items-center gap-2">
+                      <Target className="h-4 w-4" />
+                      {t("stageLabels.buyerStages")}
+                    </TabsTrigger>
+                    <TabsTrigger value="seller" className="flex items-center gap-2">
+                      <Home className="h-4 w-4" />
+                      {t("stageLabels.sellerStages")}
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <div className="w-full">
+                  <TabsContent value="buyer" className="animate-in fade-in zoom-in-95 duration-500">
+                    <PipelineFunnelChart
+                      data={data.buyerPipeline}
+                      key={`buyer-${JSON.stringify(appliedFilters)}`}
+                    />
+                  </TabsContent>
+                  <TabsContent value="seller" className="animate-in fade-in zoom-in-95 duration-500">
+                    <PipelineFunnelChart
+                      data={data.sellerPipeline}
+                      key={`seller-${JSON.stringify(appliedFilters)}`}
+                    />
+                  </TabsContent>
+                </div>
+              </Tabs>
+            </Section>
+          )}
 
           {/* ─── HOUSE VISITS + SELL SHOWINGS ─── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
