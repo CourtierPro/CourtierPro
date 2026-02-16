@@ -42,8 +42,11 @@ public class SearchService {
         // 1. Direct ID search (if query is UUID)
         searchById(query, userId, results);
 
-        // 2. Search users
-        List<UUID> matchedUserIds = searchUsers(userId, query, results);
+        // 2. Search users (only if broker)
+        List<UUID> matchedUserIds = Collections.emptyList();
+        if (UserContextUtils.isBroker(request)) {
+            matchedUserIds = searchUsers(userId, query, results);
+        }
 
         // 3. Search transactions
         searchTransactions(userId, query, matchedUserIds, results);
@@ -108,29 +111,17 @@ public class SearchService {
      * Returns list of matched user IDs for related searches.
      */
     private List<UUID> searchUsers(UUID userId, String query, Set<SearchResultDTO> results) {
+        // Only brokers can search for clients
         List<UserAccount> matchedUsers = new ArrayList<>(userAccountRepository.searchClientsOfBroker(userId, query));
-
-        // Check if current user matches
-        userAccountRepository.findById(userId).ifPresent(currentUser -> {
-            String fullName = (currentUser.getFirstName() + " " + currentUser.getLastName()).toLowerCase();
-            String email = currentUser.getEmail().toLowerCase();
-            String lowerQuery = query.toLowerCase();
-
-            if (fullName.contains(lowerQuery) || email.contains(lowerQuery)) {
-                if (matchedUsers.stream().noneMatch(u -> u.getId().equals(userId))) {
-                    matchedUsers.add(currentUser);
-                }
-            }
-        });
 
         // Add users to results
         results.addAll(matchedUsers.stream()
-                .map(this::mapUser)
-                .collect(Collectors.toList()));
+            .map(this::mapUser)
+            .collect(Collectors.toList()));
 
         return matchedUsers.stream()
-                .map(UserAccount::getId)
-                .collect(Collectors.toList());
+            .map(UserAccount::getId)
+            .collect(Collectors.toList());
     }
 
     /**

@@ -44,7 +44,12 @@
     "appointments": "Appointments",
     "calendar": "Calendar",
     "analytics": "Analytics",
-    "reports": "Reports & Insights"
+    "reports": "Reports & Insights",
+    "manageUsers": "Manage Users",
+    "users": "Users",
+    "resources": "Resources",
+    "loginAudit": "Login Audit",
+    "systemLogs": "System Logs"
   },
   "search": {
     "placeholder": "Type to search...",

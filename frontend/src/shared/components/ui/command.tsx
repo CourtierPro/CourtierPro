@@ -60,15 +60,17 @@ function CommandInput({
   return (
     <div
       data-slot="command-input-wrapper"
-      className="flex h-9 items-center gap-2 border-b px-3"
+      className="flex items-center gap-2 border-b px-3 bg-white"
+      style={{ boxSizing: 'border-box', borderTopLeftRadius: 8, borderTopRightRadius: 8, height: 48 }}
     >
       <SearchIcon className="size-4 shrink-0 opacity-50" />
       <CommandPrimitive.Input
         data-slot="command-input"
         className={cn(
-          "placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+          "placeholder:text-muted-foreground flex w-full rounded-md bg-transparent text-base outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}
+        style={{ paddingTop: '12px', paddingBottom: '12px', height: '40px', boxSizing: 'border-box' }}
         {...props}
       />
     </div>
