@@ -43,12 +43,27 @@ public class SearchService {
         searchById(query, userId, results);
 
         // 2. Search users (only if broker)
-        List<UUID> matchedUserIds = Collections.emptyList();
+        List<UserAccount> matchedUsers = new ArrayList<>();
         if (UserContextUtils.isBroker(request)) {
-            matchedUserIds = searchUsers(userId, query, results);
+            matchedUsers = new ArrayList<>(userAccountRepository.searchClientsOfBroker(userId, query));
+            // If current user matches query and not already in matchedUsers, add them
+            Optional<UserAccount> currentUserOpt = userAccountRepository.findById(userId);
+            if (currentUserOpt.isPresent()) {
+                UserAccount currentUser = currentUserOpt.get();
+                String fullName = (currentUser.getFirstName() != null ? currentUser.getFirstName() : "") +
+                        (currentUser.getLastName() != null ? " " + currentUser.getLastName() : "");
+                if (fullName.trim().toLowerCase().contains(query.trim().toLowerCase()) &&
+                    matchedUsers.stream().noneMatch(u -> u.getId().equals(userId))) {
+                    matchedUsers.add(currentUser);
+                }
+            }
+            // Always add mapped users to results, even if empty
+            results.addAll(matchedUsers.stream().map(this::mapUser).toList());
         }
 
-        // 3. Search transactions
+        // 3. Search transactions (ensure linked transactions are included even if text search is empty)
+        List<UUID> matchedUserIds = matchedUsers.stream().map(UserAccount::getId).toList();
+        // Always call searchTransactions, even if matchedUserIds is empty
         searchTransactions(userId, query, matchedUserIds, results);
 
         // 4. Search documents
@@ -242,11 +257,13 @@ public class SearchService {
         String firstName = u.getFirstName() != null ? u.getFirstName() : "";
         String lastName = u.getLastName() != null ? u.getLastName() : "";
         String title = (firstName + " " + lastName).trim();
-        
+        if (title.isEmpty()) {
+            title = "Unknown User";
+        }
         return SearchResultDTO.builder()
                 .id(u.getId().toString())
                 .type(SearchResultDTO.SearchResultType.USER)
-                .title(title.isEmpty() ? "Unknown User" : title)
+                .title(title)
                 .subtitle(u.getEmail())
                 .url("/contacts/" + u.getId())
                 .build();

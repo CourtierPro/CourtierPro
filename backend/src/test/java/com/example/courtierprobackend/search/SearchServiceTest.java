@@ -52,18 +52,19 @@ class SearchServiceTest {
     @BeforeEach
     void setUp() {
         searchService = new SearchService(
-                transactionRepository,
-                documentRequestRepository,
-                userAccountRepository,
-                appointmentRepository,
-                request
+            transactionRepository,
+            documentRequestRepository,
+            userAccountRepository,
+            appointmentRepository,
+            request
         );
         userId = UUID.randomUUID();
         brokerId = UUID.randomUUID();
         transactionId = UUID.randomUUID();
-        
+
         // Use lenient() to avoid UnnecessaryStubbingException in early-return tests
         lenient().when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(userId);
+        lenient().when(request.getAttribute(UserContextFilter.USER_ROLE_ATTR)).thenReturn("BROKER");
     }
 
     // ========== Query Validation Tests ==========

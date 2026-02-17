@@ -1,7 +1,3 @@
-// Extend SearchResult to allow optional keywords for static search
-export interface SearchResultWithKeywords extends SearchResult {
-    keywords?: string[];
-}
 import { useMemo } from 'react';
 import { useUserProfile } from '@/features/profile';
 import { useQuery } from '@tanstack/react-query';
@@ -29,7 +25,7 @@ export function useGlobalSearch() {
     const isBroker = user?.role === 'BROKER';
 
     // Static routes
-    const staticRoutes: SearchResultWithKeywords[] = useMemo(() => {
+    const staticRoutes: SearchResult[] = useMemo(() => {
         let routes: SearchResult[] = [
             { id: 'dashboard', type: 'PAGE', title: t('navigation.dashboard', 'Dashboard'), subtitle: t('navigation.home', 'Home'), url: '/dashboard' },
             { id: 'transactions', type: 'PAGE', title: t('navigation.transactions', 'Transactions'), subtitle: t('navigation.list', 'List'), url: '/transactions' },
@@ -84,11 +80,10 @@ export function useGlobalSearch() {
     const staticResults = useMemo(() => {
         if (!query) return [];
         const normalizedQuery = query.toLowerCase();
-        // Filter static pages, including keywords
+        // Filter static pages
         const pageResults = staticRoutes.filter(page =>
             page.title.toLowerCase().includes(normalizedQuery) ||
-            page.subtitle.toLowerCase().includes(normalizedQuery) ||
-            (Array.isArray(page.keywords) && page.keywords.some((kw: string) => kw.toLowerCase().includes(normalizedQuery)))
+            page.subtitle.toLowerCase().includes(normalizedQuery)
         );
         return pageResults;
     }, [query, staticRoutes]);

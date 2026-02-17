@@ -36,6 +36,7 @@
     "transactions": "Transactions",
     "documents": "Documents",
     "contacts": "Contacts",
+    "clients": "Clients",
     "manageAccount": "Manage your account",
     "appPreferences": "App preferences",
     "viewAllDocuments": "View all documents",
@@ -72,6 +73,7 @@
   },
   "modals": {
     "uploadDocument": "Upload Document",
+    "feedback": "Feedback",
     "reviewDocument": "Review Document",
     "documentChecklist": "Document Checklist",
     "scheduleAppointment": "Schedule Appointment",
