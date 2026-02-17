@@ -36,6 +36,7 @@
     "transactions": "Transactions",
     "documents": "Documents",
     "contacts": "Contacts",
+    "clients": "Clients",
     "manageAccount": "Manage your account",
     "appPreferences": "App preferences",
     "viewAllDocuments": "View all documents",
@@ -44,7 +45,12 @@
     "appointments": "Appointments",
     "calendar": "Calendar",
     "analytics": "Analytics",
-    "reports": "Reports & Insights"
+    "reports": "Reports & Insights",
+    "manageUsers": "Manage Users",
+    "users": "Users",
+    "resources": "Resources",
+    "loginAudit": "Login Audit",
+    "systemLogs": "System Logs"
   },
   "search": {
     "placeholder": "Type to search...",
@@ -67,6 +73,7 @@
   },
   "modals": {
     "uploadDocument": "Upload Document",
+    "feedback": "Feedback",
     "reviewDocument": "Review Document",
     "documentChecklist": "Document Checklist",
     "scheduleAppointment": "Schedule Appointment",

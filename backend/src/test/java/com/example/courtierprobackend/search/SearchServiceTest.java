@@ -52,18 +52,19 @@ class SearchServiceTest {
     @BeforeEach
     void setUp() {
         searchService = new SearchService(
-                transactionRepository,
-                documentRequestRepository,
-                userAccountRepository,
-                appointmentRepository,
-                request
+            transactionRepository,
+            documentRequestRepository,
+            userAccountRepository,
+            appointmentRepository,
+            request
         );
         userId = UUID.randomUUID();
         brokerId = UUID.randomUUID();
         transactionId = UUID.randomUUID();
-        
+
         // Use lenient() to avoid UnnecessaryStubbingException in early-return tests
         lenient().when(request.getAttribute(UserContextFilter.INTERNAL_USER_ID_ATTR)).thenReturn(userId);
+        lenient().when(request.getAttribute(UserContextFilter.USER_ROLE_ATTR)).thenReturn("BROKER");
     }
 
     // ========== Query Validation Tests ==========
@@ -91,11 +92,11 @@ class SearchServiceTest {
     @Test
     void search_ByTransactionUUID_ReturnsTransaction() {
         Transaction transaction = createTestTransaction(transactionId, brokerId, userId);
-        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
-        when(userAccountRepository.searchClientsOfBroker(userId, transactionId.toString())).thenReturn(List.of());
-        when(transactionRepository.searchTransactions(eq(userId), eq(transactionId.toString()))).thenReturn(List.of());
-        when(documentRequestRepository.searchDocuments(userId, transactionId.toString())).thenReturn(List.of());
-        when(appointmentRepository.searchAppointments(userId, transactionId.toString())).thenReturn(List.of());
+        lenient().when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+        lenient().when(userAccountRepository.searchClientsOfBroker(userId, transactionId.toString())).thenReturn(List.of());
+        lenient().when(transactionRepository.searchTransactions(eq(userId), eq(transactionId.toString()))).thenReturn(List.of());
+        lenient().when(documentRequestRepository.searchDocuments(userId, transactionId.toString())).thenReturn(List.of());
+        lenient().when(appointmentRepository.searchAppointments(userId, transactionId.toString())).thenReturn(List.of());
 
         List<SearchResultDTO> results = searchService.search(transactionId.toString());
 
@@ -108,11 +109,11 @@ class SearchServiceTest {
     void search_ByTransactionUUID_FiltersUnauthorized() {
         UUID otherUser = UUID.randomUUID();
         Transaction transaction = createTestTransaction(transactionId, otherUser, UUID.randomUUID());
-        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
-        when(userAccountRepository.searchClientsOfBroker(userId, transactionId.toString())).thenReturn(List.of());
-        when(transactionRepository.searchTransactions(eq(userId), eq(transactionId.toString()))).thenReturn(List.of());
-        when(documentRequestRepository.searchDocuments(userId, transactionId.toString())).thenReturn(List.of());
-        when(appointmentRepository.searchAppointments(userId, transactionId.toString())).thenReturn(List.of());
+        lenient().when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(transaction));
+        lenient().when(userAccountRepository.searchClientsOfBroker(userId, transactionId.toString())).thenReturn(List.of());
+        lenient().when(transactionRepository.searchTransactions(eq(userId), eq(transactionId.toString()))).thenReturn(List.of());
+        lenient().when(documentRequestRepository.searchDocuments(userId, transactionId.toString())).thenReturn(List.of());
+        lenient().when(appointmentRepository.searchAppointments(userId, transactionId.toString())).thenReturn(List.of());
 
         List<SearchResultDTO> results = searchService.search(transactionId.toString());
 
@@ -129,10 +130,10 @@ class SearchServiceTest {
         String query = "123 Main";
         Transaction transaction = createTestTransaction(transactionId, brokerId, userId);
         
-        when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
-        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of(transaction));
-        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
-        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of());
+        lenient().when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
+        lenient().when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of(transaction));
+        lenient().when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
+        lenient().when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of());
 
         List<SearchResultDTO> results = searchService.search(query);
 
@@ -146,10 +147,10 @@ class SearchServiceTest {
         String query = "John";
         UserAccount user = new UserAccount("auth0|123", "john@example.com", "John", "Doe", UserRole.CLIENT, "en");
         
-        when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of(user));
-        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
-        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
-        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of());
+        lenient().when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of(user));
+        lenient().when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
+        lenient().when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
+        lenient().when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of());
 
         List<SearchResultDTO> results = searchService.search(query);
 
@@ -164,10 +165,10 @@ class SearchServiceTest {
         Transaction transaction = createTestTransaction(transactionId, brokerId, userId);
         Document document = createTestDocument(transactionId, "Promise to Purchase");
         
-        when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
-        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
-        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of(document));
-        when(transactionRepository.findByTransactionIdIn(List.of(transactionId))).thenReturn(List.of(transaction));
+        lenient().when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
+        lenient().when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
+        lenient().when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of(document));
+        lenient().when(transactionRepository.findByTransactionIdIn(List.of(transactionId))).thenReturn(List.of(transaction));
 
         List<SearchResultDTO> results = searchService.search(query);
 
@@ -185,11 +186,11 @@ class SearchServiceTest {
         UserAccount client = new UserAccount("auth0|456", "jane@example.com", "Jane", "Smith", UserRole.CLIENT, "en");
         Transaction linkedTransaction = createTestTransaction(transactionId, userId, client.getId());
         
-        when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of(client));
-        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
-        when(transactionRepository.findLinkedToUsers(List.of(client.getId()), userId)).thenReturn(List.of(linkedTransaction));
-        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
-        when(documentRequestRepository.findLinkedToUsers(List.of(client.getId()), userId)).thenReturn(List.of());
+        lenient().when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of(client));
+        lenient().when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
+        lenient().when(transactionRepository.findLinkedToUsers(List.of(client.getId()), userId)).thenReturn(List.of(linkedTransaction));
+        lenient().when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
+        lenient().when(documentRequestRepository.findLinkedToUsers(List.of(client.getId()), userId)).thenReturn(List.of());
 
         List<SearchResultDTO> results = searchService.search(query);
 
@@ -234,9 +235,9 @@ class SearchServiceTest {
         Transaction tx = createTestTransaction(transactionId, brokerId, userId);
         tx.setPropertyAddress(new PropertyAddress(null, null, null, null)); // Null fields
         
-        when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
-        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of(tx));
-        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
+        lenient().when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
+        lenient().when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of(tx));
+        lenient().when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
 
         // Act
         List<SearchResultDTO> results = searchService.search(query);
@@ -253,7 +254,7 @@ class SearchServiceTest {
         Transaction tx = createTestTransaction(transactionId, brokerId, userId);
         tx.setPropertyAddress(new PropertyAddress("Street", "Montreal", null, "Zip")); // City only, no province
         
-        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of(tx));
+        lenient().when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of(tx));
 
         List<SearchResultDTO> results = searchService.search(query);
         assertThat(results.get(0).getSubtitle()).isEqualTo("Montreal");
@@ -264,7 +265,7 @@ class SearchServiceTest {
         String query = "test";
         UserAccount user = new UserAccount("auth0|999", "test@mail.com", null, null, UserRole.CLIENT, "en");
         
-        when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of(user));
+        lenient().when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of(user));
 
         List<SearchResultDTO> results = searchService.search(query);
         assertThat(results.get(0).getTitle()).isEqualTo("Unknown User");
@@ -281,8 +282,8 @@ class SearchServiceTest {
         // Service logic: matchedUsers = searchClientsOfBroker(...).
         // if (matchedUsers.stream().noneMatch(u -> u.getId().equals(userId))) { add currentUser }
         
-        when(userAccountRepository.findById(userId)).thenReturn(Optional.of(currentUser));
-        when(userAccountRepository.searchClientsOfBroker(userId, "John")).thenReturn(List.of()); // Empty clients
+        lenient().when(userAccountRepository.findById(userId)).thenReturn(Optional.of(currentUser));
+        lenient().when(userAccountRepository.searchClientsOfBroker(userId, "John")).thenReturn(List.of()); // Empty clients
 
         List<SearchResultDTO> results = searchService.search("John");
         
@@ -308,10 +309,10 @@ class SearchServiceTest {
         // Transaction exists but user is neither client nor broker
         Transaction tx = createTestTransaction(transactionId, UUID.randomUUID(), UUID.randomUUID());
         
-        when(documentRequestRepository.findByDocumentId(docId)).thenReturn(Optional.of(doc));
+        lenient().when(documentRequestRepository.findByDocumentId(docId)).thenReturn(Optional.of(doc));
         // Strict stubbing complains if we don't stub the call made with docId (searchById -> searchTransactionById -> findByTransactionId(docId))
         lenient().when(transactionRepository.findByTransactionId(docId)).thenReturn(Optional.empty());
-        when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
+        lenient().when(transactionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(tx));
 
         List<SearchResultDTO> results = searchService.search(docId.toString());
         assertThat(results).isEmpty();
@@ -322,7 +323,7 @@ class SearchServiceTest {
         // "Valid" length string but not a UUID
         String query = "NotAUUIDString"; 
         
-        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
+        lenient().when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
         
         // Should not throw exception
         List<SearchResultDTO> results = searchService.search(query);
@@ -332,9 +333,10 @@ class SearchServiceTest {
     @Test
     void search_Users_WhenNoneFound_ReturnsEmpty() {
         String query = "Ghost";
-        when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
-        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
-        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of());
+        lenient().when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
+        lenient().when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
+        lenient().when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
+        lenient().when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of());
         List<SearchResultDTO> results = searchService.search(query);
         assertThat(results).isEmpty();
     }
@@ -351,10 +353,10 @@ class SearchServiceTest {
                 .location("Office")
                 .build();
 
-        when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
-        when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
-        when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
-        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of(appointment));
+        lenient().when(userAccountRepository.searchClientsOfBroker(userId, query)).thenReturn(List.of());
+        lenient().when(transactionRepository.searchTransactions(eq(userId), eq(query))).thenReturn(List.of());
+        lenient().when(documentRequestRepository.searchDocuments(userId, query)).thenReturn(List.of());
+        lenient().when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of(appointment));
 
         List<SearchResultDTO> results = searchService.search(query);
 
@@ -374,7 +376,7 @@ class SearchServiceTest {
                 .location(null) // Null location
                 .build();
 
-        when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of(appointment));
+        lenient().when(appointmentRepository.searchAppointments(userId, query)).thenReturn(List.of(appointment));
 
         List<SearchResultDTO> results = searchService.search(query);
         

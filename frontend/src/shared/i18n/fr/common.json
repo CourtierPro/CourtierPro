@@ -36,6 +36,7 @@
     "transactions": "Transactions",
     "documents": "Documents",
     "contacts": "Contacts",
+    "clients": "Clients",
     "manageAccount": "Gérer votre compte",
     "appPreferences": "Préférences de l'application",
     "viewAllDocuments": "Voir tous les documents",
@@ -44,7 +45,12 @@
     "appointments": "Rendez-vous",
     "calendar": "Calendrier",
     "analytics": "Analyses",
-    "reports": "Rapports et statistiques"
+    "reports": "Rapports et statistiques",
+    "manageUsers": "Gérer les utilisateurs",
+    "users": "Utilisateurs",
+    "resources": "Ressources",
+    "loginAudit": "Audit de connexion",
+    "systemLogs": "Journaux système"
   },
   "search": {
     "placeholder": "Tapez pour rechercher...",
@@ -66,6 +72,7 @@
     "noData": "Aucune donnée disponible"
   },
   "modals": {
+    "feedback": "Commentaire",
     "uploadDocument": "Téléverser un document",
     "reviewDocument": "Réviser le document",
     "documentChecklist": "Liste de contrôle des documents",

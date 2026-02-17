@@ -13,7 +13,8 @@ import {
   DialogTitle,
 } from "./dialog";
 
-function Command({
+
+function CommandComponent({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive>) {
@@ -29,7 +30,7 @@ function Command({
   );
 }
 
-function CommandDialog({
+function CommandDialogComponent({
   title = "Command Palette",
   description = "Search for a command to run...",
   children,
@@ -44,29 +45,29 @@ function CommandDialog({
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
-      <DialogContent className="overflow-hidden p-0">
-        <Command className="**:[[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 **:[[cmdk-input]]:h-12 **:[[cmdk-item]]:px-2 **:[[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+      <DialogContent className="p-0">
+        <CommandComponent className="**:[[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:min-h-[56px] **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 **:[[cmdk-input]]:min-h-[48px] **:[[cmdk-item]]:px-2 **:[[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
           {children}
-        </Command>
+        </CommandComponent>
       </DialogContent>
     </Dialog>
   );
 }
 
-function CommandInput({
+function CommandInputComponent({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Input>) {
   return (
     <div
       data-slot="command-input-wrapper"
-      className="flex h-9 items-center gap-2 border-b px-3"
+      className="flex items-center gap-2 border-b px-3 bg-white min-h-[56px] rounded-t-lg box-border pt-2"
     >
-      <SearchIcon className="size-4 shrink-0 opacity-50" />
+      <SearchIcon className="size-5 shrink-0 opacity-50" />
       <CommandPrimitive.Input
         data-slot="command-input"
         className={cn(
-          "placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+          "placeholder:text-muted-foreground flex w-full rounded-md bg-transparent text-base outline-hidden disabled:cursor-not-allowed disabled:opacity-50 py-3 min-h-[48px] box-border",
           className,
         )}
         {...props}
@@ -74,7 +75,6 @@ function CommandInput({
     </div>
   );
 }
-
 function CommandList({
   className,
   ...props
@@ -165,9 +165,9 @@ function CommandShortcut({
 }
 
 export {
-  Command,
-  CommandDialog,
-  CommandInput,
+  CommandComponent as Command,
+  CommandDialogComponent as CommandDialog,
+  CommandInputComponent as CommandInput,
   CommandList,
   CommandEmpty,
   CommandGroup,
