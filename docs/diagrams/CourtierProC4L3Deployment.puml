@@ -1,5 +1,5 @@
 @startuml
-title CourtierPro - Deployment Diagram (DigitalOcean)
+title CourtierPro - Production Deployment Diagram (DigitalOcean)
 
 left to right direction
 skinparam nodeStyle rectangle
@@ -8,23 +8,30 @@ skinparam nodeStyle rectangle
 ' User Side
 ' ==========================
 node "User Device\n[Windows / macOS / Mobile]" as Device {
-  node "Web Browser\n[Container: React SPA]\nProvides CourtierPro UI" as Browser
+  node "Web Browser\n[React SPA]\nProvides CourtierPro UI" as Browser
 }
 
 ' ==========================
-' Cloud / Production
+' Cloudflare Edge
 ' ==========================
-node "DigitalOcean Droplet\n[OS: Ubuntu Linux]" as DO_VM {
-  
+cloud "Cloudflare Edge Network\n[DNS, DDoS Protection, SSL/TLS]" as CloudflareEdge
+
+' ==========================
+' Production VM
+' ==========================
+node "DigitalOcean Droplet\n[OS: Ubuntu 24.04 LTS]" as DO_VM {
+
   node "Docker Engine" as Docker {
-    
-    node "Cloudflare Tunnel\n[Container: cloudflared]\nSecure entry point (Ingress)" as Tunnel
-    
-    node "CourtierPro Frontend\n[Container: Nginx/Static]\nServes SPA assets" as Frontend
-    
-    node "CourtierPro Backend\n[Container: Spring Boot]\nREST API & Business Logic" as Backend
-    
-    database "PostgreSQL Database\n[Container: PostgreSQL 15]\nPersistent Data" as DB
+
+    node "Cloudflare Tunnel\n[Container: cloudflare/cloudflared]\nSecure ingress (outbound-only)" as Tunnel
+
+    node "Caddy\n[Container: caddy:alpine]\nReverse Proxy (port :80)\nRoutes /api/* and /*" as Caddy
+
+    node "CourtierPro Frontend\n[Container: Nginx + React SPA]\nServes static assets (port :80)" as Frontend
+
+    node "CourtierPro Backend\n[Container: Spring Boot 3 / Java 17]\nREST API & Business Logic (port :8080)" as Backend
+
+    database "PostgreSQL 15\n[Container: postgres:15]\nPersistent data (Docker volume)" as DB
   }
 }
 
@@ -32,26 +39,30 @@ node "DigitalOcean Droplet\n[OS: Ubuntu Linux]" as DO_VM {
 ' External Services
 ' ==========================
 node "External Services" as Ext {
-  node "Auth0\n(Identity & Auth)" as Auth0
-  node "Cloudflare R2\n(Document Storage)" as R2
-  node "Amazon SES\n(Email)" as SES
+  node "Auth0\n(Identity & Authentication)" as Auth0
+  node "Cloudflare R2\n(S3-compatible Document Storage)" as R2
+  node "AWS SES\n(Transactional Email)" as SES
+  node "GitHub Container Registry\n(Docker Images & CI/CD)" as GHCR
 }
 
 ' ==========================
 ' Connections
 ' ==========================
-' Ingress
-Browser --> Tunnel : HTTPS (via Cloudflare Edge)
-Tunnel --> Frontend : Proxies requests
-Tunnel --> Backend : Proxies /api requests
+' Ingress path
+Browser --> CloudflareEdge : HTTPS (courtier-pro.ca)
+CloudflareEdge --> Tunnel : Encrypted tunnel
+Tunnel --> Caddy : HTTP (internal)
+Caddy --> Frontend : /* requests
+Caddy --> Backend : /api/* requests
 
 ' Internal
-Backend --> DB : JDBC/R2DBC (Internal Docker Network)
+Backend --> DB : JDBC / HikariCP\n(Internal Docker Network)
 
 ' External
-Browser --> Auth0 : Redirects for Login
-Backend --> Auth0 : Validates Tokens (OIDC)
-Backend --> R2 : Stores Documents (S3-compatible)
-Backend --> SES : Sends Emails
+Browser --> Auth0 : Redirects for Login (OIDC)
+Backend --> Auth0 : Validates JWT Tokens
+Backend --> R2 : Upload/Download Documents\n(Pre-signed URLs, S3 API)
+Backend --> SES : Sends Emails (SMTP/API)
+Docker --> GHCR : Pulls container images
 
 @enduml

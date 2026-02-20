@@ -1,0 +1,1306 @@
+\documentclass[12pt, letterpaper]{article}
+
+% --- Packages ---
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{caption}
+
+% --- Hyperlink styling ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    urlcolor=blue!70!black,
+    citecolor=blue!70!black,
+    bookmarksnumbered=true,
+    pdfauthor={Shawn Nabizada, Amir Ghadimi, Olivier Goudreault, Isaac Nachate},
+    pdftitle={CourtierPro -- Deployment Manual \& Handoff Instructions},
+}
+
+% --- Code listing style ---
+\definecolor{codebg}{HTML}{F5F5F5}
+\definecolor{codeframe}{HTML}{CCCCCC}
+\definecolor{codegreen}{HTML}{2E7D32}
+\definecolor{codegray}{HTML}{6A6A6A}
+\definecolor{codeblue}{HTML}{1565C0}
+
+\lstdefinestyle{bashstyle}{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\small,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    commentstyle=\color{codegreen},
+    frame=single,
+    rulecolor=\color{codeframe},
+    keepspaces=true,
+    keywordstyle=\color{codeblue}\bfseries,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    xleftmargin=4pt,
+    xrightmargin=4pt,
+    aboveskip=10pt,
+    belowskip=10pt,
+}
+
+\lstdefinestyle{jsonstyle}{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    rulecolor=\color{codeframe},
+    xleftmargin=4pt,
+    xrightmargin=4pt,
+    aboveskip=10pt,
+    belowskip=10pt,
+}
+
+\lstset{style=bashstyle}
+
+% --- Header/Footer ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small CourtierPro --- Deployment Manual}
+\fancyhead[R]{\small February 2026}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% --- Section formatting ---
+\titleformat{\section}{\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+% --- Custom column type for tables ---
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\begin{document}
+
+% ======================================================================
+% COVER PAGE
+% ======================================================================
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    % TODO: Replace with CourtierPro logo if available
+    % \includegraphics[width=0.3\textwidth]{images/logo.png}\\[1.5cm]
+
+    {\Huge\bfseries CourtierPro}\\[0.5cm]
+    {\LARGE Deployment Manual \&\\Handoff Instructions}\\[2cm]
+
+    {\large Prepared for}\\[0.3cm]
+    {\Large\bfseries Nabizada Courtier Inc.}\\[2cm]
+
+    {\large Prepared by}\\[0.3cm]
+    {\large Shawn Nabizada}\\
+    {\large Amir Ghadimi}\\
+    {\large Olivier Goudreault}\\
+    {\large Isaac Nachate}\\[2cm]
+
+    {\large\bfseries 420-N61-LA --- External Client Project}\\
+    {\large Champlain College Saint-Lambert}\\[1cm]
+
+    {\large Version 2.0}\\
+    {\large February 2026}
+
+    \vfill
+\end{titlepage}
+
+% ======================================================================
+% REVISION HISTORY
+% ======================================================================
+\newpage
+\section*{Revision History}
+\addcontentsline{toc}{section}{Revision History}
+
+\begin{table}[H]
+\centering
+\caption{Document revision history}
+\label{tab:revision-history}
+\begin{tabularx}{\textwidth}{c c L{4cm} X}
+\toprule
+\textbf{Version} & \textbf{Date} & \textbf{Author(s)} & \textbf{Description} \\
+\midrule
+1.0 & 2026-02-01 & Team & Initial draft with GHCR image pull instructions \\
+2.0 & 2026-02-20 & Team & Complete rewrite covering full production architecture, CI/CD, monitoring, database management, and troubleshooting \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ======================================================================
+% TABLE OF CONTENTS, LIST OF FIGURES, LIST OF TABLES
+% ======================================================================
+\newpage
+\tableofcontents
+
+\newpage
+\listoffigures
+
+\listoftables
+
+% ======================================================================
+% 1. SYSTEM OVERVIEW
+% ======================================================================
+\newpage
+\section{System Overview}
+\label{sec:system-overview}
+
+CourtierPro is a bilingual (English/French) broker--client management platform for Nabizada Courtier Inc. The production system consists of five Docker containers running on a single DigitalOcean Droplet (virtual machine), with traffic routed through a Cloudflare Tunnel for secure, zero-trust HTTPS access.
+
+\textbf{Live URL:} \url{https://www.courtier-pro.ca}
+
+\begin{table}[H]
+\centering
+\caption{Production technology stack}
+\label{tab:tech-stack}
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Layer} & \textbf{Technology} & \textbf{Purpose} \\
+\midrule
+Frontend        & React 19, Vite, TypeScript, Tailwind CSS & Single-page application (SPA) \\
+Backend API     & Spring Boot 3, Java 17                   & REST API, business logic, email, file management \\
+Database        & PostgreSQL 15                             & Persistent data storage \\
+Reverse Proxy   & Caddy (Alpine)                            & Routes \texttt{/api/*} to backend, everything else to frontend \\
+Tunnel          & Cloudflare cloudflared                    & Secure ingress from the internet to the VM \\
+CI/CD           & GitHub Actions                            & Automated build, test, and deployment pipeline \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+% ======================================================================
+% 2. PRODUCTION DEPLOYMENT ARCHITECTURE
+% ======================================================================
+\section{Production Deployment Architecture (C4 Diagram)}
+\label{sec:c4-diagram}
+
+The following diagram illustrates the production deployment topology. The PlantUML source file is located at \texttt{docs/diagrams/CourtierProC4L3Deployment.puml} in the repository. Render it with any PlantUML-compatible tool (e.g., the PlantUML VS Code extension, \href{https://www.plantuml.com/plantuml/uml}{plantuml.com}, or IntelliJ's built-in renderer) to produce the diagram image.
+
+\begin{figure}[H]
+    \centering
+    % =====================================================================
+    % TODO: Replace the placeholder below with the rendered diagram image.
+    %       1. Open docs/diagrams/CourtierProC4L3Deployment.puml
+    %       2. Render it to PNG/SVG using PlantUML
+    %       3. Save the image (e.g., images/C4L3Deployment.png)
+    %       4. Uncomment the \includegraphics line and update the path
+    % =====================================================================
+    % \includegraphics[width=\textwidth]{images/C4L3Deployment.png}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textit{Insert rendered image of}\\[0.3cm]\texttt{docs/diagrams/CourtierProC4L3Deployment.puml}\\[0.3cm]\textit{here.}\vspace{3cm}}}
+    \caption{C4 Level 3 --- Production Deployment Diagram}
+    \label{fig:c4-deployment}
+\end{figure}
+
+The diagram shows the following components and their relationships:
+
+\begin{itemize}
+    \item \textbf{User Device} --- The end user's browser running the React SPA.
+    \item \textbf{Cloudflare Edge Network} --- Handles DNS resolution, DDoS protection, and SSL/TLS termination for \texttt{courtier-pro.ca}.
+    \item \textbf{DigitalOcean Droplet (Ubuntu 24.04 LTS)} --- The single production VM running Docker Engine with five containers:
+    \begin{itemize}
+        \item \textbf{Cloudflare Tunnel} (\texttt{cloudflare/cloudflared}) --- Receives traffic from the Cloudflare edge via an encrypted, outbound-only tunnel.
+        \item \textbf{Caddy} (\texttt{caddy:alpine}) --- Reverse proxy listening on port 80. Routes \texttt{/api/*} requests to the backend and all other requests to the frontend.
+        \item \textbf{CourtierPro Frontend} (Nginx + React SPA) --- Serves the static single-page application on port 80.
+        \item \textbf{CourtierPro Backend} (Spring Boot 3 / Java 17) --- REST API and business logic on port 8080.
+        \item \textbf{PostgreSQL 15} --- Relational database with persistent data stored in a Docker named volume.
+    \end{itemize}
+    \item \textbf{External Services:}
+    \begin{itemize}
+        \item \textbf{Auth0} --- Identity provider for authentication and role-based access control.
+        \item \textbf{Cloudflare R2} --- S3-compatible object storage for uploaded documents.
+        \item \textbf{AWS SES} --- Transactional email delivery service.
+        \item \textbf{GitHub Container Registry (GHCR)} --- Hosts the built Docker images pulled during deployment.
+    \end{itemize}
+\end{itemize}
+
+\subsection{How Traffic Flows}
+\label{sec:traffic-flow}
+
+\begin{enumerate}
+    \item A user opens \texttt{https://www.courtier-pro.ca} in their browser.
+    \item Cloudflare DNS resolves the domain and routes the request through the \textbf{Cloudflare Edge Network}, which handles SSL/TLS termination and DDoS protection.
+    \item The encrypted request enters the DigitalOcean Droplet via the \textbf{Cloudflare Tunnel} (\texttt{cloudflared} container). This means the VM does not need any public-facing ports --- all ingress is through the secure tunnel.
+    \item The tunnel forwards traffic to \textbf{Caddy} (reverse proxy), which inspects the URL path:
+    \begin{itemize}
+        \item Requests to \texttt{/api/*} are forwarded to the \textbf{Backend} (Spring Boot on port 8080).
+        \item All other requests are forwarded to the \textbf{Frontend} (Nginx serving the React SPA on port 80).
+    \end{itemize}
+    \item The \textbf{Backend} connects to the \textbf{PostgreSQL} database over the internal Docker network (never exposed to the internet).
+    \item The Backend also communicates with external services as needed:
+    \begin{itemize}
+        \item \textbf{Auth0} for token validation and user management.
+        \item \textbf{Cloudflare R2} for document storage (S3-compatible API).
+        \item \textbf{AWS SES} for sending transactional emails (notifications, reminders).
+    \end{itemize}
+\end{enumerate}
+
+
+% ======================================================================
+% 3. ACCOUNTS & CREDENTIALS
+% ======================================================================
+\section{Accounts \& Credentials}
+\label{sec:accounts}
+
+\textit{Note: For the submitted version of this document, credentials are shown as \texttt{<placeholder>}. The client copy includes actual credentials.}
+
+% --- 3.1 DigitalOcean ---
+\subsection{DigitalOcean (Hosting)}
+\label{sec:digitalocean}
+
+The application runs on a DigitalOcean Droplet (virtual private server).
+
+\begin{table}[H]
+\centering
+\caption{DigitalOcean hosting details}
+\label{tab:digitalocean}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Item} & \textbf{Value} \\
+\midrule
+Provider        & \href{https://cloud.digitalocean.com}{DigitalOcean} \\
+Droplet OS      & Ubuntu 24.04 LTS \\
+Region          & (as configured in your DO dashboard) \\
+SSH Access      & \texttt{ssh <your-ssh-user>@<droplet-ip-address>} \\
+SSH Key         & \texttt{<path-to-private-ssh-key>} \\
+App Directory   & \texttt{/home/<your-ssh-user>/app/} \\
+Backups         & DigitalOcean automated Droplet backups enabled \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{How to access the VM:}
+
+\begin{lstlisting}[language=bash]
+ssh -i <path-to-private-ssh-key> <your-ssh-user>@<droplet-ip-address>
+\end{lstlisting}
+
+Once connected, the application files are located at:
+
+\begin{lstlisting}
+/home/<your-ssh-user>/app/
+  docker-compose.prod.yml    # Docker Compose orchestration file
+  Caddyfile                  # Caddy reverse proxy configuration
+  .env                       # Environment variables and secrets
+\end{lstlisting}
+
+% --- 3.2 Cloudflare ---
+\subsection{Cloudflare (DNS, Tunnel, R2 Storage)}
+\label{sec:cloudflare}
+
+Cloudflare manages DNS, the secure tunnel into the server, and R2 object storage for documents.
+
+\begin{table}[H]
+\centering
+\caption{Cloudflare account details}
+\label{tab:cloudflare}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Item} & \textbf{Value} \\
+\midrule
+Provider            & \href{https://dash.cloudflare.com}{Cloudflare Dashboard} \\
+Account Email       & \texttt{<cloudflare-account-email>} \\
+Account Password    & \texttt{<cloudflare-account-password>} \\
+Domain              & \texttt{courtier-pro.ca} \\
+Tunnel Name         & (visible in Cloudflare Zero Trust > Networks > Tunnels) \\
+Tunnel Token        & \texttt{<tunnel-token>} \\
+R2 Bucket Name      & \texttt{courtierpro-prod} \\
+R2 Endpoint         & \texttt{https://<account-id>.r2.cloudflarestorage.com} \\
+R2 Access Key ID    & \texttt{<r2-access-key-id>} \\
+R2 Secret Access Key & \texttt{<r2-secret-access-key>} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Cloudflare Tunnel} creates a secure, outbound-only connection from the Droplet to Cloudflare's edge. This means:
+\begin{itemize}
+    \item No public ports (80, 443) need to be open on the VM firewall.
+    \item All traffic is encrypted end-to-end.
+    \item DDoS protection is handled by Cloudflare automatically.
+\end{itemize}
+
+\textbf{Cloudflare R2} is an S3-compatible object storage service used for storing client-uploaded documents (financing letters, inspection reports, offer attachments, etc.). The backend generates pre-signed URLs for secure uploads and downloads.
+
+% --- 3.3 GitHub ---
+\subsection{GitHub (Source Code \& Container Registry)}
+\label{sec:github}
+
+Source code is hosted on GitHub. Docker images are automatically built and published to the GitHub Container Registry (GHCR) on every push to \texttt{main}.
+
+\begin{table}[H]
+\centering
+\caption{GitHub repository and registry details}
+\label{tab:github}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Item} & \textbf{Value} \\
+\midrule
+Repository              & \url{https://github.com/CourtierPro/CourtierPro} \\
+Organization            & CourtierPro \\
+Backend Image           & \texttt{ghcr.io/courtierpro/courtierpro-backend:<commit-sha>} \\
+Frontend Image          & \texttt{ghcr.io/courtierpro/courtierpro-frontend:<commit-sha>} \\
+Backend Packages        & \href{https://github.com/CourtierPro/CourtierPro/pkgs/container/courtierpro-backend}{ghcr.io/.../courtierpro-backend} \\
+Frontend Packages       & \href{https://github.com/CourtierPro/CourtierPro/pkgs/container/courtierpro-frontend}{ghcr.io/.../courtierpro-frontend} \\
+GitHub Account Email    & \texttt{<github-account-email>} \\
+GitHub Account Password & \texttt{<github-account-password>} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{GitHub App} (used for user feedback integration):
+
+\begin{table}[H]
+\centering
+\caption{GitHub App credentials}
+\label{tab:github-app}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Item} & \textbf{Value} \\
+\midrule
+App ID          & \texttt{<github-app-id>} \\
+Installation ID & \texttt{<github-app-installation-id>} \\
+Private Key     & \texttt{<github-app-private-key>} (RSA PEM format) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Images are tagged with the Git commit SHA (e.g., \texttt{356698e5...}). The \texttt{.env} file on the server tracks which version is currently deployed via the \texttt{IMAGE\_TAG} variable.
+
+% --- 3.4 Auth0 ---
+\subsection{Auth0 (Authentication)}
+\label{sec:auth0}
+
+Auth0 handles all user authentication, role management, and access control.
+
+\begin{table}[H]
+\centering
+\caption{Auth0 account details}
+\label{tab:auth0}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Item} & \textbf{Value} \\
+\midrule
+Provider                    & \href{https://manage.auth0.com}{Auth0 Dashboard} \\
+Tenant Domain               & \texttt{<auth0-tenant>.us.auth0.com} \\
+Dashboard Email             & \texttt{<auth0-dashboard-email>} \\
+Dashboard Password          & \texttt{<auth0-dashboard-password>} \\
+API Audience                & \texttt{https://api.courtierpro.dev} \\
+Frontend Client ID          & \texttt{<auth0-frontend-client-id>} \\
+Management API Client ID    & \texttt{<auth0-mgmt-client-id>} \\
+Management API Client Secret & \texttt{<auth0-mgmt-client-secret>} \\
+Management API Audience     & \texttt{https://<auth0-tenant>.us.auth0.com/api/v2/} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{User Roles in Auth0:}
+\begin{itemize}
+    \item \textbf{ADMIN} --- System administrator with full access.
+    \item \textbf{BROKER} --- Licensed real estate broker managing transactions.
+    \item \textbf{CLIENT} --- Buyer or seller interacting with the brokerage.
+\end{itemize}
+
+To manage users (add, remove, change roles), log into the Auth0 Dashboard, navigate to \textbf{User Management > Users}, and adjust as needed.
+
+% --- 3.5 AWS SES ---
+\subsection{AWS SES (Email Delivery)}
+\label{sec:aws-ses}
+
+In production, transactional emails (document requests, stage updates, appointment confirmations, reminders) are sent via AWS Simple Email Service (SES).
+
+\begin{table}[H]
+\centering
+\caption{AWS SES credentials}
+\label{tab:aws-ses}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Item} & \textbf{Value} \\
+\midrule
+Provider            & \href{https://console.aws.amazon.com/ses/}{AWS Console --- SES} \\
+AWS Region          & \texttt{us-east-1} \\
+SES Access Key ID   & \texttt{<aws-ses-access-key-id>} \\
+SES Secret Access Key & \texttt{<aws-ses-secret-access-key>} \\
+From Address        & \texttt{<email-from-address>} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% --- 3.6 Gmail ---
+\subsection{Gmail (SMTP Fallback)}
+\label{sec:gmail}
+
+A Gmail account is configured as a fallback/dev email provider.
+
+\begin{table}[H]
+\centering
+\caption{Gmail SMTP credentials}
+\label{tab:gmail}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Item} & \textbf{Value} \\
+\midrule
+Email        & \texttt{<gmail-address>} \\
+App Password & \texttt{<gmail-app-password>} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+In production, the \texttt{application-prod.yml} profile sets \texttt{app.email.provider: ses}, so AWS SES is used. Gmail is the default for local development.
+
+% --- 3.7 Discord ---
+\subsection{Discord (Deployment Notifications)}
+\label{sec:discord}
+
+A Discord webhook is configured to send deployment status notifications to a team channel.
+
+\begin{table}[H]
+\centering
+\caption{Discord webhook}
+\label{tab:discord}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Item} & \textbf{Value} \\
+\midrule
+Webhook URL & Stored as GitHub Secret \texttt{DISCORD\_WEBHOOK\_URL} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Notifications are sent for:
+\begin{itemize}
+    \item \textbf{Successful deployments} (green)
+    \item \textbf{Rollback after failed deployment} (orange)
+    \item \textbf{Complete deployment failure} (red)
+\end{itemize}
+
+
+% ======================================================================
+% 4. HOW THE SYSTEM IS DEPLOYED
+% ======================================================================
+\section{How the System is Deployed}
+\label{sec:deployment}
+
+\subsection{Automatic Deployment (CI/CD)}
+\label{sec:auto-deploy}
+
+The production system is deployed \textbf{automatically} every time code is pushed to the \texttt{main} branch on GitHub. The workflow is defined in \texttt{.github/workflows/deploy.yml} and performs the following steps:
+
+\begin{enumerate}
+    \item \textbf{Build Phase} (runs on GitHub's servers):
+    \begin{itemize}
+        \item Checks out the source code.
+        \item Builds the \textbf{backend} Docker image from \texttt{backend/Dockerfile} (multi-stage: Gradle build $\rightarrow$ JRE runtime).
+        \item Builds the \textbf{frontend} Docker image from \texttt{frontend/Dockerfile} (multi-stage: Node build $\rightarrow$ Nginx serving static files). Vite environment variables (API URL, Auth0 config) are injected as build arguments.
+        \item Pushes both images to GHCR, tagged with the commit SHA.
+    \end{itemize}
+
+    \item \textbf{Deploy Phase} (runs on the DigitalOcean VM via SSH):
+    \begin{itemize}
+        \item Copies the latest \texttt{docker-compose.prod.yml} and \texttt{Caddyfile} to the server.
+        \item Saves the current \texttt{IMAGE\_TAG} from \texttt{.env} as a rollback target.
+        \item Updates \texttt{.env} with the new commit SHA.
+        \item Logs into GHCR on the server.
+        \item Pulls the new images and restarts all containers with \texttt{docker compose up -d}.
+        \item Waits 60 seconds for the Spring Boot application to start.
+        \item Performs a health check against \texttt{http://localhost:80/api/actuator/health} (up to 15 retries, 15 seconds apart).
+        \item If healthy: deployment succeeds, a green Discord notification is sent.
+        \item If unhealthy: \textbf{automatic rollback} --- the previous version is restored, containers are restarted, and an orange/red Discord notification is sent.
+    \end{itemize}
+
+    \item \textbf{Can also be triggered manually} via GitHub Actions > ``Deploy to EC2 with Rollback'' > ``Run workflow''.
+\end{enumerate}
+
+\subsection{Manual Deployment}
+\label{sec:manual-deploy}
+
+If you need to deploy manually (e.g., the CI/CD pipeline is unavailable), SSH into the server and run:
+
+\begin{lstlisting}[language=bash]
+ssh -i <key> <user>@<ip>
+cd ~/app
+
+# 1. Log into the container registry
+echo "<github-personal-access-token>" | docker login ghcr.io \
+    -u <github-username> --password-stdin
+
+# 2. Update the IMAGE_TAG in .env to the desired commit SHA
+# (Find commit SHAs at https://github.com/CourtierPro/CourtierPro/commits/main)
+nano .env
+# Change IMAGE_TAG=<new-commit-sha>
+
+# 3. Pull and start
+docker compose --env-file .env -f docker-compose.prod.yml pull
+docker compose --env-file .env -f docker-compose.prod.yml up -d --remove-orphans
+
+# 4. Verify health
+curl http://localhost:80/api/actuator/health
+\end{lstlisting}
+
+\subsection{What Each Container Does}
+\label{sec:containers}
+
+The production \texttt{docker-compose.prod.yml} defines five services:
+
+\begin{table}[H]
+\centering
+\caption{Production Docker containers}
+\label{tab:containers}
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Container Name} & \textbf{Image} & \textbf{Purpose} \\
+\midrule
+\texttt{courtierpro\_tunnel}   & \texttt{cloudflare/cloudflared:latest}  & Secure tunnel from Cloudflare Edge to the VM \\
+\texttt{courtierpro\_caddy}    & \texttt{caddy:alpine}                  & Reverse proxy --- routes \texttt{/api/*} to backend, everything else to frontend \\
+\texttt{courtierpro\_backend}  & \texttt{ghcr.io/.../backend:<sha>}     & Spring Boot REST API (port 8080 internally) \\
+\texttt{courtierpro\_frontend} & \texttt{ghcr.io/.../frontend:<sha>}    & Nginx serving the React SPA (port 80 internally) \\
+\texttt{courtierpro\_db}       & \texttt{postgres:15}                   & PostgreSQL database (port 5432, internal only) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Startup order:} PostgreSQL starts first (with a health check). The backend waits until the database is healthy. Caddy depends on both the backend and frontend. The tunnel depends on Caddy.
+
+
+% ======================================================================
+% 5. ENVIRONMENT CONFIGURATION
+% ======================================================================
+\section{Environment Configuration (\texttt{.env} File)}
+\label{sec:env-config}
+
+The \texttt{.env} file on the server (\texttt{/home/<user>/app/.env}) contains all secrets and configuration. Table~\ref{tab:env-vars} lists all variables.
+
+\begin{longtable}{l p{8.5cm}}
+\caption{Complete list of \texttt{.env} variables} \label{tab:env-vars} \\
+\toprule
+\textbf{Variable} & \textbf{Description} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Variable} & \textbf{Description} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{\textit{Continued on next page}} \\
+\bottomrule
+\endfoot
+\bottomrule
+\endlastfoot
+\texttt{IMAGE\_TAG}               & Git commit SHA of the currently deployed version \\
+\texttt{GITHUB\_REPO\_OWNER}      & GitHub organization name (\texttt{courtierpro}) \\
+\texttt{GITHUB\_REPO\_NAME}       & GitHub repository name (\texttt{courtierpro}) \\
+\texttt{TUNNEL\_TOKEN}            & Cloudflare Tunnel authentication token \\
+\texttt{DB\_HOST}                  & Database hostname (\texttt{db} --- Docker internal service name) \\
+\texttt{DB\_PORT}                  & Database port (\texttt{5432}) \\
+\texttt{DB\_USER}                  & PostgreSQL username \\
+\texttt{DB\_PASS}                  & PostgreSQL password \\
+\texttt{AWS\_ACCESS\_KEY\_ID}      & Cloudflare R2 access key (S3-compatible) \\
+\texttt{AWS\_SECRET\_ACCESS\_KEY}  & Cloudflare R2 secret key \\
+\texttt{AWS\_REGION}               & Cloud region (\texttt{auto} for R2) \\
+\texttt{AWS\_S3\_BUCKET}           & R2 bucket name (\texttt{courtierpro-prod}) \\
+\texttt{AWS\_S3\_ENDPOINT}         & R2 endpoint URL \\
+\texttt{AUTH0\_DOMAIN}             & Auth0 tenant domain \\
+\texttt{AUTH0\_AUDIENCE}           & Auth0 API audience identifier \\
+\texttt{AUTH0\_MGMT\_CLIENT\_ID}   & Auth0 Management API client ID \\
+\texttt{AUTH0\_MGMT\_CLIENT\_SECRET} & Auth0 Management API client secret \\
+\texttt{AUTH0\_MGMT\_AUDIENCE}     & Auth0 Management API audience \\
+\texttt{GMAIL\_USERNAME}           & Gmail address for SMTP fallback \\
+\texttt{GMAIL\_PASSWORD}           & Gmail app password \\
+\texttt{GITHUB\_APP\_ID}           & GitHub App ID for feedback integration \\
+\texttt{GITHUB\_APP\_INSTALLATION\_ID} & GitHub App installation ID \\
+\texttt{GITHUB\_APP\_PRIVATE\_KEY} & GitHub App RSA private key (PEM format) \\
+\texttt{VITE\_API\_URL}            & Frontend API base URL (\texttt{https://www.courtier-pro.ca/api}) \\
+\texttt{VITE\_AUTH0\_CALLBACK\_URL} & Auth0 callback URL (\texttt{https://www.courtier-pro.ca}) \\
+\texttt{VITE\_AUTH0\_AUDIENCE}     & Auth0 audience for the frontend \\
+\texttt{VITE\_AUTH0\_DOMAIN}       & Auth0 domain for the frontend \\
+\texttt{VITE\_AUTH0\_CLIENT\_ID}   & Auth0 client ID for the frontend SPA \\
+\texttt{FRONTEND\_URL}             & Full frontend URL (used in email links) \\
+\texttt{EMAIL\_FROM\_ADDRESS}      & Sender address for outbound emails \\
+\texttt{AWS\_SES\_ACCESS\_KEY\_ID} & AWS SES access key for email sending \\
+\texttt{AWS\_SES\_SECRET\_ACCESS\_KEY} & AWS SES secret key \\
+\end{longtable}
+
+\textbf{Important:} Never commit the \texttt{.env} file to Git. It is listed in \texttt{.gitignore}. The CI/CD pipeline manages it on the server via GitHub Secrets.
+
+
+% ======================================================================
+% 6. MONITORING THE SYSTEM
+% ======================================================================
+\section{Monitoring the System}
+\label{sec:monitoring}
+
+\subsection{Checking if the System is Running}
+\label{sec:health-check}
+
+\textbf{From anywhere (public health check):}
+
+Open \url{https://www.courtier-pro.ca/api/actuator/health} in a browser. A healthy response looks like:
+
+\begin{lstlisting}[style=jsonstyle]
+{
+  "status": "UP",
+  "components": {
+    "db": { "status": "UP" },
+    "diskSpace": { "status": "UP" },
+    "ping": { "status": "UP" }
+  }
+}
+\end{lstlisting}
+
+If you get a timeout or error, the system may be down.
+
+\textbf{From the server (SSH):}
+
+\begin{lstlisting}[language=bash]
+ssh -i <key> <user>@<ip>
+cd ~/app
+
+# Check all container statuses
+docker compose -f docker-compose.prod.yml ps
+
+# Expected output: all 5 containers should show "Up" status
+
+# Quick health check from inside the server
+curl http://localhost:80/api/actuator/health
+\end{lstlisting}
+
+\subsection{Viewing Logs}
+\label{sec:logs}
+
+SSH into the server and use Docker Compose to view logs:
+
+\begin{lstlisting}[language=bash]
+cd ~/app
+
+# View logs for ALL containers (last 100 lines, follow in real-time)
+docker compose -f docker-compose.prod.yml logs --tail=100 -f
+
+# View logs for a SPECIFIC container
+docker compose -f docker-compose.prod.yml logs --tail=100 -f backend
+docker compose -f docker-compose.prod.yml logs --tail=100 -f frontend
+docker compose -f docker-compose.prod.yml logs --tail=100 -f db
+docker compose -f docker-compose.prod.yml logs --tail=100 -f caddy
+docker compose -f docker-compose.prod.yml logs --tail=100 -f tunnel
+
+# View logs since a specific time
+docker compose -f docker-compose.prod.yml logs \
+    --since="2026-02-20T10:00:00" backend
+
+# Search logs for errors
+docker compose -f docker-compose.prod.yml logs backend | grep -i "error"
+\end{lstlisting}
+
+Press \texttt{Ctrl+C} to stop following logs.
+
+\textbf{What to look for in the logs:}
+\begin{itemize}
+    \item \textbf{Backend:} Java stack traces, \texttt{ERROR} or \texttt{WARN} level messages, database connection issues.
+    \item \textbf{Frontend:} Nginx access/error logs (404 errors, upstream timeouts).
+    \item \textbf{Database:} Connection refused errors, out-of-memory warnings, slow queries.
+    \item \textbf{Caddy:} Upstream connection failures, timeout errors.
+    \item \textbf{Tunnel:} Cloudflare connectivity issues, token expiry warnings.
+\end{itemize}
+
+\subsection{Deployment Notifications (Discord)}
+\label{sec:discord-notifications}
+
+Every deployment sends a notification to the configured Discord channel:
+
+\begin{itemize}
+    \item \textbf{Green (Success):} The new version was deployed and passed the health check.
+    \item \textbf{Orange (Rollback):} The new version failed the health check, but the system was automatically rolled back to the previous working version. The system is operational but running the older version.
+    \item \textbf{Red (Failure):} Both the deployment and rollback failed. Manual intervention is required (see Section~\ref{sec:troubleshooting}).
+\end{itemize}
+
+\subsection{GitHub Actions Dashboard}
+\label{sec:gh-actions-dashboard}
+
+You can monitor all CI/CD pipeline runs at:\\
+\url{https://github.com/CourtierPro/CourtierPro/actions}
+
+This shows:
+\begin{itemize}
+    \item Build and deployment status for each commit.
+    \item CI test results for pull requests.
+    \item Code coverage reports.
+    \item Stale branch cleanup logs.
+\end{itemize}
+
+
+% ======================================================================
+% 7. RESTARTING & REDEPLOYING
+% ======================================================================
+\section{Restarting \& Redeploying}
+\label{sec:restart}
+
+\subsection{Restarting a Single Service}
+\label{sec:restart-single}
+
+If only one part of the system is misbehaving (e.g., the backend is unresponsive but the database is fine):
+
+\begin{lstlisting}[language=bash]
+ssh -i <key> <user>@<ip>
+cd ~/app
+
+# Restart just the backend
+docker compose -f docker-compose.prod.yml restart backend
+
+# Restart just the frontend
+docker compose -f docker-compose.prod.yml restart frontend
+
+# Restart just the database (WARNING: causes brief downtime)
+docker compose -f docker-compose.prod.yml restart db
+
+# Restart the tunnel (if site is unreachable externally)
+docker compose -f docker-compose.prod.yml restart tunnel
+
+# Restart Caddy (if routing seems broken)
+docker compose -f docker-compose.prod.yml restart caddy
+\end{lstlisting}
+
+\subsection{Restarting All Services}
+\label{sec:restart-all}
+
+To restart every container without changing versions:
+
+\begin{lstlisting}[language=bash]
+cd ~/app
+docker compose -f docker-compose.prod.yml down
+docker compose --env-file .env -f docker-compose.prod.yml up -d
+\end{lstlisting}
+
+\subsection{Full Redeployment}
+\label{sec:full-redeploy}
+
+To redeploy the latest version from scratch (pulling fresh images):
+
+\begin{lstlisting}[language=bash]
+cd ~/app
+
+# Log into the registry
+echo "<github-token>" | docker login ghcr.io \
+    -u <github-username> --password-stdin
+
+# Pull latest images and recreate containers
+docker compose --env-file .env -f docker-compose.prod.yml pull
+docker compose --env-file .env -f docker-compose.prod.yml up -d \
+    --remove-orphans
+
+# Verify
+curl http://localhost:80/api/actuator/health
+\end{lstlisting}
+
+Alternatively, trigger a redeployment from GitHub Actions without any code changes:
+\begin{enumerate}
+    \item Go to \href{https://github.com/CourtierPro/CourtierPro/actions/workflows/deploy.yml}{Actions > Deploy to EC2 with Rollback}.
+    \item Click \textbf{``Run workflow''} > select \texttt{main} branch > click \textbf{``Run workflow''}.
+\end{enumerate}
+
+\subsection{Rolling Back to a Previous Version}
+\label{sec:rollback}
+
+If the latest deployment has issues and you need to go back to a known-good version:
+
+\begin{lstlisting}[language=bash]
+cd ~/app
+
+# 1. Find a working commit SHA from the GitHub packages page:
+#    https://github.com/CourtierPro/CourtierPro/pkgs/container/courtierpro-backend
+
+# 2. Update the .env file
+nano .env
+# Change IMAGE_TAG=<known-good-commit-sha>
+
+# 3. Pull and restart
+docker compose --env-file .env -f docker-compose.prod.yml pull
+docker compose --env-file .env -f docker-compose.prod.yml up -d \
+    --remove-orphans
+
+# 4. Verify health
+curl http://localhost:80/api/actuator/health
+\end{lstlisting}
+
+The CI/CD pipeline also performs automatic rollback if a deployment fails the health check.
+
+
+% ======================================================================
+% 8. DATABASE MANAGEMENT
+% ======================================================================
+\section{Database Management}
+\label{sec:database}
+
+\subsection{Database Overview}
+\label{sec:db-overview}
+
+\begin{table}[H]
+\centering
+\caption{Database configuration}
+\label{tab:db-config}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Item} & \textbf{Value} \\
+\midrule
+Engine          & PostgreSQL 15 \\
+Database Name   & \texttt{courtierpro} \\
+Username        & \texttt{<db-user>} \\
+Password        & \texttt{<db-password>} \\
+Container Name  & \texttt{courtierpro\_db} \\
+Data Volume     & Docker named volume \texttt{pgdata} \\
+Port            & 5432 (internal Docker network only --- not exposed to the internet) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The database schema is managed by \textbf{Flyway} migrations. The backend automatically runs pending migrations on startup. Current migrations:
+
+\begin{table}[H]
+\centering
+\caption{Flyway database migrations}
+\label{tab:migrations}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Migration} & \textbf{Description} \\
+\midrule
+\texttt{V1\_\_init\_schema.sql}                     & Initial database schema \\
+\texttt{V2\_\_house\_visits.sql}                     & House visits feature \\
+\texttt{V3\_\_selling\_house\_visits.sql}            & Selling-side house visits \\
+\texttt{V4\_\_add\_analytics\_export\_audit\_table.sql} & Analytics export audit log \\
+\texttt{V5\_\_add\_weekly\_digest\_toggle.sql}       & Weekly digest email preference \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Accessing the Database}
+\label{sec:db-access}
+
+\textbf{From the server via command line:}
+
+\begin{lstlisting}[language=bash]
+ssh -i <key> <user>@<ip>
+
+# Open a PostgreSQL interactive shell
+docker exec -it courtierpro_db psql -U <db-user> -d courtierpro
+
+# Useful commands once connected:
+#   \dt             -- List all tables
+#   \d <table>      -- Describe a table's columns
+#   SELECT * FROM flyway_schema_history;  -- View migration history
+#   \q              -- Quit
+\end{lstlisting}
+
+\textbf{From the server via a one-off query:}
+
+\begin{lstlisting}[language=bash]
+docker exec -it courtierpro_db psql -U <db-user> -d courtierpro \
+    -c "SELECT count(*) FROM users;"
+\end{lstlisting}
+
+\subsection{Database Migrations}
+\label{sec:db-migrations}
+
+Database migrations are \textbf{automatic}. When the backend container starts, Spring Boot + Flyway checks for any new migration files in \texttt{backend/src/main/resources/migration/} and applies them in order.
+
+\textbf{If a migration fails:}
+\begin{enumerate}
+    \item Check the backend logs: \texttt{docker compose -f docker-compose.prod.yml logs backend}
+    \item The failing migration will be recorded in the \texttt{flyway\_schema\_history} table with a \texttt{success = false} entry.
+    \item Fix the migration SQL, then clear the failed entry:
+\begin{lstlisting}[language=SQL]
+DELETE FROM flyway_schema_history WHERE success = false;
+\end{lstlisting}
+    \item Restart the backend: \texttt{docker compose -f docker-compose.prod.yml restart backend}
+\end{enumerate}
+
+\textbf{To add a new migration:}
+\begin{enumerate}
+    \item Create a new file following the naming convention: \texttt{V<next-number>\_\_<description>.sql}
+    \item Place it in \texttt{backend/src/main/resources/migration/}
+    \item Commit and push to \texttt{main} --- the CI/CD pipeline will deploy and Flyway will run the new migration automatically.
+\end{enumerate}
+
+\subsection{Backups \& Recovery}
+\label{sec:backups}
+
+\textbf{DigitalOcean Automated Backups:}
+
+DigitalOcean automated Droplet backups are enabled. These create full snapshots of the entire VM (including the Docker volume where PostgreSQL stores its data) on a regular schedule.
+
+To restore from a DigitalOcean backup:
+\begin{enumerate}
+    \item Log into \href{https://cloud.digitalocean.com}{DigitalOcean Dashboard}.
+    \item Navigate to the Droplet > \textbf{Backups} tab.
+    \item Select the backup snapshot you want to restore.
+    \item Click \textbf{Restore Droplet}.
+\end{enumerate}
+
+\textbf{Manual Database Backup (\texttt{pg\_dump}):}
+
+For more granular database-only backups, run:
+
+\begin{lstlisting}[language=bash]
+# Create a backup
+docker exec courtierpro_db pg_dump -U <db-user> -d courtierpro \
+    > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Restore from a backup
+docker exec -i courtierpro_db psql -U <db-user> -d courtierpro \
+    < backup_20260220_120000.sql
+\end{lstlisting}
+
+\textbf{Recommended backup routine:} Run a \texttt{pg\_dump} before any major deployment or database migration as an extra safety net.
+
+\subsection{Data Corruption Recovery}
+\label{sec:corruption}
+
+If the database becomes corrupted or data is lost:
+
+\begin{enumerate}
+    \item \textbf{Stop the backend} to prevent further writes:
+\begin{lstlisting}[language=bash]
+docker compose -f docker-compose.prod.yml stop backend
+\end{lstlisting}
+
+    \item \textbf{Assess the damage:}
+\begin{lstlisting}[language=bash]
+docker exec -it courtierpro_db psql -U <db-user> -d courtierpro
+# Run queries to check data integrity
+\end{lstlisting}
+
+    \item \textbf{Option A --- Restore from \texttt{pg\_dump} backup:}
+\begin{lstlisting}[language=bash]
+docker exec -it courtierpro_db psql -U <db-user> \
+    -c "DROP DATABASE courtierpro;"
+docker exec -it courtierpro_db psql -U <db-user> \
+    -c "CREATE DATABASE courtierpro;"
+docker exec -i courtierpro_db psql -U <db-user> \
+    -d courtierpro < backup_file.sql
+\end{lstlisting}
+
+    \item \textbf{Option B --- Restore from DigitalOcean snapshot} (restores the entire VM).
+
+    \item \textbf{Restart the backend:}
+\begin{lstlisting}[language=bash]
+docker compose -f docker-compose.prod.yml start backend
+\end{lstlisting}
+\end{enumerate}
+
+
+% ======================================================================
+% 9. DOMAIN & SSL/TLS
+% ======================================================================
+\section{Domain \& SSL/TLS}
+\label{sec:domain}
+
+\begin{table}[H]
+\centering
+\caption{Domain and SSL/TLS configuration}
+\label{tab:domain}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Item} & \textbf{Value} \\
+\midrule
+Domain       & \texttt{courtier-pro.ca} \\
+Registrar    & Cloudflare \\
+DNS Provider & Cloudflare \\
+SSL/TLS      & Managed automatically by Cloudflare (edge certificates) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The domain is registered and managed through Cloudflare. SSL/TLS certificates are provisioned and renewed automatically by Cloudflare --- no manual certificate management is required.
+
+\textbf{DNS Configuration:}
+
+The domain's DNS records point to the Cloudflare Tunnel (not directly to the Droplet's IP). This means:
+\begin{itemize}
+    \item The server's real IP address is never exposed publicly.
+    \item SSL termination happens at the Cloudflare edge.
+    \item The tunnel handles the encrypted connection from Cloudflare to the server.
+\end{itemize}
+
+\textbf{If the domain expires or DNS needs to be updated:}
+\begin{enumerate}
+    \item Log into \href{https://dash.cloudflare.com}{Cloudflare Dashboard}.
+    \item Select the \texttt{courtier-pro.ca} domain.
+    \item Navigate to \textbf{DNS} to view/edit records, or \textbf{Domain Registration} for renewal.
+\end{enumerate}
+
+
+% ======================================================================
+% 10. CI/CD PIPELINE DETAILS
+% ======================================================================
+\section{CI/CD Pipeline Details}
+\label{sec:cicd}
+
+The repository uses five GitHub Actions workflows located in \texttt{.github/workflows/}:
+
+\subsection{Continuous Integration (CI)}
+\label{sec:ci}
+
+\textbf{File:} \texttt{.github/workflows/ci.yml}\\
+\textbf{Triggers:} Push to \texttt{main} or pull requests targeting \texttt{main} (only when \texttt{backend/} or \texttt{frontend/} files change).
+
+Runs two jobs in parallel:
+\begin{itemize}
+    \item \textbf{backend-check:} Sets up JDK 17, runs \texttt{./gradlew clean build} (compiles and runs all tests).
+    \item \textbf{frontend-check:} Sets up Node 20, runs \texttt{npm ci}, \texttt{npm run lint}, and \texttt{npm run build} (linting, type checking, and production build).
+\end{itemize}
+
+\subsection{Continuous Deployment (CD)}
+\label{sec:cd}
+
+\textbf{File:} \texttt{.github/workflows/deploy.yml}\\
+\textbf{Triggers:} Push to \texttt{main} or manual dispatch.
+
+See Section~\ref{sec:auto-deploy} for a detailed explanation of the deployment process including the automatic rollback mechanism.
+
+\textbf{GitHub Secrets required for deployment:}
+
+\begin{table}[H]
+\centering
+\caption{GitHub Secrets for the deployment pipeline}
+\label{tab:gh-secrets}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Secret} & \textbf{Purpose} \\
+\midrule
+\texttt{EC2\_HOST}                  & Droplet IP address \\
+\texttt{EC2\_USER}                  & SSH username \\
+\texttt{EC2\_SSH\_KEY}              & SSH private key \\
+\texttt{GITHUB\_TOKEN}             & Auto-provided by GitHub for GHCR access \\
+\texttt{VITE\_API\_URL}             & Frontend API URL (build arg) \\
+\texttt{VITE\_AUTH0\_AUDIENCE}      & Auth0 audience (build arg) \\
+\texttt{VITE\_AUTH0\_DOMAIN}        & Auth0 domain (build arg) \\
+\texttt{VITE\_AUTH0\_CLIENT\_ID}    & Auth0 client ID (build arg) \\
+\texttt{VITE\_AUTH0\_CALLBACK\_URL} & Auth0 callback URL (build arg) \\
+\texttt{DISCORD\_WEBHOOK\_URL}      & Discord notification webhook \\
+\texttt{AWS\_SES\_ACCESS\_KEY\_ID}  & SES credentials (injected into .env) \\
+\texttt{AWS\_SES\_SECRET\_ACCESS\_KEY} & SES credentials (injected into .env) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{GitHub Variables:}
+
+\begin{table}[H]
+\centering
+\caption{GitHub Variables for the deployment pipeline}
+\label{tab:gh-variables}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Variable} & \textbf{Purpose} \\
+\midrule
+\texttt{FRONTEND\_URL}       & Full frontend URL for email links \\
+\texttt{EMAIL\_FROM\_ADDRESS} & Sender address for emails \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{PR Coverage Checks}
+\label{sec:pr-coverage}
+
+\textbf{File:} \texttt{.github/workflows/pr-coverage.yml}\\
+\textbf{Triggers:} Pull request opened, synchronized, or reopened.
+
+Runs backend tests with JaCoCo code coverage and posts a coverage report as a PR comment. Enforces a minimum of \textbf{90\% overall coverage} and \textbf{90\% changed-files coverage}.
+
+\subsection{Branch \& PR Naming Validation}
+\label{sec:naming}
+
+\textbf{File:} \texttt{.github/workflows/validate-naming.yml}\\
+\textbf{Triggers:} Pull request opened, edited, synchronized, or reopened.
+
+Enforces naming conventions:
+\begin{itemize}
+    \item \textbf{Branch names:} \texttt{<type>/CP-<ticket>\_<Description>} (e.g., \texttt{feat/CP-44\_AddDocumentUpload}) or \texttt{untracked/<Description>}
+    \item \textbf{PR titles:} \texttt{<Type>(CP-<ticket>): Description} (e.g., \texttt{Feat(CP-44): Add document upload}) or \texttt{Untracked: Description}
+    \item Valid types: \texttt{bug}, \texttt{feat}, \texttt{fix}, \texttt{story}, \texttt{task}, \texttt{test}
+\end{itemize}
+
+\subsection{Stale Branch Cleanup}
+\label{sec:stale-cleanup}
+
+\textbf{File:} \texttt{.github/workflows/cleanup-stale-branches.yml}\\
+\textbf{Triggers:} Daily at 3:00 AM UTC (dry-run only) or manual dispatch.
+
+Automatically identifies and cleans up branches that have been inactive for 14+ days. Protects \texttt{main}, \texttt{master}, \texttt{develop}, \texttt{staging}, and \texttt{production} branches. Skips branches with open pull requests.
+
+
+% ======================================================================
+% 11. TROUBLESHOOTING
+% ======================================================================
+\section{Troubleshooting}
+\label{sec:troubleshooting}
+
+Table~\ref{tab:troubleshooting} lists common problems and their solutions.
+
+\begin{longtable}{L{3.5cm} L{3.5cm} L{7cm}}
+\caption{Common problems and solutions} \label{tab:troubleshooting} \\
+\toprule
+\textbf{Problem} & \textbf{Likely Cause} & \textbf{Solution} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Problem} & \textbf{Likely Cause} & \textbf{Solution} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\textit{Continued on next page}} \\
+\bottomrule
+\endfoot
+\bottomrule
+\endlastfoot
+Site is completely unreachable & Cloudflare Tunnel is down & SSH in and run \texttt{docker compose -f docker-compose.prod.yml restart tunnel} \\
+Site loads but shows a blank page & Frontend container crashed & \texttt{docker compose -f docker-compose.prod.yml restart frontend} \\
+API calls return 502 Bad Gateway & Backend is not running or still starting & Check backend logs. Wait 60--90 seconds after restart for Spring Boot startup. \\
+``Unable to connect to database'' in logs & PostgreSQL container crashed & Restart \texttt{db}, then restart \texttt{backend}. \\
+Login redirects fail & Auth0 configuration mismatch & Verify \texttt{VITE\_AUTH0\_DOMAIN} and \texttt{VITE\_AUTH0\_CLIENT\_ID} in \texttt{.env}. Check Auth0 Dashboard for correct callback URLs. \\
+Document uploads fail & Cloudflare R2 credentials expired/wrong & Verify \texttt{AWS\_ACCESS\_KEY\_ID}, \texttt{AWS\_SECRET\_ACCESS\_KEY}, and \texttt{AWS\_S3\_ENDPOINT} in \texttt{.env}. \\
+Emails not being sent & AWS SES credentials or sending limits & Check SES credentials. Verify the sender email is verified in AWS SES console. \\
+Deployment fails in GitHub Actions & SSH key or host mismatch & Check \texttt{EC2\_HOST}, \texttt{EC2\_USER}, and \texttt{EC2\_SSH\_KEY} in GitHub repository Secrets. \\
+Disk space full on VM & Docker images or database volume & Run \texttt{docker system prune -a --volumes}. Check with \texttt{df -h}. \\
+Backend takes too long to start & Not enough memory / JVM issues & Check Droplet memory with \texttt{free -h}. Consider upgrading the Droplet size. \\
+\end{longtable}
+
+\textbf{General diagnostic commands:}
+
+\begin{lstlisting}[language=bash]
+# Check overall system resources
+htop                              # CPU and memory
+df -h                             # Disk usage
+free -h                           # Memory usage
+
+# Check Docker resources
+docker system df                  # Docker disk usage
+docker stats --no-stream          # Container resource usage
+
+# Check all containers
+docker compose -f docker-compose.prod.yml ps
+
+# Nuclear restart (stop everything, clean up, restart)
+cd ~/app
+docker compose -f docker-compose.prod.yml down
+docker system prune -f
+docker compose --env-file .env -f docker-compose.prod.yml pull
+docker compose --env-file .env -f docker-compose.prod.yml up -d
+\end{lstlisting}
+
+
+% ======================================================================
+% 12. KEY FILE LOCATIONS
+% ======================================================================
+\section{Key File Locations}
+\label{sec:file-locations}
+
+\subsection*{On the Server (\texttt{/home/<user>/app/})}
+
+\begin{table}[H]
+\centering
+\caption{Key files on the production server}
+\label{tab:server-files}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{File} & \textbf{Purpose} \\
+\midrule
+\texttt{docker-compose.prod.yml} & Defines all 5 production containers and their configuration \\
+\texttt{Caddyfile}               & Reverse proxy routing rules (\texttt{/api/*} $\rightarrow$ backend, \texttt{/*} $\rightarrow$ frontend) \\
+\texttt{.env}                    & All environment variables and secrets \\
+\texttt{.env.bak}                & Automatic backup created during deployments (deleted on success) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection*{In the GitHub Repository}
+
+\begin{table}[H]
+\centering
+\caption{Key files in the GitHub repository}
+\label{tab:repo-files}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Path} & \textbf{Purpose} \\
+\midrule
+\texttt{.github/workflows/deploy.yml}                    & CI/CD deployment pipeline with rollback \\
+\texttt{.github/workflows/ci.yml}                        & Continuous integration (build + test) \\
+\texttt{.github/workflows/pr-coverage.yml}               & PR code coverage enforcement \\
+\texttt{.github/workflows/validate-naming.yml}           & Branch and PR naming convention check \\
+\texttt{.github/workflows/cleanup-stale-branches.yml}    & Stale branch auto-cleanup \\
+\texttt{backend/Dockerfile}                               & Backend multi-stage Docker build (Gradle $\rightarrow$ JRE) \\
+\texttt{frontend/Dockerfile}                              & Frontend multi-stage Docker build (Node $\rightarrow$ Nginx) \\
+\texttt{frontend/nginx.conf}                              & Nginx config for SPA routing \\
+\texttt{frontend/docker-entrypoint.sh}                    & Runtime env injection into \texttt{config.js} \\
+\texttt{backend/.../application.yml}                      & Default Spring Boot config \\
+\texttt{backend/.../application-prod.yml}                 & Production Spring Boot config overrides \\
+\texttt{backend/.../migration/}                           & Flyway database migration SQL files \\
+\texttt{docs/diagrams/CourtierProC4L3Deployment.puml}    & C4 Level 3 Deployment diagram (PlantUML) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+% ======================================================================
+% CONTRIBUTIONS
+% ======================================================================
+\newpage
+\section*{Contributions of the Authors}
+\addcontentsline{toc}{section}{Contributions of the Authors}
+
+\begin{table}[H]
+\centering
+\caption{Author contributions}
+\label{tab:contributions}
+\begin{tabularx}{\textwidth}{l c X X}
+\toprule
+\textbf{Member's Name} & \textbf{Contribution (\%)} & \textbf{Section Numbers \& Titles} & \textbf{Whole-Document Work} \\
+\midrule
+Shawn Nabizada     &  \% &  &  \\
+Amir Ghadimi       &  \% &  &  \\
+Olivier Goudreault &  \% &  &  \\
+Isaac Nachate      &  \% &  &  \\
+\midrule
+\textbf{SUM}       & \textbf{100\%} & & \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+% ======================================================================
+% REFERENCES
+% ======================================================================
+\newpage
+\section*{References}
+\addcontentsline{toc}{section}{References}
+
+\begin{enumerate}
+    \item CourtierPro GitHub Repository --- \url{https://github.com/CourtierPro/CourtierPro}
+    \item DigitalOcean Documentation --- \url{https://docs.digitalocean.com}
+    \item Cloudflare Tunnel Documentation --- \url{https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/}
+    \item Cloudflare R2 Documentation --- \url{https://developers.cloudflare.com/r2/}
+    \item Auth0 Documentation --- \url{https://auth0.com/docs}
+    \item AWS SES Documentation --- \url{https://docs.aws.amazon.com/ses/}
+    \item Docker Compose Documentation --- \url{https://docs.docker.com/compose/}
+    \item Caddy Server Documentation --- \url{https://caddyserver.com/docs/}
+    \item Flyway Database Migrations --- \url{https://documentation.red-gate.com/fd}
+    \item GitHub Container Registry --- \url{https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry}
+    \item GitHub Actions Documentation --- \url{https://docs.github.com/en/actions}
+\end{enumerate}
+
+\vfill
+\begin{center}
+\textit{For questions or emergencies, contact the development team via the CourtierPro GitHub repository \href{https://github.com/CourtierPro/CourtierPro/issues}{Issues page} or reach out to the team members listed in the repository README.}
+\end{center}
+
+\end{document}
