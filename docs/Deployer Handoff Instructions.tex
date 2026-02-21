@@ -16,6 +16,15 @@
 \usepackage{tabularx}
 \usepackage{float}
 \usepackage{caption}
+\usepackage{needspace}
+
+% --- Prevent orphaned section titles at bottom of pages (applies to all \section, \subsection, \subsubsection in document) ---
+\let\oldsection\section
+\renewcommand{\section}{\Needspace{6cm}\oldsection}
+\let\oldsubsection\subsection
+\renewcommand{\subsection}{\Needspace{5cm}\oldsubsection}
+\let\oldsubsubsection\subsubsection
+\renewcommand{\subsubsection}{\Needspace{4cm}\oldsubsubsection}
 
 % --- Hyperlink styling ---
 \hypersetup{
