@@ -17,14 +17,22 @@
 \usepackage{float}
 \usepackage{caption}
 \usepackage{needspace}
+\usepackage{etoolbox}
 
-% --- Prevent orphaned section titles at bottom of pages (applies to all \section, \subsection, \subsubsection in document) ---
+% --- Prevent orphaned section/subsection titles at bottom of pages ---
 \let\oldsection\section
-\renewcommand{\section}{\Needspace{6cm}\oldsection}
+\renewcommand{\section}{\clearpage\oldsection}
 \let\oldsubsection\subsection
-\renewcommand{\subsection}{\Needspace{5cm}\oldsubsection}
+\renewcommand{\subsection}{\Needspace{6cm}\oldsubsection}
 \let\oldsubsubsection\subsubsection
-\renewcommand{\subsubsection}{\Needspace{4cm}\oldsubsubsection}
+\renewcommand{\subsubsection}{\Needspace{5cm}\oldsubsubsection}
+
+% --- Prevent code listings from splitting across pages at bad points ---
+\BeforeBeginEnvironment{lstlisting}{\needspace{5\baselineskip}}
+
+% --- Keep list items with their following code blocks together ---
+\BeforeBeginEnvironment{enumerate}{\needspace{3\baselineskip}}
+\BeforeBeginEnvironment{itemize}{\needspace{3\baselineskip}}
 
 % --- Hyperlink styling ---
 \hypersetup{
@@ -133,7 +141,6 @@
 % ======================================================================
 % REVISION HISTORY
 % ======================================================================
-\newpage
 \section*{Revision History}
 \addcontentsline{toc}{section}{Revision History}
 
@@ -165,7 +172,6 @@
 % ======================================================================
 % 1. SYSTEM OVERVIEW
 % ======================================================================
-\newpage
 \section{System Overview}
 \label{sec:system-overview}
 
@@ -1263,7 +1269,6 @@ docker compose --env-file .env -f docker-compose.prod.yml up -d
 % ======================================================================
 % CONTRIBUTIONS
 % ======================================================================
-\newpage
 \section*{Contributions of the Authors}
 \addcontentsline{toc}{section}{Contributions of the Authors}
 
@@ -1289,7 +1294,6 @@ Isaac Nachate      &  \% &  &  \\
 % ======================================================================
 % REFERENCES
 % ======================================================================
-\newpage
 \section*{References}
 \addcontentsline{toc}{section}{References}
 
