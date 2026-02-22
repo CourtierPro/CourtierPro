@@ -1,0 +1,49 @@
+{
+  "skipToContent": "Skip to main content",
+  "nav": {
+    "ariaLabel": "Main navigation",
+    "features": "Features",
+    "forYou": "Who It's For",
+    "signIn": "Sign In"
+  },
+  "hero": {
+    "headline": "Real Estate Transactions, Simplified.",
+    "subtext": "CourtierPro is the all-in-one platform for Quebec real estate brokerages — manage transactions, documents, appointments, and client relationships from one place.",
+    "cta": "Sign In to CourtierPro"
+  },
+  "features": {
+    "title": "Everything You Need to Close Deals",
+    "subtitle": "Purpose-built tools for Quebec real estate professionals.",
+    "transactions": {
+      "title": "Transaction Management",
+      "desc": "Track every deal from offer to closing with a clear, stage-by-stage workflow."
+    },
+    "documents": {
+      "title": "Document Handling",
+      "desc": "Upload, organize, and securely share all transaction documents in one place."
+    },
+    "appointments": {
+      "title": "Appointment Scheduling",
+      "desc": "Coordinate property visits and client meetings without the back-and-forth."
+    },
+    "analytics": {
+      "title": "Analytics & Insights",
+      "desc": "Monitor your portfolio performance and generate reports with real-time data."
+    }
+  },
+  "forYou": {
+    "title": "Built for Brokers and Their Clients",
+    "broker": {
+      "title": "For Brokers",
+      "desc": "Stay on top of every transaction, manage your client roster, track document checklists, and get the insights you need to grow your business."
+    },
+    "client": {
+      "title": "For Clients",
+      "desc": "Follow the progress of your transaction in real time, access your documents anytime, and stay connected with your broker throughout the process."
+    }
+  },
+  "footer": {
+    "copyright": "© {{year}} CourtierPro. All rights reserved.",
+    "location": "Quebec, Canada"
+  }
+}

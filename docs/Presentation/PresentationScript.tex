@@ -1,0 +1,948 @@
+% ===========================================================================
+% CourtierPro — Presentation Script
+% Presentation Date: Monday, February 23, 2026
+% Total Time: 45 minutes (including questions)
+% ===========================================================================
+\documentclass[12pt,letterpaper]{article}
+
+% --- Packages ---
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{mdframed}
+
+% --- Hyperlink styling ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    urlcolor=blue!70!black,
+    bookmarksnumbered=true,
+    pdfauthor={Shawn Nabizada, Amir Ghadimi, Olivier Goudreault, Isaac Nachate},
+    pdftitle={CourtierPro -- Presentation Script},
+}
+
+% --- Header/Footer ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small CourtierPro --- Presentation Script}
+\fancyhead[R]{\small February 23, 2026}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- Section formatting ---
+\titleformat{\section}{\Large\bfseries}{}{0em}{}
+\titleformat{\subsection}{\large\bfseries}{}{0em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{}{0em}{}
+
+% --- Custom column type ---
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% --- Custom environments ---
+% Speaker notes
+\newmdenv[
+    linecolor=blue!30,
+    backgroundcolor=blue!5,
+    linewidth=1pt,
+    roundcorner=4pt,
+    innertopmargin=8pt,
+    innerbottommargin=8pt,
+    skipabove=8pt,
+    skipbelow=8pt,
+]{speakernote}
+
+% Slide description
+\newmdenv[
+    linecolor=gray!60,
+    backgroundcolor=gray!5,
+    linewidth=1pt,
+    roundcorner=4pt,
+    innertopmargin=8pt,
+    innerbottommargin=8pt,
+    skipabove=8pt,
+    skipbelow=8pt,
+]{slidedesc}
+
+% Demo action
+\newmdenv[
+    linecolor=green!40!black,
+    backgroundcolor=green!5,
+    linewidth=1pt,
+    roundcorner=4pt,
+    innertopmargin=8pt,
+    innerbottommargin=8pt,
+    skipabove=8pt,
+    skipbelow=8pt,
+]{demoaction}
+
+\begin{document}
+
+% ======================================================================
+% COVER PAGE
+% ======================================================================
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    {\Huge\bfseries CourtierPro}\\[0.5cm]
+    {\LARGE Presentation Script}\\[2cm]
+
+    {\large Presented to}\\[0.3cm]
+    {\Large\bfseries Nabizada Courtier Inc.}\\[0.3cm]
+    {\large and Stakeholders}\\[2cm]
+
+    {\large Presented by}\\[0.3cm]
+    {\large Shawn Nabizada}\\
+    {\large Amir Ghadimi}\\
+    {\large Olivier Goudreault}\\
+    {\large Isaac Nachate}\\[2cm]
+
+    {\large\bfseries 420-N61-LA --- External Client Project}\\
+    {\large Champlain College Saint-Lambert}\\[1cm]
+
+    {\large Monday, February 23, 2026}
+
+    \vfill
+\end{titlepage}
+
+% ======================================================================
+% LEGEND
+% ======================================================================
+\newpage
+\section*{Script Legend}
+
+This document uses three types of callout boxes:
+
+\begin{speakernote}
+\textbf{Speaker Note} --- What the presenter says aloud. These are the spoken words for each segment.
+\end{speakernote}
+
+\begin{slidedesc}
+\textbf{Slide Description} --- A description of what the corresponding slide should display (title, bullet points, diagrams, screenshots).
+\end{slidedesc}
+
+\begin{demoaction}
+\textbf{Demo Action} --- A live action to perform during the presentation (click, navigate, toggle, etc.).
+\end{demoaction}
+
+\textbf{Time markers} are provided in the section headings to help pace the presentation. The total allocated time is 45 minutes, including questions.
+
+% ======================================================================
+% TABLE OF CONTENTS
+% ======================================================================
+\newpage
+\tableofcontents
+
+% ======================================================================
+% OPENING & INTRODUCTION (3 minutes)
+% ======================================================================
+\newpage
+\section{Opening \& Introduction \textnormal{\small(0:00 -- 3:00)}}
+\label{sec:opening}
+
+\begin{slidedesc}
+\textbf{Slide 1 --- Title Slide}\\
+Title: \textbf{CourtierPro}\\
+Subtitle: A Bilingual Broker--Client Management Platform for Real Estate Brokerages in Quebec\\
+Team members' names and photos\\
+Course: 420-N61-LA --- Champlain College Saint-Lambert --- Winter 2026\\
+URL: \texttt{https://www.courtier-pro.ca}
+\end{slidedesc}
+
+\begin{speakernote}
+Good morning, everyone. We are team CourtierPro, and today we're excited to present the platform we've built for Nabizada Courtier Inc., a Quebec-based real estate brokerage.
+
+Over the past five development sprints, we've designed, built, and deployed a fully bilingual, web-based broker--client management and communication platform. Our system centralizes every aspect of a real estate transaction --- from the initial consultation to the final property handover --- into a single, secure environment.
+
+Before we dive in, let me briefly introduce our team. \textit{[Each member introduces themselves with their name and a one-sentence role summary.]}
+
+Here's the agenda for today's presentation:
+\end{speakernote}
+
+\begin{slidedesc}
+\textbf{Slide 2 --- Agenda}\\
+\begin{enumerate}
+    \item Addressing Customer Requirements
+    \item System Demo --- Showcasing Functionalities
+    \item Proposal Requirements Compliance
+    \item Transformation Requirement
+    \item Accessibility Compliance
+    \item System Quality
+    \item Q\&A
+\end{enumerate}
+\end{slidedesc}
+
+\begin{speakernote}
+We'll start by addressing how we met every customer requirement, then move into a full system demo organized by user role. After that, we'll demonstrate compliance with the proposal requirements, showcase our transformation feature, run through accessibility checks, and finish with a quality walkthrough. We'll take questions at the end.
+\end{speakernote}
+
+% ======================================================================
+% ASPECT 1 — ADDRESSING CUSTOMER REQUIREMENTS (5 minutes)
+% ======================================================================
+\newpage
+\section{Aspect 1 --- Addressing Customer Requirements \textnormal{\small(3:00 -- 8:00)}}
+\label{sec:aspect1}
+
+\begin{slidedesc}
+\textbf{Slide 3 --- Requirements Overview}\\
+Title: \textbf{Addressing Customer Requirements}\\
+Summary table:
+\begin{itemize}
+    \item 26 original planned use cases
+    \item 13 Fully Implemented | 9 Modified | 4 Not Implemented
+    \item 50+ new use cases added during development
+\end{itemize}
+Pie chart showing the distribution.
+\end{slidedesc}
+
+\begin{speakernote}
+We began this project with 26 planned use cases from the ECP Proposal. Let's walk through how each one was addressed.
+
+Of the 26 original use cases, 13 were fully implemented as proposed, 9 were modified to better fit real-world Quebec real estate workflows, and 4 were intentionally not implemented --- with the client's agreement. On top of that, we added over 50 new use cases during our five development sprints.
+\end{speakernote}
+
+% --- Original Use Cases ---
+\subsection{Fully Implemented Use Cases}
+
+\begin{slidedesc}
+\textbf{Slide 4 --- Fully Implemented Use Cases}\\
+Table showing all 13 fully implemented use cases with short descriptions:
+\begin{itemize}
+    \item B4: Dashboard with KPIs, priority cards, activity feed
+    \item B5: Transaction filtering (side, status, search)
+    \item B6: Stage advancement with notifications and timeline logging
+    \item B9: Real-time in-app + email notifications (SES)
+    \item B10: Transaction timeline (audit trail)
+    \item B13: Tabbed transaction details (9 tabs)
+    \item C1: Auth0 login with role-based routing
+    \item C4: Transaction progress via stage tracker
+    \item A3: Login, password reset, and system audit logs
+    \item A4: Organization-level and user-level language settings
+    \item A5: Email template editor (11 types, EN/FR, live preview)
+    \item A7: User invitation, activation, deactivation, password reset
+    \item AU1, AU2: Auth0 authentication and admin-triggered password reset
+\end{itemize}
+\end{slidedesc}
+
+\begin{speakernote}
+Starting with the 13 use cases we fully implemented. These include the broker dashboard, transaction filtering, stage management, notifications, the audit trail, client login, admin audit logs, language settings, email template customization, and user account management. All of these shipped exactly as planned or exceeded expectations.
+\end{speakernote}
+
+% --- Modified Use Cases ---
+\subsection{Modified Use Cases}
+
+\begin{slidedesc}
+\textbf{Slide 5 --- Modified Use Cases (Part 1)}\\
+Table with ``Original'' and ``What We Built'' columns:
+\begin{itemize}
+    \item B1: Prioritize transactions $\rightarrow$ Pin system + smart priority cards
+    \item B2: Assign transactions $\rightarrow$ Co-managing brokers via Participants tab
+    \item B3: CSV export $\rightarrow$ Analytics module with CSV and PDF export
+    \item B7: Milestone dates $\rightarrow$ Automatic timeline logging per stage
+    \item C2: Transaction summary $\rightarrow$ Full dashboard with KPIs, carousel, widgets
+\end{itemize}
+\end{slidedesc}
+
+\begin{slidedesc}
+\textbf{Slide 6 --- Modified Use Cases (Part 2)}\\
+\begin{itemize}
+    \item C3: \% progress $\rightarrow$ Visual stage tracker for buyer/seller workflows
+    \item C5: Milestone confirmation $\rightarrow$ Document review workflow (approve/revision/reject)
+    \item A1: Configurable stages $\rightarrow$ Fixed industry-standard QC stages
+    \item A6: Archive transactions $\rightarrow$ Soft-delete and restore with audit trail
+    \item A8: Custom permissions $\rightarrow$ Fixed role-based system (Broker/Client/Admin)
+\end{itemize}
+\end{slidedesc}
+
+\begin{speakernote}
+Nine use cases were modified. In every case, the modification was driven by practical needs. For example, instead of abstract percentage-based progress, we built a visual stage tracker that maps directly to Quebec real estate stages, like ``Financial Preparation'' through ``Possession'' for buyers. Instead of assigning transactions between brokers --- which doesn't match a small brokerage's workflow --- we added co-managing brokers through the Participants tab.
+
+The client approved all of these modifications during our sprint reviews.
+\end{speakernote}
+
+% --- Not Implemented Use Cases ---
+\subsection{Not Implemented Use Cases}
+
+\begin{slidedesc}
+\textbf{Slide 7 --- Not Implemented Use Cases}\\
+Table with ``Use Case'' and ``Reason'' columns:
+\begin{itemize}
+    \item B8: Tax breakdown (GST/QST) --- Handled by notaries at closing
+    \item B11: Commission tax calculation --- Falls to brokerage accounting
+    \item B12: Commission amount input --- Related to B8/B11
+    \item A2: Dashboard configuration --- Standardized dashboards chosen for consistency
+    \item A9: System tax settings --- Same rationale as B8
+\end{itemize}
+\textit{Each reason includes ``Client agreed'' checkmark.}
+\end{slidedesc}
+
+\begin{speakernote}
+Four use cases were not implemented. Three of them relate to tax and commission calculations --- GST/QST calculation and commission tracking. In Quebec real estate, these are handled by notaries and the brokerage's accounting department, not by the collaboration platform. The fourth was configurable dashboard defaults; we opted for standardized dashboards by role for a consistent user experience. The client agreed to drop all of these.
+\end{speakernote}
+
+% --- New Use Cases ---
+\subsection{New Use Cases Added}
+
+\begin{slidedesc}
+\textbf{Slide 8 --- 50+ New Use Cases}\\
+Categorized grid showing new use case groups:
+\begin{itemize}
+    \item Document Management (7 use cases)
+    \item Appointment Scheduling (4 use cases)
+    \item Properties \& Offers (7 use cases)
+    \item Conditions Tracking (3 use cases)
+    \item Analytics \& Reporting (2 use cases)
+    \item Client Enhancements (7 use cases)
+    \item Admin Enhancements (5 use cases)
+    \item Global Features (8 use cases)
+    \item Search Criteria, Participants, Clients (6 use cases)
+\end{itemize}
+\end{slidedesc}
+
+\begin{speakernote}
+Beyond the original scope, we added over 50 new use cases. These span document management with a full review lifecycle, appointment scheduling with calendar views, property and offer management, condition tracking, a comprehensive analytics module, and many more. You'll see all of these in action during the demo.
+\end{speakernote}
+
+% ======================================================================
+% ASPECT 2 — SHOWCASING FUNCTIONALITIES (20 minutes)
+% ======================================================================
+\newpage
+\section{Aspect 2 --- Showcasing System Functionalities \textnormal{\small(8:00 -- 28:00)}}
+\label{sec:aspect2}
+
+\begin{speakernote}
+Now let's see the system in action. We'll demo the deployed production version at \texttt{courtier-pro.ca}, walking through scenarios for each user role. We'll start with the broker, then the client, and finally the administrator.
+\end{speakernote}
+
+% --- 2.1 Broker Scenarios ---
+\subsection{Broker Scenarios \textnormal{\small(8:00 -- 20:00)}}
+
+\subsubsection{Broker Logs In \& Views Dashboard}
+
+\begin{slidedesc}
+\textbf{Slide 9 --- Broker Role Overview}\\
+Title: \textbf{Broker Experience}\\
+Bullet points:
+\begin{itemize}
+    \item Dashboard with KPIs, appointments, priority cards, activity feed
+    \item Full transaction lifecycle management
+    \item Document exchange with clients
+    \item Appointment scheduling
+    \item Analytics and reporting
+\end{itemize}
+\end{slidedesc}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Open \texttt{https://www.courtier-pro.ca} in the browser.
+    \item Log in as a broker account via Auth0.
+    \item The system redirects to the \textbf{Broker Dashboard}.
+    \item Point out: KPI cards (Active Transactions, Active Clients), Appointment Widget, Quick Links, Priority Cards (expiring offers, pending documents, upcoming appointments, approaching conditions), Pinned Transactions, and Activity Feed.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+Here's the broker dashboard. At a glance, the broker sees their active transaction count and active client count. Below that, the appointment widget shows today's appointments. The priority cards automatically highlight what needs attention --- we can see there are expiring offers, pending documents, and approaching conditions. The pinned transactions panel gives quick access to important deals, and the activity feed shows recent events.
+\end{speakernote}
+
+% --- Transaction Management ---
+\subsubsection{Managing Transactions}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Click \textbf{Transactions} in the sidebar.
+    \item Show the transaction list in \textbf{card view}; toggle to \textbf{table view}.
+    \item Filter by \textbf{Buy Side}, then \textbf{Sell Side}; filter by status (\textbf{Active} vs. \textbf{Archived}).
+    \item Use the search bar to search by client name.
+    \item Click the \textbf{New Transaction} button.
+    \item Fill in: select ``Buy Side'', choose a client, enter a property address.
+    \item Click \textbf{Create} --- the system redirects to the new transaction detail page.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+The Transactions page shows all deals. We can switch between card and table views. The filter controls let us narrow by side --- buy or sell --- and by status. Let me search for a specific client... there it is. Now let me create a new transaction. I'll select Buy Side, pick the client, and enter the property address. Done --- the system created the transaction and brought us to the detail page.
+\end{speakernote}
+
+% --- Transaction Details (Tabbed) ---
+\subsubsection{Transaction Detail Page}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item On the transaction detail page, point out the \textbf{stage progress tracker} at the top.
+    \item Walk through the tabs:
+    \begin{itemize}
+        \item \textbf{Details} --- Show the transaction notes area.
+        \item \textbf{Timeline} --- Show chronological events.
+        \item \textbf{Search Criteria} (buy side) --- Show the property search fields.
+        \item \textbf{Properties} (buy side) --- Show the property shortlist.
+        \item \textbf{Documents} --- Show the document list and stage checklist.
+        \item \textbf{Participants} --- Show participant management.
+        \item \textbf{Appointments} --- Show appointment list.
+        \item \textbf{Conditions} --- Show condition tracking.
+    \end{itemize}
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+The transaction detail page has nine tabs. The stage tracker at the top visually shows where we are in the buyer workflow --- from Financial Preparation through Possession. Each tab organizes a different aspect of the transaction. Let me click through them quickly.
+
+The Details tab holds notes. Timeline shows every event chronologically. Search Criteria lets us define what the buyer is looking for. Properties is where we shortlist potential homes. Documents manages the full document lifecycle. Participants tracks the notary, inspector, and co-managing brokers. Appointments shows all scheduled meetings. And Conditions tracks things like financing approvals and inspection results.
+\end{speakernote}
+
+% --- Stage Management ---
+\subsubsection{Advancing and Rolling Back Stages}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Click the \textbf{Update Stage} button.
+    \item Select the next stage from the dropdown.
+    \item Add a progress note. Click \textbf{Update}.
+    \item Show the notification sent to the client and the timeline entry.
+    \item Then click \textbf{Update Stage} again, but this time select a \textbf{previous stage}.
+    \item Show the orange rollback warning banner.
+    \item Enter a required rollback reason (e.g., ``Financing fell through'').
+    \item Click \textbf{Update} to confirm.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+Let me advance this transaction. I'll select the next stage and add a note. The system updates the stage, records it in the timeline, and notifies the client automatically.
+
+Now, let's say the financing fell through. I'll do a rollback. Notice the orange warning banner that appears --- this ensures brokers don't accidentally reverse a stage. I have to provide a mandatory reason. The rollback is logged in the timeline as well.
+\end{speakernote}
+
+% --- Document Management ---
+\subsubsection{Document Lifecycle}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Navigate to the \textbf{Documents} tab.
+    \item Click \textbf{Request Document} --- fill in name, stage, description, and due date. Click \textbf{Send Request}.
+    \item Show the document appears with ``Requested'' status.
+    \item Show the \textbf{stage checklist} on the side.
+    \item Click \textbf{Upload for Client} --- drag a file, show the ``Save as Draft'' vs. ``Upload \& Share'' options.
+    \item Open a document with ``Submitted'' status --- show the review modal with \textbf{Approve}, \textbf{Needs Revision}, and \textbf{Reject} buttons.
+    \item Approve a document to show the status change.
+    \item Navigate to \textbf{Documents} in the sidebar to show the cross-transaction document view with stage filtering.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+Document management is central to real estate. Let me request a document from the client --- I'll specify the name, which stage it belongs to, and a description. The client gets an email notification.
+
+Over here, the stage checklist shows which documents are expected at each stage. When the system advances a stage, it can also auto-generate document requests.
+
+The broker can also upload documents directly with two options: save as draft or upload and share immediately. When a client submits a document, the broker reviews it here --- they can approve, request revisions with notes, or reject it. Let me approve this one. The status updates immediately.
+
+From the sidebar, the Documents page gives a cross-transaction view of all documents, filterable by stage.
+\end{speakernote}
+
+% --- Appointments ---
+\subsubsection{Appointment Scheduling}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Click \textbf{Appointments} in the sidebar.
+    \item Show the \textbf{List View} with incoming requests and confirmed appointments.
+    \item Toggle to \textbf{Calendar View} --- click a date to show appointments.
+    \item Click \textbf{Request Appointment}.
+    \item Fill in: client, transaction, type (e.g., ``House Visit''), date, start/end time, and a message.
+    \item Submit the request.
+    \item Open an incoming appointment request --- show the \textbf{Confirm}, \textbf{Propose New Time}, and \textbf{Decline} options.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+The Appointments page has two views: a list view and a full calendar view. The list view separates incoming requests from confirmed appointments. On the calendar, I can click any date to see what's scheduled.
+
+Let me create a new appointment. I'll select the client, transaction, and type --- we support 10 appointment types including house visits, notary signings, open houses, and more. After sending the request, the client gets notified and can respond.
+
+When incoming requests arrive, the broker can confirm, propose a new time, or decline with a reason. This back-and-forth continues until both parties agree.
+\end{speakernote}
+
+% --- Properties & Offers ---
+\subsubsection{Properties, Offers, and Conditions}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Open a buy-side transaction. Go to the \textbf{Properties} tab.
+    \item Show property cards. Click one to show the detail modal (address, price, features, offer status).
+    \item Click \textbf{Make Offer} --- show the offer form.
+    \item Switch to a sell-side transaction. Go to the \textbf{Offers} tab.
+    \item Show offer cards. Click \textbf{Compare Offers} to show side-by-side comparison.
+    \item Open an offer to show revision history.
+    \item Go to the \textbf{Conditions} tab --- show condition cards with statuses.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+For buyer transactions, the Properties tab maintains a shortlist of potential homes. Each property shows the address, asking price, and features. The broker can make offers directly from here.
+
+On the sell side, the Offers tab tracks all received offers. The Compare Offers feature lets the seller evaluate competing offers side by side --- amounts, conditions, expiry dates. Each offer has a full revision history for tracking counter-offers.
+
+The Conditions tab tracks contractual requirements --- like financing approval or inspection satisfaction. Each condition shows its status and links to the relevant offer.
+\end{speakernote}
+
+% --- Search Criteria & Clients ---
+\subsubsection{Search Criteria, Clients, and Analytics}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Open a buy-side transaction. Show the \textbf{Search Criteria} tab with price range, bedrooms, bathrooms, property type, and neighborhoods.
+    \item Click \textbf{Clients} in the sidebar --- show the card grid with status filter and sort options.
+    \item Click a client card to show the detail modal.
+    \item Click \textbf{Analytics} in the sidebar.
+    \item Show the filter panel (date range, transaction type, client).
+    \item Scroll through: Transaction Overview KPIs, Monthly Activity chart, Stage Distribution, Pipeline Funnels, House Visit stats, Property/Offer metrics, Document rates, Appointment stats, Condition tracking, Client Engagement.
+    \item Click \textbf{Export} $\rightarrow$ CSV. Then \textbf{Export} $\rightarrow$ PDF.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+Search Criteria lets brokers define exactly what the buyer is looking for --- price range, number of bedrooms and bathrooms, property type, and preferred neighborhoods.
+
+The Clients page shows all clients in a card grid that can be filtered by active or inactive status and sorted by name, email, or status.
+
+Now, the Analytics page --- this is our most feature-rich module. It provides 15 analytics sections. At the top, you filter by date range, transaction type, and client. Then you see KPIs for the transaction overview, a monthly activity chart, stage distribution bar charts, pipeline funnels showing conversion across stages, house visit and showing statistics, property and offer metrics, document completion rates, appointment stats, condition tracking, and client engagement. All of this can be exported as CSV or PDF.
+\end{speakernote}
+
+% --- 2.2 Client Scenarios ---
+\subsection{Client Scenarios \textnormal{\small(20:00 -- 24:00)}}
+
+\begin{slidedesc}
+\textbf{Slide 10 --- Client Role Overview}\\
+Title: \textbf{Client Experience}\\
+Bullet points:
+\begin{itemize}
+    \item Personalized dashboard with KPIs and transaction carousel
+    \item Document upload with drag-and-drop
+    \item Appointment scheduling
+    \item Real-time transaction progress tracking
+\end{itemize}
+\end{slidedesc}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Log out. Log in as a \textbf{client} account.
+    \item Show the \textbf{Client Dashboard}: welcome message, KPI cards (Active Transactions, Documents Needed, Documents Submitted), transaction carousel with doc stats, Appointment Widget, and Recent Updates.
+    \item Click \textbf{View Details} on a transaction card. Show the stage tracker.
+    \item Go to the \textbf{Timeline} tab --- show events.
+    \item Go to \textbf{My Documents} in the sidebar.
+    \item Open a document with ``Requested'' status --- upload a file via drag-and-drop.
+    \item Go to \textbf{Appointments} --- click \textbf{Request Appointment}.
+    \item Fill in broker, transaction, type, date, time, message. Submit.
+    \item Show the notification bell with unread count.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+Now let's switch to the client perspective. After logging in, the client sees a personalized dashboard. The KPI cards show how many active transactions they have and how many documents are needed or submitted. The transaction carousel displays each active transaction with a visual breakdown of document progress.
+
+The stage tracker shows exactly where the transaction is in the real estate process. The client can see every event on the timeline.
+
+For documents, the client navigates to My Documents, finds a requested document, and uploads it with drag-and-drop. The broker is notified immediately.
+
+Clients can also request appointments. They pick their broker, transaction, type, date, and time. The broker then confirms, proposes a new time, or declines.
+
+The notification bell keeps the client updated on everything happening across their transactions.
+\end{speakernote}
+
+% --- 2.3 Admin Scenarios ---
+\subsection{Admin Scenarios \textnormal{\small(24:00 -- 28:00)}}
+
+\begin{slidedesc}
+\textbf{Slide 11 --- Admin Role Overview}\\
+Title: \textbf{Administrator Experience}\\
+Bullet points:
+\begin{itemize}
+    \item 7-KPI dashboard with system health monitoring
+    \item User management (invite, activate, deactivate, reset password)
+    \item Customizable email templates (11 types, EN/FR)
+    \item Audit logs (login, password reset, system)
+    \item Resource management (soft delete, restore, audit history)
+    \item Broadcast messaging
+\end{itemize}
+\end{slidedesc}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Log out. Log in as an \textbf{admin} account.
+    \item Show the \textbf{Admin Dashboard}: 7 KPI cards, Quick Access buttons, Recent Admin Actions, System Alerts (trigger a test alert), System Logs preview.
+    \item Click \textbf{Manage Users} --- show the user list. Click \textbf{Invite User}, fill in first name, last name, email, role (Client). Send.
+    \item Demonstrate \textbf{activate/deactivate} toggle.
+    \item Click \textbf{Organization Settings} --- show the email template editor. Select a template type. Switch between EN/FR tabs. Insert a variable. Show the Live Preview.
+    \item Click \textbf{Login Audit} --- expand a row to show IP and user agent.
+    \item Click \textbf{Resources} --- show the Transactions/Documents/Users tabs. Delete a resource, then restore it. Show the deletion audit history.
+    \item Click \textbf{Create Broadcast} from the dashboard. Enter a title and message. Send.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+The admin dashboard provides system-wide visibility. Seven KPI cards show total users, active brokers, total clients, active transactions, new users in the last 24 hours, failed logins, and system health.
+
+Let me invite a new user --- I'll enter their name, email, and assign them the Client role. They'll receive setup instructions by email. I can also toggle any user to active or inactive.
+
+The Organization Settings page has the email template editor. We support 11 notification types, each fully customizable in English and French. Watch --- I can insert dynamic variables like the client's name or document title, and the live preview shows exactly how the email will look.
+
+The Login Audit page tracks every login with IP addresses and user agents. We also have password reset audit and system logs.
+
+The Resources page lets admins soft-delete and restore transactions, documents, or users. The deletion audit captures who deleted what and when, including cascaded deletions.
+
+Finally, broadcasts let the admin send a message to every user in the system.
+\end{speakernote}
+
+% ======================================================================
+% ASPECT 3 — ADHERING TO PROPOSAL REQUIREMENTS (4 minutes)
+% ======================================================================
+\newpage
+\section{Aspect 3 --- Adhering to Proposal Requirements \textnormal{\small(28:00 -- 32:00)}}
+\label{sec:aspect3}
+
+\begin{slidedesc}
+\textbf{Slide 12 --- Proposal Requirements Checklist}\\
+Title: \textbf{Mandatory Proposal Features}\\
+Checklist with green checkmarks:
+\begin{itemize}
+    \item[$\checkmark$] At least 10 main use cases with multiple roles --- \textbf{76+ use cases across 3 roles}
+    \item[$\checkmark$] N-tier architecture --- \textbf{4-tier (React SPA / Caddy Proxy / Spring Boot API / PostgreSQL + R2)}
+    \item[$\checkmark$] Internationalization and localization --- \textbf{Full EN/FR bilingual support}
+    \item[$\checkmark$] Authentication --- \textbf{Auth0 with role-based access control}
+    \item[$\checkmark$] Several reports and data entry forms --- \textbf{15 analytics sections + 20+ forms}
+\end{itemize}
+\end{slidedesc}
+
+\subsection{Use Cases and Roles}
+
+\begin{speakernote}
+Let's verify compliance with the mandatory proposal requirements. First, we need at least 10 main use cases with multiple roles. We have over 76 implemented use cases across three roles --- Broker, Client, and Admin. Each role has distinct permissions and interface views, which you've already seen in the demo.
+\end{speakernote}
+
+\subsection{N-Tier Architecture}
+
+\begin{slidedesc}
+\textbf{Slide 13 --- Architecture Diagram}\\
+Show the C4 Level 3 deployment diagram illustrating:
+\begin{itemize}
+    \item User Browser $\rightarrow$ Cloudflare Edge $\rightarrow$ Cloudflare Tunnel
+    \item Tunnel $\rightarrow$ Caddy (reverse proxy)
+    \item Caddy $\rightarrow$ React SPA (Nginx) + Spring Boot API
+    \item Spring Boot $\rightarrow$ PostgreSQL + Cloudflare R2 + Auth0 + AWS SES
+\end{itemize}
+\end{slidedesc}
+
+\begin{speakernote}
+Our system uses a four-tier architecture. The presentation layer is a React single-page application served by Nginx. The API gateway layer is Caddy, which reverse-proxies requests --- routing \texttt{/api/*} to the backend and everything else to the frontend. The service layer is a Spring Boot REST API handling all business logic, and the data layer consists of PostgreSQL for relational data plus Cloudflare R2 for document storage.
+
+The entire system runs on a DigitalOcean VM with traffic secured through a Cloudflare Tunnel --- no public ports are exposed. Auth0 handles authentication, and AWS SES handles transactional emails.
+\end{speakernote}
+
+\subsection{Internationalization and Localization}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item On the live site, click the \textbf{FR} language toggle button.
+    \item Show the entire interface switch to French --- sidebar, dashboard labels, buttons, modals.
+    \item Open a modal (e.g., Request Document) to show French labels.
+    \item Toggle back to English.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+Full bilingual support. Watch --- one click on the language toggle and every label in the application switches to French. The sidebar, dashboard, forms, modals, toast notifications --- everything. Even the email templates are bilingual with separate EN and FR tabs. The language preference persists per user.
+\end{speakernote}
+
+\subsection{Authentication}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Show the Auth0 login page (or describe the redirect flow).
+    \item Point out role-based routing: Broker $\rightarrow$ Broker Dashboard, Client $\rightarrow$ Client Dashboard, Admin $\rightarrow$ Admin Dashboard.
+    \item Show the session timeout message (30 minutes of inactivity).
+    \item Show the ``Account Deactivated'' screen (if possible).
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+Authentication is handled by Auth0. When you open the app, it automatically redirects to the Auth0 login page. After authentication, the system routes you to the correct dashboard based on your role. Sessions expire after 30 minutes of inactivity, and deactivated accounts see a blocked screen.
+\end{speakernote}
+
+\subsection{Reports and Data Entry Forms}
+
+\begin{speakernote}
+For reports, we've already shown the Analytics module with 15 sections, exportable to CSV and PDF. For data entry forms, we have over 20 throughout the system --- transaction creation, document requests, appointments, property details, offers, conditions, search criteria, organization settings, user invitations, feedback submission, and more.
+\end{speakernote}
+
+% ======================================================================
+% ASPECT 4 — TRANSFORMATION REQUIREMENT (3 minutes)
+% ======================================================================
+\newpage
+\section{Aspect 4 --- Transformation Requirement \textnormal{\small(32:00 -- 35:00)}}
+\label{sec:aspect4}
+
+\begin{slidedesc}
+\textbf{Slide 14 --- Major Transformation: Analytics Engine}\\
+Title: \textbf{Analytics Engine --- Multi-Stage Data Transformation}\\
+Diagram showing the pipeline:
+\begin{enumerate}
+    \item \textbf{Data Collection} --- Raw transaction, document, appointment, offer, condition, and visitor data from PostgreSQL
+    \item \textbf{Filtering} --- Date range, transaction type, client filters applied
+    \item \textbf{Aggregation} --- Grouped by time periods, stages, status, and categories
+    \item \textbf{Calculation} --- Rates (success, completion, confirmation), averages (duration, per-transaction metrics), distributions, trends
+    \item \textbf{Visualization} --- KPI cards, bar charts, funnel charts, trend analysis
+    \item \textbf{Export} --- CSV format with structured columns; PDF with formatted report layout
+\end{enumerate}
+\end{slidedesc}
+
+\begin{speakernote}
+For the transformation requirement, our major transformation is the \textbf{Analytics Engine}. This is a complex, multi-stage data transformation pipeline.
+
+It starts by collecting raw data across six domains --- transactions, documents, appointments, properties and offers, conditions, and visitors. Then it applies user-specified filters: date ranges, transaction type, and client.
+
+The aggregation stage groups data by time periods, stages, and statuses. Then the calculation stage computes derived metrics: success rates, document completion rates, appointment confirmation rates, average transaction durations, per-transaction averages, pipeline conversion ratios, and trend analysis like the busiest month and idle transactions.
+
+Finally, the data is visualized as KPI cards, bar charts, and funnel diagrams --- and can be exported as either CSV or PDF.
+
+This isn't a simple query. The analytics service performs cross-domain joins, conditional aggregation, rate calculations, and temporal analysis across the entire dataset.
+\end{speakernote}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Navigate to the Analytics page.
+    \item Apply a date range filter and a transaction type filter.
+    \item Walk through each section, emphasizing the transformation:
+    \begin{itemize}
+        \item Transaction Overview: total, active, closed, success rate, average duration
+        \item Pipeline Funnel: conversion across 6 stages --- calculated from stage distribution data
+        \item Document Completion: total docs, completion rate, average per transaction
+        \item Appointment Stats: confirmation rate, broker vs. client initiated ratios
+    \end{itemize}
+    \item Export as CSV --- open the file to show the structured data.
+    \item Export as PDF --- open the file to show the formatted report.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+Let me show you. Here's the Analytics page with all the computed metrics. I'll apply some filters... and now the entire dashboard recalculates. The pipeline funnel shows how transactions convert through each stage. The document section shows completion rates. The appointments section breaks down confirmation rates and who initiated each appointment.
+
+Let me export this as CSV --- here's the structured data. And as PDF --- here's the formatted report. This entire pipeline transforms raw database records into actionable business intelligence.
+\end{speakernote}
+
+% ======================================================================
+% ASPECT 5 — ACCESSIBILITY REQUIREMENTS (4 minutes)
+% ======================================================================
+\newpage
+\section{Aspect 5 --- Accessibility Requirements \textnormal{\small(35:00 -- 39:00)}}
+\label{sec:aspect5}
+
+\begin{slidedesc}
+\textbf{Slide 15 --- WCAG 2.0 AA Compliance}\\
+Title: \textbf{Quebec Web Accessibility (WCAG 2.0 AA)}\\
+Three checkpoints:
+\begin{enumerate}
+    \item HTML Validation (W3C Validator)
+    \item Colour Contrast (WCAG Color Contrast Extension)
+    \item WebAIM WAVE Evaluation
+\end{enumerate}
+Plus additional accessibility features.
+\end{slidedesc}
+
+\begin{speakernote}
+Quebec's standard for web accessibility is WCAG 2.0 Level AA. We'll demonstrate compliance through three tools plus additional features we've implemented.
+\end{speakernote}
+
+\subsection{HTML Validation}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Open \texttt{validator.w3.org} in a new tab.
+    \item Enter the landing page URL: \texttt{https://www.courtier-pro.ca}.
+    \item Run the validation and show the results.
+    \item \textit{Note: Since most pages require authentication, demonstrate using the ``Validate by Direct Input'' option with the page source for key pages, or show pre-captured validation results.}
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+Starting with HTML validation. We'll run the W3C validator against our landing page --- this is the publicly accessible page. Since most of our pages sit behind authentication, we've also prepared validation results using direct HTML input for key pages.
+\end{speakernote}
+
+\subsection{Colour Contrast}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Ensure the \textbf{WCAG Color Contrast Checker} Chrome extension is installed and active.
+    \item Navigate through the landing page and key pages of the app (logged in).
+    \item Point out the contrast check results overlaid on the page.
+    \item Note any items earning an X and explain the justification.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+We have the WCAG Color Contrast Checker extension active. As we navigate, it evaluates contrast ratios in real time. Our design system ensures a minimum of 4.5:1 for normal text and 3:1 for large text in both light and dark themes.
+\end{speakernote}
+
+\subsection{WebAIM WAVE}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Open \texttt{wave.webaim.org} in a new tab.
+    \item Enter the landing page URL: \texttt{https://www.courtier-pro.ca}.
+    \item Show the WAVE results.
+    \item Walk through any errors, alerts, or structural elements.
+    \item \textit{For authenticated pages, use the WAVE browser extension while logged in.}
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+The WebAIM WAVE tool evaluates our landing page for accessibility issues. We'll also use the WAVE browser extension for authenticated pages. Let me walk through the results. The tool identifies errors, alerts, features, structural elements, and ARIA usage across the page.
+\end{speakernote}
+
+\subsection{Additional Accessibility Features}
+
+\begin{slidedesc}
+\textbf{Slide 16 --- Accessibility Features Built Into CourtierPro}\\
+\begin{itemize}
+    \item Full keyboard navigation with visible focus indicators
+    \item Semantic HTML5 elements and ARIA labels for screen reader support
+    \item Focus trapping in modals; focus returns to trigger on close
+    \item Form labels and validation errors announced to screen readers
+    \item Alt text on all meaningful images and icons
+    \item Responsive design supporting up to 200\% text zoom
+    \item Dark mode with maintained contrast ratios
+\end{itemize}
+\end{slidedesc}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Tab through several interactive elements to show \textbf{focus indicators}.
+    \item Open a modal --- show that focus is \textbf{trapped} inside the modal.
+    \item Close the modal --- show that focus \textbf{returns} to the triggering button.
+    \item Show a form validation error and note the \texttt{aria-invalid} attribute.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+Beyond the standard checks, we've built accessibility into the platform's foundation. All interactive elements are keyboard-navigable with visible focus rings. Modals trap focus --- you can see I'm tabbing through this modal and it stays within the boundary. When I close it, focus returns to the button that opened it. Form fields have proper labels and validation errors are announced via ARIA attributes. The entire interface supports up to 200\% zoom without breaking, and our dark mode maintains the same contrast standards.
+\end{speakernote}
+
+% ======================================================================
+% ASPECT 6 — QUALITY OF THE SYSTEM (4 minutes)
+% ======================================================================
+\newpage
+\section{Aspect 6 --- Quality of the System \textnormal{\small(39:00 -- 43:00)}}
+\label{sec:aspect6}
+
+\begin{slidedesc}
+\textbf{Slide 17 --- System Quality}\\
+Title: \textbf{Quality, Robustness, and Completeness}\\
+Checklist:
+\begin{itemize}
+    \item[$\checkmark$] Deployed on production (courtier-pro.ca)
+    \item[$\checkmark$] Fully responsive (desktop, tablet, mobile)
+    \item[$\checkmark$] Input validation throughout
+    \item[$\checkmark$] Global error handling
+    \item[$\checkmark$] Proper routing with role-based guards
+    \item[$\checkmark$] No sensitive data in browser tools
+    \item[$\checkmark$] CI/CD with automated rollback
+\end{itemize}
+\end{slidedesc}
+
+\subsection{Deployed Version}
+
+\begin{speakernote}
+Everything you've seen today runs on the deployed production system at \texttt{courtier-pro.ca}. Our CI/CD pipeline automatically builds, tests, and deploys on every push to main, with health checks and automatic rollback if anything goes wrong.
+\end{speakernote}
+
+\subsection{Responsiveness}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Open the browser's developer tools.
+    \item Resize to \textbf{tablet} dimensions (768px) --- show the sidebar collapsing into a hamburger menu, cards reflowing.
+    \item Resize to \textbf{mobile} dimensions (375px) --- show the fully responsive layout with stacked components.
+    \item Open the Dashboard, Transactions list, Transaction detail, and Analytics at each size.
+    \item Close developer tools and return to desktop size.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+The application is fully responsive. Let me resize to a tablet size --- the sidebar collapses into a hamburger menu, and the layout adapts. At mobile size, everything stacks vertically. The dashboard, transaction list, detail page, and analytics all work at every breakpoint.
+\end{speakernote}
+
+\subsection{Input Validation}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Open the \textbf{Create Transaction} form --- leave required fields empty, click Create. Show validation messages.
+    \item Open the \textbf{Request Appointment} form --- enter an end time before the start time. Show the error.
+    \item Open the \textbf{Feedback} modal --- try to submit with fewer than 10 characters. Show the character requirement.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+We validate all user inputs. Here --- I'll try to create a transaction without filling in the required fields. The system shows inline validation messages. If I set an end time before a start time on an appointment, it catches that too. Even the feedback form has a minimum character requirement.
+\end{speakernote}
+
+\subsection{Error Handling and Routing}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Navigate to a non-existent URL (e.g., \texttt{/nonexistent}) --- show the 404 page.
+    \item Try accessing a broker-only page while logged in as a client --- show the access denied response.
+    \item (If possible) Briefly show a toast notification for a failed API call.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+Routing is protected. If I navigate to a non-existent page, the system shows a proper 404. If a client tries to access a broker page, they're blocked by role-based guards. All API errors surface through our global error handling system as toast notifications --- the user always knows what happened.
+\end{speakernote}
+
+\subsection{Security --- Browser Tools}
+
+\begin{demoaction}
+\begin{enumerate}
+    \item Open the browser Developer Tools.
+    \item Go to the \textbf{Application} tab --- show that no sensitive data (passwords, secrets) is stored in local storage, session storage, or cookies.
+    \item Go to the \textbf{Network} tab --- perform an API call. Show that the Authorization header uses a Bearer token (JWT from Auth0), and that no passwords or secrets are visible in request/response payloads.
+    \item Close developer tools.
+\end{enumerate}
+\end{demoaction}
+
+\begin{speakernote}
+Let me open the developer tools. In the Application tab, you can see there's no sensitive data stored in local storage or cookies --- no passwords, no API keys. In the Network tab, API calls use Bearer token authentication via Auth0 JWTs. No secrets or passwords are visible in any request or response. The database credentials, R2 keys, and SES credentials all live exclusively on the server.
+\end{speakernote}
+
+% ======================================================================
+% Q&A (2 minutes)
+% ======================================================================
+\newpage
+\section{Q\&A \textnormal{\small(43:00 -- 45:00)}}
+\label{sec:qa}
+
+\begin{slidedesc}
+\textbf{Slide 18 --- Q\&A}\\
+Title: \textbf{Questions?}\\
+Centered text: \texttt{https://www.courtier-pro.ca}\\
+Team member names and contact info.\\
+``Thank you for your time!''
+\end{slidedesc}
+
+\begin{speakernote}
+That concludes our presentation. CourtierPro is live at \texttt{courtier-pro.ca}. We're proud of what we've built --- a fully bilingual, production-deployed platform that centralizes every aspect of a Quebec real estate transaction.
+
+Are there any questions?
+
+Thank you for your time.
+\end{speakernote}
+
+\end{document}

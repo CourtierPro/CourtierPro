@@ -1,0 +1,49 @@
+{
+  "skipToContent": "Passer au contenu principal",
+  "nav": {
+    "ariaLabel": "Navigation principale",
+    "features": "Fonctionnalités",
+    "forYou": "Pour qui?",
+    "signIn": "Se connecter"
+  },
+  "hero": {
+    "headline": "Transactions immobilières, simplifiées.",
+    "subtext": "CourtierPro est la plateforme tout-en-un pour les courtiers immobiliers du Québec — gérez vos transactions, documents, rendez-vous et relations clients depuis un seul endroit.",
+    "cta": "Se connecter à CourtierPro"
+  },
+  "features": {
+    "title": "Tout ce qu'il vous faut pour conclure des transactions",
+    "subtitle": "Des outils conçus pour les professionnels de l'immobilier au Québec.",
+    "transactions": {
+      "title": "Gestion des transactions",
+      "desc": "Suivez chaque transaction de l'offre à la clôture avec un flux de travail clair, étape par étape."
+    },
+    "documents": {
+      "title": "Gestion documentaire",
+      "desc": "Téléversez, organisez et partagez en toute sécurité tous les documents de transaction au même endroit."
+    },
+    "appointments": {
+      "title": "Planification des rendez-vous",
+      "desc": "Coordonnez les visites de propriétés et les rencontres clients sans les échanges interminables."
+    },
+    "analytics": {
+      "title": "Analytique et rapports",
+      "desc": "Surveillez les performances de votre portefeuille et générez des rapports avec des données en temps réel."
+    }
+  },
+  "forYou": {
+    "title": "Conçu pour les courtiers et leurs clients",
+    "broker": {
+      "title": "Pour les courtiers",
+      "desc": "Gardez le contrôle sur chaque transaction, gérez votre clientèle, suivez les listes de documents et obtenez les données dont vous avez besoin pour développer votre entreprise."
+    },
+    "client": {
+      "title": "Pour les clients",
+      "desc": "Suivez l'avancement de votre transaction en temps réel, accédez à vos documents en tout temps et restez en contact avec votre courtier tout au long du processus."
+    }
+  },
+  "footer": {
+    "copyright": "© {{year}} CourtierPro. Tous droits réservés.",
+    "location": "Québec, Canada"
+  }
+}

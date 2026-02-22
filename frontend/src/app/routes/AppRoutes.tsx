@@ -1,5 +1,5 @@
 import { ConfirmEmailPage } from '@/pages/ConfirmEmailPage';
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 
@@ -50,17 +50,12 @@ const NotFoundPage = lazy(() => import("@/pages/status/NotFoundPage").then(modul
 
 // Accessibility Test
 const AccessibilityTestPage = lazy(() => import("@/pages/AccessibilityTestPage").then(module => ({ default: module.AccessibilityTestPage })));
+const LandingPage = lazy(() => import("@/pages/LandingPage").then(module => ({ default: module.LandingPage })));
 
 
 export function AppRoutes() {
     const { user } = useAuth0();
     const role: AppRole | null = getRoleFromUser(user);
-
-    const defaultRouteForRole: Record<AppRole, string> = {
-        broker: "/dashboard/broker",
-        client: "/dashboard/client",
-        admin: "/dashboard/admin",
-    };
 
     return (
         <Suspense
@@ -76,16 +71,7 @@ export function AppRoutes() {
                     path="/confirm-email"
                     element={<ConfirmEmailPage />}
                 />
-                <Route
-                    path="/"
-                    element={
-                        role ? (
-                            <Navigate to={defaultRouteForRole[role]} replace />
-                        ) : (
-                            <Navigate to="/unauthorized" replace />
-                        )
-                    }
-                />
+                <Route path="/" element={<LandingPage />} />
 
                 {/* Dashboards */}
                 <Route

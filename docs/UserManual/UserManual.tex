@@ -1,0 +1,1680 @@
+% ===========================================================================
+% CourtierPro User Manual
+% ===========================================================================
+\documentclass[12pt,letterpaper]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{float}
+\usepackage{caption}
+
+% ── Hyperlink styling ─────────────────────────────────────────────────────
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=blue!70!black,
+    urlcolor=blue!70!black,
+    bookmarksopen=true,
+    pdfauthor={Shawn Nabizada, Amir Ghadimi, Olivier Goudreault, Isaac Nachate},
+    pdftitle={CourtierPro User Manual},
+    pdfsubject={User Manual for CourtierPro Broker-Client Management Platform}
+}
+
+% ── Header / Footer ──────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small CourtierPro User Manual}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Section formatting ───────────────────────────────────────────────────
+\titleformat{\section}{\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+% ===========================================================================
+\begin{document}
+
+% ── Cover Page ────────────────────────────────────────────────────────────
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    {\Huge\bfseries CourtierPro\\[0.4cm] User Manual\par}
+    \vspace{1.5cm}
+    {\Large A Bilingual Broker--Client Management and\\Communication Platform for Real Estate Brokerages in Quebec\par}
+    \vspace{2cm}
+    {\large
+        \textbf{Authors:}\\[0.3cm]
+        Shawn Nabizada\\
+        Amir Ghadimi\\
+        Olivier Goudreault\\
+        Isaac Nachate\par
+    }
+    \vspace{2cm}
+    {\large
+        Champlain College Saint-Lambert\\
+        420-N61-LA: External Client Project 2\\
+        Winter 2026\par
+    }
+    \vspace{1cm}
+    {\large February 27, 2026\par}
+\end{titlepage}
+
+% ── Revision History ─────────────────────────────────────────────────────
+\newpage
+\section*{Revision History}
+\addcontentsline{toc}{section}{Revision History}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}p{1.5cm}p{3.5cm}p{3cm}p{4.5cm}@{}}
+\toprule
+\textbf{Version} & \textbf{Date} & \textbf{Author(s)} & \textbf{Description} \\
+\midrule
+1.0 & February 20, 2026 & All members & Initial release \\
+2.0 & February 23, 2026 & All members & Added screenshots and updated content \\
+3.0 & February 24, 2026 & All members & Added missing use cases and standardized naming convention \\
+\bottomrule
+\end{tabular}
+\caption{Document revision history}
+\label{tab:revision-history}
+\end{table}
+
+% ── Table of Contents ─────────────────────────────────────────────────────
+\newpage
+\tableofcontents
+
+% ── List of Figures ───────────────────────────────────────────────────────
+\newpage
+\listoffigures
+
+% ── List of Tables ────────────────────────────────────────────────────────
+\listoftables
+
+% ===========================================================================
+% SECTION 1 – INTRODUCTION
+% ===========================================================================
+\newpage
+\section{Introduction}
+\label{sec:introduction}
+
+This document serves as the official user manual for \textbf{CourtierPro}, a bilingual (English/French) broker--client management and communication platform designed for \textbf{Nabizada Courtier Inc.}, a Quebec-based real estate brokerage. The manual provides step-by-step instructions for every use case implemented in the system, organized by user role.
+
+CourtierPro centralizes all transaction stages, document exchanges, appointments, and communication in one secure environment. It allows brokers, clients, and administrative staff to collaborate seamlessly across all stages of a real estate transaction---from the initial consultation to the final notary signing and property handover.
+
+\subsection{System Overview}
+\label{subsec:system-overview}
+
+CourtierPro is a web-based application accessible through any modern web browser. The system is built on a four-tier architecture:
+
+\begin{enumerate}
+    \item \textbf{Presentation Layer} -- A React-based single-page application providing the user interface.
+    \item \textbf{API Gateway Layer} -- A Caddy reverse proxy managing request routing and TLS termination.
+    \item \textbf{Service Layer} -- A Spring Boot backend implementing all business logic.
+    \item \textbf{Data Layer} -- A PostgreSQL database with S3-compatible object storage for file management.
+\end{enumerate}
+
+Authentication is delegated to \textbf{Auth0}, and all transactional email notifications are dispatched via \textbf{Amazon SES}.
+
+\subsection{User Roles}
+\label{subsec:user-roles}
+
+The system supports three distinct user roles, each with specific permissions and interface views. Table~\ref{tab:user-roles} summarizes these roles.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lp{12.5cm}@{}}
+\toprule
+\textbf{Role} & \textbf{Description and Capabilities} \\
+\midrule
+\textbf{Broker} & Licensed real estate professional. Can create and manage transactions, review documents, confirm appointments, update transaction stages, manage clients, and view analytics. \\
+\addlinespace
+\textbf{Client} & Buyer or seller working with the brokerage. Can view transaction progress, upload documents, request appointments, and receive notifications. \\
+\addlinespace
+\textbf{Admin} & Administrative staff responsible for system oversight. Can manage user accounts, configure organization settings, and review audit logs. \\
+\bottomrule
+\end{tabular}
+\caption{CourtierPro user roles and capabilities}
+\label{tab:user-roles}
+\end{table}
+
+\subsection{Navigating the Interface}
+\label{subsec:navigating-interface}
+
+After logging in, all users see a consistent interface layout consisting of three main areas:
+
+\begin{itemize}
+    \item \textbf{Top Navigation Bar} -- Contains the hamburger menu toggle (mobile), the CourtierPro logo, a user role badge, the \textbf{Global Search} bar (keyboard shortcut \texttt{Ctrl+K} or \texttt{⌘+K}), the \textbf{Dark/Light Mode} toggle, the \textbf{Language Switcher} (EN/FR), the \textbf{Notification Bell} (with an unread count badge), and the \textbf{User Avatar Menu} (providing access to the Profile modal and Logout).
+    \item \textbf{Sidebar} -- Provides navigation links specific to the user's role. The sidebar can be collapsed on smaller screens. A \textbf{Feedback} button is available at the bottom of the sidebar for all users.
+    \item \textbf{Main Content Area} -- Displays the currently selected page.
+\end{itemize}
+
+The sidebar navigation items differ by role, as shown in Table~\ref{tab:sidebar-nav}.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}p{4.17cm}p{4.17cm}p{4.16cm}@{}}
+\toprule
+\textbf{Broker} & \textbf{Client} & \textbf{Admin} \\
+\midrule
+Dashboard & Dashboard & Dashboard \\
+Notifications & Notifications & Notifications \\
+Clients & My Transaction & Manage Users \\
+Transactions & My Documents & Organization Settings \\
+Documents & Appointments & Resources \\
+Appointments &  & Login Audit \\
+Analytics &  & System Logs \\
+\bottomrule
+\end{tabular}
+\caption{Sidebar navigation items by user role}
+\label{tab:sidebar-nav}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{CourtierPro interface layout showing the top navigation bar, sidebar, and main content area as seen by a broker user}
+    \label{fig:interface-layout}
+\end{figure}
+
+\subsection{User Switches Language}
+\label{subsec:switching-languages}
+
+CourtierPro supports both English and French. To switch languages:
+
+\begin{enumerate}
+    \item Locate the \textbf{language toggle button} in the top-right area of the navigation bar. The button displays the label of the \emph{opposite} language (e.g., it shows \textbf{FR} when the interface is in English).
+    \item Click the button to switch. The entire interface, including all labels, buttons, and notifications, updates immediately.
+    \item The language preference can also be changed from the \textbf{Profile Modal} (see Section~\ref{subsec:profile-modal}).
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Language toggle button in the top navigation bar showing the opposite-language label (e.g., FR when the current language is English)}
+    \label{fig:language-toggle}
+\end{figure}
+
+\subsection{User Searches System}
+\label{subsec:global-search}
+
+CourtierPro provides a global search command palette to quickly find transactions, documents, users, pages, and appointments:
+
+\begin{enumerate}
+    \item Press \texttt{Ctrl+K} (or \texttt{⌘+K} on macOS), or click the search icon in the top navigation bar.
+    \item A search dialog appears. Type your query in the input field.
+    \item Results appear in real time, grouped by type (Transaction, Document, User, Page, Appointment), each with a corresponding icon.
+    \item Click a result to navigate directly to it.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Global Search command palette showing search results grouped by type with icons for transactions, documents, users, pages, and appointments}
+    \label{fig:global-search}
+\end{figure}
+
+\subsection{User Switches Dark/Light Mode}
+\label{subsec:mode-toggle}
+
+The interface supports both a light and a dark theme:
+
+\begin{enumerate}
+    \item Click the \textbf{sun/moon icon} in the top navigation bar.
+    \item The interface immediately switches between light and dark themes.
+    \item Your preference is persisted automatically.
+\end{enumerate}
+
+\subsection{User Views Profile}
+\label{subsec:profile-modal}
+
+All users can view and edit their profile settings:
+
+\begin{enumerate}
+    \item Click your \textbf{avatar} (initials) in the top-right corner of the navigation bar.
+    \item Select \textbf{Profile} from the dropdown menu.
+    \item The \textbf{Profile Modal} opens, showing:
+        \begin{itemize}
+            \item Your \textbf{name}, \textbf{role} badge, and \textbf{active/inactive} status.
+            \item \textbf{Multi-Factor Authentication (MFA)} status (Enabled or Not Enabled).
+            \item \textbf{Email address} -- Editable. Changing your email triggers a confirmation email and automatic logout.
+            \item \textbf{Email Notifications} toggle -- Enable or disable email notifications.
+            \item \textbf{In-App Notifications} toggle -- Enable or disable in-app notifications.
+            \item \textbf{Preferred Language} selector -- Choose between English and French.
+            \item \textbf{Weekly Digest} toggle (Broker only) -- Enable or disable a weekly email summary of pending tasks and upcoming appointments.
+        \end{itemize}
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Profile Modal showing the user avatar with initials, name, role badge, MFA status, editable email field, notification toggles, language selector, and the Weekly Digest toggle for brokers}
+    \label{fig:profile-modal}
+\end{figure}
+
+\subsection{User Confirms Email Change}
+\label{subsec:confirm-email}
+
+When you change your email address in the Profile Modal, the system sends a confirmation link to your new email:
+
+\begin{enumerate}
+    \item In the \textbf{Profile Modal}, edit your \textbf{Email Address} field and save.
+    \item The system sends a \textbf{confirmation email} to the new address containing a verification link.
+    \item You are automatically \textbf{logged out} for security.
+    \item Open the confirmation email and click the \textbf{verification link}.
+    \item The link redirects you to CourtierPro, where the email change is finalized.
+    \item Log in again with your new email address.
+\end{enumerate}
+
+\textbf{Note:} If you do not click the confirmation link, your email address remains unchanged.
+
+% ===========================================================================
+% SECTION 2 – AUTHENTICATION
+% ===========================================================================
+\newpage
+\section{Authentication}
+\label{sec:authentication}
+
+This section covers how users log in, log out, and how sessions are managed.
+
+\subsection{User Logs In}
+\label{subsec:logging-in}
+
+CourtierPro uses Auth0 for secure authentication. The login flow is as follows:
+
+\begin{enumerate}
+    \item Open the CourtierPro application URL in your web browser.
+    \item If you are not already authenticated, the application \textbf{automatically redirects} you to the Auth0 login page.
+    \item Enter your \textbf{email address} and \textbf{password} on the Auth0 login page.
+    \item Click \textbf{Log In}.
+    \item Upon successful authentication, you are automatically redirected to your role-specific dashboard:
+        \begin{itemize}
+            \item Brokers are directed to the \textbf{Broker Dashboard}.
+            \item Clients are directed to the \textbf{Client Dashboard}.
+            \item Administrators are directed to the \textbf{Admin Dashboard}.
+        \end{itemize}
+\end{enumerate}
+
+\textbf{Note:} If your account has been \textbf{deactivated} by an administrator, you will see an ``Account Deactivated'' screen instructing you to contact support. You will not be able to access the application.
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Auth0 login page showing the email and password fields with the Log In button}
+    \label{fig:auth0-login}
+\end{figure}
+
+\subsection{User Logs Out}
+\label{subsec:logging-out}
+
+To log out of the system:
+
+\begin{enumerate}
+    \item Click your \textbf{avatar} (initials) in the top-right corner of the navigation bar.
+    \item Select \textbf{Logout} from the dropdown menu.
+    \item You will be securely logged out. Your session is cleared and you are redirected to the login page.
+\end{enumerate}
+
+\subsection{System Enforces Session Timeout}
+\label{subsec:session-timeout}
+
+For security, CourtierPro automatically logs users out after \textbf{30 minutes of inactivity}. Activity is detected through mouse movement, keystrokes, scrolling, and touch events. If your session expires, you will be redirected to the login page and must sign in again.
+
+\subsection{User Views Notification Bell}
+\label{subsec:notification-bell}
+
+The notification bell in the top navigation bar provides quick access to recent notifications:
+
+\begin{enumerate}
+    \item Click the \textbf{bell icon} in the top navigation bar. An unread count badge appears when there are unread notifications.
+    \item A popover opens displaying your most recent notifications in a scrollable list.
+    \item Click a notification to \textbf{mark it as read} and navigate to the relevant transaction.
+    \item Click \textbf{View All} at the bottom to navigate to the full Notifications page.
+    \item If in-app notifications are disabled in your profile, the popover shows a message indicating that notifications are disabled.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Notification bell popover showing the unread count badge, a scrollable list of recent notifications with read/unread indicators, and the View All button at the bottom}
+    \label{fig:notification-bell}
+\end{figure}
+
+% ===========================================================================
+% SECTION 3 – BROKER USE CASES
+% ===========================================================================
+\newpage
+\section{Broker Use Cases}
+\label{sec:broker-use-cases}
+
+This section describes all use cases available to users with the \textbf{Broker} role. Brokers are the primary users of the system and have the most comprehensive set of features.
+
+% ── 3.1 Broker Dashboard ──────────────────────────────────────────────────
+\subsection{Broker Views Dashboard}
+\label{subsec:broker-dashboard}
+
+The broker dashboard is the landing page after login. It provides a centralized overview of all active work.
+
+\begin{enumerate}
+    \item After logging in, you are automatically directed to the \textbf{Dashboard}.
+    \item At the top, review the \textbf{KPI cards} displaying:
+        \begin{itemize}
+            \item \textbf{Active Transactions} -- The total number of currently active transactions.
+            \item \textbf{Active Clients} -- The total number of clients with active transactions.
+        \end{itemize}
+    \item Below the KPIs, review the \textbf{Appointment Widget} showing your upcoming appointments.
+    \item Use the \textbf{Quick Links} section to quickly navigate to common actions:
+        \begin{itemize}
+            \item \textbf{New Transaction} -- Opens the transaction creation form.
+            \item \textbf{All Transactions} -- Navigates to the full transaction list.
+            \item \textbf{Clients} -- Navigates to the client management page.
+            \item \textbf{Pending Documents} -- Shows documents awaiting review.
+            \item \textbf{Request Appointment} -- Opens the appointment creation form.
+            \item \textbf{Notifications} -- Navigates to the notifications page.
+        \end{itemize}
+    \item Scroll down to view the \textbf{Priority Cards} section, which highlights:
+        \begin{itemize}
+            \item Expiring offers requiring attention.
+            \item Pending documents awaiting review.
+            \item Upcoming appointments.
+            \item Approaching conditions nearing their deadline.
+        \end{itemize}
+    \item Below the priority cards, the \textbf{Pinned Transactions} panel shows transactions you have pinned for quick access. Click the pin icon on any transaction card to add or remove it from this panel.
+    \item At the bottom, the \textbf{Recent Activity Feed} displays the latest events across all transactions.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Broker dashboard showing KPI cards for Active Transactions and Active Clients, the appointment widget, quick links grid, and priority cards}
+    \label{fig:broker-dashboard}
+\end{figure}
+
+% ── 3.2 Manage Transactions ──────────────────────────────────────────────
+\subsection{Broker Manages Transactions}
+\label{subsec:manage-transactions}
+
+\subsubsection{Broker Views Transaction List}
+\label{subsubsec:transaction-list}
+
+\begin{enumerate}
+    \item Click \textbf{Transactions} in the sidebar.
+    \item The transaction list displays all transactions with their type, client name, property address, current stage, and status.
+    \item Use the \textbf{filter controls} at the top to filter by:
+        \begin{itemize}
+            \item Transaction side (Buy Side or Sell Side).
+            \item Status (Active, Archived, or All).
+        \end{itemize}
+    \item Use the \textbf{search bar} to search transactions by client name or property address.
+    \item Toggle between \textbf{card view} and \textbf{table view} using the view toggle buttons.
+    \item Click any transaction to open its detail page.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Broker transaction list page showing the filter controls, search bar, view toggle, and transaction cards with stage indicators}
+    \label{fig:transaction-list}
+\end{figure}
+
+\subsubsection{Broker Creates Transaction}
+\label{subsubsec:create-transaction}
+
+\begin{enumerate}
+    \item From the \textbf{Dashboard} or the \textbf{Transactions} page, click the \textbf{New Transaction} button.
+    \item In the creation form, fill in the required fields:
+        \begin{itemize}
+            \item \textbf{Transaction Side} -- Select either \textbf{Buy Side} (for buyers) or \textbf{Sell Side} (for sellers).
+            \item \textbf{Client} -- Select an existing client from the dropdown.
+            \item \textbf{Property Address} -- Enter the street address, city, province, and postal code.
+        \end{itemize}
+    \item Optionally, add \textbf{notes} for the transaction.
+    \item Click \textbf{Create} to save the new transaction.
+    \item The system creates the transaction and redirects you to the transaction detail page.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Create Transaction modal showing fields for transaction side selection, client dropdown, and property address inputs}
+    \label{fig:create-transaction}
+\end{figure}
+
+\subsubsection{Broker Views Transaction Details}
+\label{subsubsec:transaction-details}
+
+The transaction detail page contains multiple tabs that organize all transaction information:
+
+\begin{enumerate}
+    \item Click a transaction from the list to open its detail page.
+    \item At the top, review the \textbf{Transaction Summary} showing the property address, client name, current stage, and a visual stage progress tracker.
+    \item Navigate between the following tabs:
+        \begin{itemize}
+            \item \textbf{Details} -- View and edit transaction notes.
+            \item \textbf{Timeline} -- View the full chronological history of events.
+            \item \textbf{Properties} -- (Buy Side only) Manage shortlisted properties.
+            \item \textbf{Search Criteria} -- (Buy Side only) Define buyer search criteria.
+            \item \textbf{Offers} -- (Sell Side only) Manage received offers.
+            \item \textbf{Documents} -- Manage all transaction documents.
+            \item \textbf{Participants} -- Manage transaction participants and visitors.
+            \item \textbf{Appointments} -- View and manage transaction appointments.
+            \item \textbf{Conditions} -- Manage conditions attached to offers.
+        \end{itemize}
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Transaction detail page showing the stage progress tracker at the top and the tab navigation with Details, Timeline, Documents, Participants, Appointments, and Conditions tabs}
+    \label{fig:transaction-detail}
+\end{figure}
+
+% ── 3.3 Update Transaction Stages ────────────────────────────────────────
+\subsection{Broker Updates Transaction Stage}
+\label{subsec:update-stages}
+
+Transactions progress through a series of stages depending on whether they are buy-side or sell-side. Only brokers can advance the stage.
+
+\noindent\textbf{Buy-Side Stages:}
+\begin{enumerate}
+    \item Financial Preparation
+    \item Property Search
+    \item Offer and Negotiation
+    \item Financing and Conditions
+    \item Notary and Signing
+    \item Possession
+\end{enumerate}
+
+\noindent\textbf{Sell-Side Stages:}
+\begin{enumerate}
+    \item Initial Consultation
+    \item Publish Listing
+    \item Offer and Negotiation
+    \item Financing and Conditions
+    \item Notary and Signing
+    \item Handover
+\end{enumerate}
+
+To update a transaction stage:
+
+\begin{enumerate}
+    \item Open the transaction detail page.
+    \item Click the \textbf{Update Stage} button in the stage tracker area.
+    \item In the modal, select the \textbf{next stage} from the dropdown.
+    \item Optionally, add a \textbf{note} explaining the stage change.
+    \item Click \textbf{Update} to confirm the change.
+    \item The system updates the stage, records the event in the timeline, and sends a notification to the client.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Stage Update modal showing the current stage, the next stage dropdown selection, and an optional notes field}
+    \label{fig:update-stage}
+\end{figure}
+
+\subsection{Broker Rolls Back Transaction Stage}
+\label{subsec:rollback-stage}
+
+If a transaction was advanced to the wrong stage or circumstances have changed, brokers can roll back to a previous stage:
+
+\begin{enumerate}
+    \item Open the transaction detail page.
+    \item Click the \textbf{Update Stage} button in the stage tracker area.
+    \item In the stage dropdown, select a \textbf{previous stage} (earlier than the current one).
+    \item A \textbf{rollback warning} banner appears in orange, indicating that this is a stage reversal.
+    \item Enter a \textbf{required reason} explaining why the rollback is necessary (e.g., ``Financing fell through, returning to Property Search'').
+    \item Optionally, add a progress note.
+    \item Click \textbf{Update} to confirm the rollback.
+    \item The system records the rollback in the timeline and notifies the client.
+\end{enumerate}
+
+\textbf{Note:} The ``Visible to Client'' checkbox is not shown during rollbacks. Rollback events are always recorded in the timeline.
+
+\subsection{Broker Closes Transaction}
+\label{subsec:close-transaction}
+
+When a transaction reaches the final stage (Possession for buy-side or Handover for sell-side), advancing to this stage effectively closes the transaction:
+
+\begin{enumerate}
+    \item Open the transaction detail page.
+    \item Click the \textbf{Update Stage} button.
+    \item Select the \textbf{final stage} (Possession or Handover).
+    \item A \textbf{warning} appears: ``This will close the transaction. You will not be able to modify the stage afterwards.''
+    \item If there are outstanding documents on the checklist, a \textbf{missing documents warning} dialog shows the incomplete items. Click \textbf{Proceed Anyway} to confirm, or \textbf{Cancel} to go back and complete the documents first.
+    \item Optionally add a progress note.
+    \item Click \textbf{Update} to close the transaction.
+\end{enumerate}
+
+\subsection{Broker Archives Transaction}
+\label{subsec:archive-transaction}
+
+Completed or inactive transactions can be archived to keep the active transaction list organized:
+
+\begin{enumerate}
+    \item Navigate to the transaction detail page.
+    \item Click the \textbf{Archive} button.
+    \item Confirm the action in the dialog.
+    \item The transaction moves to the \textbf{Archived} status and is no longer displayed in the default transaction list.
+    \item To view archived transactions, use the \textbf{Status filter} on the Transactions page and select \textbf{Archived} or \textbf{All}.
+    \item To unarchive a transaction, open it and click the \textbf{Unarchive} button.
+\end{enumerate}
+
+% ── 3.4 Manage Documents ─────────────────────────────────────────────────
+\subsection{Broker Manages Documents}
+\label{subsec:broker-manage-documents}
+
+\subsubsection{Broker Requests Document from Client}
+\label{subsubsec:request-document}
+
+\begin{enumerate}
+    \item Navigate to a transaction's \textbf{Documents} tab.
+    \item Click the \textbf{Request Document} button.
+    \item Fill in the document request form:
+        \begin{itemize}
+            \item \textbf{Document Name} -- Enter a descriptive name (e.g., ``Proof of Financing'').
+            \item \textbf{Stage} -- Select the transaction stage this document belongs to.
+            \item \textbf{Description} -- Provide instructions for the client.
+            \item \textbf{Due Date} -- Optionally specify a deadline.
+        \end{itemize}
+    \item Click \textbf{Send Request}.
+    \item The client receives an email notification about the document request.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Request Document modal showing the document name, stage selector, description, and due date fields}
+    \label{fig:request-document}
+\end{figure}
+
+\subsubsection{Broker Edits Document Request}
+\label{subsubsec:edit-document-request}
+
+After creating a document request, brokers can modify its details:
+
+\begin{enumerate}
+    \item Navigate to the \textbf{Documents} tab of the relevant transaction.
+    \item Locate the document request you want to edit.
+    \item Click the \textbf{Edit} button on the document card.
+    \item The \textbf{Edit Document} modal opens with the current values pre-filled.
+    \item Modify any of the following fields:
+        \begin{itemize}
+            \item \textbf{Document Type} -- Change the document category.
+            \item \textbf{Instructions} -- Update the instructions for the client.
+            \item \textbf{Stage} -- Reassign the document to a different transaction stage.
+        \end{itemize}
+    \item Click \textbf{Edit} to save the changes.
+\end{enumerate}
+
+\subsubsection{Broker Uploads Document for Client}
+\label{subsubsec:upload-for-client}
+
+Brokers can also upload documents directly:
+
+\begin{enumerate}
+    \item Navigate to a transaction's \textbf{Documents} tab.
+    \item Click the \textbf{Upload for Client} button.
+    \item Select the document type and provide a name.
+    \item Drag and drop a file into the dropzone, or click to browse for a file.
+    \item Choose one of the two actions:
+        \begin{itemize}
+            \item \textbf{Save as Draft} -- Saves the document without notifying the client.
+            \item \textbf{Upload \& Share} -- Uploads and immediately shares with the client.
+        \end{itemize}
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Upload for Client modal showing the file dropzone, document name field, and the Save as Draft and Upload \& Share action buttons}
+    \label{fig:upload-for-client}
+\end{figure}
+
+\subsubsection{Broker Reviews Submitted Document}
+\label{subsubsec:review-document}
+
+When a client submits a document, the broker must review it:
+
+\begin{enumerate}
+    \item Navigate to the \textbf{Documents} tab of the relevant transaction, or click \textbf{Documents} in the sidebar to see all documents across transactions.
+    \item Locate the document with a \textbf{Submitted} status badge.
+    \item Click the document to open the \textbf{Document Review} modal.
+    \item Download and review the attached file.
+    \item Choose one of the following actions:
+        \begin{itemize}
+            \item \textbf{Approve} -- Marks the document as approved.
+            \item \textbf{Needs Revision} -- Returns the document to the client with comments explaining what needs to be corrected.
+            \item \textbf{Reject} -- Permanently rejects the document.
+        \end{itemize}
+    \item Add optional \textbf{review notes}.
+    \item Click the chosen action button to submit the review.
+    \item The client receives an email notification with the review result.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Document Review modal showing the submitted file preview, review notes field, and the Approve, Needs Revision, and Reject action buttons}
+    \label{fig:review-document}
+\end{figure}
+
+\subsubsection{Broker Views Document Checklist}
+\label{subsubsec:document-checklist}
+
+Each transaction stage has a set of recommended documents. To view the checklist:
+
+\begin{enumerate}
+    \item Navigate to the \textbf{Documents} tab of a transaction.
+    \item The \textbf{Stage Checklist} panel on the side shows which documents are expected for each stage.
+    \item A checkmark indicates that the document has been submitted and approved.
+    \item An empty checkbox indicates that the document is still outstanding.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Document checklist panel showing stages listed vertically with checkmarks next to completed documents and empty checkboxes next to outstanding ones}
+    \label{fig:document-checklist}
+\end{figure}
+
+\subsubsection{System Auto-Requests Documents}
+\label{subsubsec:auto-request-documents}
+
+When a broker advances a transaction to a new stage, the system can automatically generate document requests for that stage:
+
+\begin{enumerate}
+    \item When the broker updates the transaction stage (see Section~\ref{subsec:update-stages}), the system checks whether there are predefined required documents for the new stage.
+    \item If required documents exist, the system automatically creates \textbf{document requests} for each one.
+    \item These auto-generated requests appear in the transaction's \textbf{Documents} tab with a \textbf{Requested} status.
+    \item The client receives notifications for each auto-generated document request.
+    \item Brokers can review the auto-generated requests and edit them if needed (see Section~\ref{subsubsec:edit-document-request}).
+\end{enumerate}
+
+This feature ensures that no required documents are missed when a transaction progresses to a new stage.
+
+% ── 3.5 Manage Appointments ──────────────────────────────────────────────
+\subsection{Broker Manages Appointments}
+\label{subsec:broker-manage-appointments}
+
+\subsubsection{Broker Creates Appointment}
+\label{subsubsec:create-appointment}
+
+Brokers can schedule appointments with clients:
+
+\begin{enumerate}
+    \item Click \textbf{Appointments} in the sidebar, or use the \textbf{Request Appointment} quick link on the dashboard.
+    \item Click the \textbf{Request Appointment} button.
+    \item Fill in the appointment form:
+        \begin{itemize}
+            \item \textbf{Client} -- Select the client from the dropdown.
+            \item \textbf{Transaction} -- Select the associated transaction.
+            \item \textbf{Appointment Type} -- Choose from:
+                Property Inspection, Notary Signing, Property Showing, Consultation, Final Walkthrough, Meeting, House Visit, Open House, Private Showing, or Other.
+            \item \textbf{Date} -- Select the appointment date.
+            \item \textbf{Start Time and End Time} -- Set the time window.
+            \item \textbf{Message} -- Optionally add details or instructions.
+        \end{itemize}
+    \item If a scheduling conflict exists, a warning is displayed.
+    \item Click \textbf{Send Request} to propose the appointment.
+    \item The client receives an email notification.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Create Appointment modal showing the client selector, transaction selector, appointment type dropdown, date picker, start/end time selectors, and message field}
+    \label{fig:create-appointment}
+\end{figure}
+
+\subsubsection{Broker Reviews Appointment Request}
+\label{subsubsec:review-appointment}
+
+When a client proposes an appointment, the broker can review it:
+
+\begin{enumerate}
+    \item Navigate to \textbf{Appointments} in the sidebar.
+    \item The \textbf{Incoming Appointment Requests} section displays pending requests.
+    \item Click a request to open the \textbf{Appointment Detail} modal.
+    \item Review the proposed date, time, and message.
+    \item Choose one of the following actions:
+        \begin{itemize}
+            \item \textbf{Confirm} -- Accepts the appointment as proposed.
+            \item \textbf{Propose New Time} -- Suggests an alternative date and time.
+            \item \textbf{Decline} -- Rejects the appointment with a reason.
+        \end{itemize}
+    \item Click the chosen action button. The client is notified of the response.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Appointment Detail modal for an incoming request, showing the proposed time, message from the client, and Confirm, Propose New Time, and Decline buttons}
+    \label{fig:review-appointment}
+\end{figure}
+
+\subsubsection{Broker Cancels Appointment}
+\label{subsubsec:cancel-appointment}
+
+To cancel a confirmed appointment:
+
+\begin{enumerate}
+    \item Open the appointment from the \textbf{Appointments} page.
+    \item Click \textbf{Cancel Appointment}.
+    \item Enter a \textbf{reason for cancelling}.
+    \item Click \textbf{Confirm Cancellation}.
+    \item The other party is notified. The appointment can be rescheduled later by the party who cancelled it.
+\end{enumerate}
+
+\subsubsection{Broker Views Appointment Calendar}
+\label{subsubsec:appointment-calendar}
+
+The Appointments page offers two views:
+
+\begin{enumerate}
+    \item Navigate to \textbf{Appointments} in the sidebar.
+    \item Use the toggle at the top to switch between:
+        \begin{itemize}
+            \item \textbf{List View} -- Shows appointments grouped by incoming requests and confirmed appointments.
+            \item \textbf{Calendar View} -- Displays appointments on a monthly calendar. Click a date to see appointments for that day.
+        \end{itemize}
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Appointments page in Calendar View showing a monthly calendar with appointment indicators on various dates and the list of appointments for the selected date below}
+    \label{fig:appointment-calendar}
+\end{figure}
+
+% ── 3.6 Manage Properties (Buy Side) ─────────────────────────────────────
+\subsection{Broker Manages Properties (Buy Side)}
+\label{subsec:manage-properties}
+
+For buy-side transactions, brokers can manage a list of potential properties:
+
+\subsubsection{Broker Adds Property}
+\label{subsubsec:add-property}
+
+\begin{enumerate}
+    \item Open a buy-side transaction and select the \textbf{Properties} tab.
+    \item Click \textbf{Add Property}.
+    \item Fill in the property details including address, price, number of bedrooms/bathrooms, and other features.
+    \item Click \textbf{Save} to add the property to the shortlist.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Add Property modal showing input fields for address, asking price, number of bedrooms, number of bathrooms, and additional property features}
+    \label{fig:add-property}
+\end{figure}
+
+\subsubsection{Broker Views Property Details}
+\label{subsubsec:view-property-details}
+
+\begin{enumerate}
+    \item In the \textbf{Properties} tab, click a property card.
+    \item The \textbf{Property Detail} modal opens, showing:
+        \begin{itemize}
+            \item \textbf{Address} -- Full property address with a map pin icon.
+            \item \textbf{Asking Price} -- Displayed in Canadian dollars.
+            \item \textbf{Property Features} -- Number of bedrooms, bathrooms, and other features.
+            \item \textbf{Offer Status} -- A badge indicating the current status (e.g., Offer to be Made, Offer Made, Accepted, Declined).
+            \item \textbf{Associated Offers} -- A list of offers submitted on this property.
+        \end{itemize}
+    \item From the detail modal, you can:
+        \begin{itemize}
+            \item Click \textbf{Edit} to modify the property information.
+            \item Click \textbf{Delete} to remove the property from the shortlist (with confirmation).
+            \item Click \textbf{Make Offer} to submit an offer on the property.
+        \end{itemize}
+\end{enumerate}
+
+\subsubsection{Broker Reviews Property}
+\label{subsubsec:review-property}
+
+\begin{enumerate}
+    \item In the \textbf{Properties} tab, click a property card to view its details.
+    \item Review the property information, including address, price, and features.
+    \item Use the \textbf{Review} button to approve or decline the property for the client.
+\end{enumerate}
+
+\subsubsection{Broker Makes Offer on Property}
+\label{subsubsec:property-offer}
+
+\begin{enumerate}
+    \item In the property detail view, click \textbf{Make Offer}.
+    \item Enter the offer details: offer price, conditions, and expiry date.
+    \item Click \textbf{Submit Offer}.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Property Offer modal showing the offer amount, conditions textarea, and expiry date picker}
+    \label{fig:property-offer}
+\end{figure}
+
+% ── 3.7 Manage Offers (Sell Side) ────────────────────────────────────────
+\subsection{Broker Manages Offers (Sell Side)}
+\label{subsec:manage-offers}
+
+For sell-side transactions, brokers manage offers received from potential buyers.
+
+\subsubsection{Broker Adds Offer}
+\label{subsubsec:add-offer}
+
+\begin{enumerate}
+    \item Open a sell-side transaction and select the \textbf{Offers} tab.
+    \item Click \textbf{Add Offer}.
+    \item Enter the offer details:
+        \begin{itemize}
+            \item \textbf{Buyer Name} and contact information.
+            \item \textbf{Offer Amount}.
+            \item \textbf{Expiry Date}.
+            \item \textbf{Conditions} -- Any conditions attached to the offer.
+        \end{itemize}
+    \item Click \textbf{Save} to record the offer.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Add Offer modal for a sell-side transaction showing fields for buyer name, offer amount, expiry date, and conditions}
+    \label{fig:add-offer}
+\end{figure}
+
+\subsubsection{Broker Views and Compares Offers}
+\label{subsubsec:compare-offers}
+
+\begin{enumerate}
+    \item In the \textbf{Offers} tab, all received offers are displayed as cards.
+    \item Click an offer card to open the \textbf{Offer Detail} modal and review the complete information.
+    \item Use the \textbf{Compare Offers} button to open a side-by-side comparison of multiple offers, helping the seller evaluate options.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Offer Comparison modal displaying two or more offers side by side with columns for each offer showing amount, conditions, expiry date, and buyer details}
+    \label{fig:compare-offers}
+\end{figure}
+
+\subsubsection{Broker Manages Offer Revisions}
+\label{subsubsec:offer-revisions}
+
+Brokers can track the revision history of any offer:
+
+\begin{enumerate}
+    \item In the \textbf{Offers} tab, click an offer card to open the \textbf{Offer Detail} modal.
+    \item The \textbf{Revision History} section displays all revisions for the offer, sorted by revision number (newest first).
+    \item Each revision entry shows:
+        \begin{itemize}
+            \item \textbf{Revision Number} -- The sequential revision number.
+            \item \textbf{Date and Time} -- When the revision was made.
+            \item \textbf{Amount Change} -- If the offer amount changed, the previous amount is shown with a strikethrough and the new amount is displayed alongside.
+            \item \textbf{Status Change} -- If the offer status changed, both the previous and new statuses are shown as badges.
+        \end{itemize}
+    \item Use this history to track counter-offers and negotiations between the parties.
+\end{enumerate}
+
+% ── 3.8 Manage Conditions ────────────────────────────────────────────────
+\subsection{Broker Manages Conditions}
+\label{subsec:manage-conditions}
+
+Conditions are contractual requirements attached to offers that must be satisfied before a transaction can proceed.
+
+\begin{enumerate}
+    \item Open a transaction and select the \textbf{Conditions} tab.
+    \item Click \textbf{Add Condition} to create a new condition.
+    \item Fill in the condition details: name, description, due date, and status.
+    \item Click \textbf{Save} to create the condition.
+    \item To view or update a condition, click its card to open the \textbf{Condition Detail} modal.
+    \item In the modal, you can:
+        \begin{itemize}
+            \item Update the condition status (e.g., mark as fulfilled).
+            \item Edit the condition details.
+            \item View linked offers associated with the condition.
+        \end{itemize}
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Conditions tab showing condition cards with status indicators, and the Add Condition button at the top}
+    \label{fig:conditions}
+\end{figure}
+
+% ── 3.9 Manage Participants ──────────────────────────────────────────────
+\subsection{Broker Manages Participants}
+\label{subsec:manage-participants}
+
+Brokers can manage transaction participants (e.g., notaries, inspectors, other brokers).
+
+\begin{enumerate}
+    \item Open a transaction and select the \textbf{Participants} tab.
+    \item The existing participants are listed with their role and contact information.
+    \item Click \textbf{Add Participant} to add a new participant.
+    \item Fill in the participant's name, role, email, and phone number.
+    \item Click \textbf{Save}.
+    \item To edit a participant, click the \textbf{Edit} button on their card.
+\end{enumerate}
+
+For sell-side transactions, the Participants tab also includes a \textbf{Visitor List} section where brokers can manage records of property visitors during open houses and private showings.
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Participants tab showing a list of transaction participants with their roles and contact information, along with the Add Participant button}
+    \label{fig:participants}
+\end{figure}
+
+% ── 3.10 Search Criteria (Buy Side) ──────────────────────────────────────
+\subsection{Broker Defines Search Criteria (Buy Side)}
+\label{subsec:search-criteria}
+
+For buy-side transactions, brokers and clients can define search criteria to guide the property search:
+
+\begin{enumerate}
+    \item Open a buy-side transaction and select the \textbf{Search Criteria} tab.
+    \item Fill in the desired criteria, which may include:
+        \begin{itemize}
+            \item Price range (minimum and maximum).
+            \item Number of bedrooms and bathrooms.
+            \item Property type.
+            \item Desired neighborhoods or areas.
+            \item Additional features or requirements.
+        \end{itemize}
+    \item Click \textbf{Save} to store the search criteria.
+    \item These criteria serve as a reference when shortlisting properties.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Search Criteria tab for a buy-side transaction showing form fields for price range, bedrooms, bathrooms, property type, and preferred locations}
+    \label{fig:search-criteria}
+\end{figure}
+
+% ── 3.11 View Timeline ───────────────────────────────────────────────────
+\subsection{Broker Views Transaction Timeline}
+\label{subsec:broker-timeline}
+
+The timeline provides a chronological log of all events in a transaction:
+
+\begin{enumerate}
+    \item Open a transaction and select the \textbf{Timeline} tab.
+    \item Events are displayed in reverse chronological order (newest first).
+    \item Each event shows:
+        \begin{itemize}
+            \item The \textbf{event type} (e.g., stage update, document submission, appointment created).
+            \item The \textbf{date and time} of the event.
+            \item The \textbf{actor} who performed the action.
+            \item A brief \textbf{description} of the event.
+        \end{itemize}
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Transaction Timeline tab showing a chronological list of events with icons, timestamps, actor names, and descriptions for stage updates, document actions, and appointments}
+    \label{fig:timeline}
+\end{figure}
+
+% ── 3.12 Manage Clients ──────────────────────────────────────────────────
+\subsection{Broker Manages Clients}
+\label{subsec:manage-clients}
+
+\begin{enumerate}
+    \item Click \textbf{Clients} in the sidebar.
+    \item The client list displays all clients as a responsive \textbf{card grid}.
+    \item Use the \textbf{Filter} dropdown to filter clients by status:
+        \begin{itemize}
+            \item \textbf{All} -- Shows all clients.
+            \item \textbf{Active} -- Shows only clients with active transactions.
+            \item \textbf{Inactive} -- Shows only clients without active transactions.
+        \end{itemize}
+    \item Use the \textbf{Sort} dropdown to sort clients by:
+        \begin{itemize}
+            \item \textbf{Name} -- Alphabetical by full name.
+            \item \textbf{Email} -- Alphabetical by email.
+            \item \textbf{Status} -- Active clients first.
+        \end{itemize}
+    \item Click a client card to open the \textbf{Client Detail Modal}, which shows the client's contact information and associated transactions.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Clients page showing the card grid layout with Filter and Sort dropdowns at the top, and client cards displaying name, email, and active transaction indicator}
+    \label{fig:clients}
+\end{figure}
+
+% ── 3.13 All Documents ───────────────────────────────────────────────────
+\subsection{Broker Views All Documents}
+\label{subsec:all-documents}
+
+Brokers can view documents across all transactions from a single page:
+
+\begin{enumerate}
+    \item Click \textbf{Documents} in the sidebar.
+    \item All documents from all transactions are displayed in a unified list.
+    \item Use the \textbf{Stage Dropdown Filter} at the top to filter documents by transaction stage (e.g., Financial Preparation, Property Search). Select ``All Stages'' to see everything.
+    \item Each document card shows the document name, status badge, associated transaction, and stage.
+    \item Click a document to open its \textbf{Upload} modal (for clients) or \textbf{Review} modal (for brokers), depending on the document's status.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{All Documents page showing the stage dropdown filter at the top and document cards with status badges grouped across transactions}
+    \label{fig:all-documents}
+\end{figure}
+
+% ── 3.14 View Analytics ──────────────────────────────────────────────────
+\subsection{Broker Views Analytics}
+\label{subsec:view-analytics}
+
+The analytics page provides comprehensive performance insights for brokers with filterable and exportable data:
+
+\begin{enumerate}
+    \item Click \textbf{Analytics} in the sidebar.
+    \item Use the \textbf{filter panel} at the top to narrow the data:
+        \begin{itemize}
+            \item \textbf{Date Range} -- Select a start and end date using the calendar picker.
+            \item \textbf{Transaction Type} -- Filter by All Types, Buy Side, or Sell Side.
+            \item \textbf{Client Name} -- Search for a specific client.
+        \end{itemize}
+    \item Click \textbf{Apply} to apply filters, or \textbf{Clear} to reset them.
+    \item Use the \textbf{Export} dropdown button to download the analytics data as \textbf{CSV} or \textbf{PDF}.
+    \item Review the following analytics sections:
+        \begin{itemize}
+            \item \textbf{Transaction Overview} -- KPI cards showing total, active, closed, and terminated transactions; buy vs. sell counts; success rate; and average transaction duration (plus longest/shortest).
+            \item \textbf{Monthly Activity} -- Horizontal bar chart showing transactions opened vs. closed per month.
+            \item \textbf{Stage Distribution} -- Bar charts showing how many transactions are at each buyer and seller stage.
+            \item \textbf{Transaction Pipeline} -- Funnel charts (buyer and seller tabs) showing conversion across stages.
+            \item \textbf{House Visits} -- Total house visits and average per closed transaction.
+            \item \textbf{Sell Showings} -- Total showings, average per closed transaction, and total visitors.
+            \item \textbf{Properties} -- Total properties, average per buy transaction, interest rate, and properties with/without offers.
+            \item \textbf{Buyer Offers} -- Total offers, acceptance rate, average rounds, average amount, and counter-offer rate.
+            \item \textbf{Received Offers} -- Total offers received, acceptance rate, highest/lowest/average amounts, pending offers, and per-sell averages.
+            \item \textbf{Documents} -- Total documents, completion rate, pending and needs-revision counts, and average per transaction.
+            \item \textbf{Appointments} -- Total appointments, confirmation rate, upcoming/declined/cancelled rates, and breakdown by broker vs. client initiated.
+            \item \textbf{Conditions} -- Total conditions, satisfied rate, approaching deadline, overdue, and average per transaction.
+            \item \textbf{Client Engagement} -- Total active clients and clients with multiple transactions.
+            \item \textbf{Trends} -- Busiest month and idle (stale) transactions.
+        \end{itemize}
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Analytics page showing the filter panel (date range, transaction type, client name) and Export button at the top, followed by KPI cards for Transaction Overview}
+    \label{fig:analytics-overview}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Analytics page continued, showing the Monthly Activity horizontal bar chart with opened (blue) and closed (green) bars per month}
+    \label{fig:analytics-monthly}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Analytics page continued, showing the Stage Distribution bar charts for buyer and seller stages side by side}
+    \label{fig:analytics-stages}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Analytics page continued, showing the Pipeline Funnel chart for buyer stages with a tab toggle to switch to seller stages}
+    \label{fig:analytics-pipeline}
+\end{figure}
+
+% ── 3.15 Notifications ───────────────────────────────────────────────────
+\subsection{Broker Views Notifications}
+\label{subsec:broker-notifications}
+
+\begin{enumerate}
+    \item Click \textbf{Notifications} in the sidebar, or click the \textbf{bell icon} in the top navigation bar and select \textbf{View All}.
+    \item The notifications page displays all system notifications sorted by date (newest first), including:
+        \begin{itemize}
+            \item Document submissions and reviews.
+            \item Appointment requests and confirmations.
+            \item Stage updates.
+            \item Offer notifications.
+            \item Condition updates.
+        \end{itemize}
+    \item Each notification shows a \textbf{read/unread indicator} (dot). Click a notification to mark it as read and navigate to the relevant transaction.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Notifications page showing a list of notifications with read/unread dot indicators, descriptions, timestamps, and the ability to navigate to related transactions}
+    \label{fig:broker-notifications}
+\end{figure}
+
+% ===========================================================================
+% SECTION 4 – CLIENT USE CASES
+% ===========================================================================
+\newpage
+\section{Client Use Cases}
+\label{sec:client-use-cases}
+
+This section describes all use cases available to users with the \textbf{Client} role. Clients are buyers or sellers who interact with the system to track their transactions, upload documents, and schedule appointments.
+
+% ── 4.1 Client Dashboard ─────────────────────────────────────────────────
+\subsection{Client Views Dashboard}
+\label{subsec:client-dashboard}
+
+\begin{enumerate}
+    \item After logging in, you are automatically directed to the \textbf{Client Dashboard}.
+    \item Review the \textbf{personalized welcome message} at the top.
+    \item Review the \textbf{KPI cards} (displayed conditionally based on your transaction type):
+        \begin{itemize}
+            \item \textbf{Offers} (Sell Side only) -- Number of offers received. Click to navigate to the offers tab. An info popover provides further explanation.
+            \item \textbf{Properties} (Buy Side only) -- Number of properties being considered. Click to navigate to the properties tab.
+            \item \textbf{Active Transactions} -- Total number of active transactions. Click to navigate to your transactions.
+            \item \textbf{Documents Needed} -- Number of documents your broker has requested. Click to navigate to My Documents.
+            \item \textbf{Documents Submitted} -- Number of documents you have submitted or that have been approved. Click to navigate to My Documents.
+        \end{itemize}
+    \item Below the KPIs, the \textbf{My Transactions} section displays your active transactions as a horizontally scrollable \textbf{carousel}. Each card shows the transaction type, property address, current stage, and document completion stats (total, approved, needs revision, submitted, requested).
+    \item Click \textbf{View Details} on any transaction card to open its detail page.
+    \item Below the carousel, an \textbf{Appointment Widget} shows your upcoming appointments.
+    \item The \textbf{Recent Updates} panel on the right displays your 5 most recent notifications. Click a notification to mark it as read and navigate to the relevant transaction.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Client dashboard showing the personalized welcome message, KPI cards for Active Transactions, Documents Needed, and Documents Submitted, the transaction carousel with document stats, the Appointment Widget, and the Recent Updates panel}
+    \label{fig:client-dashboard}
+\end{figure}
+
+% ── 4.2 View Transaction Progress ────────────────────────────────────────
+\subsection{Client Views Transaction Progress}
+\label{subsec:view-transaction-progress}
+
+\begin{enumerate}
+    \item Click \textbf{My Transaction} in the sidebar.
+    \item Your active transactions are display as cards.
+    \item Click a transaction to view its detail page.
+    \item At the top, the \textbf{Stage Tracker} shows the current stage and overall progress through the transaction workflow.
+    \item Select the \textbf{Timeline} tab to view a chronological log of all events.
+    \item The timeline shows stage changes, document updates, and appointment activities.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Client transaction detail page showing the visual stage progress tracker at the top with completed and upcoming stages highlighted}
+    \label{fig:client-transaction-progress}
+\end{figure}
+
+% ── 4.3 Upload Documents ─────────────────────────────────────────────────
+\subsection{Client Uploads Documents}
+\label{subsec:upload-documents}
+
+When your broker requests a document, you must upload it through the system:
+
+\begin{enumerate}
+    \item Navigate to the \textbf{Documents} tab within your transaction, or click \textbf{My Documents} in the sidebar.
+    \item Locate the document with a \textbf{Requested} status badge.
+    \item Click the document to open the upload modal.
+    \item Drag and drop your file into the dropzone, or click to browse your device.
+    \item Click \textbf{Upload} to submit the document.
+    \item The document status changes to \textbf{Submitted}, and your broker is notified.
+    \item If the broker returns the document with \textbf{Needs Revision}, review the broker's comments and upload a corrected version.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Document upload modal showing the requested document name, the file dropzone area, and the Upload button}
+    \label{fig:upload-document}
+\end{figure}
+
+% ── 4.4 Request Appointments ─────────────────────────────────────────────
+\subsection{Client Requests Appointment}
+\label{subsec:request-appointments}
+
+Clients can request appointments with their broker:
+
+\begin{enumerate}
+    \item Click \textbf{Appointments} in the sidebar.
+    \item Click the \textbf{Request Appointment} button.
+    \item Fill in the appointment form:
+        \begin{itemize}
+            \item \textbf{Broker} -- Select your broker.
+            \item \textbf{Transaction} -- Select the associated transaction.
+            \item \textbf{Appointment Type} -- Choose the type of appointment (e.g., Consultation, Property Showing).
+            \item \textbf{Date}, \textbf{Start Time}, and \textbf{End Time} -- Select your preferred schedule.
+            \item \textbf{Message} -- Add any details or preferences.
+        \end{itemize}
+    \item Click \textbf{Send Request}.
+    \item Your broker receives a notification and can confirm, reschedule, or decline.
+    \item You will receive a notification once the broker responds.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Client appointment request form showing the broker selector, transaction dropdown, appointment type, date and time pickers, and message field}
+    \label{fig:client-request-appointment}
+\end{figure}
+
+% ── 4.5 Review Appointment Responses ─────────────────────────────────────
+\subsection{Client Reviews Appointment Response}
+\label{subsec:review-appointment-responses}
+
+When your broker responds to an appointment request:
+
+\begin{enumerate}
+    \item Navigate to \textbf{Appointments} in the sidebar.
+    \item Check the \textbf{Incoming Appointment Requests} section for any pending proposals.
+    \item If the broker proposed a new time, review the suggested schedule.
+    \item Choose to \textbf{Confirm} the proposal, \textbf{Propose New Time}, or \textbf{Decline}.
+\end{enumerate}
+
+% ── 4.6 View My Documents ────────────────────────────────────────────────
+\subsection{Client Views Documents}
+\label{subsec:my-documents}
+
+\begin{enumerate}
+    \item Click \textbf{My Documents} in the sidebar.
+    \item All your documents across all transactions are displayed.
+    \item Each document shows its name, associated transaction, and current status:
+        \begin{itemize}
+            \item \textbf{Requested} -- The broker has requested this document from you.
+            \item \textbf{Submitted} -- You have uploaded the document; it is awaiting review.
+            \item \textbf{Approved} -- The broker has approved the document.
+            \item \textbf{Needs Revision} -- The broker has returned the document with comments.
+        \end{itemize}
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{My Documents page showing document cards with status badges (Requested, Submitted, Approved, Needs Revision) and associated transaction names}
+    \label{fig:my-documents}
+\end{figure}
+
+% ── 4.7 Client Notifications ─────────────────────────────────────────────
+\subsection{Client Views Notifications}
+\label{subsec:client-notifications}
+
+\begin{enumerate}
+    \item Click \textbf{Notifications} in the sidebar.
+    \item Review all notifications including document review results, appointment updates, and stage changes.
+    \item Click a notification to navigate to the relevant transaction or document.
+\end{enumerate}
+
+% ===========================================================================
+% SECTION 5 – ADMINISTRATOR USE CASES
+% ===========================================================================
+\newpage
+\section{Administrator Use Cases}
+\label{sec:admin-use-cases}
+
+This section describes all use cases available to users with the \textbf{Admin} role. Administrators are responsible for managing the system, user accounts, and organizational settings.
+
+% ── 5.1 Admin Dashboard ──────────────────────────────────────────────────
+\subsection{Admin Views Dashboard}
+\label{subsec:admin-dashboard}
+
+\begin{enumerate}
+    \item After logging in, you are directed to the \textbf{Admin Dashboard}.
+    \item Review the \textbf{KPI cards} providing a system-wide overview:
+        \begin{itemize}
+            \item \textbf{Total Users} -- Total registered users in the system.
+            \item \textbf{Active Brokers} -- Number of currently active broker accounts.
+            \item \textbf{Total Clients} -- Total client accounts.
+            \item \textbf{Active Transactions} -- Currently active real estate transactions.
+            \item \textbf{New Users (24h)} -- Users registered in the last 24 hours.
+            \item \textbf{Failed Logins (24h)} -- Failed login attempts in the last 24 hours.
+            \item \textbf{System Health} -- Current system health status.
+        \end{itemize}
+    \item Use the \textbf{Quick Access} buttons below the KPIs:
+        \begin{itemize}
+            \item \textbf{Resource Removal} -- Navigate to the Resources page.
+            \item \textbf{Audit Logs} -- Navigate to the Login Audit page.
+            \item \textbf{Invite User} -- Open the Invite User modal directly from the dashboard.
+            \item \textbf{Create Broadcast} -- Open the Broadcast Message modal to send a notification to all users.
+        \end{itemize}
+    \item The \textbf{Recent Admin Actions} section shows:
+        \begin{itemize}
+            \item \textbf{Login Audits} -- Recent login events with email, role, and timestamp.
+            \item \textbf{Deletion Audits} -- Recent resource deletions with admin email, resource type, and timestamp.
+        \end{itemize}
+    \item The \textbf{System Alerts} section displays critical system alerts with severity indicators. Administrators can trigger test alerts using the \textbf{Trigger Test Alert} button.
+    \item The \textbf{System Logs} preview shows the 5 most recent organization settings changes. Click \textbf{View all system logs} to see the full history.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Admin dashboard showing seven KPI cards (Total Users, Active Brokers, Total Clients, Active Transactions, New Users 24h, Failed Logins 24h, System Health), quick-access buttons, Recent Admin Actions, System Alerts, and System Logs preview}
+    \label{fig:admin-dashboard}
+\end{figure}
+
+% ── 5.2 Manage Users ─────────────────────────────────────────────────────
+\subsection{Admin Manages User Accounts}
+\label{subsec:manage-users}
+
+\subsubsection{Admin Views User List}
+\label{subsubsec:user-list}
+
+\begin{enumerate}
+    \item Click \textbf{Manage Users} in the sidebar.
+    \item The user list displays all accounts with their name, email, role, and active status.
+    \item Use the search bar to find specific users.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Manage Users page showing the user table with columns for name, email, role, and active status, plus the Invite User button}
+    \label{fig:manage-users}
+\end{figure}
+
+\subsubsection{Admin Invites New User}
+\label{subsubsec:invite-user}
+
+\begin{enumerate}
+    \item On the \textbf{Manage Users} page, click the \textbf{Invite User} button.
+    \item In the modal, fill in:
+        \begin{itemize}
+            \item \textbf{First Name} and \textbf{Last Name}.
+            \item \textbf{Email Address}.
+            \item \textbf{Role} -- Select Broker, Client, or Admin.
+        \end{itemize}
+    \item Click \textbf{Send Invitation}.
+    \item The new user receives an email with account setup instructions.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Invite User modal showing input fields for first name, last name, email address, and a role selection dropdown}
+    \label{fig:invite-user}
+\end{figure}
+
+\subsubsection{Admin Activates or Deactivates User}
+\label{subsubsec:toggle-user-status}
+
+\begin{enumerate}
+    \item On the \textbf{Manage Users} page, locate the user you wish to modify.
+    \item Click the \textbf{active/inactive toggle} for that user.
+    \item Confirm the action in the dialog.
+    \item Deactivated users can no longer log into the system.
+\end{enumerate}
+
+\subsubsection{Admin Triggers Password Reset}
+\label{subsubsec:password-reset}
+
+\begin{enumerate}
+    \item On the \textbf{Manage Users} page, locate the user.
+    \item Click the \textbf{Reset Password} button for that user.
+    \item The user receives an email with a password reset link via Auth0.
+\end{enumerate}
+
+% ── 5.3 Organization Settings ────────────────────────────────────────────
+\subsection{Admin Manages Organization Settings}
+\label{subsec:org-settings}
+
+\begin{enumerate}
+    \item Click \textbf{Organization Settings} in the sidebar.
+    \item The settings page allows you to configure:
+        \begin{itemize}
+            \item \textbf{Organization Name} -- The brokerage name displayed throughout the system.
+            \item \textbf{Default Language} -- Set the default language (English or French) for new users and notifications.
+        \end{itemize}
+    \item The primary feature is the \textbf{Email Template Editor}, which allows customization of 11 notification template types:
+        \begin{itemize}
+            \item Invitation, Document Submitted, Document Approved, Document Needs Revision, Appointment Proposed, Appointment Confirmed, Appointment Declined, Appointment Cancelled, Stage Update, Offer Received, Offer Status Change.
+        \end{itemize}
+    \item For each template type:
+        \begin{enumerate}
+            \item Select the template type from the dropdown.
+            \item Edit the \textbf{Subject} and \textbf{Body} in both \textbf{English} and \textbf{French} tabs.
+            \item Use the \textbf{Insert Variable} buttons to insert dynamic placeholders (e.g., \texttt{\{\{name\}\}}, \texttt{\{\{documentName\}\}}).
+            \item Use the \textbf{Live Preview} tab to see how the email will look with sample data.
+        \end{enumerate}
+    \item After making changes, click \textbf{Save} to apply them.
+    \item All configuration changes are recorded in the System Logs.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Organization Settings page showing the email template editor with the template type dropdown, English/French tabs for subject and body editing, variable insertion buttons, and the live preview panel}
+    \label{fig:org-settings}
+\end{figure}
+
+% ── 5.4 View Audit Logs ──────────────────────────────────────────────────
+\subsection{Admin Views Audit Logs}
+\label{subsec:audit-logs}
+
+\subsubsection{Admin Views Login Audit}
+\label{subsubsec:login-audit}
+
+\begin{enumerate}
+    \item Click \textbf{Login Audit} in the sidebar.
+    \item The page displays a table of all login events with columns for \textbf{Timestamp}, \textbf{User} (email and user ID), \textbf{Role}, and \textbf{IP Address}.
+    \item Click any row to \textbf{expand} it and reveal additional details:
+        \begin{itemize}
+            \item \textbf{User Agent} -- The browser and operating system used.
+            \item \textbf{Event ID} -- A unique identifier for the login event.
+        \end{itemize}
+    \item Use these logs to monitor access patterns and detect unauthorized access attempts.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Login Audit page showing a table of login events with expandable rows revealing user agent and event ID details}
+    \label{fig:login-audit}
+\end{figure}
+
+\subsubsection{Admin Views Password Reset Audit}
+\label{subsubsec:password-reset-audit}
+
+\begin{enumerate}
+    \item Click \textbf{Password Reset Audit} in the sidebar.
+    \item The page displays a table of all password reset events with columns for \textbf{Email}, \textbf{Event Type} (shown as a badge, e.g., ``COMPLETED''), \textbf{Timestamp} (shown as relative time, e.g., ``2 hours ago''), and \textbf{IP Address}.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Password Reset Audit page showing a table of password reset events with email, event type badge, relative timestamp, and IP address columns}
+    \label{fig:password-reset-audit}
+\end{figure}
+
+\subsubsection{Admin Views System Logs}
+\label{subsubsec:system-logs}
+
+\begin{enumerate}
+    \item Click \textbf{System Logs} in the sidebar.
+    \item The page displays a table of organization settings changes with columns for \textbf{When} (timestamp), \textbf{Invite Template EN} (changed/not changed), \textbf{Invite Template FR} (changed/not changed), and \textbf{Default Language} (change summary).
+    \item Click any row to \textbf{expand} it and reveal:
+        \begin{itemize}
+            \item The previous and new default language values.
+            \item The event ID.
+        \end{itemize}
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{System Logs page showing a table of organization settings changes with expandable rows displaying previous and new language values}
+    \label{fig:system-logs}
+\end{figure}
+
+% ── 5.5 Manage Resources ─────────────────────────────────────────────────
+\subsection{Admin Manages Resources}
+\label{subsec:manage-resources}
+
+The Resources page provides administrators with comprehensive resource lifecycle management:
+
+\begin{enumerate}
+    \item Click \textbf{Resources} in the sidebar.
+    \item The page is organized into \textbf{tabs} for different resource types: \textbf{Transactions}, \textbf{Documents}, and \textbf{Users}.
+    \item Within each tab:
+        \begin{itemize}
+            \item Use the \textbf{search bar} to filter resources by name or identifier.
+            \item Click \textbf{Delete} to soft-delete a resource. A confirmation dialog appears before deletion.
+            \item Deleted resources can be \textbf{restored} using the Restore button.
+        \end{itemize}
+    \item Click any resource row to \textbf{expand} it and view its full details.
+    \item The \textbf{Deletion Audit History} section at the bottom shows a chronological log of all deletions with:
+        \begin{itemize}
+            \item Admin who performed the deletion.
+            \item Resource type and identifier.
+            \item Timestamp of deletion.
+            \item Cascaded resources (related items that were also deleted).
+        \end{itemize}
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Resources page showing the Transactions tab with a search bar, resource table with Delete and Restore buttons, and the Deletion Audit History log below}
+    \label{fig:resources}
+\end{figure}
+
+% ── 5.6 Admin Notifications and Broadcast ─────────────────────────
+\subsection{Admin Views Notifications and Sends Broadcasts}
+\label{subsec:admin-notifications}
+
+\begin{enumerate}
+    \item Click \textbf{Notifications} in the sidebar.
+    \item Review system notifications relevant to administrative actions, user account events, and system alerts.
+    \item Administrators see a \textbf{Create Broadcast} button at the top of the page.
+    \item To send a broadcast message to all users:
+        \begin{enumerate}
+            \item Click \textbf{Create Broadcast} (or use the quick-access button on the dashboard).
+            \item In the modal, enter a \textbf{Title} (max 100 characters) and a \textbf{Message} (max 500 characters).
+            \item Click \textbf{Send Broadcast}.
+            \item The message is delivered as a notification to every user in the system.
+        \end{enumerate}
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Broadcast Message modal showing the title field, message textarea with character counter, and Send Broadcast button}
+    \label{fig:broadcast-message}
+\end{figure}
+
+% ===========================================================================
+% SECTION 6 – FEEDBACK
+% ===========================================================================
+\newpage
+\section{User Submits Feedback}
+\label{sec:feedback}
+
+All users can submit feedback to the development team directly from within the application:
+
+\begin{enumerate}
+    \item Locate the \textbf{Feedback} button at the bottom of the sidebar.
+    \item Click it to open the \textbf{Feedback Modal}.
+    \item Select the \textbf{feedback type}:
+        \begin{itemize}
+            \item \textbf{Bug Report} -- Report an issue or error you encountered.
+            \item \textbf{Feature Request} -- Suggest a new feature or improvement.
+        \end{itemize}
+    \item Enter your feedback message in the text area (minimum 10 characters required).
+    \item Optionally, check the \textbf{Submit Anonymously} checkbox if you prefer not to include your identity.
+    \item Review the \textbf{privacy notice} displayed below the form.
+    \item Click \textbf{Submit Feedback} to send your feedback. A success toast notification confirms the submission.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    % INSERT SCREENSHOT HERE
+    \caption{Feedback Modal showing the type selector (Bug Report / Feature Request), message textarea, Submit Anonymously checkbox, privacy notice, and Submit Feedback button}
+    \label{fig:feedback-modal}
+\end{figure}
+
+% ===========================================================================
+% SECTION 7 – ACCESSIBILITY
+% ===========================================================================
+\newpage
+\section{Accessibility}
+\label{sec:accessibility}
+
+CourtierPro is designed to meet \textbf{WCAG 2.0 Level AA} conformance standards in accordance with Quebec web accessibility requirements. The following accessibility features are implemented throughout the application:
+
+\begin{itemize}
+    \item \textbf{Keyboard Navigation} -- All interactive elements (buttons, links, form fields, modals, dropdowns) are fully accessible via keyboard. Focus indicators are visible on all focusable elements.
+    \item \textbf{Screen Reader Support} -- Semantic HTML5 elements, ARIA labels, and role attributes are used throughout the interface to ensure compatibility with screen readers.
+    \item \textbf{Color Contrast} -- All text and UI elements meet the minimum contrast ratio of 4.5:1 for normal text and 3:1 for large text in both light and dark themes.
+    \item \textbf{Focus Management} -- When modals open, focus is trapped within the modal. When modals close, focus returns to the triggering element.
+    \item \textbf{Form Accessibility} -- All form fields have associated labels. Validation errors are announced to screen readers and displayed visually.
+    \item \textbf{Alternative Text} -- All meaningful images and icons include descriptive alternative text.
+    \item \textbf{Responsive Design} -- The interface adapts to different screen sizes and supports text resizing up to 200\% without loss of content.
+\end{itemize}
+
+% ===========================================================================
+% SECTION 8 – CONTRIBUTIONS
+% ===========================================================================
+\newpage
+\section{Contributions of the Authors}
+\label{sec:contributions}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}p{3.5cm}p{3.75cm}p{2.75cm}p{4cm}@{}}
+\toprule
+\textbf{Member's Name} & \textbf{Contribution (\%)} & \textbf{Sections} & \textbf{Whole Document} \\
+\midrule
+Shawn Nabizada & & & \\
+\addlinespace
+Amir Ghadimi & & & \\
+\addlinespace
+Olivier Goudreault & & & \\
+\addlinespace
+Isaac Nachate & & & \\
+\midrule
+\textbf{SUM} & \textbf{100\%} & & \\
+\bottomrule
+\end{tabular}
+\caption{Contributions of the authors}
+\label{tab:contributions}
+\end{table}
+
+% ===========================================================================
+% SECTION 8 – REFERENCES
+% ===========================================================================
+\newpage
+\section{References}
+\label{sec:references}
+
+\begin{enumerate}
+    \item Auth0 Documentation -- \url{https://auth0.com/docs}
+    \item React Documentation -- \url{https://react.dev/}
+    \item Spring Boot Documentation -- \url{https://spring.io/projects/spring-boot}
+    \item PostgreSQL Documentation -- \url{https://www.postgresql.org/docs/}
+    \item Amazon SES Documentation -- \url{https://docs.aws.amazon.com/ses/}
+    \item Cloudflare R2 Documentation -- \url{https://developers.cloudflare.com/r2/}
+\end{enumerate}
+
+\end{document}
