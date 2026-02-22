@@ -199,7 +199,7 @@ Title: \textbf{Addressing Customer Requirements}\\
 Summary table:
 \begin{itemize}
     \item 26 original planned use cases
-    \item 13 Fully Implemented | 9 Modified | 4 Not Implemented
+    \item 13 Fully Implemented | 10 Modified | 4 Not Implemented
     \item 50+ new use cases added during development
 \end{itemize}
 Pie chart showing the distribution.
@@ -208,7 +208,7 @@ Pie chart showing the distribution.
 \begin{speakernote}
 We began this project with 26 planned use cases from the ECP Proposal. Let's walk through how each one was addressed.
 
-Of the 26 original use cases, 13 were fully implemented as proposed, 9 were modified to better fit real-world Quebec real estate workflows, and 4 were intentionally not implemented --- with the client's agreement. On top of that, we added over 50 new use cases during our five development sprints.
+Of the 26 original use cases, 13 were fully implemented as proposed, 10 were modified to better fit real-world Quebec real estate workflows, and 4 were intentionally not implemented --- with the client's agreement. On top of that, we added over 50 new use cases during our five development sprints.
 \end{speakernote}
 
 % --- Original Use Cases ---
@@ -218,19 +218,19 @@ Of the 26 original use cases, 13 were fully implemented as proposed, 9 were modi
 \textbf{Slide 4 --- Fully Implemented Use Cases}\\
 Table showing all 13 fully implemented use cases with short descriptions:
 \begin{itemize}
-    \item B4: Dashboard with KPIs, priority cards, activity feed
-    \item B5: Transaction filtering (side, status, search)
-    \item B6: Stage advancement with notifications and timeline logging
-    \item B9: Real-time in-app + email notifications (SES)
-    \item B10: Transaction timeline (audit trail)
-    \item B13: Tabbed transaction details (9 tabs)
-    \item C1: Auth0 login with role-based routing
-    \item C4: Transaction progress via stage tracker
-    \item A3: Login, password reset, and system audit logs
-    \item A4: Organization-level and user-level language settings
-    \item A5: Email template editor (11 types, EN/FR, live preview)
-    \item A7: User invitation, activation, deactivation, password reset
-    \item AU1, AU2: Auth0 authentication and admin-triggered password reset
+    \item Broker views dashboard with KPIs, priority cards, activity feed
+    \item Broker filters transactions (side, status, search)
+    \item Broker updates transaction stage with notifications and timeline logging
+    \item Broker receives real-time in-app + email notifications (SES)
+    \item Broker views transaction timeline (audit trail)
+    \item Broker views tabbed transaction details (9 tabs)
+    \item Client logs in via Auth0 with role-based routing
+    \item Client views transaction progress via stage tracker
+    \item Admin views login, password reset, and system audit logs
+    \item Admin manages language settings (organization and user level)
+    \item Admin edits email templates (11 types, EN/FR, live preview)
+    \item Admin manages user accounts (invite, activate, deactivate, reset password)
+    \item User logs in and resets password via Auth0
 \end{itemize}
 \end{slidedesc}
 
@@ -245,27 +245,27 @@ Starting with the 13 use cases we fully implemented. These include the broker da
 \textbf{Slide 5 --- Modified Use Cases (Part 1)}\\
 Table with ``Original'' and ``What We Built'' columns:
 \begin{itemize}
-    \item B1: Prioritize transactions $\rightarrow$ Pin system + smart priority cards
-    \item B2: Assign transactions $\rightarrow$ Co-managing brokers via Participants tab
-    \item B3: CSV export $\rightarrow$ Analytics module with CSV and PDF export
-    \item B7: Milestone dates $\rightarrow$ Automatic timeline logging per stage
-    \item C2: Transaction summary $\rightarrow$ Full dashboard with KPIs, carousel, widgets
+    \item Prioritize transactions $\rightarrow$ Pin system + smart priority cards
+    \item Assign transactions $\rightarrow$ Co-managing brokers via Participants tab
+    \item Export transaction summary $\rightarrow$ Analytics module with CSV and PDF export
+    \item Enter milestone dates $\rightarrow$ Automatic timeline logging per stage
+    \item Client transaction summary $\rightarrow$ Full dashboard with KPIs, carousel, widgets
 \end{itemize}
 \end{slidedesc}
 
 \begin{slidedesc}
 \textbf{Slide 6 --- Modified Use Cases (Part 2)}\\
 \begin{itemize}
-    \item C3: \% progress $\rightarrow$ Visual stage tracker for buyer/seller workflows
-    \item C5: Milestone confirmation $\rightarrow$ Document review workflow (approve/revision/reject)
-    \item A1: Configurable stages $\rightarrow$ Fixed industry-standard QC stages
-    \item A6: Archive transactions $\rightarrow$ Soft-delete and restore with audit trail
-    \item A8: Custom permissions $\rightarrow$ Fixed role-based system (Broker/Client/Admin)
+    \item Progress percentage $\rightarrow$ Visual stage tracker for buyer/seller workflows
+    \item Milestone confirmation $\rightarrow$ Document review workflow (approve/revision/reject)
+    \item Configurable stages $\rightarrow$ Fixed industry-standard QC stages
+    \item Archive transactions $\rightarrow$ Soft-delete and restore with audit trail
+    \item Custom permissions $\rightarrow$ Fixed role-based system (Broker/Client/Admin)
 \end{itemize}
 \end{slidedesc}
 
 \begin{speakernote}
-Nine use cases were modified. In every case, the modification was driven by practical needs. For example, instead of abstract percentage-based progress, we built a visual stage tracker that maps directly to Quebec real estate stages, like ``Financial Preparation'' through ``Possession'' for buyers. Instead of assigning transactions between brokers --- which doesn't match a small brokerage's workflow --- we added co-managing brokers through the Participants tab.
+Ten use cases were modified. In every case, the modification was driven by practical needs. For example, instead of abstract percentage-based progress, we built a visual stage tracker that maps directly to Quebec real estate stages, like ``Financial Preparation'' through ``Possession'' for buyers. Instead of assigning transactions between brokers --- which doesn't match a small brokerage's workflow --- we added co-managing brokers through the Participants tab.
 
 The client approved all of these modifications during our sprint reviews.
 \end{speakernote}
@@ -277,11 +277,11 @@ The client approved all of these modifications during our sprint reviews.
 \textbf{Slide 7 --- Not Implemented Use Cases}\\
 Table with ``Use Case'' and ``Reason'' columns:
 \begin{itemize}
-    \item B8: Tax breakdown (GST/QST) --- Handled by notaries at closing
-    \item B11: Commission tax calculation --- Falls to brokerage accounting
-    \item B12: Commission amount input --- Related to B8/B11
-    \item A2: Dashboard configuration --- Standardized dashboards chosen for consistency
-    \item A9: System tax settings --- Same rationale as B8
+    \item Tax breakdown (GST/QST) --- Handled by notaries at closing
+    \item Commission tax calculation --- Falls to brokerage accounting
+    \item Commission amount input --- Related to tax features above
+    \item Dashboard configuration --- Standardized dashboards chosen for consistency
+    \item System tax settings --- Same rationale as tax breakdown
 \end{itemize}
 \textit{Each reason includes ``Client agreed'' checkmark.}
 \end{slidedesc}
